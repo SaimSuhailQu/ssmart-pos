@@ -144,6 +144,20 @@ export function initDb() {
     }
   }
 
+  // Detect and migrate old USD dummy products to PKR Pakistani products
+  try {
+    const hasOldCoke = db.prepare("SELECT * FROM products WHERE barcode = '123456789012' AND price < 10").get();
+    if (hasOldCoke) {
+      console.log("Old USD dummy products detected. Clearing all transaction history and reseeding with PKR Pakistani products...");
+      db.prepare('DELETE FROM sale_items').run();
+      db.prepare('DELETE FROM payments').run();
+      db.prepare('DELETE FROM sales').run();
+      db.prepare('DELETE FROM products').run();
+    }
+  } catch (err) {
+    console.error("Failed to execute USD to PKR migration:", err);
+  }
+
   // Seed dummy products if empty
   const count = db.prepare('SELECT COUNT(*) as count FROM products').get() as { count: number };
   if (count.count === 0) {
@@ -156,24 +170,30 @@ export function initDb() {
 
     insertMany([
       // Drinks
-      { name: 'Coca Cola 1.5L', barcode: '123456789012', price: 2.50, stock: 100, category: 'Drinks' },
-      { name: 'Red Bull Energy', barcode: '111222333444', price: 3.00, stock: 80, category: 'Drinks' },
-      { name: 'Orange Juice 1L', barcode: '222333444555', price: 4.50, stock: 40, category: 'Drinks' },
-      { name: 'Mineral Water', barcode: '333444555666', price: 1.00, stock: 200, category: 'Drinks' },
-      // Snacks
-      { name: 'Lays Classic Chips', barcode: '098765432109', price: 1.99, stock: 50, category: 'Snacks' },
-      { name: 'Snickers Bar', barcode: '555666777888', price: 1.25, stock: 120, category: 'Snacks' },
-      { name: 'Doritos Nacho', barcode: '444555666777', price: 2.50, stock: 60, category: 'Snacks' },
-      { name: 'Oreo Cookies', barcode: '777888999000', price: 3.50, stock: 45, category: 'Snacks' },
+      { name: 'Pakola Cream Soda 1.5L', barcode: '896101400234', price: 170.00, stock: 100, category: 'Drinks' },
+      { name: 'Coca Cola 1.5L', barcode: '123456789012', price: 190.00, stock: 120, category: 'Drinks' },
+      { name: 'Nestle Fruita Vitals Orange 1L', barcode: '222333444555', price: 290.00, stock: 60, category: 'Drinks' },
+      { name: 'Gourmet Mineral Water 1.5L', barcode: '333444555666', price: 90.00, stock: 200, category: 'Drinks' },
+      { name: 'Red Bull Energy Can', barcode: '111222333444', price: 480.00, stock: 80, category: 'Drinks' },
+      // Snacks & Biscuits
+      { name: 'Lays Masala Chips (Large)', barcode: '098765432109', price: 100.00, stock: 150, category: 'Snacks' },
+      { name: 'Kurkure Red Chilli (Medium)', barcode: '444555666777', price: 60.00, stock: 120, category: 'Snacks' },
+      { name: 'Oreo Biscuit Family Pack', barcode: '777888999000', price: 120.00, stock: 80, category: 'Snacks' },
+      { name: 'Sooper Biscuits Half Roll', barcode: '896100122345', price: 50.00, stock: 250, category: 'Snacks' },
+      { name: 'Snickers Bar 50g', barcode: '555666777888', price: 180.00, stock: 100, category: 'Snacks' },
       // Groceries
-      { name: 'Fresh Milk 2L', barcode: '888999000111', price: 3.20, stock: 30, category: 'Groceries' },
-      { name: 'White Bread', barcode: '999000111222', price: 2.00, stock: 25, category: 'Groceries' },
-      { name: 'Free Range Eggs', barcode: '000111222333', price: 4.99, stock: 40, category: 'Groceries' },
-      // Electronics
-      { name: 'AA Batteries 4pk', barcode: '101010101010', price: 5.99, stock: 150, category: 'Electronics' },
-      { name: 'USB-C Cable', barcode: '202020202020', price: 12.99, stock: 35, category: 'Electronics' },
+      { name: "Olper's Milk 1L", barcode: '888999000111', price: 295.00, stock: 90, category: 'Groceries' },
+      { name: 'Dawn Bread (Large)', barcode: '999000111222', price: 180.00, stock: 40, category: 'Groceries' },
+      { name: 'National Refined Salt 800g', barcode: '896100011223', price: 60.00, stock: 100, category: 'Groceries' },
+      { name: 'Shan Biryani Masala', barcode: '896101221122', price: 130.00, stock: 150, category: 'Groceries' },
+      { name: 'Tapal Danedar Tea 475g', barcode: '896101111222', price: 950.00, stock: 70, category: 'Groceries' },
+      { name: 'Fresh Eggs Dozen', barcode: '000111222333', price: 320.00, stock: 35, category: 'Groceries' },
+      // Personal Care & Home
+      { name: 'Safeguard Soap Active 135g', barcode: '490243075231', price: 160.00, stock: 120, category: 'Personal Care' },
+      { name: 'Surf Excel 1kg', barcode: '896100045231', price: 680.00, stock: 50, category: 'Personal Care' },
+      { name: 'Sensodyne Herbal Multi 100g', barcode: '501010101010', price: 420.00, stock: 60, category: 'Personal Care' },
       // Fast Add
-      { name: 'Plastic Bag', barcode: '000000000001', price: 0.10, stock: 9999, category: 'General' },
+      { name: 'Plastic Bag', barcode: '000000000001', price: 10.00, stock: 9999, category: 'General' },
     ]);
   }
 }
