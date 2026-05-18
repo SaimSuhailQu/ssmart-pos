@@ -54,6 +54,18 @@ const config: ForgeConfig = {
       [FuseV1Options.OnlyLoadAppFromAsar]: true,
     }),
   ],
+  hooks: {
+    packageAfterCopy: async (forgeConfig, buildPath, electronVersion, platform, arch) => {
+      const fs = require('fs');
+      const { execSync } = require('child_process');
+      console.log(`[Forge Hook] buildPath contains:`, fs.readdirSync(buildPath));
+      console.log(`[Forge Hook] Installing production dependencies in: ${buildPath}`);
+      execSync('npm install --production', {
+        cwd: buildPath,
+        stdio: 'inherit',
+      });
+    },
+  },
 };
 
 export default config;
