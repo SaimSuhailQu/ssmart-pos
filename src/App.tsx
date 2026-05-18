@@ -32,6 +32,7 @@ const App: React.FC = () => {
         const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [syncStatus, setSyncStatus] = useState<string>('ONLINE');
   const [discount, setDiscount] = useState<number>(0);
+  const [isNetworkOnline, setIsNetworkOnline] = useState<boolean>(navigator.onLine);
 
   // Enforce strict Role-Based Access Control view bounds
   useEffect(() => {
@@ -44,14 +45,27 @@ const App: React.FC = () => {
     }
   }, [viewMode, currentUser]);
 
-  // Listen to background sync engine updates
+  // Listen to network connectivity and background sync engine updates
   useEffect(() => {
+    const handleOnline = () => setIsNetworkOnline(true);
+    const handleOffline = () => setIsNetworkOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
     if (window.api.onSyncStatusChanged) {
       window.api.onSyncStatusChanged((status) => {
         setSyncStatus(status);
       });
     }
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, []);
+
+  const isOnline = isNetworkOnline && syncStatus === 'ONLINE';
 
   // Initial load
   const loadProducts = async () => {
@@ -348,14 +362,14 @@ const App: React.FC = () => {
                   <h1 className="text-2xl font-extrabold tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 drop-shadow-md">SS MART</h1>
                   {/* Glowing Cloud Status Indicator */}
                   <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-widest border transition-all duration-500 uppercase ${
-                    syncStatus === 'ONLINE'
+                    isOnline
                       ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 shadow-[0_0_10px_rgba(16,185,129,0.2)]'
                       : 'bg-red-500/10 text-red-400 border-red-500/30 shadow-[0_0_10px_rgba(239,68,68,0.2)] animate-pulse'
                   }`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${
-                      syncStatus === 'ONLINE' ? 'bg-emerald-400' : 'bg-red-400'
+                      isOnline ? 'bg-emerald-400' : 'bg-red-400'
                     }`} />
-                    {syncStatus === 'ONLINE' ? 'Online' : 'Offline'}
+                    {isOnline ? 'Online' : 'Offline'}
                   </span>
                 </div>
                 <p className="text-[10px] text-cyan-400 font-bold uppercase tracking-widest mt-0.5">Advanced Terminal</p>
