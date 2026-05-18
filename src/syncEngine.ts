@@ -2,16 +2,16 @@ import { initializeApp, getApps } from 'firebase/app';
 import { getDatabase, ref, set } from 'firebase/database';
 import { getUnsyncedSales, markSaleAsSynced } from './db';
 
-// Default / fallback Firebase configuration so the app never crashes
+// Firebase configuration injected at build-time by Vite
 const firebaseConfig = {
-  apiKey: "AIzaSyBBXuvZ1GCj9v-ZfgIFdmxT7fqBck1GJ6c",
-  authDomain: "ssmart-c6e43.firebaseapp.com",
-  databaseURL: "https://ssmart-c6e43-default-rtdb.firebaseio.com/",
-  projectId: "ssmart-c6e43",
-  storageBucket: "ssmart-c6e43.firebasestorage.app",
-  messagingSenderId: "3113728357",
-  appId: "1:3113728357:web:9f26cd9bf162ab9f60c98c",
-  measurementId: "G-9LVJLM3R6H"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
 let dbInstance: any = null;
