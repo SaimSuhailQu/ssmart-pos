@@ -57,10 +57,23 @@ const config: ForgeConfig = {
   hooks: {
     packageAfterCopy: async (forgeConfig, buildPath, electronVersion, platform, arch) => {
       const fs = require('fs');
+      const path = require('path');
       const { execSync } = require('child_process');
-      console.log(`[Forge Hook] buildPath contains:`, fs.readdirSync(buildPath));
+      
+      console.log(`[Forge Hook] Preparing buildPath for npm install: ${buildPath}`);
+      
+      // Ensure the node_modules folder exists
+      fs.mkdirSync(path.join(buildPath, 'node_modules'), { recursive: true });
+      
+      // Copy package.json and package-lock.json from root to the temporary packaging folder
+      const rootDir = __dirname;
+      fs.copyFileSync(path.resolve(rootDir, 'package.json'), path.join(buildPath, 'package.json'));
+      if (fs.existsSync(path.resolve(rootDir, 'package-lock.json'))) {
+        fs.copyFileSync(path.resolve(rootDir, 'package-lock.json'), path.join(buildPath, 'package-lock.json'));
+      }
+      
       console.log(`[Forge Hook] Installing production dependencies in: ${buildPath}`);
-      execSync('npm install --production', {
+      execSync('npm install --omit=dev --no-audit --no-fund', {
         cwd: buildPath,
         stdio: 'inherit',
       });
