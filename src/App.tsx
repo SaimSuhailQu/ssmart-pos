@@ -375,8 +375,12 @@ const App: React.FC = () => {
                 <p className="text-[10px] text-cyan-400 font-bold uppercase tracking-widest mt-0.5">Advanced Terminal</p>
               </div>
             </div>
-            <form onSubmit={handleManualAdd} className="relative group w-72">
-               <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-gray-400 group-focus-within:text-cyan-400 transition-colors">
+            <form onSubmit={handleManualAdd} className="relative group w-72 overflow-hidden rounded-xl">
+               <div className="absolute inset-0 pointer-events-none z-20">
+                 {/* Active Laser Sweep */}
+                 <div className="absolute left-0 right-0 h-[1.5px] bg-red-500/80 shadow-[0_0_8px_rgba(239,68,68,0.7)] animate-laser pointer-events-none" />
+               </div>
+               <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-gray-400 group-focus-within:text-cyan-400 transition-colors z-25">
                  <PackageSearch size={18} />
                </div>
                <input 
@@ -384,7 +388,7 @@ const App: React.FC = () => {
                  placeholder="Enter Barcode..." 
                  value={manualBarcode}
                  onChange={e => setManualBarcode(e.target.value)}
-                 className="w-full glass-input rounded-xl block pl-12 p-3"
+                 className="w-full glass-input rounded-xl block pl-12 p-3 relative z-10"
                />
             </form>
           </header>
@@ -519,6 +523,7 @@ const App: React.FC = () => {
           tax={tax}
           discount={activeDiscount}
           total={totalAmount}
+          items={cart}
           onClose={() => setIsPaymentOpen(false)}
           onConfirm={handleCheckoutConfirm}
         />

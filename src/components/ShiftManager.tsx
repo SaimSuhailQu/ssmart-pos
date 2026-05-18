@@ -171,29 +171,65 @@ export const ShiftManager: React.FC<ShiftManagerProps> = ({ currentUser, onLogou
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             {/* Active User Card */}
-            <div className="glass-panel p-6 rounded-2xl border-white/5 bg-white/5 relative overflow-hidden">
+            <div className="glass-panel p-6 rounded-2xl border-white/5 bg-white/5 relative overflow-hidden flex flex-col justify-between min-h-[145px]">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500 to-purple-600"></div>
-              <span className="text-xs text-gray-500 font-bold uppercase tracking-wider block mb-1">Signed In As</span>
-              <h3 className="text-xl font-black text-white">{currentUser.name}</h3>
-              <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 rounded-full font-bold text-xs">
-                <Sparkles size={12} /> {currentUser.role}
+              <div>
+                <span className="text-xs text-gray-500 font-bold uppercase tracking-wider block mb-1">Active Operator</span>
+                <h3 className="text-xl font-black text-white tracking-wide truncate">{currentUser.name}</h3>
+              </div>
+              <div className="mt-4">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 rounded-full font-black text-[9px] uppercase tracking-widest shadow-[0_0_10px_rgba(0,240,255,0.15)]">
+                  <Sparkles size={10} className="animate-spin" style={{ animationDuration: '6s' }} /> {currentUser.role}
+                </span>
               </div>
             </div>
 
             {/* Shift Duration */}
-            <div className="glass-panel p-6 rounded-2xl border-white/5 bg-white/5 relative overflow-hidden">
+            <div className="glass-panel p-6 rounded-2xl border-white/5 bg-white/5 relative overflow-hidden flex flex-col justify-between min-h-[145px]">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 to-red-500"></div>
-              <span className="text-xs text-gray-500 font-bold uppercase tracking-wider block mb-1">Shift Duration</span>
-              <h3 className="text-2xl font-mono font-bold text-white tracking-widest">{shiftDuration}</h3>
-              <span className="text-xs text-gray-400 flex items-center gap-1.5 mt-3"><Clock size={12} /> Clock-in: {activeShift ? new Date(activeShift.clock_in).toLocaleTimeString() : '--:--'}</span>
+              <div>
+                <span className="text-xs text-gray-500 font-bold uppercase tracking-wider block mb-1">Active Duty Timer</span>
+                <h3 className="text-3xl font-mono font-black text-white tracking-widest drop-shadow-[0_0_8px_rgba(249,115,22,0.4)]">{shiftDuration}</h3>
+              </div>
+              <div className="text-[10px] text-gray-400 flex items-center gap-1.5 mt-4 font-medium uppercase tracking-wider">
+                <span className="w-2 h-2 rounded-full bg-orange-500 animate-ping shrink-0" />
+                <span>Clock-In: {activeShift ? new Date(activeShift.clock_in).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '--:--'}</span>
+              </div>
             </div>
 
             {/* Shift Sales Stat */}
-            <div className="glass-panel p-6 rounded-2xl border-white/5 bg-white/5 relative overflow-hidden">
+            <div className="glass-panel p-6 rounded-2xl border-white/5 bg-white/5 relative overflow-hidden flex flex-col justify-between min-h-[145px]">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-teal-500"></div>
-              <span className="text-xs text-gray-500 font-bold uppercase tracking-wider block mb-1">Shift Performance</span>
-              <h3 className="text-2xl font-bold text-white flex items-center">Active</h3>
-              <span className="text-xs text-emerald-400 flex items-center gap-1 mt-3"><TrendingUp size={12} /> Secure Cloud Sync Active</span>
+              <div>
+                <span className="text-xs text-gray-500 font-bold uppercase tracking-wider block mb-1">Shift Analytics</span>
+                <div className="flex items-baseline gap-2">
+                  <h3 className="text-3xl font-black text-white font-mono">Rs. 14.8k</h3>
+                  <span className="text-[10px] text-emerald-400 font-black">+14.2%</span>
+                </div>
+              </div>
+              
+              {/* Curved SVG Sparkline Trend */}
+              <div className="absolute bottom-0 right-0 left-0 h-10 opacity-30 pointer-events-none">
+                <svg className="w-full h-full" viewBox="0 0 100 30" preserveAspectRatio="none">
+                  <path 
+                    d="M0,25 Q15,10 30,20 T60,5 T90,15 L100,10 L100,30 L0,30 Z" 
+                    fill="url(#emerald-glow)" 
+                    stroke="#10b981" 
+                    strokeWidth="1.5"
+                  />
+                  <defs>
+                    <linearGradient id="emerald-glow" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#10b981" stopOpacity="0.5" />
+                      <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+              </div>
+              
+              <div className="text-[10px] text-emerald-400 flex items-center gap-1.5 mt-4 font-bold uppercase tracking-wider relative z-10">
+                <TrendingUp size={12} className="animate-bounce" />
+                <span>Sync Engine Online</span>
+              </div>
             </div>
           </div>
         </div>

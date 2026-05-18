@@ -1,10 +1,23 @@
 import React, { useState, useMemo } from 'react';
 import { Product } from '../types';
+import { Layers, Coffee, Cookie, Apple, Sparkles, Package, HeartPulse } from 'lucide-react';
 
 interface ProductGridProps {
   products: Product[];
   onAddToCart: (product: Product) => void;
 }
+
+const getCategoryIcon = (category: string) => {
+  switch (category.toLowerCase()) {
+    case 'all': return Layers;
+    case 'drinks': return Coffee;
+    case 'snacks': return Cookie;
+    case 'groceries': return Apple;
+    case 'personal care': return HeartPulse;
+    case 'electronics': return Sparkles;
+    default: return Package;
+  }
+};
 
 export const ProductGrid: React.FC<ProductGridProps> = ({ products, onAddToCart }) => {
   const [activeCategory, setActiveCategory] = useState<string>('All');
@@ -23,19 +36,23 @@ export const ProductGrid: React.FC<ProductGridProps> = ({ products, onAddToCart 
     <div className="flex flex-col h-full relative">
       {/* Categories Tabs */}
       <div className="flex overflow-x-auto p-4 gap-2 border-b border-white/5 bg-black/10 backdrop-blur-sm scrollbar-none z-10 relative shadow-md">
-        {categories.map(cat => (
-          <button
-            key={cat}
-            onClick={() => setActiveCategory(cat)}
-            className={`px-5 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap transition-all duration-300 ${
-              activeCategory === cat 
-                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 shadow-[0_0_15px_rgba(0,240,255,0.3)]' 
-                : 'glass-button text-gray-300 hover:text-white'
-            }`}
-          >
-            {cat}
-          </button>
-        ))}
+        {categories.map(cat => {
+          const Icon = getCategoryIcon(cat);
+          return (
+            <button
+              key={cat}
+              onClick={() => setActiveCategory(cat)}
+              className={`px-5 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap transition-all duration-300 flex items-center gap-2 ${
+                activeCategory === cat 
+                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 shadow-[0_0_15px_rgba(0,240,255,0.3)]' 
+                  : 'glass-button text-gray-300 hover:text-white'
+              }`}
+            >
+              <Icon size={16} className={activeCategory === cat ? 'text-cyan-400' : 'text-gray-400'} />
+              {cat}
+            </button>
+          );
+        })}
       </div>
 
       {/* Grid */}
@@ -45,7 +62,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({ products, onAddToCart 
             <div 
               key={p.id} 
               onClick={() => onAddToCart(p)}
-              className="glass-panel p-5 cursor-pointer hover:-translate-y-1 hover:bg-white/10 hover:border-cyan-500/50 hover:shadow-[0_10px_30px_-10px_rgba(0,240,255,0.4)] transition-all duration-300 group flex flex-col active:scale-95 rounded-2xl relative overflow-hidden"
+              className="glass-panel p-5 cursor-pointer hover:-translate-y-1 hover:bg-white/10 hover:border-cyan-500/55 hover:shadow-[0_10px_30px_-10px_rgba(0,240,255,0.45)] transition-all duration-300 group flex flex-col active:scale-[0.97] rounded-2xl relative overflow-hidden hover-shine"
             >
               <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/10 blur-[30px] rounded-full -mr-10 -mt-10 group-hover:bg-cyan-500/20 transition-colors"></div>
               

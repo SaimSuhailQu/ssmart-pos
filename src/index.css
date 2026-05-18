@@ -94,3 +94,67 @@
   animation: pulse-fast 2s ease-in-out infinite;
 }
 
+/* Cybernetic Laser Sweep Animation */
+@keyframes laser-sweep {
+  0% { transform: translateY(0); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(48px); opacity: 0; }
+}
+
+.animate-laser {
+  animation: laser-sweep 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Tactile Thermal Receipt Paper Rollout */
+@keyframes receipt-roll {
+  0% { max-height: 0; opacity: 0; transform: translateY(-20px) scaleY(0.9); }
+  100% { max-height: 800px; opacity: 1; transform: translateY(0) scaleY(1); }
+}
+
+.animate-receipt {
+  animation: receipt-roll 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Receipt scanline laser print effect */
+@keyframes print-scan {
+  0% { top: 0%; opacity: 0; }
+  50% { opacity: 0.8; }
+  100% { top: 100%; opacity: 0; }
+}
+
+.animate-print-scan {
+  animation: print-scan 2s ease-in-out infinite;
+}
+
+/* Hover shine sweep card overlay utility */
+.hover-shine {
+  position: relative;
+  overflow: hidden;
+}
+
+.hover-shine::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -100%;
+  width: 50%;
+  height: 200%;
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(0, 240, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: rotate(25deg);
+  transition: all 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.hover-shine:hover::after {
+  left: 150%;
+  opacity: 1;
+}
+
+
