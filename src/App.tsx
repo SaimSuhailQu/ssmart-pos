@@ -29,8 +29,8 @@ const App: React.FC = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const [manualBarcode, setManualBarcode] = useState('');
   
-  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
-  const [syncStatus, setSyncStatus] = useState<string>('SYNCED');
+        const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<string>('ONLINE');
   const [discount, setDiscount] = useState<number>(0);
 
   // Enforce strict Role-Based Access Control view bounds
@@ -348,16 +348,14 @@ const App: React.FC = () => {
                   <h1 className="text-2xl font-extrabold tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 drop-shadow-md">SS MART</h1>
                   {/* Glowing Cloud Status Indicator */}
                   <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-widest border transition-all duration-500 uppercase ${
-                    syncStatus === 'SYNCED'
+                    syncStatus === 'ONLINE'
                       ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 shadow-[0_0_10px_rgba(16,185,129,0.2)]'
-                      : syncStatus === 'OFFLINE'
-                      ? 'bg-amber-500/10 text-amber-400 border-amber-500/30 shadow-[0_0_10px_rgba(245,158,11,0.2)]'
                       : 'bg-red-500/10 text-red-400 border-red-500/30 shadow-[0_0_10px_rgba(239,68,68,0.2)] animate-pulse'
                   }`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${
-                      syncStatus === 'SYNCED' ? 'bg-emerald-400' : syncStatus === 'OFFLINE' ? 'bg-amber-400' : 'bg-red-400'
+                      syncStatus === 'ONLINE' ? 'bg-emerald-400' : 'bg-red-400'
                     }`} />
-                    {syncStatus === 'SYNCED' ? 'Cloud Active' : syncStatus === 'OFFLINE' ? 'Local Only' : 'Connecting'}
+                    {syncStatus === 'ONLINE' ? 'Online' : 'Offline'}
                   </span>
                 </div>
                 <p className="text-[10px] text-cyan-400 font-bold uppercase tracking-widest mt-0.5">Advanced Terminal</p>

@@ -1,5 +1,5 @@
 import { initializeApp, getApps } from 'firebase/app';
-import { getDatabase, ref, set } from 'firebase/database';
+import { getDatabase, ref, set, onValue } from 'firebase/database';
 import { getUnsyncedSales, markSaleAsSynced } from './db';
 
 // Firebase configuration injected at build-time by Vite
@@ -38,7 +38,7 @@ export async function syncSalesToCloud() {
   try {
     const unsynced = getUnsyncedSales();
     if (unsynced.length === 0) {
-      return { success: true, syncedCount: 0, status: "SYNCED" };
+      return { success: true, syncedCount: 0, status: "ONLINE" };
     }
 
     console.log(`Syncing ${unsynced.length} transaction(s) to Firebase...`);
@@ -69,19 +69,31 @@ export async function syncSalesToCloud() {
     }
 
     console.log(`Successfully synced ${count} transactions.`);
-    return { success: true, syncedCount: count, status: "SYNCED" };
+    return { success: true, syncedCount: count, status: "ONLINE" };
   } catch (err) {
     console.error("Sync transaction failed:", err);
-    return { success: false, syncedCount: 0, status: "DISCONNECTED" };
+    return { success: false, syncedCount: 0, status: "OFFLINE" };
   }
 }
 
 // Start periodic background sync worker (every 15 seconds)
 export function startSyncWorker(onStatusChange?: (status: string) => void) {
+  if (dbInstance && onStatusChange) {
+    const connectedRef = ref(dbInstance, ".info/connected");
+    onValue(connectedRef, (snap) => {
+      if (snap.val() === true) {
+        console.log("Firebase status: Connected (Online)");
+        onStatusChange("ONLINE");
+      } else {
+        console.log("Firebase status: Disconnected (Offline)");
+        onStatusChange("OFFLINE");
+      }
+    });
+  } else if (!dbInstance && onStatusChange) {
+    onStatusChange("OFFLINE");
+  }
+
   setInterval(async () => {
-    const res = await syncSalesToCloud();
-    if (onStatusChange) {
-      onStatusChange(res.status);
-    }
+    await syncSalesToCloud();
   }, 15000);
 }
