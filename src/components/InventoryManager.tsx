@@ -114,53 +114,74 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({ onBackToPOS 
                 <th className="p-5 pl-8 border-b border-white/5">Product</th>
                 <th className="p-5 border-b border-white/5">Category</th>
                 <th className="p-5 border-b border-white/5">Barcode</th>
-                <th className="p-5 text-right border-b border-white/5">Price</th>
+                <th className="p-5 text-right border-b border-white/5">Cost</th>
+                <th className="p-5 text-right border-b border-white/5">Sale Price</th>
+                <th className="p-5 text-right border-b border-white/5">Margin %</th>
                 <th className="p-5 text-right border-b border-white/5">Stock</th>
                 <th className="p-5 pr-8 text-center border-b border-white/5">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {filteredProducts.map(p => (
-                <tr key={p.id} className="hover:bg-white/5 transition-colors group">
-                  <td className="p-5 pl-8 font-semibold text-gray-200">{p.name}</td>
-                  <td className="p-5">
-                    <span className="px-3 py-1 bg-black/40 border border-white/10 rounded-lg text-xs font-bold text-cyan-300 tracking-wider">
-                      {p.category}
-                    </span>
-                  </td>
-                  <td className="p-5 font-mono text-sm text-gray-400 tracking-wider">{p.barcode}</td>
-                  <td className="p-5 text-right font-bold text-white drop-shadow-md">Rs. {p.price.toFixed(2)}</td>
-                  <td className="p-5 text-right font-medium text-gray-300">{p.stock}</td>
-                  <td className="p-5 pr-8">
-                    <div className="flex items-center justify-center gap-2 opacity-30 group-hover:opacity-100 transition-opacity">
-                      <button 
-                        onClick={() => handlePrintBarcode(p)}
-                        className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors border border-transparent hover:border-white/10"
-                        title="Print Barcode Label"
-                      >
-                        <Printer size={18} />
-                      </button>
-                      <button 
-                        onClick={() => handleOpenEdit(p)}
-                        className="p-2 text-cyan-400 hover:text-white hover:bg-cyan-500/20 rounded-lg transition-colors border border-transparent hover:border-cyan-500/30"
-                        title="Edit Product"
-                      >
-                        <Edit2 size={18} />
-                      </button>
-                      <button 
-                        onClick={() => handleDelete(p.id, p.name)}
-                        className="p-2 text-red-400 hover:text-white hover:bg-red-500/20 rounded-lg transition-colors border border-transparent hover:border-red-500/30"
-                        title="Delete Product"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {filteredProducts.map(p => {
+                const margin = p.price > 0 && p.cost_price >= 0 
+                  ? ((p.price - p.cost_price) / p.price) * 100 
+                  : 0;
+                return (
+                  <tr key={p.id} className="hover:bg-white/5 transition-colors group">
+                    <td className="p-5 pl-8 font-semibold text-gray-200">{p.name}</td>
+                    <td className="p-5">
+                      <span className="px-3 py-1 bg-black/40 border border-white/10 rounded-lg text-xs font-bold text-cyan-300 tracking-wider">
+                        {p.category}
+                      </span>
+                    </td>
+                    <td className="p-5 font-mono text-sm text-gray-400 tracking-wider">{p.barcode}</td>
+                    <td className="p-5 text-right font-medium text-gray-400">Rs. {(p.cost_price || 0).toFixed(2)}</td>
+                    <td className="p-5 text-right font-bold text-white drop-shadow-md">Rs. {p.price.toFixed(2)}</td>
+                    <td className="p-5 text-right">
+                      <span className={`inline-block px-2.5 py-1 rounded-lg text-[10px] font-black tracking-wider border uppercase transition-all duration-300 ${
+                        margin >= 30 
+                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                          : margin >= 15 
+                          ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' 
+                          : margin > 0 
+                          ? 'bg-orange-500/10 text-orange-400 border-orange-500/20 animate-pulse' 
+                          : 'bg-red-500/10 text-red-400 border-red-500/20 animate-pulse'
+                      }`}>
+                        {margin.toFixed(1)}%
+                      </span>
+                    </td>
+                    <td className="p-5 text-right font-medium text-gray-300">{p.stock}</td>
+                    <td className="p-5 pr-8">
+                      <div className="flex items-center justify-center gap-2 opacity-30 group-hover:opacity-100 transition-opacity">
+                        <button 
+                          onClick={() => handlePrintBarcode(p)}
+                          className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors border border-transparent hover:border-white/10"
+                          title="Print Barcode Label"
+                        >
+                          <Printer size={18} />
+                        </button>
+                        <button 
+                          onClick={() => handleOpenEdit(p)}
+                          className="p-2 text-cyan-400 hover:text-white hover:bg-cyan-500/20 rounded-lg transition-colors border border-transparent hover:border-cyan-500/30"
+                          title="Edit Product"
+                        >
+                          <Edit2 size={18} />
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(p.id, p.name)}
+                          className="p-2 text-red-400 hover:text-white hover:bg-red-500/20 rounded-lg transition-colors border border-transparent hover:border-red-500/30"
+                          title="Delete Product"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
               {filteredProducts.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="p-12 text-center text-gray-500 font-medium">
+                  <td colSpan={8} className="p-12 text-center text-gray-500 font-medium">
                     No products found.
                   </td>
                 </tr>

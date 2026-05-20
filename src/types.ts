@@ -1,3 +1,13 @@
+export interface Expense {
+  id: number;
+  amount: number;
+  description: string;
+  category: string;
+  logged_by: string;
+  timestamp: string;
+  synced: number;
+}
+
 export interface Product {
   id: number;
   name: string;
@@ -5,6 +15,7 @@ export interface Product {
   price: number;
   stock: number;
   category: string;
+  cost_price: number;
 }
 
 export interface CartItem extends Product {
@@ -47,16 +58,51 @@ export interface Shift {
   clock_out?: string;
 }
 
+export interface SaleItemDetails {
+  id: number;
+  sale_id: number;
+  product_id: number;
+  qty: number;
+  price: number;
+  returned_qty: number;
+  product_name: string;
+  product_barcode: string;
+  product_category: string;
+}
+
+export interface Sale {
+  id: number;
+  subtotal: number;
+  tax: number;
+  discount: number;
+  total: number;
+  payment_method: string;
+  amount_tendered: number;
+  change_given: number;
+  timestamp: string;
+  synced: number;
+  user_id?: number;
+  cashier_name?: string;
+  status: 'Completed' | 'Returned' | 'Partially Returned';
+  refund_amount: number;
+  items?: SaleItemDetails[];
+}
+
 declare global {
   interface Window {
     api: {
       getAllProducts: () => Promise<Product[]>;
       getProduct: (barcode: string) => Promise<Product | undefined>;
+      getNextSaleId: () => Promise<number>;
       checkout: (data: { items: CartItem[], paymentData: PaymentData, userId?: number }) => Promise<{ success: boolean; saleId: number }>;
       addProduct: (product: Omit<Product, 'id'>) => Promise<number>;
       updateProduct: (id: number, product: Omit<Product, 'id'>) => Promise<boolean>;
       deleteProduct: (id: number) => Promise<boolean>;
       printBarcode: (product: Product) => Promise<boolean>;
+      
+      // Sales History & Returns
+      getAllSales: () => Promise<Sale[]>;
+      returnSaleItems: (saleId: number, returnsList: { productId: number, qtyToReturn: number }[]) => Promise<boolean>;
       
       // CRM
       getAllCustomers: () => Promise<Customer[]>;
@@ -72,6 +118,11 @@ declare global {
       getActiveShift: (userId: number) => Promise<Shift | undefined>;
       onSyncStatusChanged: (callback: (status: string) => void) => void;
       getSalesAnalytics: () => Promise<any>;
+
+      // Expense Tracking
+      getAllExpenses: () => Promise<Expense[]>;
+      addExpense: (expense: { amount: number, description: string, category: string, loggedBy: string }) => Promise<number>;
+      deleteExpense: (id: number) => Promise<boolean>;
       
       // User Management
       getAllUsers: () => Promise<User[]>;

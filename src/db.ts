@@ -20,7 +20,8 @@ export function initDb() {
       barcode TEXT UNIQUE NOT NULL,
       price REAL NOT NULL,
       stock INTEGER NOT NULL DEFAULT 0,
-      category TEXT NOT NULL DEFAULT 'General'
+      category TEXT NOT NULL DEFAULT 'General',
+      cost_price REAL NOT NULL DEFAULT 0
     );
 
     CREATE TABLE IF NOT EXISTS sales (
@@ -89,6 +90,16 @@ export function initDb() {
       name TEXT NOT NULL,
       location TEXT
     );
+
+    CREATE TABLE IF NOT EXISTS expenses (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      amount REAL NOT NULL,
+      description TEXT NOT NULL,
+      category TEXT NOT NULL,
+      logged_by TEXT NOT NULL,
+      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+      synced BOOLEAN DEFAULT 0
+    );
   `);
 
   // Seed default admin and cashier if users table is empty
@@ -144,6 +155,41 @@ export function initDb() {
     }
   }
 
+  // Simple migration to add cost_price if it's missing from products table
+  try {
+    db.prepare("SELECT cost_price FROM products LIMIT 1").get();
+  } catch (e) {
+    try {
+      db.exec("ALTER TABLE products ADD COLUMN cost_price REAL NOT NULL DEFAULT 0;");
+      db.exec("UPDATE products SET cost_price = price * 0.7 WHERE cost_price = 0 OR cost_price IS NULL;");
+    } catch (err) {
+      console.error("Migration error adding cost_price:", err);
+    }
+  }
+
+  // Simple migration to add status and refund_amount to sales table
+  try {
+    db.prepare("SELECT status FROM sales LIMIT 1").get();
+  } catch (e) {
+    try {
+      db.exec("ALTER TABLE sales ADD COLUMN status TEXT DEFAULT 'Completed';");
+      db.exec("ALTER TABLE sales ADD COLUMN refund_amount REAL DEFAULT 0;");
+    } catch (err) {
+      console.error("Migration error adding status and refund_amount columns to sales table:", err);
+    }
+  }
+
+  // Simple migration to add returned_qty to sale_items table
+  try {
+    db.prepare("SELECT returned_qty FROM sale_items LIMIT 1").get();
+  } catch (e) {
+    try {
+      db.exec("ALTER TABLE sale_items ADD COLUMN returned_qty INTEGER DEFAULT 0;");
+    } catch (err) {
+      console.error("Migration error adding returned_qty to sale_items table:", err);
+    }
+  }
+
   // Detect and migrate old USD dummy products to PKR Pakistani products
   try {
     const hasOldCoke = db.prepare("SELECT * FROM products WHERE barcode = '123456789012' AND price < 10").get();
@@ -161,10 +207,11 @@ export function initDb() {
   // Seed dummy products if empty
   const count = db.prepare('SELECT COUNT(*) as count FROM products').get() as { count: number };
   if (count.count === 0) {
-    const insert = db.prepare('INSERT INTO products (name, barcode, price, stock, category) VALUES (?, ?, ?, ?, ?)');
+    const insert = db.prepare('INSERT INTO products (name, barcode, price, stock, category, cost_price) VALUES (?, ?, ?, ?, ?, ?)');
     const insertMany = db.transaction((products: any[]) => {
       for (const product of products) {
-        insert.run(product.name, product.barcode, product.price, product.stock, product.category);
+        const costPrice = product.cost_price || (product.price * 0.7);
+        insert.run(product.name, product.barcode, product.price, product.stock, product.category, costPrice);
       }
     });
 
@@ -237,15 +284,20 @@ export function saveSale(items: any[], paymentData: { subtotal: number, tax: num
   return saleId;
 }
 
+export function getNextSaleId() {
+  const row = db.prepare('SELECT MAX(id) as maxId FROM sales').get() as { maxId: number | null };
+  return (row.maxId || 0) + 1;
+}
+
 export function addProduct(product: Omit<any, 'id'>) {
-  const insert = db.prepare('INSERT INTO products (name, barcode, price, stock, category) VALUES (?, ?, ?, ?, ?)');
-  const info = insert.run(product.name, product.barcode, product.price, product.stock, product.category);
+  const insert = db.prepare('INSERT INTO products (name, barcode, price, stock, category, cost_price) VALUES (?, ?, ?, ?, ?, ?)');
+  const info = insert.run(product.name, product.barcode, product.price, product.stock, product.category, product.cost_price || 0);
   return info.lastInsertRowid;
 }
 
 export function updateProduct(id: number, product: Omit<any, 'id'>) {
-  const update = db.prepare('UPDATE products SET name = ?, barcode = ?, price = ?, stock = ?, category = ? WHERE id = ?');
-  const info = update.run(product.name, product.barcode, product.price, product.stock, product.category, id);
+  const update = db.prepare('UPDATE products SET name = ?, barcode = ?, price = ?, stock = ?, category = ?, cost_price = ? WHERE id = ?');
+  const info = update.run(product.name, product.barcode, product.price, product.stock, product.category, product.cost_price || 0, id);
   return info.changes > 0;
 }
 
@@ -325,6 +377,81 @@ export function markSaleAsSynced(saleId: number) {
   return db.prepare('UPDATE sales SET synced = 1 WHERE id = ?').run(saleId).changes > 0;
 }
 
+// --- Sales History & Returns Data Access ---
+export function getAllSales() {
+  const sales = db.prepare(`
+    SELECT s.*, u.name as cashier_name 
+    FROM sales s
+    LEFT JOIN users u ON s.user_id = u.id
+    ORDER BY s.timestamp DESC
+  `).all() as any[];
+  
+  return sales.map(sale => {
+    const items = db.prepare(`
+      SELECT si.*, p.name as product_name, p.barcode as product_barcode, p.category as product_category
+      FROM sale_items si
+      JOIN products p ON si.product_id = p.id
+      WHERE si.sale_id = ?
+    `).all(sale.id);
+    const payments = db.prepare('SELECT * FROM payments WHERE sale_id = ?').all(sale.id);
+    return { ...sale, items, payments };
+  });
+}
+
+export function returnSaleItems(saleId: number, returnsList: { productId: number, qtyToReturn: number }[]) {
+  const selectSale = db.prepare('SELECT * FROM sales WHERE id = ?');
+  const selectSaleItems = db.prepare('SELECT * FROM sale_items WHERE sale_id = ?');
+  const updateSaleItemReturned = db.prepare('UPDATE sale_items SET returned_qty = returned_qty + ? WHERE sale_id = ? AND product_id = ?');
+  const updateProductStock = db.prepare('UPDATE products SET stock = stock + ? WHERE id = ?');
+  const updateSaleRefund = db.prepare('UPDATE sales SET refund_amount = refund_amount + ?, status = ? WHERE id = ?');
+
+  const transaction = db.transaction(() => {
+    const sale = selectSale.get(saleId) as any;
+    if (!sale) throw new Error('Sale not found');
+
+    const saleItems = selectSaleItems.all(saleId) as any[];
+    let totalRefundForThisReturn = 0;
+
+    for (const ret of returnsList) {
+      const item = saleItems.find(i => i.product_id === ret.productId);
+      if (!item) throw new Error(`Product ID ${ret.productId} not found in this sale`);
+
+      const maxReturnable = item.qty - item.returned_qty;
+      if (ret.qtyToReturn > maxReturnable) {
+        throw new Error(`Cannot return ${ret.qtyToReturn} items. Only ${maxReturnable} are remaining.`);
+      }
+
+      // Update returned quantity for the item
+      updateSaleItemReturned.run(ret.qtyToReturn, saleId, ret.productId);
+
+      // Refund calculation
+      const itemRefund = item.price * ret.qtyToReturn;
+      totalRefundForThisReturn += itemRefund;
+
+      // Restock the product
+      updateProductStock.run(ret.qtyToReturn, ret.productId);
+    }
+
+    // Recalculate status
+    const updatedSaleItems = selectSaleItems.all(saleId) as any[];
+    const allFullyReturned = updatedSaleItems.every(i => i.returned_qty === i.qty);
+    const anyReturned = updatedSaleItems.some(i => i.returned_qty > 0);
+
+    let newStatus = 'Completed';
+    if (allFullyReturned) {
+      newStatus = 'Returned';
+    } else if (anyReturned) {
+      newStatus = 'Partially Returned';
+    }
+
+    // Update sale refund amount and status
+    updateSaleRefund.run(totalRefundForThisReturn, newStatus, saleId);
+  });
+
+  transaction();
+  return true;
+}
+
 // --- Vendors & Branches Data Access ---
 export function getAllVendors() {
   return db.prepare('SELECT * FROM vendors').all();
@@ -337,6 +464,23 @@ export function addVendor(vendor: { name: string, contact: string, category: str
 
 export function getStoreBranches() {
   return db.prepare('SELECT * FROM store_branches').all();
+}
+
+// --- Expense Tracking Operations ---
+export function getAllExpenses() {
+  return db.prepare('SELECT * FROM expenses ORDER BY timestamp DESC').all();
+}
+
+export function addExpense(expense: { amount: number, description: string, category: string, loggedBy: string }) {
+  const insert = db.prepare('INSERT INTO expenses (amount, description, category, logged_by) VALUES (?, ?, ?, ?)');
+  const info = insert.run(expense.amount, expense.description, expense.category, expense.loggedBy);
+  return info.lastInsertRowid;
+}
+
+export function deleteExpense(id: number) {
+  const del = db.prepare('DELETE FROM expenses WHERE id = ?');
+  const info = del.run(id);
+  return info.changes > 0;
 }
 
 // --- Analytics & Financial Reporting ---
@@ -360,13 +504,191 @@ export function getSalesAnalytics() {
     LIMIT 5
   `).all();
 
+  // 30 Days Daily Trend
   const dailyTrend = db.prepare(`
-    SELECT strftime('%Y-%m-%d', timestamp) as date, SUM(total) as revenue
-    FROM sales
-    WHERE timestamp >= date('now', '-7 days')
+    SELECT 
+      date,
+      SUM(revenue) as revenue,
+      SUM(refunds) as refunds,
+      SUM(cost) as cost,
+      COALESCE((
+        SELECT SUM(amount)
+        FROM expenses
+        WHERE strftime('%Y-%m-%d', timestamp) = date
+      ), 0) as expenses
+    FROM (
+      SELECT 
+        strftime('%Y-%m-%d', s.timestamp) as date,
+        s.total as revenue,
+        COALESCE(s.refund_amount, 0) as refunds,
+        COALESCE((
+          SELECT SUM((si.qty - si.returned_qty) * p.cost_price) 
+          FROM sale_items si 
+          JOIN products p ON si.product_id = p.id 
+          WHERE si.sale_id = s.id
+        ), 0) as cost
+      FROM sales s
+      WHERE s.timestamp >= date('now', '-30 days')
+    )
     GROUP BY date
     ORDER BY date ASC
   `).all();
+
+  // 12 Months Monthly Trend
+  const monthlyTrend = db.prepare(`
+    SELECT 
+      month,
+      SUM(revenue) as revenue,
+      SUM(refunds) as refunds,
+      SUM(cost) as cost,
+      COALESCE((
+        SELECT SUM(amount)
+        FROM expenses
+        WHERE strftime('%Y-%m', timestamp) = month
+      ), 0) as expenses
+    FROM (
+      SELECT 
+        strftime('%Y-%m', s.timestamp) as month,
+        s.total as revenue,
+        COALESCE(s.refund_amount, 0) as refunds,
+        COALESCE((
+          SELECT SUM((si.qty - si.returned_qty) * p.cost_price) 
+          FROM sale_items si 
+          JOIN products p ON si.product_id = p.id 
+          WHERE si.sale_id = s.id
+        ), 0) as cost
+      FROM sales s
+      WHERE s.timestamp >= date('now', '-1 year')
+    )
+    GROUP BY month
+    ORDER BY month ASC
+  `).all();
+
+  // 5 Years Yearly Trend
+  const yearlyTrend = db.prepare(`
+    SELECT 
+      year,
+      SUM(revenue) as revenue,
+      SUM(refunds) as refunds,
+      SUM(cost) as cost,
+      COALESCE((
+        SELECT SUM(amount)
+        FROM expenses
+        WHERE strftime('%Y', timestamp) = year
+      ), 0) as expenses
+    FROM (
+      SELECT 
+        strftime('%Y', s.timestamp) as year,
+        s.total as revenue,
+        COALESCE(s.refund_amount, 0) as refunds,
+        COALESCE((
+          SELECT SUM((si.qty - si.returned_qty) * p.cost_price) 
+          FROM sale_items si 
+          JOIN products p ON si.product_id = p.id 
+          WHERE si.sale_id = s.id
+        ), 0) as cost
+      FROM sales s
+      WHERE s.timestamp >= date('now', '-5 years')
+    )
+    GROUP BY year
+    ORDER BY year ASC
+  `).all();
+
+  // Today's financials
+  const todayRow = db.prepare(`
+    SELECT 
+      COALESCE(SUM(s.total), 0) as revenue,
+      COALESCE(SUM(s.refund_amount), 0) as refunds,
+      COUNT(s.id) as orders,
+      COALESCE((
+        SELECT SUM((si.qty - si.returned_qty) * p.cost_price)
+        FROM sale_items si
+        JOIN sales s2 ON si.sale_id = s2.id
+        JOIN products p ON si.product_id = p.id
+        WHERE date(s2.timestamp) = date('now')
+      ), 0) as cost
+    FROM sales s
+    WHERE date(s.timestamp) = date('now')
+  `).get() as { revenue: number, refunds: number, orders: number, cost: number };
+
+  const todayExpenses = (db.prepare(`
+    SELECT COALESCE(SUM(amount), 0) as total 
+    FROM expenses 
+    WHERE date(timestamp) = date('now')
+  `).get() as { total: number }).total;
+
+  const todayFinancials = {
+    revenue: todayRow.revenue,
+    refunds: todayRow.refunds,
+    orders: todayRow.orders,
+    cost: todayRow.cost,
+    expenses: todayExpenses,
+    profit: todayRow.revenue - todayRow.refunds - todayRow.cost - todayExpenses
+  };
+
+  // Monthly financials
+  const monthRow = db.prepare(`
+    SELECT 
+      COALESCE(SUM(s.total), 0) as revenue,
+      COALESCE(SUM(s.refund_amount), 0) as refunds,
+      COUNT(s.id) as orders,
+      COALESCE((
+        SELECT SUM((si.qty - si.returned_qty) * p.cost_price)
+        FROM sale_items si
+        JOIN sales s2 ON si.sale_id = s2.id
+        JOIN products p ON si.product_id = p.id
+        WHERE strftime('%Y-%m', s2.timestamp) = strftime('%Y-%m', 'now')
+      ), 0) as cost
+    FROM sales s
+    WHERE strftime('%Y-%m', s.timestamp) = strftime('%Y-%m', 'now')
+  `).get() as { revenue: number, refunds: number, orders: number, cost: number };
+
+  const monthExpenses = (db.prepare(`
+    SELECT COALESCE(SUM(amount), 0) as total 
+    FROM expenses 
+    WHERE strftime('%Y-%m', timestamp) = strftime('%Y-%m', 'now')
+  `).get() as { total: number }).total;
+
+  const monthFinancials = {
+    revenue: monthRow.revenue,
+    refunds: monthRow.refunds,
+    orders: monthRow.orders,
+    cost: monthRow.cost,
+    expenses: monthExpenses,
+    profit: monthRow.revenue - monthRow.refunds - monthRow.cost - monthExpenses
+  };
+
+  // Yearly financials
+  const yearRow = db.prepare(`
+    SELECT 
+      COALESCE(SUM(s.total), 0) as revenue,
+      COALESCE(SUM(s.refund_amount), 0) as refunds,
+      COUNT(s.id) as orders,
+      COALESCE((
+        SELECT SUM((si.qty - si.returned_qty) * p.cost_price)
+        FROM sale_items si
+        JOIN sales s2 ON si.sale_id = s2.id
+        JOIN products p ON si.product_id = p.id
+        WHERE strftime('%Y', s2.timestamp) = strftime('%Y', 'now')
+      ), 0) as cost
+    FROM sales s
+    WHERE strftime('%Y', s.timestamp) = strftime('%Y', 'now')
+  `).get() as { revenue: number, refunds: number, orders: number, cost: number };
+
+  const yearExpenses = (db.prepare(`
+    SELECT COALESCE(SUM(amount), 0) as total 
+    FROM expenses 
+    WHERE strftime('%Y', timestamp) = strftime('%Y', 'now')
+  `).get() as { total: number }).total;
+
+  const yearFinancials = {
+    revenue: yearRow.revenue,
+    refunds: yearRow.refunds,
+    orders: yearRow.orders,
+    cost: yearRow.cost,
+    expenses: yearExpenses,
+    profit: yearRow.revenue - yearRow.refunds - yearRow.cost - yearExpenses
+  };
 
   return {
     summary: {
@@ -376,7 +698,14 @@ export function getSalesAnalytics() {
     },
     salesByMethod,
     topProducts,
-    dailyTrend
+    dailyTrend,
+    monthlyTrend,
+    yearlyTrend,
+    financials: {
+      today: todayFinancials,
+      month: monthFinancials,
+      year: yearFinancials
+    }
   };
 }
 

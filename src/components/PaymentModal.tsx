@@ -10,9 +10,10 @@ interface PaymentModalProps {
   items: CartItem[];
   onClose: () => void;
   onConfirm: (data: PaymentData) => Promise<void>;
+  nextSaleId?: number;
 }
 
-export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax, discount, items, onClose, onConfirm }) => {
+export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax, discount, items, onClose, onConfirm, nextSaleId = 1 }) => {
   const [method, setMethod] = useState<string>('Cash');
   const [tenderedStr, setTenderedStr] = useState<string>('');
   const [payments, setPayments] = useState<PaymentEntry[]>([]);
@@ -290,8 +291,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax
                 <Sparkles size={12} className="text-cyan-600" />
                 <span>SS MART</span>
               </div>
-              <span className="text-[8px] uppercase tracking-wider text-gray-500 font-bold">Rawalpindi, Pakistan</span>
-              <span className="text-[7px] text-gray-400 mt-1 font-bold">TERMINAL: #POS-01</span>
+              <span className="text-[8px] uppercase tracking-wider text-gray-500 font-bold">Havelian</span>
+              <span className="text-[7px] text-gray-400 mt-1 font-bold">Invoice No: INV-{nextSaleId}</span>
               <span className="text-[7px] text-gray-400 font-bold">{new Date().toLocaleString('en-US', { hour12: true })}</span>
             </div>
 
@@ -318,10 +319,6 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax
               <div className="flex justify-between font-medium">
                 <span>SUBTOTAL:</span>
                 <span>Rs. {subtotal.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between font-medium">
-                <span>TAX ({(tax / Math.max(1, subtotal - discount) * 100).toFixed(0)}%):</span>
-                <span>Rs. {tax.toFixed(2)}</span>
               </div>
               {discount > 0 && (
                 <div className="flex justify-between font-bold text-emerald-700">

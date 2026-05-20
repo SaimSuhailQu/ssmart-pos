@@ -14,7 +14,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, onC
     barcode: '',
     price: 0,
     stock: 0,
-    category: 'General'
+    category: 'General',
+    cost_price: 0
   });
   
   const [isProcessing, setIsProcessing] = useState(false);
@@ -27,7 +28,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, onC
         barcode: product.barcode,
         price: product.price,
         stock: product.stock,
-        category: product.category
+        category: product.category,
+        cost_price: product.cost_price || 0
       });
     }
   }, [product]);
@@ -36,7 +38,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, onC
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'price' || name === 'stock' ? Number(value) : value
+      [name]: name === 'price' || name === 'stock' || name === 'cost_price' ? Number(value) : value
     }));
   };
 
@@ -48,7 +50,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, onC
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.barcode || formData.price <= 0) {
+    if (!formData.name || !formData.barcode || formData.price <= 0 || formData.cost_price < 0) {
       setError('Please fill in all required fields correctly.');
       return;
     }
@@ -96,21 +98,22 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, onC
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-bold text-gray-300 mb-2 uppercase tracking-widest">Category</label>
-            <input 
-              type="text" 
-              name="category"
-              value={formData.category}
-              onChange={handleChange}
-              className="w-full glass-input rounded-xl p-3"
-              placeholder="e.g. Drinks"
-            />
-          </div>
-
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <label className="block text-sm font-bold text-gray-300 mb-2 uppercase tracking-widest">Price ($) *</label>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-bold text-gray-300 mb-2 uppercase tracking-widest">Cost Price (Rs.) *</label>
+              <input 
+                type="number" 
+                name="cost_price"
+                step="0.01"
+                min="0"
+                value={formData.cost_price}
+                onChange={handleChange}
+                className="w-full glass-input rounded-xl p-3 font-mono"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-gray-300 mb-2 uppercase tracking-widest">Sale Price (Rs.) *</label>
               <input 
                 type="number" 
                 name="price"
@@ -122,7 +125,25 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, onC
                 required
               />
             </div>
-            <div className="flex-1">
+          </div>
+
+          {/* Profit Margin Preview */}
+          {(() => {
+            const margin = formData.price > 0 && formData.cost_price >= 0
+              ? ((formData.price - formData.cost_price) / formData.price) * 100
+              : 0;
+            return (
+              <div className="p-3 rounded-xl bg-black/40 border border-white/5 flex items-center justify-between">
+                <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">Profit Margin Preview</span>
+                <span className={`text-sm font-black tracking-widest ${margin >= 30 ? 'text-emerald-400' : margin >= 15 ? 'text-yellow-400' : margin > 0 ? 'text-orange-400' : 'text-red-400'}`}>
+                  {margin.toFixed(2)}%
+                </span>
+              </div>
+            );
+          })()}
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
               <label className="block text-sm font-bold text-gray-300 mb-2 uppercase tracking-widest">Initial Stock</label>
               <input 
                 type="number" 
@@ -131,6 +152,17 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, onC
                 value={formData.stock}
                 onChange={handleChange}
                 className="w-full glass-input rounded-xl p-3 font-mono"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-gray-300 mb-2 uppercase tracking-widest">Category</label>
+              <input 
+                type="text" 
+                name="category"
+                value={formData.category}
+                onChange={handleChange}
+                className="w-full glass-input rounded-xl p-3"
+                placeholder="e.g. Drinks"
               />
             </div>
           </div>

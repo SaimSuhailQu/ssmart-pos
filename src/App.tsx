@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useScanner } from './hooks/useScanner';
 import { CartItem, Product, PaymentData } from './types';
-import { ShoppingCart, PackageSearch, Printer, CheckCircle, LayoutGrid, PackageOpen, Users, Shield, BarChart3 } from 'lucide-react';
+import { ShoppingCart, PackageSearch, Printer, CheckCircle, LayoutGrid, PackageOpen, Users, Shield, BarChart3, History, DollarSign } from 'lucide-react';
 import { ProductGrid } from './components/ProductGrid';
 import { Cart } from './components/Cart';
 import { OrderControls } from './components/OrderControls';
@@ -11,11 +11,13 @@ import { PinLogin } from './components/PinLogin';
 import { CustomerManager } from './components/CustomerManager';
 import { ShiftManager } from './components/ShiftManager';
 import { AnalyticsDashboard } from './components/AnalyticsDashboard';
+import { SalesRecordManager } from './components/SalesRecordManager';
+import { ExpenseManager } from './components/ExpenseManager';
 import logoImg from './assets/ss_mart_logo.png';
 
-const TAX_RATE = 0.08; // 8%
+const TAX_RATE = 0.0; // Tax removed
 
-type ViewMode = 'POS' | 'INVENTORY' | 'CUSTOMERS' | 'SHIFT' | 'ANALYTICS';
+type ViewMode = 'POS' | 'INVENTORY' | 'CUSTOMERS' | 'SHIFT' | 'ANALYTICS' | 'SALES_RECORD' | 'EXPENSES';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<{ id: number; name: string; role: string } | null>(null);
@@ -29,7 +31,9 @@ const App: React.FC = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const [manualBarcode, setManualBarcode] = useState('');
   
-        const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [nextSaleId, setNextSaleId] = useState<number>(1);
+  const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [syncStatus, setSyncStatus] = useState<string>('ONLINE');
   const [discount, setDiscount] = useState<number>(0);
   const [isNetworkOnline, setIsNetworkOnline] = useState<boolean>(navigator.onLine);
@@ -211,7 +215,14 @@ const App: React.FC = () => {
       if (viewMode !== 'POS') return;
       if (e.key === 'F12') {
         e.preventDefault();
-        if (cart.length > 0) setIsPaymentOpen(true);
+        if (cart.length > 0) {
+          window.api.getNextSaleId().then(nextId => {
+            setNextSaleId(nextId);
+            setIsPaymentOpen(true);
+          }).catch(() => {
+            setIsPaymentOpen(true);
+          });
+        }
       } else if (e.key === 'Escape' && isPaymentOpen) {
         setIsPaymentOpen(false);
       }
@@ -237,6 +248,17 @@ const App: React.FC = () => {
         }`}
       >
         <LayoutGrid size={18} /> POS Terminal
+      </button>
+
+      <button 
+        onClick={() => setViewMode('SALES_RECORD')} 
+        className={`px-6 py-2.5 rounded-xl font-bold transition flex items-center gap-2 ${
+          viewMode === 'SALES_RECORD' 
+            ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/50 shadow-[0_0_15px_rgba(0,240,255,0.2)]'
+            : 'text-gray-400 hover:text-white glass-button'
+        }`}
+      >
+        <History size={18} /> Sales Records
       </button>
 
       {/* Admin and Manager exclusive tabs */}
@@ -278,6 +300,17 @@ const App: React.FC = () => {
           <BarChart3 size={18} /> Financials
         </button>
       )}
+
+      <button 
+        onClick={() => setViewMode('EXPENSES')} 
+        className={`px-6 py-2.5 rounded-xl font-bold transition flex items-center gap-2 ${
+          viewMode === 'EXPENSES' 
+            ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/50 shadow-[0_0_15px_rgba(0,240,255,0.2)]'
+            : 'text-gray-400 hover:text-white glass-button'
+        }`}
+      >
+        <DollarSign size={18} /> Expense Counter
+      </button>
 
       <button 
         onClick={() => setViewMode('SHIFT')} 
@@ -348,11 +381,55 @@ const App: React.FC = () => {
     );
   }
 
+  // Render Sales Records View
+  if (viewMode === 'SALES_RECORD') {
+    return (
+      <div className="h-screen w-full flex flex-col font-outfit bg-transparent p-4">
+        <div className="flex-1 overflow-hidden">
+          <SalesRecordManager />
+        </div>
+        <div className="mt-4">
+          {renderNavbar()}
+        </div>
+      </div>
+    );
+  }
+
+  // Render Expenses View
+  if (viewMode === 'EXPENSES') {
+    return (
+      <div className="h-screen w-full flex flex-col font-outfit bg-transparent p-4">
+        <div className="flex-1 overflow-hidden">
+          <ExpenseManager currentUser={currentUser} />
+        </div>
+        <div className="mt-4">
+          {renderNavbar()}
+        </div>
+      </div>
+    );
+  }
+
   // Render POS View
   return (
     <div className="flex flex-col h-screen font-outfit selection:bg-cyan-500/30 bg-transparent p-4 gap-4">
       <div className="flex flex-1 overflow-hidden gap-4 rounded-3xl">
-        {/* Left side: Products Grid & Search */}
+        {/* Left side: Collapsible Product Catalog Panel */}
+        {isCatalogOpen && (
+          <div className="w-[420px] flex flex-col glass-panel rounded-3xl overflow-hidden relative z-10 border-white/5 animate-in slide-in-from-left-4 duration-300">
+            <header className="p-5 border-b border-white/5 bg-black/20 backdrop-blur-md flex justify-between items-center">
+              <h2 className="text-sm font-bold uppercase tracking-widest text-white">Product Catalog</h2>
+              <button 
+                onClick={() => setIsCatalogOpen(false)}
+                className="text-xs text-red-400 hover:text-red-300 font-bold uppercase tracking-wider"
+              >
+                Close
+              </button>
+            </header>
+            <ProductGrid products={products} onAddToCart={addToCart} />
+          </div>
+        )}
+
+        {/* Center: Streamlined active scanned order list (Primary Panel) */}
         <div className="flex-1 flex flex-col glass-panel rounded-3xl overflow-hidden relative z-10 border-white/5">
           <header className="p-6 border-b border-white/5 bg-black/20 sticky top-0 z-20 flex justify-between items-center backdrop-blur-md">
             <div className="flex items-center gap-4">
@@ -375,45 +452,41 @@ const App: React.FC = () => {
                 <p className="text-[10px] text-cyan-400 font-bold uppercase tracking-widest mt-0.5">Advanced Terminal</p>
               </div>
             </div>
-            <form onSubmit={handleManualAdd} className="relative group w-72 overflow-hidden rounded-xl">
-               <div className="absolute inset-0 pointer-events-none z-20">
-                 {/* Active Laser Sweep */}
-                 <div className="absolute left-0 right-0 h-[1.5px] bg-red-500/80 shadow-[0_0_8px_rgba(239,68,68,0.7)] animate-laser pointer-events-none" />
-               </div>
-               <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-gray-400 group-focus-within:text-cyan-400 transition-colors z-25">
-                 <PackageSearch size={18} />
-               </div>
-               <input 
-                 type="text" 
-                 placeholder="Enter Barcode..." 
-                 value={manualBarcode}
-                 onChange={e => setManualBarcode(e.target.value)}
-                 className="w-full glass-input rounded-xl block pl-12 p-3 relative z-10"
-               />
-            </form>
+
+            <div className="flex items-center gap-4">
+              {/* Catalog toggler */}
+              <button 
+                onClick={() => setIsCatalogOpen(!isCatalogOpen)}
+                className={`px-5 py-2.5 rounded-xl font-bold transition-all flex items-center gap-2 text-xs uppercase tracking-wider ${
+                  isCatalogOpen 
+                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 shadow-[0_0_15px_rgba(0,240,255,0.2)] font-black'
+                    : 'text-gray-400 hover:text-white glass-button'
+                }`}
+              >
+                <LayoutGrid size={16} /> {isCatalogOpen ? 'Close Catalog' : 'Browse Catalog'}
+              </button>
+
+              <form onSubmit={handleManualAdd} className="relative group w-72 overflow-hidden rounded-xl">
+                 <div className="absolute inset-0 pointer-events-none z-20">
+                   {/* Active Laser Sweep */}
+                   <div className="absolute left-0 right-0 h-[1.5px] bg-red-500/80 shadow-[0_0_8px_rgba(239,68,68,0.7)] animate-laser pointer-events-none" />
+                 </div>
+                 <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-gray-400 group-focus-within:text-cyan-400 transition-colors z-25">
+                   <PackageSearch size={18} />
+                 </div>
+                 <input 
+                   type="text" 
+                   placeholder="Enter Barcode..." 
+                   value={manualBarcode}
+                   onChange={e => setManualBarcode(e.target.value)}
+                   className="w-full glass-input rounded-xl block pl-12 p-3 relative z-10"
+                 />
+              </form>
+            </div>
           </header>
 
-          <ProductGrid products={products} onAddToCart={addToCart} />
-        </div>
-
-        {/* Right side: Shopping Cart & Totals */}
-        <div className="w-[400px] flex flex-col glass-panel rounded-3xl overflow-hidden relative z-20 border-white/5">
-          <header className="p-5 border-b border-white/5 bg-black/20 backdrop-blur-md">
-            <h2 className="text-lg font-bold flex items-center gap-2 text-white">
-              <ShoppingCart size={20} className="text-cyan-400 drop-shadow-[0_0_8px_rgba(0,240,255,0.8)]" /> Current Order
-            </h2>
-          </header>
-
-          <OrderControls 
-            onHold={handleHold} 
-            onResume={handleResume} 
-            onClear={handleClear} 
-            isOrderHeld={heldCart !== null} 
-            cartIsEmpty={cart.length === 0} 
-          />
-
-          {/* Notifications */}
-          <div className="px-5 pt-4 flex-shrink-0 empty:hidden">
+          {/* Notifications block */}
+          <div className="px-6 pt-4 flex-shrink-0 empty:hidden">
             {error && (
               <div className="mb-2 p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-sm backdrop-blur-md flex items-start gap-2 animate-in fade-in zoom-in-95">
                 <div className="mt-0.5">⚠️</div>
@@ -429,6 +502,23 @@ const App: React.FC = () => {
           </div>
 
           <Cart cart={cart} onUpdateQty={updateQty} onRemoveItem={removeItem} />
+        </div>
+
+        {/* Right side: Checkout Summary Panel */}
+        <div className="w-[400px] flex flex-col glass-panel rounded-3xl overflow-hidden relative z-20 border-white/5">
+          <header className="p-5 border-b border-white/5 bg-black/20 backdrop-blur-md">
+            <h2 className="text-lg font-bold flex items-center gap-2 text-white">
+              <ShoppingCart size={20} className="text-cyan-400 drop-shadow-[0_0_8px_rgba(0,240,255,0.8)]" /> Checkout Summary
+            </h2>
+          </header>
+
+          <OrderControls 
+            onHold={handleHold} 
+            onResume={handleResume} 
+            onClear={handleClear} 
+            isOrderHeld={heldCart !== null} 
+            cartIsEmpty={cart.length === 0} 
+          />
 
           {/* Quick Discount Selector */}
           {cart.length > 0 && (
@@ -472,7 +562,7 @@ const App: React.FC = () => {
             </div>
           )}
 
-          <div className="p-6 border-t border-white/5 bg-black/30 backdrop-blur-md relative overflow-hidden">
+          <div className="p-6 border-t border-white/5 bg-black/30 backdrop-blur-md relative overflow-hidden flex-1 flex flex-col justify-end">
             <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 blur-[50px] -mr-10 -mt-10 rounded-full"></div>
             
             <div className="space-y-3 mb-6 relative z-10">
@@ -490,10 +580,7 @@ const App: React.FC = () => {
                   <span>-Rs. {activeDiscount.toFixed(2)}</span>
                 </div>
               )}
-              <div className="flex justify-between items-center text-sm font-medium text-gray-400">
-                <span>Tax ({(TAX_RATE * 100).toFixed(0)}%)</span>
-                <span className="text-gray-200">Rs. {tax.toFixed(2)}</span>
-              </div>
+
               <div className="flex justify-between items-center pt-3 mt-3 border-t border-white/10">
                 <span className="text-xl font-bold text-white">Total</span>
                 <span className="text-3xl font-extrabold text-cyan-400 drop-shadow-[0_0_10px_rgba(0,240,255,0.5)]">Rs. {totalAmount.toFixed(2)}</span>
@@ -501,7 +588,14 @@ const App: React.FC = () => {
             </div>
             
             <button 
-              onClick={() => setIsPaymentOpen(true)}
+              onClick={() => {
+                window.api.getNextSaleId().then(nextId => {
+                  setNextSaleId(nextId);
+                  setIsPaymentOpen(true);
+                }).catch(() => {
+                  setIsPaymentOpen(true);
+                });
+              }}
               disabled={cart.length === 0}
               className="w-full py-4 rounded-xl font-bold text-white shadow-[0_0_20px_rgba(0,240,255,0.3)] bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 disabled:from-white/10 disabled:to-white/5 disabled:text-white/30 disabled:shadow-none transition-all flex justify-center items-center gap-2 group relative overflow-hidden"
             >
@@ -526,6 +620,7 @@ const App: React.FC = () => {
           items={cart}
           onClose={() => setIsPaymentOpen(false)}
           onConfirm={handleCheckoutConfirm}
+          nextSaleId={nextSaleId}
         />
       )}
     </div>

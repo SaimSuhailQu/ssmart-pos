@@ -1,9 +1,10 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'path';
-import { initDb, getAllProducts, getProductByBarcode, saveSale, addProduct, updateProduct, deleteProduct,
+import { initDb, getAllProducts, getProductByBarcode, saveSale, getNextSaleId, addProduct, updateProduct, deleteProduct,
   getAllCustomers, getCustomerByPhone, addCustomer, updateCustomer, deleteCustomer,
   verifyUserPin, clockIn, clockOut, getActiveShift, getSalesAnalytics,
-  getAllUsers, addUser, updateUser, deleteUser } from './db';
+  getAllUsers, addUser, updateUser, deleteUser, getAllSales, returnSaleItems,
+  getAllExpenses, addExpense, deleteExpense } from './db';
 import { printReceipt, printBarcode } from './printer';
 import { startSyncWorker } from './syncEngine';
 
@@ -68,6 +69,10 @@ ipcMain.handle('get-all-products', () => {
 
 ipcMain.handle('get-product', (event, barcode) => {
   return getProductByBarcode(barcode);
+});
+
+ipcMain.handle('get-next-sale-id', () => {
+  return getNextSaleId();
 });
 
 ipcMain.handle('checkout', async (event, data) => {
@@ -152,6 +157,14 @@ ipcMain.handle('get-sales-analytics', () => {
   return getSalesAnalytics();
 });
 
+ipcMain.handle('get-all-sales', () => {
+  return getAllSales();
+});
+
+ipcMain.handle('return-sale-items', (event, saleId, returnsList) => {
+  return returnSaleItems(saleId, returnsList);
+});
+
 // User Management IPC Handlers
 ipcMain.handle('get-all-users', () => {
   return getAllUsers();
@@ -167,4 +180,17 @@ ipcMain.handle('update-user', (event, id, user) => {
 
 ipcMain.handle('delete-user', (event, id) => {
   return deleteUser(id);
+});
+
+// --- Expense Tracking IPC Handlers ---
+ipcMain.handle('get-all-expenses', () => {
+  return getAllExpenses();
+});
+
+ipcMain.handle('add-expense', (event, expense) => {
+  return addExpense(expense);
+});
+
+ipcMain.handle('delete-expense', (event, id) => {
+  return deleteExpense(id);
 });

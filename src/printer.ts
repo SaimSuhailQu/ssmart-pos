@@ -21,11 +21,11 @@ export function printReceipt(items: any[], total: number, saleId?: number) {
         .font('a')
         .align('ct')
         .size(1, 1)
-        .text('MART POS')
-        .text('123 Offline Avenue')
+        .text('SS MART')
+        .text('Address: Havelian')
         .align('lt')
         .text(`Date: ${new Date().toLocaleString()}`)
-        .text(`Sale ID: ${saleId || 'N/A'}`)
+        .text(`Invoice No: INV-${saleId || 'N/A'}`)
         .text('------------------------------');
         
       for (const item of items) {
@@ -45,8 +45,10 @@ export function printReceipt(items: any[], total: number, saleId?: number) {
   } catch (error) {
     console.warn('Printer not connected or escpos failed. MOCK PRINTING.');
     console.log('--- RECEIPT MOCK ---');
+    console.log('SS MART');
+    console.log('Address: Havelian');
     console.log(`Date: ${new Date().toLocaleString()}`);
-    console.log(`Sale ID: ${saleId || 'N/A'}`);
+    console.log(`Invoice No: INV-${saleId || 'N/A'}`);
     for (const item of items) {
       console.log(`${item.name} x${item.qty} Rs. ${(item.price * item.qty).toFixed(2)}`);
     }

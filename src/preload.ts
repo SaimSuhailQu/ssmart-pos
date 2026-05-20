@@ -6,6 +6,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 contextBridge.exposeInMainWorld('api', {
   getAllProducts: () => ipcRenderer.invoke('get-all-products'),
   getProduct: (barcode: string) => ipcRenderer.invoke('get-product', barcode),
+  getNextSaleId: () => ipcRenderer.invoke('get-next-sale-id'),
   checkout: (data: any) => ipcRenderer.invoke('checkout', data),
   addProduct: (product: any) => ipcRenderer.invoke('add-product', product),
   updateProduct: (id: number, product: any) => ipcRenderer.invoke('update-product', id, product),
@@ -24,7 +25,14 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.on('sync-status-changed', (event, status) => callback(status));
   },
   getSalesAnalytics: () => ipcRenderer.invoke('get-sales-analytics'),
+  getAllSales: () => ipcRenderer.invoke('get-all-sales'),
+  returnSaleItems: (saleId: number, returnsList: any[]) => ipcRenderer.invoke('return-sale-items', saleId, returnsList),
   
+  // Expenses tracking
+  getAllExpenses: () => ipcRenderer.invoke('get-all-expenses'),
+  addExpense: (expense: any) => ipcRenderer.invoke('add-expense', expense),
+  deleteExpense: (id: number) => ipcRenderer.invoke('delete-expense', id),
+
   // User Management
   getAllUsers: () => ipcRenderer.invoke('get-all-users'),
   addUser: (user: any) => ipcRenderer.invoke('add-user', user),
