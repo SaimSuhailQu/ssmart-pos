@@ -3,11 +3,7 @@ import { Product } from '../types';
 import { Plus, Edit2, Trash2, Printer, Search, PackageOpen } from 'lucide-react';
 import { ProductFormModal } from './ProductFormModal';
 
-interface InventoryManagerProps {
-  onBackToPOS: () => void;
-}
-
-export const InventoryManager: React.FC<InventoryManagerProps> = ({ onBackToPOS }) => {
+export const InventoryManager: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   

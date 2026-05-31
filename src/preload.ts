@@ -37,5 +37,14 @@ contextBridge.exposeInMainWorld('api', {
   getAllUsers: () => ipcRenderer.invoke('get-all-users'),
   addUser: (user: any) => ipcRenderer.invoke('add-user', user),
   updateUser: (id: number, user: any) => ipcRenderer.invoke('update-user', id, user),
-  deleteUser: (id: number) => ipcRenderer.invoke('delete-user', id)
+  deleteUser: (id: number) => ipcRenderer.invoke('delete-user', id),
+
+  // Vendors & Purchase Orders
+  getAllVendors: () => ipcRenderer.invoke('get-all-vendors'),
+  addVendor: (vendor: any) => ipcRenderer.invoke('add-vendor', vendor),
+  updateVendor: (id: number, vendor: any) => ipcRenderer.invoke('update-vendor', id, vendor),
+  deleteVendor: (id: number) => ipcRenderer.invoke('delete-vendor', id),
+  getAllPurchaseOrders: () => ipcRenderer.invoke('get-all-purchase-orders'),
+  createPurchaseOrder: (vendorId: number, items: any[]) => ipcRenderer.invoke('create-purchase-order', vendorId, items),
+  receivePurchaseOrder: (poId: number) => ipcRenderer.invoke('receive-purchase-order', poId)
 });

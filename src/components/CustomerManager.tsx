@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Customer } from '../types';
-import { Search, Plus, Edit2, Trash2, Award, UserPlus, Phone, Mail } from 'lucide-react';
+import { Search, Edit2, Trash2, Award, UserPlus, Phone, Mail } from 'lucide-react';
 
 export const CustomerManager: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);

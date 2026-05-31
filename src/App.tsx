@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useScanner } from './hooks/useScanner';
 import { CartItem, Product, PaymentData } from './types';
-import { ShoppingCart, PackageSearch, Printer, CheckCircle, LayoutGrid, PackageOpen, Users, Shield, BarChart3, History, DollarSign } from 'lucide-react';
+import { ShoppingCart, PackageSearch, Printer, CheckCircle, LayoutGrid, PackageOpen, Users, Shield, BarChart3, History, DollarSign, Truck } from 'lucide-react';
 import { ProductGrid } from './components/ProductGrid';
 import { Cart } from './components/Cart';
 import { OrderControls } from './components/OrderControls';
@@ -9,6 +9,7 @@ import { PaymentModal } from './components/PaymentModal';
 import { InventoryManager } from './components/InventoryManager';
 import { PinLogin } from './components/PinLogin';
 import { CustomerManager } from './components/CustomerManager';
+import { VendorManager } from './components/VendorManager';
 import { ShiftManager } from './components/ShiftManager';
 import { AnalyticsDashboard } from './components/AnalyticsDashboard';
 import { SalesRecordManager } from './components/SalesRecordManager';
@@ -16,8 +17,9 @@ import { ExpenseManager } from './components/ExpenseManager';
 import logoImg from './assets/ss_mart_logo.png';
 
 const TAX_RATE = 0.0; // Tax removed
+const t = (str: string) => str;
 
-type ViewMode = 'POS' | 'INVENTORY' | 'CUSTOMERS' | 'SHIFT' | 'ANALYTICS' | 'SALES_RECORD' | 'EXPENSES';
+type ViewMode = 'POS' | 'INVENTORY' | 'CUSTOMERS' | 'SHIFT' | 'ANALYTICS' | 'SALES_RECORD' | 'EXPENSES' | 'VENDORS';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<{ id: number; name: string; role: string } | null>(null);
@@ -44,7 +46,7 @@ const App: React.FC = () => {
     if (viewMode === 'ANALYTICS' && currentUser.role !== 'Admin') {
       setViewMode('POS');
     }
-    if ((viewMode === 'INVENTORY' || viewMode === 'CUSTOMERS') && currentUser.role === 'Cashier') {
+    if ((viewMode === 'INVENTORY' || viewMode === 'CUSTOMERS' || viewMode === 'VENDORS') && currentUser.role === 'Cashier') {
       setViewMode('POS');
     }
   }, [viewMode, currentUser]);
@@ -284,6 +286,16 @@ const App: React.FC = () => {
           >
             <Users size={18} /> CRM & Loyalty
           </button>
+          <button 
+            onClick={() => setViewMode('VENDORS')} 
+            className={`px-6 py-2.5 rounded-xl font-bold transition flex items-center gap-2 ${
+              viewMode === 'VENDORS' 
+                ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/50 shadow-[0_0_15px_rgba(0,240,255,0.2)]'
+                : 'text-gray-400 hover:text-white glass-button'
+            }`}
+          >
+            <Truck size={18} /> Vendor & POs
+          </button>
         </>
       )}
 
@@ -330,7 +342,7 @@ const App: React.FC = () => {
     return (
       <div className="h-screen w-full flex flex-col font-outfit selection:bg-indigo-500/30 bg-transparent p-4">
         <div className="flex-1 overflow-hidden">
-          <InventoryManager onBackToPOS={() => setViewMode('POS')} />
+          <InventoryManager />
         </div>
         <div className="mt-4">
           {renderNavbar()}
@@ -345,6 +357,20 @@ const App: React.FC = () => {
       <div className="h-screen w-full flex flex-col font-outfit bg-transparent p-4">
         <div className="flex-1 overflow-hidden">
           <CustomerManager />
+        </div>
+        <div className="mt-4">
+          {renderNavbar()}
+        </div>
+      </div>
+    );
+  }
+
+  // Render Vendor View
+  if (viewMode === 'VENDORS') {
+    return (
+      <div className="h-screen w-full flex flex-col font-outfit bg-transparent p-4">
+        <div className="flex-1 overflow-hidden">
+          <VendorManager />
         </div>
         <div className="mt-4">
           {renderNavbar()}
@@ -417,12 +443,12 @@ const App: React.FC = () => {
         {isCatalogOpen && (
           <div className="w-[420px] flex flex-col glass-panel rounded-3xl overflow-hidden relative z-10 border-white/5 animate-in slide-in-from-left-4 duration-300">
             <header className="p-5 border-b border-white/5 bg-black/20 backdrop-blur-md flex justify-between items-center">
-              <h2 className="text-sm font-bold uppercase tracking-widest text-white">Product Catalog</h2>
+              <h2 className="text-sm font-bold uppercase tracking-widest text-white">{t('Product Catalog')}</h2>
               <button 
                 onClick={() => setIsCatalogOpen(false)}
                 className="text-xs text-red-400 hover:text-red-300 font-bold uppercase tracking-wider"
               >
-                Close
+                {t('Close')}
               </button>
             </header>
             <ProductGrid products={products} onAddToCart={addToCart} />
@@ -436,7 +462,7 @@ const App: React.FC = () => {
               <img src={logoImg} alt="SS Mart Logo" className="w-11 h-11 rounded-xl border border-white/10 shadow-[0_0_15px_rgba(0,240,255,0.3)] object-cover" />
               <div>
                 <div className="flex items-center gap-2.5">
-                  <h1 className="text-2xl font-extrabold tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 drop-shadow-md">SS MART</h1>
+                  <h1 className="text-2xl font-extrabold tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 drop-shadow-md">{t('SS MART')}</h1>
                   {/* Glowing Cloud Status Indicator */}
                   <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-widest border transition-all duration-500 uppercase ${
                     isOnline
@@ -449,7 +475,7 @@ const App: React.FC = () => {
                     {isOnline ? 'Online' : 'Offline'}
                   </span>
                 </div>
-                <p className="text-[10px] text-cyan-400 font-bold uppercase tracking-widest mt-0.5">Advanced Terminal</p>
+                <p className="text-[10px] text-cyan-400 font-bold uppercase tracking-widest mt-0.5">{t('Advanced Terminal')}</p>
               </div>
             </div>
 
@@ -523,7 +549,7 @@ const App: React.FC = () => {
           {/* Quick Discount Selector */}
           {cart.length > 0 && (
             <div className="px-5 py-3 border-t border-white/5 bg-black/10 flex-shrink-0">
-              <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block mb-2">Apply Promo / Discount</span>
+              <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block mb-2">{t('Apply Promo / Discount')}</span>
               <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
                 {[
                   { label: '5%', type: 'pct', value: 0.05 },
@@ -555,7 +581,7 @@ const App: React.FC = () => {
                     onClick={() => setDiscount(0)}
                     className="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase whitespace-nowrap bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all"
                   >
-                    Clear
+                    {t('Clear')}
                   </button>
                 )}
               </div>
@@ -567,22 +593,22 @@ const App: React.FC = () => {
             
             <div className="space-y-3 mb-6 relative z-10">
               <div className="flex justify-between items-center text-sm font-medium text-gray-400">
-                <span>Items</span>
+                <span>{t('Items')}</span>
                 <span className="text-gray-200">{totalItems}</span>
               </div>
               <div className="flex justify-between items-center text-sm font-medium text-gray-400">
-                <span>Subtotal</span>
+                <span>{t('Subtotal')}</span>
                 <span className="text-gray-200">Rs. {subtotal.toFixed(2)}</span>
               </div>
               {activeDiscount > 0 && (
                 <div className="flex justify-between items-center text-sm font-medium text-emerald-400 animate-in slide-in-from-top-1">
-                  <span>Promo Discount</span>
+                  <span>{t('Promo Discount')}</span>
                   <span>-Rs. {activeDiscount.toFixed(2)}</span>
                 </div>
               )}
 
               <div className="flex justify-between items-center pt-3 mt-3 border-t border-white/10">
-                <span className="text-xl font-bold text-white">Total</span>
+                <span className="text-xl font-bold text-white">{t('Total')}</span>
                 <span className="text-3xl font-extrabold text-cyan-400 drop-shadow-[0_0_10px_rgba(0,240,255,0.5)]">Rs. {totalAmount.toFixed(2)}</span>
               </div>
             </div>
@@ -601,7 +627,7 @@ const App: React.FC = () => {
             >
               <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"></div>
               <Printer size={20} className="relative z-10" />
-              <span className="relative z-10 tracking-wider">PAY (F12)</span>
+              <span className="relative z-10 tracking-wider">{t('PAY (F12)')}</span>
             </button>
           </div>
         </div>

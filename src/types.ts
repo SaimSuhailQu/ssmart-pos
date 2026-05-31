@@ -44,6 +44,33 @@ export interface Customer {
   points: number;
 }
 
+export interface Vendor {
+  id: number;
+  name: string;
+  contact?: string;
+  category?: string;
+}
+
+export interface PurchaseOrderItem {
+  id: number;
+  po_id: number;
+  product_id: number;
+  qty: number;
+  cost_price: number;
+  product_name?: string;
+  product_barcode?: string;
+}
+
+export interface PurchaseOrder {
+  id: number;
+  vendor_id: number;
+  status: 'Pending' | 'Received' | 'Cancelled';
+  total_cost: number;
+  timestamp: string;
+  vendor_name?: string;
+  items?: PurchaseOrderItem[];
+}
+
 export interface User {
   id: number;
   pin: string;
@@ -129,6 +156,15 @@ declare global {
       addUser: (user: Omit<User, 'id'>) => Promise<number>;
       updateUser: (id: number, user: Omit<User, 'id'>) => Promise<boolean>;
       deleteUser: (id: number) => Promise<boolean>;
+
+      // Vendors & Purchase Orders
+      getAllVendors: () => Promise<Vendor[]>;
+      addVendor: (vendor: Omit<Vendor, 'id'>) => Promise<number>;
+      updateVendor: (id: number, vendor: Omit<Vendor, 'id'>) => Promise<boolean>;
+      deleteVendor: (id: number) => Promise<boolean>;
+      getAllPurchaseOrders: () => Promise<PurchaseOrder[]>;
+      createPurchaseOrder: (vendorId: number, items: { productId: number, qty: number, costPrice: number }[]) => Promise<number>;
+      receivePurchaseOrder: (poId: number) => Promise<boolean>;
     }
   }
 }

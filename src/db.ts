@@ -1,7 +1,6 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 import { app } from 'electron';
-import fs from 'fs';
 
 // Setup database in user data directory
 const userDataPath = app.getPath('userData');
@@ -99,6 +98,25 @@ export function initDb() {
       logged_by TEXT NOT NULL,
       timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
       synced BOOLEAN DEFAULT 0
+    );
+
+    CREATE TABLE IF NOT EXISTS purchase_orders (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      vendor_id INTEGER NOT NULL,
+      status TEXT NOT NULL DEFAULT 'Pending',
+      total_cost REAL NOT NULL DEFAULT 0,
+      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS purchase_order_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      po_id INTEGER NOT NULL,
+      product_id INTEGER NOT NULL,
+      qty INTEGER NOT NULL,
+      cost_price REAL NOT NULL,
+      FOREIGN KEY (po_id) REFERENCES purchase_orders(id),
+      FOREIGN KEY (product_id) REFERENCES products(id)
     );
   `);
 
@@ -460,6 +478,77 @@ export function getAllVendors() {
 export function addVendor(vendor: { name: string, contact: string, category: string }) {
   const insert = db.prepare('INSERT INTO vendors (name, contact, category) VALUES (?, ?, ?)');
   return insert.run(vendor.name, vendor.contact, vendor.category).lastInsertRowid;
+}
+
+export function updateVendor(id: number, vendor: { name: string, contact: string, category: string }) {
+  const update = db.prepare('UPDATE vendors SET name = ?, contact = ?, category = ? WHERE id = ?');
+  return update.run(vendor.name, vendor.contact, vendor.category, id).changes > 0;
+}
+
+export function deleteVendor(id: number) {
+  const del = db.prepare('DELETE FROM vendors WHERE id = ?');
+  return del.run(id).changes > 0;
+}
+
+export function getAllPurchaseOrders() {
+  const pos = db.prepare(`
+    SELECT po.*, v.name as vendor_name
+    FROM purchase_orders po
+    JOIN vendors v ON po.vendor_id = v.id
+    ORDER BY po.timestamp DESC
+  `).all() as any[];
+
+  return pos.map(po => {
+    const items = db.prepare(`
+      SELECT poi.*, p.name as product_name, p.barcode as product_barcode
+      FROM purchase_order_items poi
+      JOIN products p ON poi.product_id = p.id
+      WHERE poi.po_id = ?
+    `).all(po.id);
+    return { ...po, items };
+  });
+}
+
+export function createPurchaseOrder(vendorId: number, items: { productId: number, qty: number, costPrice: number }[]) {
+  const insertPO = db.prepare('INSERT INTO purchase_orders (vendor_id, total_cost, status) VALUES (?, ?, ?)');
+  const insertPOItem = db.prepare('INSERT INTO purchase_order_items (po_id, product_id, qty, cost_price) VALUES (?, ?, ?, ?)');
+
+  let poId = 0;
+  const transaction = db.transaction(() => {
+    const totalCost = items.reduce((sum, item) => sum + (item.qty * item.costPrice), 0);
+    const info = insertPO.run(vendorId, totalCost, 'Pending');
+    poId = info.lastInsertRowid as number;
+
+    for (const item of items) {
+      insertPOItem.run(poId, item.productId, item.qty, item.costPrice);
+    }
+  });
+
+  transaction();
+  return poId;
+}
+
+export function receivePurchaseOrder(poId: number) {
+  const selectPO = db.prepare('SELECT * FROM purchase_orders WHERE id = ?');
+  const selectItems = db.prepare('SELECT * FROM purchase_order_items WHERE po_id = ?');
+  const updatePOStatus = db.prepare("UPDATE purchase_orders SET status = 'Received' WHERE id = ?");
+  const updateProductStock = db.prepare('UPDATE products SET stock = stock + ? WHERE id = ?');
+
+  const transaction = db.transaction(() => {
+    const po = selectPO.get(poId) as any;
+    if (!po) throw new Error('Purchase Order not found');
+    if (po.status === 'Received') throw new Error('Purchase Order is already received');
+
+    const items = selectItems.all(poId) as any[];
+    for (const item of items) {
+      updateProductStock.run(item.qty, item.product_id);
+    }
+
+    updatePOStatus.run(poId);
+  });
+
+  transaction();
+  return true;
 }
 
 export function getStoreBranches() {

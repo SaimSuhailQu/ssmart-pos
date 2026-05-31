@@ -4,7 +4,9 @@ import { initDb, getAllProducts, getProductByBarcode, saveSale, getNextSaleId, a
   getAllCustomers, getCustomerByPhone, addCustomer, updateCustomer, deleteCustomer,
   verifyUserPin, clockIn, clockOut, getActiveShift, getSalesAnalytics,
   getAllUsers, addUser, updateUser, deleteUser, getAllSales, returnSaleItems,
-  getAllExpenses, addExpense, deleteExpense } from './db';
+  getAllExpenses, addExpense, deleteExpense,
+  getAllVendors, addVendor, updateVendor, deleteVendor,
+  getAllPurchaseOrders, createPurchaseOrder, receivePurchaseOrder } from './db';
 import { printReceipt, printBarcode } from './printer';
 import { startSyncWorker } from './syncEngine';
 
@@ -193,4 +195,33 @@ ipcMain.handle('add-expense', (event, expense) => {
 
 ipcMain.handle('delete-expense', (event, id) => {
   return deleteExpense(id);
+});
+
+// --- Vendors & Purchase Orders IPC Handlers ---
+ipcMain.handle('get-all-vendors', () => {
+  return getAllVendors();
+});
+
+ipcMain.handle('add-vendor', (event, vendor) => {
+  return addVendor(vendor);
+});
+
+ipcMain.handle('update-vendor', (event, id, vendor) => {
+  return updateVendor(id, vendor);
+});
+
+ipcMain.handle('delete-vendor', (event, id) => {
+  return deleteVendor(id);
+});
+
+ipcMain.handle('get-all-purchase-orders', () => {
+  return getAllPurchaseOrders();
+});
+
+ipcMain.handle('create-purchase-order', (event, vendorId, items) => {
+  return createPurchaseOrder(vendorId, items);
+});
+
+ipcMain.handle('receive-purchase-order', (event, poId) => {
+  return receivePurchaseOrder(poId);
 });

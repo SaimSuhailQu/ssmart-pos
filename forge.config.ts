@@ -6,6 +6,9 @@ import { MakerRpm } from '@electron-forge/maker-rpm';
 import { VitePlugin } from '@electron-forge/plugin-vite';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
+import fs from 'fs';
+import path from 'path';
+import { execSync } from 'child_process';
 
 const config: ForgeConfig = {
   packagerConfig: {
@@ -55,10 +58,7 @@ const config: ForgeConfig = {
     }),
   ],
   hooks: {
-    packageAfterCopy: async (forgeConfig, buildPath, electronVersion, platform, arch) => {
-      const fs = require('fs');
-      const path = require('path');
-      const { execSync } = require('child_process');
+    packageAfterCopy: async (forgeConfig, buildPath, _electronVersion, _platform, _arch) => {
       
       console.log(`[Forge Hook] Preparing buildPath for npm install: ${buildPath}`);
       
