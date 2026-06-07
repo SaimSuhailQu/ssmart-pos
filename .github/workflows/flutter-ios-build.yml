@@ -15,8 +15,16 @@ on:
       - 'flutter-v*'  # Example: flutter-v1.0.0, flutter-v1.0.1
   workflow_dispatch:   # Allows manual trigger
     inputs:
+      build_type:
+        description: 'Build type (unsigned = development, no Apple account needed | signed = production with code signing)'
+        required: true
+        type: choice
+        options:
+          - unsigned
+          - signed
+        default: unsigned
       deploy_to_testflight:
-        description: 'Deploy to TestFlight after build?'
+        description: 'Deploy to TestFlight after build? (only for signed builds)'
         required: false
         type: boolean
         default: false
@@ -119,15 +127,30 @@ jobs:
           echo "Skipping code generation"
 
       # ========================================================================
-      # STEP 6: Setup iOS Code Signing
+      # STEP 6: Determine Build Type
       # ========================================================================
-      # IMPORTANT: Before this workflow can run successfully, you MUST:
-      # 1. Set up Fastlane Match (see IOS_BUILD_SETUP.md)
-      # 2. Configure GitHub Secrets (see documentation below)
-      # 3. Have a valid Apple Developer account
+      - name: Determine Build Type
+        id: build_type
+        run: |
+          # For tagged builds, always use signed
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "type=signed" >> $GITHUB_OUTPUT
+            echo "Building SIGNED release from tag"
+          else
+            # For manual dispatch, use the selected option
+            echo "type=${{ github.event.inputs.build_type || 'unsigned' }}" >> $GITHUB_OUTPUT
+            echo "Building ${{ github.event.inputs.build_type || 'unsigned' }} build"
+          fi
+
+      # ========================================================================
+      # STEP 7: Setup iOS Code Signing (SIGNED BUILDS ONLY)
+      # ========================================================================
+      # For unsigned builds: Skip this entire section
+      # For signed builds: Requires Apple Developer account and Fastlane Match
       # ========================================================================
 
       - name: Configure Keychain
+        if: steps.build_type.outputs.type == 'signed'
         env:
           MATCH_KEYCHAIN_NAME: ${{ secrets.MATCH_KEYCHAIN_NAME }}
           MATCH_KEYCHAIN_PASSWORD: ${{ secrets.MATCH_KEYCHAIN_PASSWORD }}
@@ -143,6 +166,7 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple: -s -k "$MATCH_KEYCHAIN_PASSWORD" "$MATCH_KEYCHAIN_NAME"
 
       - name: Setup Code Signing with Fastlane Match
+        if: steps.build_type.outputs.type == 'signed'
         working-directory: ${{ env.WORKING_DIRECTORY }}/ios
         env:
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
@@ -157,7 +181,7 @@ jobs:
           bundle exec fastlane run sync_code_signing
 
       # ========================================================================
-      # STEP 7: Install CocoaPods Dependencies
+      # STEP 8: Install CocoaPods Dependencies
       # ========================================================================
       - name: Install CocoaPods Dependencies
         working-directory: ${{ env.WORKING_DIRECTORY }}/ios
@@ -165,15 +189,46 @@ jobs:
           pod install --repo-update
 
       # ========================================================================
-      # STEP 8: Build Flutter iOS App
+      # STEP 9: Build Flutter iOS App
       # ========================================================================
-      - name: Build Flutter IPA
+
+      # UNSIGNED BUILD - Development/Testing (No Apple Account Required)
+      - name: Build Unsigned Development App
+        if: steps.build_type.outputs.type == 'unsigned'
+        working-directory: ${{ env.WORKING_DIRECTORY }}/ios
+        run: |
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "  UNSIGNED DEVELOPMENT BUILD"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          echo "This is an UNSIGNED development build that:"
+          echo "  ✓ Works on iOS Simulator"
+          echo "  ✓ Can be installed locally via Xcode"
+          echo "  ✗ Cannot be distributed or installed on devices without Xcode"
+          echo "  ✗ Not suitable for TestFlight or App Store"
+          echo ""
+          echo "For production builds, use 'signed' build type with Apple Developer account."
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+
+          bundle exec fastlane build_unsigned
+
+      # SIGNED BUILD - Production (Requires Apple Developer Account)
+      - name: Build Signed IPA
+        if: steps.build_type.outputs.type == 'signed'
         working-directory: ${{ env.WORKING_DIRECTORY }}
         env:
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
           MATCH_KEYCHAIN_NAME: ${{ secrets.MATCH_KEYCHAIN_NAME }}
           MATCH_KEYCHAIN_PASSWORD: ${{ secrets.MATCH_KEYCHAIN_PASSWORD }}
         run: |
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "  SIGNED PRODUCTION BUILD"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          echo "Building signed IPA for App Store distribution..."
+          echo ""
+
           # Build IPA using Flutter
           flutter build ipa \
             --release \
@@ -185,10 +240,12 @@ jobs:
           ls -lh build/ios/ipa/
 
       # ========================================================================
-      # STEP 9: Upload to TestFlight (Optional)
+      # STEP 10: Upload to TestFlight (Signed Builds Only)
       # ========================================================================
       - name: Upload to TestFlight
-        if: ${{ github.event.inputs.deploy_to_testflight == 'true' || startsWith(github.ref, 'refs/tags/flutter-v') }}
+        if: |
+          steps.build_type.outputs.type == 'signed' &&
+          (github.event.inputs.deploy_to_testflight == 'true' || startsWith(github.ref, 'refs/tags/flutter-v'))
         working-directory: ${{ env.WORKING_DIRECTORY }}/ios
         env:
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
@@ -200,12 +257,26 @@ jobs:
           bundle exec fastlane beta
 
       # ========================================================================
-      # STEP 10: Upload Build Artifacts
+      # STEP 11: Upload Build Artifacts
       # ========================================================================
-      - name: Upload IPA Artifact
+
+      # Upload unsigned .app bundle
+      - name: Upload Unsigned App Artifact
+        if: steps.build_type.outputs.type == 'unsigned'
         uses: actions/upload-artifact@v4
         with:
-          name: SSmart-POS-Admin-iOS-${{ github.ref_name }}-${{ github.run_number }}
+          name: SSmart-POS-Admin-iOS-Unsigned-${{ github.run_number }}
+          path: |
+            ${{ env.WORKING_DIRECTORY }}/build/ios/Debug-iphonesimulator/*.app
+          retention-days: 30
+          if-no-files-found: error
+
+      # Upload signed IPA
+      - name: Upload Signed IPA Artifact
+        if: steps.build_type.outputs.type == 'signed'
+        uses: actions/upload-artifact@v4
+        with:
+          name: SSmart-POS-Admin-iOS-Signed-${{ github.ref_name }}-${{ github.run_number }}
           path: |
             ${{ env.WORKING_DIRECTORY }}/build/ios/ipa/*.ipa
             ${{ env.WORKING_DIRECTORY }}/build/ios/ipa/*.dSYM.zip
@@ -213,19 +284,20 @@ jobs:
           if-no-files-found: error
 
       # ========================================================================
-      # STEP 11: Create GitHub Release (for tagged builds)
+      # STEP 12: Create GitHub Release (for tagged builds)
       # ========================================================================
-      - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/flutter-v')
+      - name: Create GitHub Release (Signed Builds)
+        if: startsWith(github.ref, 'refs/tags/flutter-v') && steps.build_type.outputs.type == 'signed'
         uses: softprops/action-gh-release@v2
         with:
           files: |
             ${{ env.WORKING_DIRECTORY }}/build/ios/ipa/*.ipa
           body: |
-            ## SSmart POS Admin - iOS Build
+            ## SSmart POS Admin - iOS Build (SIGNED)
 
             **Version:** ${{ github.ref_name }}
             **Build Number:** ${{ github.run_number }}
+            **Build Type:** Production (Signed)
             **Built:** ${{ github.event.head_commit.timestamp }}
 
             ### Installation Instructions
@@ -247,18 +319,58 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # ========================================================================
-      # STEP 12: Cleanup
+      # STEP 13: Cleanup
       # ========================================================================
       - name: Cleanup Keychain
-        if: always()
+        if: always() && steps.build_type.outputs.type == 'signed'
         run: |
           security delete-keychain "${{ secrets.MATCH_KEYCHAIN_NAME }}" || true
 
 # ============================================================================
-# REQUIRED GITHUB SECRETS
+# BUILD TYPES
 # ============================================================================
-# Before running this workflow, configure these secrets in:
-# Repository Settings > Secrets and variables > Actions
+# This workflow supports TWO build types:
+#
+# 1. UNSIGNED (Development) - DEFAULT
+#    - No Apple Developer account needed
+#    - No code signing certificates required
+#    - Works on iOS Simulator
+#    - Can be installed locally via Xcode
+#    - Perfect for development and testing
+#    - Cannot be distributed to devices or TestFlight
+#
+# 2. SIGNED (Production)
+#    - Requires Apple Developer account ($99/year)
+#    - Needs code signing setup with Fastlane Match
+#    - Produces App Store ready IPA
+#    - Can be uploaded to TestFlight
+#    - Required for distribution
+#
+# ============================================================================
+# UNSIGNED BUILD USAGE (No Apple Account)
+# ============================================================================
+# To build unsigned development builds:
+#
+# 1. Go to Actions tab → Build Flutter iOS Admin App
+# 2. Click "Run workflow"
+# 3. Select "unsigned" as build type
+# 4. Click "Run workflow"
+# 5. Download .app artifact when complete
+# 6. Use with iOS Simulator locally
+#
+# No secrets or configuration needed!
+#
+# Local unsigned builds:
+#   cd flutter_admin_app
+#   flutter build ios --simulator
+#
+# ============================================================================
+# REQUIRED GITHUB SECRETS (For SIGNED Builds Only)
+# ============================================================================
+# Only configure these if you have an Apple Developer account and want
+# production builds. Skip this section for unsigned development builds.
+#
+# Configure these secrets in: Repository Settings > Secrets and variables > Actions
 #
 # 1. APPLE DEVELOPER ACCOUNT
 #    - FASTLANE_USER: Your Apple ID email
@@ -279,12 +391,15 @@ jobs:
 #    - FIREBASE_DATABASE_URL: Your Firebase database URL
 #
 # ============================================================================
-# SETUP GUIDE
+# SETUP GUIDES
 # ============================================================================
-# For detailed setup instructions, see:
-#   flutter_admin_app/IOS_BUILD_SETUP.md
+# UNSIGNED (Development):
+#   See: flutter_admin_app/IOS_BUILD_SETUP.md → "Building Without Apple Developer Account"
 #
-# Quick start:
+# SIGNED (Production):
+#   See: flutter_admin_app/IOS_BUILD_SETUP.md → Complete setup guide
+#
+# Quick start for SIGNED builds:
 # 1. Set up Apple Developer account ($99/year)
 # 2. Create App ID in Apple Developer Portal
 # 3. Initialize Fastlane Match: `cd ios && bundle exec fastlane match init`

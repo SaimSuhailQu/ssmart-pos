@@ -73,6 +73,51 @@ platform :ios do
   end
 
   # ============================================================================
+  # LANE: Build Unsigned - Development Build (No Code Signing)
+  # ============================================================================
+  desc "Build unsigned development app for simulator"
+  desc "Usage: fastlane build_unsigned"
+  desc "No Apple Developer account or certificates required"
+  desc "Output: .app bundle for iOS Simulator"
+  lane :build_unsigned do
+    UI.important("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    UI.important("  UNSIGNED DEVELOPMENT BUILD")
+    UI.important("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    UI.message("")
+    UI.message("Building for iOS Simulator (no code signing required)")
+    UI.message("")
+
+    # Navigate to Flutter project root
+    Dir.chdir("..") do
+      # Build for simulator using Flutter
+      sh("flutter", "build", "ios", "--simulator", "--debug")
+    end
+
+    # Find the .app bundle
+    app_path = Dir.glob("../build/ios/Debug-iphonesimulator/*.app").first
+
+    if app_path
+      UI.success("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+      UI.success("  BUILD SUCCESSFUL")
+      UI.success("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+      UI.message("")
+      UI.message("App bundle created at: #{app_path}")
+      UI.message("")
+      UI.message("Usage:")
+      UI.message("  1. Install on simulator:")
+      UI.message("     xcrun simctl install booted '#{app_path}'")
+      UI.message("")
+      UI.message("  2. Or drag the .app to a running simulator")
+      UI.message("")
+      UI.important("Note: This build cannot be installed on physical devices")
+      UI.important("      or distributed via TestFlight/App Store")
+      UI.message("")
+    else
+      UI.user_error!("Build failed: Could not find .app bundle")
+    end
+  end
+
+  # ============================================================================
   # LANE: Build Only - Build IPA without Uploading
   # ============================================================================
   desc "Build IPA without uploading"

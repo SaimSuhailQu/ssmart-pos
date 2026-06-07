@@ -2,6 +2,32 @@
 
 This directory contains the iOS-specific files for the SSmart POS Admin Flutter app.
 
+## Two Build Options
+
+### 1. Unsigned (Development) - No Apple Account Needed ⭐
+
+Perfect for development and testing without Apple Developer account.
+
+**Quick start:**
+```bash
+cd ..  # Go to flutter_admin_app directory
+flutter build ios --simulator
+
+# Or use Fastlane
+cd ios
+bundle exec fastlane build_unsigned
+```
+
+**See:** [../UNSIGNED_BUILD_GUIDE.md](../UNSIGNED_BUILD_GUIDE.md)
+
+### 2. Signed (Production) - Requires Apple Developer
+
+For TestFlight and App Store distribution.
+
+**See:** [../IOS_BUILD_SETUP.md](../IOS_BUILD_SETUP.md)
+
+---
+
 ## What's Here
 
 ### Xcode Project
@@ -76,21 +102,30 @@ See the main setup guide: [../IOS_BUILD_SETUP.md](../IOS_BUILD_SETUP.md)
 
 ## Common Commands
 
+### Unsigned (Development)
+```bash
+# Build for simulator
+cd ..
+flutter build ios --simulator
+
+# Or with Fastlane
+bundle exec fastlane build_unsigned
+```
+
+### Signed (Production)
 ```bash
 # Install dependencies
 bundle install
 pod install
 
-# Build locally
-flutter build ios --release
-
 # Build with Fastlane
-bundle exec fastlane build_only
-bundle exec fastlane beta
+bundle exec fastlane build_only    # Build IPA only
+bundle exec fastlane beta          # Upload to TestFlight
 ```
 
 ## Need Help?
 
-- **Setup Guide:** [../IOS_BUILD_SETUP.md](../IOS_BUILD_SETUP.md)
+- **Unsigned Builds (No Apple Account):** [../UNSIGNED_BUILD_GUIDE.md](../UNSIGNED_BUILD_GUIDE.md)
+- **Signed Builds (Complete Setup):** [../IOS_BUILD_SETUP.md](../IOS_BUILD_SETUP.md)
 - **Main README:** [../README.md](../README.md)
 - **Fastlane Docs:** https://docs.fastlane.tools

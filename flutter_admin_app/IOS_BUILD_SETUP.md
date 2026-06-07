@@ -1,21 +1,161 @@
 # iOS Build Setup Guide - SSmart POS Admin
 
-This guide walks you through setting up automated iOS builds for the SSmart POS Admin Flutter app using GitHub Actions, Fastlane, and TestFlight.
+This guide walks you through setting up iOS builds for the SSmart POS Admin Flutter app. Whether you have an Apple Developer account or not, there's a build option for you!
 
-## Table of Contents
+## 🎯 Quick Decision Guide
 
-1. [Prerequisites](#prerequisites)
-2. [Apple Developer Account Setup](#apple-developer-account-setup)
-3. [Local Development Setup](#local-development-setup)
-4. [Fastlane Match Configuration](#fastlane-match-configuration)
-5. [GitHub Secrets Configuration](#github-secrets-configuration)
-6. [Triggering Builds](#triggering-builds)
-7. [Troubleshooting](#troubleshooting)
-8. [Cost Breakdown](#cost-breakdown)
+**Don't have an Apple Developer account yet?**
+→ Start with [Building Without Apple Developer Account](#building-without-apple-developer-account)
+
+**Have an Apple Developer account?**
+→ Jump to [Production Builds with Code Signing](#production-builds-with-code-signing)
 
 ---
 
-## Prerequisites
+## Table of Contents
+
+1. [Building Without Apple Developer Account](#building-without-apple-developer-account) ⭐ START HERE
+2. [Production Builds with Code Signing](#production-builds-with-code-signing)
+   - [Prerequisites](#prerequisites)
+   - [Apple Developer Account Setup](#apple-developer-account-setup)
+   - [Local Development Setup](#local-development-setup)
+   - [Fastlane Match Configuration](#fastlane-match-configuration)
+   - [GitHub Secrets Configuration](#github-secrets-configuration)
+   - [Triggering Builds](#triggering-builds)
+3. [Troubleshooting](#troubleshooting)
+4. [Cost Breakdown](#cost-breakdown)
+
+---
+
+## Building Without Apple Developer Account
+
+**Perfect for:** Development, testing, learning Flutter, prototyping
+
+**What you can do:**
+- ✅ Build and run on iOS Simulator
+- ✅ Test the app locally
+- ✅ CI/CD builds with GitHub Actions
+- ✅ Share .app bundles with developers (who have Xcode)
+
+**What you can't do:**
+- ❌ Install on physical iOS devices (except with free Apple ID + Xcode workaround)
+- ❌ Distribute via TestFlight
+- ❌ Publish to App Store
+- ❌ Share with non-technical users
+
+### Local Unsigned Builds
+
+#### Method 1: Using Flutter (Recommended for Development)
+
+```bash
+cd flutter_admin_app
+
+# Build for simulator (Debug mode)
+flutter build ios --simulator
+
+# The .app bundle will be at:
+# build/ios/Debug-iphonesimulator/Runner.app
+
+# Run directly on simulator
+flutter run
+```
+
+#### Method 2: Using Fastlane
+
+```bash
+cd flutter_admin_app/ios
+
+# Install Fastlane dependencies (first time only)
+bundle install
+
+# Build unsigned app for simulator
+bundle exec fastlane build_unsigned
+```
+
+### Installing on iOS Simulator
+
+After building, install on a running simulator:
+
+```bash
+# List available simulators
+xcrun simctl list devices
+
+# Boot a simulator (if not running)
+open -a Simulator
+
+# Install the app
+xcrun simctl install booted build/ios/Debug-iphonesimulator/Runner.app
+
+# Or simply drag the .app file to the simulator window
+```
+
+### GitHub Actions Unsigned Builds
+
+Perfect for CI/CD testing without code signing setup!
+
+**Trigger an unsigned build:**
+
+1. Go to your GitHub repository
+2. Click **Actions** tab
+3. Select **Build Flutter iOS Admin App**
+4. Click **Run workflow**
+5. Select:
+   - **Branch:** main (or your branch)
+   - **Build type:** unsigned
+6. Click **Run workflow**
+
+**Download the build:**
+
+1. Wait for the workflow to complete (~10-15 minutes)
+2. Click on the completed workflow run
+3. Scroll to **Artifacts** section
+4. Download `SSmart-POS-Admin-iOS-Unsigned-XXXXX.zip`
+5. Extract and use the .app bundle with a simulator
+
+**No secrets required!** The unsigned workflow runs without any GitHub Secrets configuration.
+
+### Installing on Physical Device (Free Apple ID)
+
+You can test on a physical device using Xcode with a **free Apple ID** (not Apple Developer):
+
+1. Open `Runner.xcworkspace` in Xcode
+2. Connect your iOS device
+3. In Xcode, go to **Signing & Capabilities**
+4. Check **Automatically manage signing**
+5. Select your **Team** (your free Apple ID)
+6. Xcode will create a free development certificate
+7. Click **Run** (▶️) to install on your device
+
+**Limitations with free Apple ID:**
+- App expires after 7 days (need to re-install)
+- Limited to 3 devices
+- Cannot use certain capabilities (e.g., Push Notifications, In-App Purchases)
+- Cannot distribute to others
+
+**This is perfect for:**
+- Personal testing
+- Local development
+- Learning iOS app development
+
+### When to Upgrade to Paid Apple Developer
+
+Consider upgrading to Apple Developer Program ($99/year) when:
+
+- ✅ You need to distribute to beta testers via TestFlight
+- ✅ You want to publish to the App Store
+- ✅ You need apps that don't expire after 7 days
+- ✅ You need advanced capabilities (Push Notifications, etc.)
+- ✅ You're ready for production deployment
+
+---
+
+## Production Builds with Code Signing
+
+**Requirements:** Apple Developer Program account ($99/year)
+
+This section covers setting up signed builds for TestFlight and App Store distribution.
+
+### Prerequisites
 
 ### Required Accounts & Tools
 
@@ -283,9 +423,11 @@ fastlane spaceauth -u your-apple-id@example.com
 
 ## Triggering Builds
 
-### Method 1: Git Tag (Automated)
+### Signed Production Builds
 
-Pushing a tag starting with `flutter-v` triggers an automated build:
+#### Method 1: Git Tag (Automated Signed Build)
+
+Pushing a tag starting with `flutter-v` automatically triggers a **SIGNED** production build:
 
 ```bash
 # Create and push a tag
@@ -293,24 +435,38 @@ git tag flutter-v1.0.0
 git push origin flutter-v1.0.0
 
 # The workflow will:
-# 1. Build the IPA
+# 1. Build a SIGNED IPA (uses code signing)
 # 2. Upload to TestFlight (if configured)
 # 3. Create a GitHub release
 ```
 
-### Method 2: Manual Dispatch
+**Note:** Tags always produce signed builds. For unsigned builds, use manual dispatch.
+
+#### Method 2: Manual Dispatch (Choose Build Type)
 
 1. Go to **Actions** tab in your GitHub repository
 2. Select **Build Flutter iOS Admin App** workflow
 3. Click **Run workflow**
 4. Choose options:
    - **Branch:** main (or your working branch)
-   - **Deploy to TestFlight:** Yes/No
+   - **Build type:**
+     - `unsigned` - Development build (no Apple account needed)
+     - `signed` - Production build (requires Apple Developer account)
+   - **Deploy to TestFlight:** Yes/No (only for signed builds)
    - **Build number override:** (optional)
 5. Click **Run workflow**
 
-### Method 3: Local Build with Fastlane
+#### Method 3: Local Build with Fastlane
 
+**Unsigned (Development):**
+```bash
+cd flutter_admin_app/ios
+
+# Build unsigned for simulator
+bundle exec fastlane build_unsigned
+```
+
+**Signed (Production):**
 ```bash
 cd flutter_admin_app/ios
 
@@ -424,7 +580,25 @@ flutter build ios --release
 
 ## Cost Breakdown
 
-### Required Costs
+### Unsigned Development Builds (No Apple Account)
+
+| Item | Cost | Frequency | Notes |
+|------|------|-----------|-------|
+| **Flutter SDK** | Free | - | Open source |
+| **Xcode** | Free | - | Required for Mac users |
+| **GitHub Actions** | Free* | Monthly | Free tier: 2,000 minutes/month for private repos |
+| **Free Apple ID** | Free | - | Optional, for device testing with 7-day expiry |
+
+**Total Cost: $0** ✨
+
+*Perfect for:*
+- Learning Flutter
+- Development and testing
+- CI/CD testing
+- Small projects
+- Prototypes
+
+### Signed Production Builds (With Apple Developer Account)
 
 | Item | Cost | Frequency | Notes |
 |------|------|-----------|-------|
@@ -433,7 +607,9 @@ flutter build ios --release
 
 *Estimated usage: ~30-60 minutes per build. Free tier should cover ~30-60 builds/month.
 
-### Optional Costs
+**Total Cost: $99/year**
+
+### Optional Costs (Both Build Types)
 
 | Item | Cost | Notes |
 |------|------|-------|
@@ -441,10 +617,10 @@ flutter build ios --release
 | GitHub Team | $4/user/month | For team collaboration |
 | Mac Mini (for local builds) | $599+ | One-time, if you don't have a Mac |
 
-### Total Estimated Cost
+### Summary
 
-- **Minimum:** $99/year (just Apple Developer)
-- **Recommended:** $99/year + GitHub (free tier sufficient for small teams)
+- **Development Only (Unsigned):** $0 - Perfect for getting started!
+- **Production (Signed):** $99/year - When you're ready to distribute
 
 ---
 

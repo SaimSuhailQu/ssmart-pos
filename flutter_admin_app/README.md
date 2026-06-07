@@ -269,66 +269,107 @@ flutter pub get
 flutter run
 ```
 
-## Automated iOS Builds
+## iOS Builds
 
-This project includes automated iOS build and deployment using GitHub Actions, Fastlane, and TestFlight.
+This project supports **two types of iOS builds** to fit your needs:
 
-### Quick Start
+### 1. Development Builds (No Apple Account) ⭐ START HERE
 
-**Trigger a build by creating a tag:**
+**Perfect for:** Development, testing, learning
+
+**Requirements:** None! Just Flutter and Xcode (if on Mac)
+
+**What you get:**
+- ✅ Build for iOS Simulator
+- ✅ Test locally on Mac
+- ✅ CI/CD with GitHub Actions (no secrets needed)
+- ✅ Free Apple ID device testing (7-day expiry)
+
+**Quick start:**
 
 ```bash
-# Create and push a release tag
+cd flutter_admin_app
+
+# Build for simulator
+flutter build ios --simulator
+
+# Or run directly
+flutter run
+```
+
+**GitHub Actions (Unsigned):**
+
+1. Go to **Actions** → **Build Flutter iOS Admin App**
+2. Click **Run workflow**
+3. Select **unsigned** build type
+4. Download the .app artifact when complete
+
+**No Apple Developer account or secrets needed!**
+
+### 2. Production Builds (With Apple Account)
+
+**Perfect for:** TestFlight, App Store distribution
+
+**Requirements:** Apple Developer Program ($99/year)
+
+**What you get:**
+- ✅ TestFlight distribution
+- ✅ App Store publishing
+- ✅ Apps that don't expire
+- ✅ Full capabilities
+
+**Quick start:**
+
+```bash
+# Create and push a release tag (triggers signed build)
 git tag flutter-v1.0.0
 git push origin flutter-v1.0.0
 ```
 
 This automatically:
-1. Builds the IPA file
+1. Builds signed IPA with code signing
 2. Uploads to TestFlight (if configured)
-3. Creates a GitHub release with the IPA
+3. Creates a GitHub release
 
-### Manual Build Trigger
+**Manual signed build:**
 
-1. Go to **Actions** tab in GitHub
-2. Select **Build Flutter iOS Admin App**
-3. Click **Run workflow**
+1. Go to **Actions** → **Build Flutter iOS Admin App**
+2. Click **Run workflow**
+3. Select **signed** build type
 4. Choose whether to deploy to TestFlight
 5. Click **Run workflow**
 
 ### Complete Setup Guide
 
-For detailed instructions on setting up automated builds, including:
-- Apple Developer account configuration
-- Fastlane Match setup for code signing
-- GitHub Secrets configuration
-- TestFlight distribution
-- Troubleshooting common issues
+For detailed instructions including:
+- **Unsigned builds:** Simulator setup, free Apple ID testing
+- **Signed builds:** Apple Developer account, Fastlane Match, code signing
+- **GitHub Actions:** Both unsigned and signed workflows
+- **Troubleshooting:** Common issues and solutions
 
 **See the comprehensive guide:** [IOS_BUILD_SETUP.md](./IOS_BUILD_SETUP.md)
 
 ### Local Builds with Fastlane
 
-If you have a Mac and want to build locally:
-
+**Unsigned (Development):**
 ```bash
 cd ios
-
-# Install dependencies
 bundle install
+bundle exec fastlane build_unsigned
+```
 
-# Build IPA (no upload)
-bundle exec fastlane build_only
-
-# Build and upload to TestFlight
-bundle exec fastlane beta
+**Signed (Production):**
+```bash
+cd ios
+bundle install
+bundle exec fastlane build_only    # Build only
+bundle exec fastlane beta          # Upload to TestFlight
 ```
 
 ### Cost Summary
 
-- **Apple Developer Program:** $99/year (required)
-- **GitHub Actions:** Free tier sufficient for most projects
-- **Total:** ~$99/year
+- **Development (Unsigned):** $0 - Get started for free!
+- **Production (Signed):** $99/year Apple Developer Program
 
 ## Development
 
