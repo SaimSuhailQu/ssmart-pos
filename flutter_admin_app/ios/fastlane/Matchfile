@@ -1,0 +1,26 @@
+# Matchfile - Configuration for Fastlane Match
+# Documentation: https://docs.fastlane.tools/actions/match/
+
+# Git repository URL for storing certificates and profiles
+# IMPORTANT: Create a PRIVATE repository for security
+# Set this via environment variable: MATCH_GIT_URL
+git_url(ENV["MATCH_GIT_URL"] || "https://github.com/YOUR_USERNAME/certificates.git")
+
+# Git branch to use (optional)
+git_branch("main")
+
+# Storage mode - can be "git", "google_cloud", or "s3"
+storage_mode("git")
+
+# App bundle identifier
+app_identifier(["com.ssmartpos.admin"])
+
+# Your Apple Developer Account username
+# Set via environment variable: FASTLANE_USER or APPLE_ID
+username(ENV["FASTLANE_USER"] || ENV["APPLE_ID"] || "your-apple-id@example.com")
+
+# Team ID (find at https://developer.apple.com/account/#/membership)
+team_id(ENV["FASTLANE_TEAM_ID"] || "YOUR_TEAM_ID")
+
+# For more information about all available options run:
+# fastlane action match

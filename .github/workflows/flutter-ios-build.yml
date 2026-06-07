@@ -1,0 +1,293 @@
+name: Build Flutter iOS Admin App
+
+# ============================================================================
+# WORKFLOW TRIGGERS
+# ============================================================================
+# This workflow builds the iOS IPA for the Flutter admin app
+# Triggers:
+#   1. Push to tags matching 'flutter-v*' (e.g., flutter-v1.0.0)
+#   2. Manual dispatch from GitHub Actions UI
+# ============================================================================
+
+on:
+  push:
+    tags:
+      - 'flutter-v*'  # Example: flutter-v1.0.0, flutter-v1.0.1
+  workflow_dispatch:   # Allows manual trigger
+    inputs:
+      deploy_to_testflight:
+        description: 'Deploy to TestFlight after build?'
+        required: false
+        type: boolean
+        default: false
+      build_number_override:
+        description: 'Override build number (optional)'
+        required: false
+        type: string
+
+permissions:
+  contents: write  # Required for creating releases and uploading artifacts
+
+# ============================================================================
+# ENVIRONMENT VARIABLES
+# ============================================================================
+env:
+  FLUTTER_VERSION: '3.24.0'  # Update to match your project's Flutter version
+  XCODE_VERSION: '15.2'      # Xcode version on macos-latest
+  WORKING_DIRECTORY: flutter_admin_app
+
+# ============================================================================
+# JOBS
+# ============================================================================
+jobs:
+  build_ios:
+    name: Build iOS IPA
+    runs-on: macos-latest
+    timeout-minutes: 60
+
+    steps:
+      # ========================================================================
+      # STEP 1: Checkout Repository
+      # ========================================================================
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for version tagging
+
+      # ========================================================================
+      # STEP 2: Setup Flutter
+      # ========================================================================
+      - name: Setup Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+          cache-key: 'flutter-${{ env.FLUTTER_VERSION }}'
+          cache-path: '${{ runner.tool_cache }}/flutter'
+
+      - name: Verify Flutter Installation
+        run: |
+          flutter --version
+          flutter doctor -v
+
+      # ========================================================================
+      # STEP 3: Setup Ruby and Bundler for Fastlane
+      # ========================================================================
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+          working-directory: ${{ env.WORKING_DIRECTORY }}/ios
+
+      - name: Install Bundler Dependencies
+        working-directory: ${{ env.WORKING_DIRECTORY }}/ios
+        run: |
+          bundle config set --local path 'vendor/bundle'
+          bundle install --jobs 4 --retry 3
+
+      # ========================================================================
+      # STEP 4: Configure Environment
+      # ========================================================================
+      - name: Setup Environment File
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          # Create .env file from GitHub Secrets
+          cat > .env << EOF
+          FIREBASE_API_KEY=${{ secrets.FIREBASE_API_KEY }}
+          FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_DATABASE_URL=${{ secrets.FIREBASE_DATABASE_URL }}
+          EOF
+
+          # Verify .env file was created
+          echo "Environment file created"
+          ls -la .env
+
+      # ========================================================================
+      # STEP 5: Install Flutter Dependencies
+      # ========================================================================
+      - name: Get Flutter Dependencies
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: flutter pub get
+
+      - name: Run Code Generation (if needed)
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          # Uncomment if you use build_runner or other code generation
+          # flutter pub run build_runner build --delete-conflicting-outputs
+          echo "Skipping code generation"
+
+      # ========================================================================
+      # STEP 6: Setup iOS Code Signing
+      # ========================================================================
+      # IMPORTANT: Before this workflow can run successfully, you MUST:
+      # 1. Set up Fastlane Match (see IOS_BUILD_SETUP.md)
+      # 2. Configure GitHub Secrets (see documentation below)
+      # 3. Have a valid Apple Developer account
+      # ========================================================================
+
+      - name: Configure Keychain
+        env:
+          MATCH_KEYCHAIN_NAME: ${{ secrets.MATCH_KEYCHAIN_NAME }}
+          MATCH_KEYCHAIN_PASSWORD: ${{ secrets.MATCH_KEYCHAIN_PASSWORD }}
+        run: |
+          # Create a custom keychain for code signing
+          security create-keychain -p "$MATCH_KEYCHAIN_PASSWORD" "$MATCH_KEYCHAIN_NAME"
+          security set-keychain-settings -lut 21600 "$MATCH_KEYCHAIN_NAME"
+          security unlock-keychain -p "$MATCH_KEYCHAIN_PASSWORD" "$MATCH_KEYCHAIN_NAME"
+
+          # Set the custom keychain as the default
+          security list-keychains -d user -s "$MATCH_KEYCHAIN_NAME" $(security list-keychains -d user | sed s/\"//g)
+          security default-keychain -s "$MATCH_KEYCHAIN_NAME"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$MATCH_KEYCHAIN_PASSWORD" "$MATCH_KEYCHAIN_NAME"
+
+      - name: Setup Code Signing with Fastlane Match
+        working-directory: ${{ env.WORKING_DIRECTORY }}/ios
+        env:
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          MATCH_GIT_BASIC_AUTH: ${{ secrets.MATCH_GIT_BASIC_AUTH }}
+          MATCH_KEYCHAIN_NAME: ${{ secrets.MATCH_KEYCHAIN_NAME }}
+          MATCH_KEYCHAIN_PASSWORD: ${{ secrets.MATCH_KEYCHAIN_PASSWORD }}
+          FASTLANE_USER: ${{ secrets.FASTLANE_USER }}
+          FASTLANE_TEAM_ID: ${{ secrets.FASTLANE_TEAM_ID }}
+          FASTLANE_SESSION: ${{ secrets.FASTLANE_SESSION }}
+        run: |
+          bundle exec fastlane run sync_code_signing
+
+      # ========================================================================
+      # STEP 7: Install CocoaPods Dependencies
+      # ========================================================================
+      - name: Install CocoaPods Dependencies
+        working-directory: ${{ env.WORKING_DIRECTORY }}/ios
+        run: |
+          pod install --repo-update
+
+      # ========================================================================
+      # STEP 8: Build Flutter iOS App
+      # ========================================================================
+      - name: Build Flutter IPA
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        env:
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_KEYCHAIN_NAME: ${{ secrets.MATCH_KEYCHAIN_NAME }}
+          MATCH_KEYCHAIN_PASSWORD: ${{ secrets.MATCH_KEYCHAIN_PASSWORD }}
+        run: |
+          # Build IPA using Flutter
+          flutter build ipa \
+            --release \
+            --export-options-plist=ios/ExportOptions.plist \
+            --build-name="${{ github.ref_name }}" \
+            --build-number="${{ github.run_number }}"
+
+          # Verify build output
+          ls -lh build/ios/ipa/
+
+      # ========================================================================
+      # STEP 9: Upload to TestFlight (Optional)
+      # ========================================================================
+      - name: Upload to TestFlight
+        if: ${{ github.event.inputs.deploy_to_testflight == 'true' || startsWith(github.ref, 'refs/tags/flutter-v') }}
+        working-directory: ${{ env.WORKING_DIRECTORY }}/ios
+        env:
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          FASTLANE_USER: ${{ secrets.FASTLANE_USER }}
+          FASTLANE_TEAM_ID: ${{ secrets.FASTLANE_TEAM_ID }}
+          FASTLANE_SESSION: ${{ secrets.FASTLANE_SESSION }}
+          FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD: ${{ secrets.FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD }}
+        run: |
+          bundle exec fastlane beta
+
+      # ========================================================================
+      # STEP 10: Upload Build Artifacts
+      # ========================================================================
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SSmart-POS-Admin-iOS-${{ github.ref_name }}-${{ github.run_number }}
+          path: |
+            ${{ env.WORKING_DIRECTORY }}/build/ios/ipa/*.ipa
+            ${{ env.WORKING_DIRECTORY }}/build/ios/ipa/*.dSYM.zip
+          retention-days: 30
+          if-no-files-found: error
+
+      # ========================================================================
+      # STEP 11: Create GitHub Release (for tagged builds)
+      # ========================================================================
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/flutter-v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${{ env.WORKING_DIRECTORY }}/build/ios/ipa/*.ipa
+          body: |
+            ## SSmart POS Admin - iOS Build
+
+            **Version:** ${{ github.ref_name }}
+            **Build Number:** ${{ github.run_number }}
+            **Built:** ${{ github.event.head_commit.timestamp }}
+
+            ### Installation Instructions
+
+            1. **TestFlight (Recommended)**
+               - If deployed to TestFlight, install via TestFlight app
+               - Join the beta: [TestFlight Link]
+
+            2. **Manual Installation (Advanced)**
+               - Download the IPA file
+               - Install using Xcode or a third-party tool like iOS App Signer
+               - Requires a valid provisioning profile
+
+            ### Changes
+            ${{ github.event.head_commit.message }}
+          draft: false
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ========================================================================
+      # STEP 12: Cleanup
+      # ========================================================================
+      - name: Cleanup Keychain
+        if: always()
+        run: |
+          security delete-keychain "${{ secrets.MATCH_KEYCHAIN_NAME }}" || true
+
+# ============================================================================
+# REQUIRED GITHUB SECRETS
+# ============================================================================
+# Before running this workflow, configure these secrets in:
+# Repository Settings > Secrets and variables > Actions
+#
+# 1. APPLE DEVELOPER ACCOUNT
+#    - FASTLANE_USER: Your Apple ID email
+#    - FASTLANE_TEAM_ID: Your Apple Developer Team ID
+#    - FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD: App-specific password
+#    - FASTLANE_SESSION: (Optional) Pre-authenticated session cookie
+#
+# 2. FASTLANE MATCH (CODE SIGNING)
+#    - MATCH_PASSWORD: Encryption password for Match certificates
+#    - MATCH_GIT_URL: URL of private Git repo for certificates
+#    - MATCH_GIT_BASIC_AUTH: Base64 encoded "username:personal_access_token"
+#    - MATCH_KEYCHAIN_NAME: Name for temporary keychain (e.g., "fastlane_keychain")
+#    - MATCH_KEYCHAIN_PASSWORD: Password for temporary keychain
+#
+# 3. FIREBASE CONFIGURATION (if using Firebase)
+#    - FIREBASE_API_KEY: Your Firebase API key
+#    - FIREBASE_PROJECT_ID: Your Firebase project ID
+#    - FIREBASE_DATABASE_URL: Your Firebase database URL
+#
+# ============================================================================
+# SETUP GUIDE
+# ============================================================================
+# For detailed setup instructions, see:
+#   flutter_admin_app/IOS_BUILD_SETUP.md
+#
+# Quick start:
+# 1. Set up Apple Developer account ($99/year)
+# 2. Create App ID in Apple Developer Portal
+# 3. Initialize Fastlane Match: `cd ios && bundle exec fastlane match init`
+# 4. Configure GitHub Secrets (see above)
+# 5. Push a tag: `git tag flutter-v1.0.0 && git push origin flutter-v1.0.0`
+# ============================================================================

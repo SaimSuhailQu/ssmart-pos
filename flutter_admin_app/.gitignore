@@ -48,12 +48,43 @@ app.*.map.json
 .env.local
 .env.*.local
 
-# iOS
+# iOS - Build Artifacts (IGNORE these)
 **/ios/Flutter/flutter_export_environment.sh
 **/ios/Pods/
 **/ios/.symlinks/
 **/ios/Flutter/App.framework
 **/ios/Flutter/Flutter.framework
 **/ios/Flutter/Flutter.podspec
+**/ios/Flutter/Generated.xcconfig
 **/ios/ServiceDefinitions.json
 **/ios/Runner/GeneratedPluginRegistrant.*
+**/ios/build/
+**/ios/DerivedData/
+**/ios/.generated/
+**/ios/*.mode1v3
+**/ios/*.mode2v3
+**/ios/*.perspectivev3
+**/ios/*.pbxuser
+**/ios/*.moved-aside
+**/ios/xcuserdata/
+**/ios/**/xcuserdata/
+
+# iOS - Fastlane
+**/ios/fastlane/report.xml
+**/ios/fastlane/Preview.html
+**/ios/fastlane/screenshots
+**/ios/fastlane/test_output
+**/ios/fastlane/*.ipa
+
+# iOS - Code Signing (NEVER commit these)
+**/ios/**/*.mobileprovision
+**/ios/**/*.p12
+**/ios/**/*.certSigningRequest
+**/ios/exportOptions.plist
+
+# iOS - Keep base configuration (DO NOT ignore these)
+# Runner/
+# Runner.xcodeproj/
+# Runner.xcworkspace/
+# Podfile
+# Podfile.lock (optional, can be committed)

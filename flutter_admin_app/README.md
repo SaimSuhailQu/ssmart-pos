@@ -158,15 +158,9 @@ flutter devices
 flutter run -d <device-id>
 ```
 
-### 7. Build for Release (Optional)
+### 7. Build for Release
 
-```bash
-# Build iOS app
-flutter build ios --release
-
-# Open in Xcode for signing and deployment
-open ios/Runner.xcworkspace
-```
+See the **[Automated iOS Builds](#automated-ios-builds)** section below for production builds using GitHub Actions and TestFlight.
 
 ## Usage
 
@@ -274,6 +268,67 @@ flutter clean
 flutter pub get
 flutter run
 ```
+
+## Automated iOS Builds
+
+This project includes automated iOS build and deployment using GitHub Actions, Fastlane, and TestFlight.
+
+### Quick Start
+
+**Trigger a build by creating a tag:**
+
+```bash
+# Create and push a release tag
+git tag flutter-v1.0.0
+git push origin flutter-v1.0.0
+```
+
+This automatically:
+1. Builds the IPA file
+2. Uploads to TestFlight (if configured)
+3. Creates a GitHub release with the IPA
+
+### Manual Build Trigger
+
+1. Go to **Actions** tab in GitHub
+2. Select **Build Flutter iOS Admin App**
+3. Click **Run workflow**
+4. Choose whether to deploy to TestFlight
+5. Click **Run workflow**
+
+### Complete Setup Guide
+
+For detailed instructions on setting up automated builds, including:
+- Apple Developer account configuration
+- Fastlane Match setup for code signing
+- GitHub Secrets configuration
+- TestFlight distribution
+- Troubleshooting common issues
+
+**See the comprehensive guide:** [IOS_BUILD_SETUP.md](./IOS_BUILD_SETUP.md)
+
+### Local Builds with Fastlane
+
+If you have a Mac and want to build locally:
+
+```bash
+cd ios
+
+# Install dependencies
+bundle install
+
+# Build IPA (no upload)
+bundle exec fastlane build_only
+
+# Build and upload to TestFlight
+bundle exec fastlane beta
+```
+
+### Cost Summary
+
+- **Apple Developer Program:** $99/year (required)
+- **GitHub Actions:** Free tier sufficient for most projects
+- **Total:** ~$99/year
 
 ## Development
 

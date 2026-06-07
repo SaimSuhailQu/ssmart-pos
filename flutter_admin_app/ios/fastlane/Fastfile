@@ -1,0 +1,267 @@
+# Fastfile - Build Automation for SSmart POS Admin iOS App
+# Documentation: https://docs.fastlane.tools
+
+# Ensure we're in the right directory
+default_platform(:ios)
+
+platform :ios do
+  # ============================================================================
+  # BEFORE ALL - Setup
+  # ============================================================================
+  before_all do |lane|
+    # Ensure Xcode version is appropriate
+    # xcversion(version: "~> 15.0") # Uncomment if specific Xcode version required
+
+    # Clean up old build artifacts
+    clear_derived_data if lane == :beta || lane == :release
+  end
+
+  # ============================================================================
+  # LANE: Beta - Build and Upload to TestFlight
+  # ============================================================================
+  desc "Build and upload to TestFlight"
+  desc "Usage: fastlane beta"
+  desc "Required ENV vars: MATCH_PASSWORD, FASTLANE_USER, FASTLANE_TEAM_ID"
+  lane :beta do
+    # Ensure we have the latest version from Git
+    ensure_git_status_clean unless ENV['SKIP_GIT_CHECK']
+
+    # Increment build number based on TestFlight
+    increment_build_number(
+      build_number: latest_testflight_build_number + 1,
+      xcodeproj: "Runner.xcodeproj"
+    )
+
+    # Setup code signing with Match
+    setup_code_signing
+
+    # Build the app
+    build_app(
+      scheme: "Runner",
+      workspace: "Runner.xcworkspace",
+      configuration: "Release",
+      export_method: "app-store",
+      export_options: {
+        provisioningProfiles: {
+          "com.ssmartpos.admin" => "match AppStore com.ssmartpos.admin"
+        }
+      },
+      output_directory: "./build",
+      output_name: "SSmart_POS_Admin.ipa",
+      clean: true,
+      include_bitcode: false, # Bitcode is no longer required
+      include_symbols: true
+    )
+
+    # Upload to TestFlight
+    upload_to_testflight(
+      skip_waiting_for_build_processing: true,
+      apple_id: ENV["FASTLANE_USER"],
+      team_id: ENV["FASTLANE_TEAM_ID"],
+      notify_external_testers: false,
+      changelog: ENV["CHANGELOG"] || "Bug fixes and improvements"
+    )
+
+    # Clean up
+    clean_build_artifacts
+
+    # Notify success
+    notification(
+      subtitle: "TestFlight Upload Complete",
+      message: "SSmart POS Admin has been uploaded to TestFlight"
+    )
+  end
+
+  # ============================================================================
+  # LANE: Build Only - Build IPA without Uploading
+  # ============================================================================
+  desc "Build IPA without uploading"
+  desc "Usage: fastlane build_only"
+  desc "Required ENV vars: MATCH_PASSWORD (if using match)"
+  lane :build_only do
+    # Setup code signing
+    setup_code_signing
+
+    # Build the app
+    build_app(
+      scheme: "Runner",
+      workspace: "Runner.xcworkspace",
+      configuration: "Release",
+      export_method: "app-store",
+      export_options: {
+        provisioningProfiles: {
+          "com.ssmartpos.admin" => "match AppStore com.ssmartpos.admin"
+        }
+      },
+      output_directory: "./build",
+      output_name: "SSmart_POS_Admin.ipa",
+      clean: true,
+      include_bitcode: false,
+      include_symbols: true
+    )
+
+    UI.success("IPA file created at: #{lane_context[SharedValues::IPA_OUTPUT_PATH]}")
+  end
+
+  # ============================================================================
+  # LANE: Release - Build and Upload to App Store
+  # ============================================================================
+  desc "Build and upload to App Store"
+  desc "Usage: fastlane release"
+  desc "Required ENV vars: MATCH_PASSWORD, FASTLANE_USER, FASTLANE_TEAM_ID"
+  lane :release do
+    # Ensure we're on a clean git state
+    ensure_git_status_clean
+
+    # Increment version if needed
+    # increment_version_number(
+    #   bump_type: "patch" # or "minor" or "major"
+    # )
+
+    # Increment build number
+    increment_build_number(
+      build_number: latest_testflight_build_number + 1,
+      xcodeproj: "Runner.xcodeproj"
+    )
+
+    # Setup code signing
+    setup_code_signing
+
+    # Build the app
+    build_app(
+      scheme: "Runner",
+      workspace: "Runner.xcworkspace",
+      configuration: "Release",
+      export_method: "app-store",
+      export_options: {
+        provisioningProfiles: {
+          "com.ssmartpos.admin" => "match AppStore com.ssmartpos.admin"
+        }
+      },
+      output_directory: "./build",
+      output_name: "SSmart_POS_Admin.ipa",
+      clean: true,
+      include_bitcode: false,
+      include_symbols: true
+    )
+
+    # Upload to App Store
+    upload_to_app_store(
+      force: true,
+      submit_for_review: false, # Set to true to auto-submit
+      automatic_release: false,
+      skip_screenshots: true,
+      skip_metadata: true,
+      precheck_include_in_app_purchases: false
+    )
+
+    # Tag the release
+    add_git_tag(
+      tag: "ios-v#{get_version_number}-#{get_build_number}"
+    )
+
+    notification(
+      subtitle: "App Store Upload Complete",
+      message: "SSmart POS Admin has been uploaded to App Store Connect"
+    )
+  end
+
+  # ============================================================================
+  # LANE: Setup Code Signing
+  # ============================================================================
+  desc "Setup code signing with Fastlane Match"
+  private_lane :setup_code_signing do
+    # Using Fastlane Match for code signing
+    # Match stores certificates and profiles in a private git repository
+    # Documentation: https://docs.fastlane.tools/actions/match/
+
+    match(
+      type: "appstore",
+      app_identifier: "com.ssmartpos.admin",
+      readonly: is_ci, # Read-only on CI, can create/update locally
+      git_url: ENV["MATCH_GIT_URL"] || "https://github.com/YOUR_USERNAME/certificates.git",
+      git_basic_authorization: ENV["MATCH_GIT_BASIC_AUTH"], # Base64 of "username:token"
+      keychain_name: ENV["MATCH_KEYCHAIN_NAME"] || "fastlane_keychain",
+      keychain_password: ENV["MATCH_KEYCHAIN_PASSWORD"] || ENV["MATCH_PASSWORD"]
+    )
+  end
+
+  # ============================================================================
+  # LANE: Register Devices (for Ad-Hoc/Development builds)
+  # ============================================================================
+  desc "Register new devices for development"
+  desc "Usage: fastlane register_devices"
+  lane :register_devices do
+    register_devices(
+      devices_file: "./fastlane/devices.txt"
+      # Format: Device Name<tab>Device UDID
+    )
+
+    match(
+      type: "development",
+      force_for_new_devices: true
+    )
+  end
+
+  # ============================================================================
+  # LANE: Sync Code Signing
+  # ============================================================================
+  desc "Sync code signing certificates and profiles"
+  desc "Usage: fastlane sync_code_signing"
+  lane :sync_code_signing do
+    match(
+      type: "appstore",
+      readonly: false,
+      force_for_new_devices: true
+    )
+
+    match(
+      type: "development",
+      readonly: false,
+      force_for_new_devices: true
+    )
+  end
+
+  # ============================================================================
+  # LANE: Tests
+  # ============================================================================
+  desc "Run tests"
+  lane :tests do
+    run_tests(
+      scheme: "Runner",
+      workspace: "Runner.xcworkspace",
+      devices: ["iPhone 15 Pro"],
+      clean: true
+    )
+  end
+
+  # ============================================================================
+  # AFTER ALL - Cleanup
+  # ============================================================================
+  after_all do |lane|
+    # Clean up temporary files
+    clean_build_artifacts
+  end
+
+  # ============================================================================
+  # ERROR HANDLING
+  # ============================================================================
+  error do |lane, exception|
+    UI.error("Error in lane #{lane}: #{exception.message}")
+
+    # Notify on error (optional - configure your notification service)
+    # slack(
+    #   message: "Build failed for SSmart POS Admin",
+    #   success: false
+    # )
+  end
+end
+
+# ============================================================================
+# HELPER FUNCTIONS
+# ============================================================================
+
+# Check if running on CI
+def is_ci
+  ENV['CI'] == 'true' || ENV['GITHUB_ACTIONS'] == 'true'
+end
