@@ -1,0 +1,43 @@
+name: ssmart_pos_admin
+description: iOS Admin Dashboard for SSmart POS - Real-time sales monitoring and analytics
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Firebase
+  firebase_core: ^2.24.2
+  firebase_database: ^10.4.0
+  firebase_auth: ^4.16.0
+
+  # State Management
+  provider: ^6.1.1
+
+  # Charts & Visualization
+  fl_chart: ^0.66.0
+
+  # UI & Theming
+  google_fonts: ^6.1.0
+  cupertino_icons: ^1.0.6
+
+  # Utilities
+  intl: ^0.18.1
+  flutter_dotenv: ^5.1.0
+
+  # Loading indicators
+  shimmer: ^3.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - .env
