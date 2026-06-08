@@ -8,7 +8,7 @@ class FirebasePaths {
   static const String connectionInfo = '.info/connected';
 
   // Future paths (not yet implemented in Electron app)
-  // TODO: Implement these in Electron app for full functionality
+  // Future: Implement these in Electron app for full functionality
   static const String inventory = 'inventory';
   static const String cashierSessions = 'cashier_sessions';
   static const String customers = 'customers';

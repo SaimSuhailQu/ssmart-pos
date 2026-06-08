@@ -81,7 +81,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // Logo or App Icon
-                  Icon(
+                  const Icon(
                     CupertinoIcons.chart_bar_square_fill,
                     size: 80,
                     color: AppTheme.primaryBlue,
@@ -111,15 +111,15 @@ class _LoginScreenState extends State<LoginScreen> {
                     Container(
                       padding: const EdgeInsets.all(AppTheme.spacingM),
                       decoration: BoxDecoration(
-                        color: AppTheme.errorRed.withOpacity(0.1),
+                        color: AppTheme.errorRed.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(AppTheme.radiusM),
                         border: Border.all(
-                          color: AppTheme.errorRed.withOpacity(0.3),
+                          color: AppTheme.errorRed.withValues(alpha: 0.3),
                         ),
                       ),
                       child: Row(
                         children: [
-                          Icon(
+                          const Icon(
                             CupertinoIcons.exclamationmark_circle_fill,
                             color: AppTheme.errorRed,
                             size: 20,
@@ -145,10 +145,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     keyboardType: TextInputType.emailAddress,
                     textInputAction: TextInputAction.next,
                     enabled: !_isLoading,
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       labelText: 'Email',
                       hintText: 'admin@example.com',
-                      prefixIcon: const Icon(CupertinoIcons.mail),
+                      prefixIcon: Icon(CupertinoIcons.mail),
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {

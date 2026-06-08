@@ -114,7 +114,7 @@ class _SplashScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // Logo
-            Icon(
+            const Icon(
               CupertinoIcons.chart_bar_square_fill,
               size: 100,
               color: AppTheme.primaryBlue,

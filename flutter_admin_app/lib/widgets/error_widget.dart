@@ -41,7 +41,7 @@ class AppErrorWidget extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(AppTheme.spacingM),
                 decoration: BoxDecoration(
-                  color: AppTheme.errorRed.withOpacity(0.1),
+                  color: AppTheme.errorRed.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppTheme.radiusS),
                 ),
                 child: Text(
@@ -85,10 +85,10 @@ class InlineErrorMessage extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppTheme.spacingM),
       decoration: BoxDecoration(
-        color: AppTheme.errorRed.withOpacity(0.1),
+        color: AppTheme.errorRed.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppTheme.radiusM),
         border: Border.all(
-          color: AppTheme.errorRed.withOpacity(0.3),
+          color: AppTheme.errorRed.withValues(alpha: 0.3),
         ),
       ),
       child: Row(
@@ -129,10 +129,10 @@ class SuccessMessage extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppTheme.spacingM),
       decoration: BoxDecoration(
-        color: AppTheme.successGreen.withOpacity(0.1),
+        color: AppTheme.successGreen.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppTheme.radiusM),
         border: Border.all(
-          color: AppTheme.successGreen.withOpacity(0.3),
+          color: AppTheme.successGreen.withValues(alpha: 0.3),
         ),
       ),
       child: Row(
@@ -173,10 +173,10 @@ class WarningMessage extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppTheme.spacingM),
       decoration: BoxDecoration(
-        color: AppTheme.warningOrange.withOpacity(0.1),
+        color: AppTheme.warningOrange.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppTheme.radiusM),
         border: Border.all(
-          color: AppTheme.warningOrange.withOpacity(0.3),
+          color: AppTheme.warningOrange.withValues(alpha: 0.3),
         ),
       ),
       child: Row(

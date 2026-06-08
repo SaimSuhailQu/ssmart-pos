@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:ssmart_pos_admin/core/constants/firebase_constants.dart';
 import 'package:ssmart_pos_admin/models/sale.dart';
 
@@ -53,10 +52,12 @@ class FirebaseService {
       try {
         final salesMap = salesData as Map<dynamic, dynamic>;
         final sales = salesMap.entries
-            .map((entry) => Sale.fromJson(
-                  entry.key.toString(),
-                  entry.value as Map<dynamic, dynamic>,
-                ))
+            .map(
+              (entry) => Sale.fromJson(
+                entry.key.toString(),
+                entry.value as Map<dynamic, dynamic>,
+              ),
+            )
             .toList();
 
         // Sort by timestamp descending (newest first)
@@ -157,10 +158,12 @@ class FirebaseService {
 
       final salesMap = snapshot.value as Map<dynamic, dynamic>;
       return salesMap.entries
-          .map((entry) => Sale.fromJson(
-                entry.key.toString(),
-                entry.value as Map<dynamic, dynamic>,
-              ))
+          .map(
+            (entry) => Sale.fromJson(
+              entry.key.toString(),
+              entry.value as Map<dynamic, dynamic>,
+            ),
+          )
           .toList();
     } catch (e) {
       print('Error fetching paginated sales: $e');
@@ -234,19 +237,19 @@ class FirebaseService {
     _connectionStatusController.close();
   }
 
-  // TODO: Future enhancement - Inventory management
+  // Future: Future enhancement - Inventory management
   // Once the Electron app syncs inventory to Firebase, implement:
   // - Stream<List<InventoryItem>> getInventoryStream()
   // - Future<InventoryItem?> getInventoryItemById(String id)
   // - Stream<List<LowStockItem>> getLowStockAlertsStream()
 
-  // TODO: Future enhancement - Cashier sessions
+  // Future: Future enhancement - Cashier sessions
   // Once the Electron app syncs sessions to Firebase, implement:
   // - Stream<List<CashierSession>> getActiveSessionsStream()
   // - Future<SessionReport> getSessionReport(String sessionId)
   // - Stream<List<CashierSession>> getSessionHistoryStream()
 
-  // TODO: Future enhancement - Customer data
+  // Future: Future enhancement - Customer data
   // Once the Electron app syncs customers to Firebase, implement:
   // - Stream<List<Customer>> getCustomersStream()
   // - Future<CustomerAnalytics> getCustomerAnalytics(String customerId)

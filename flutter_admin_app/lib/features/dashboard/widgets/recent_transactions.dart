@@ -77,7 +77,7 @@ class RecentTransactions extends StatelessWidget {
       padding: const EdgeInsets.all(AppTheme.spacingXL),
       child: Column(
         children: [
-          Icon(
+          const Icon(
             CupertinoIcons.doc_text,
             size: 48,
             color: AppTheme.textTertiary,
@@ -145,7 +145,7 @@ class _TransactionTile extends StatelessWidget {
         ],
       ),
       onTap: () {
-        // TODO: Navigate to transaction details
+        // Future: Navigate to transaction details
         _showTransactionDetails(context);
       },
     );
@@ -180,7 +180,7 @@ class _TransactionTile extends StatelessWidget {
       width: 40,
       height: 40,
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppTheme.radiusS),
       ),
       child: Icon(
@@ -198,7 +198,7 @@ class _TransactionTile extends StatelessWidget {
         vertical: 4,
       ),
       decoration: BoxDecoration(
-        color: AppTheme.primaryBlue.withOpacity(0.1),
+        color: AppTheme.primaryBlue.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(

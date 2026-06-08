@@ -109,10 +109,12 @@ class DashboardMetrics {
 
     // Convert to list and sort by date
     final result = dailyMap.entries
-        .map((entry) => DailyRevenue(
-              date: _parseDate(entry.key),
-              revenue: entry.value,
-            ))
+        .map(
+          (entry) => DailyRevenue(
+            date: _parseDate(entry.key),
+            revenue: entry.value,
+          ),
+        )
         .toList()
       ..sort((a, b) => a.date.compareTo(b.date));
 

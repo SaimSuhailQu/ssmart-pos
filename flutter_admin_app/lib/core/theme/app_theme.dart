@@ -101,11 +101,9 @@ class AppTheme {
         primary: primaryBlue,
         secondary: secondaryBlue,
         error: errorRed,
-        background: backgroundLight,
         surface: cardBackground,
         onPrimary: Colors.white,
         onSecondary: Colors.white,
-        onBackground: textPrimary,
         onSurface: textPrimary,
       ),
 
@@ -118,7 +116,7 @@ class AppTheme {
         iconTheme: const IconThemeData(color: primaryBlue),
       ),
 
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: cardBackground,
         elevation: 0,
         shape: RoundedRectangleBorder(

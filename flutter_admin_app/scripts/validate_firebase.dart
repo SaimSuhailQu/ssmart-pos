@@ -12,9 +12,9 @@ const String reset = '\x1B[0m';
 
 void main() async {
   print('');
-  print('${blue}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$reset');
+  print('$blue━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$reset');
   print('${blue}Firebase Configuration Validator$reset');
-  print('${blue}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$reset');
+  print('$blue━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$reset');
   print('');
 
   var hasErrors = false;
@@ -156,13 +156,13 @@ void main() async {
 
   // Summary
   print('');
-  print('${blue}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$reset');
+  print('$blue━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$reset');
 
   if (hasErrors) {
     print('');
     printError('Configuration validation FAILED!');
     print('');
-    print('Please fix the errors above and try again.');
+    print('  Please fix the errors above and try again.');
     print('');
     print('${yellow}Need help?$reset See ENV_SETUP.md for detailed instructions:');
     print('  • How to get Firebase credentials');
@@ -194,13 +194,13 @@ void main() async {
 }
 
 void printSuccess(String message) {
-  print('${green}✓$reset $message');
+  print('$green✓$reset $message');
 }
 
 void printError(String message) {
-  print('${red}✗$reset $message');
+  print('$red✗$reset $message');
 }
 
 void printWarning(String message) {
-  print('${yellow}⚠$reset $message');
+  print('$yellow⚠$reset $message');
 }

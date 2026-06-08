@@ -58,7 +58,7 @@ class SalesChart extends StatelessWidget {
         drawVerticalLine: false,
         horizontalInterval: maxY > 0 ? maxY / 4 : 1000,
         getDrawingHorizontalLine: (value) {
-          return FlLine(
+          return const FlLine(
             color: AppTheme.borderColor,
             strokeWidth: 1,
           );
@@ -107,7 +107,7 @@ class SalesChart extends StatelessWidget {
       ),
       borderData: FlBorderData(
         show: true,
-        border: Border(
+        border: const Border(
           bottom: BorderSide(color: AppTheme.borderColor),
           left: BorderSide(color: AppTheme.borderColor),
         ),
@@ -136,14 +136,14 @@ class SalesChart extends StatelessWidget {
           ),
           belowBarData: BarAreaData(
             show: true,
-            color: AppTheme.primaryBlue.withOpacity(0.1),
+            color: AppTheme.primaryBlue.withValues(alpha: 0.1),
           ),
         ),
       ],
       lineTouchData: LineTouchData(
         enabled: true,
         touchTooltipData: LineTouchTooltipData(
-          tooltipBgColor: AppTheme.textPrimary.withOpacity(0.8),
+          tooltipBgColor: AppTheme.textPrimary.withValues(alpha: 0.8),
           getTooltipItems: (touchedSpots) {
             return touchedSpots.map((spot) {
               final revenue = spot.y;
@@ -186,7 +186,7 @@ class SalesChart extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.show_chart,
                     size: 48,
                     color: AppTheme.textTertiary,

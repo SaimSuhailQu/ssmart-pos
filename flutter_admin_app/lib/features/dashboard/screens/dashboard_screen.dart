@@ -24,22 +24,12 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  bool _isRefreshing = false;
-
   Future<void> _handleRefresh() async {
-    setState(() {
-      _isRefreshing = true;
-    });
-
     // Clear cache to force fresh data
     context.read<FirebaseService>().clearCache();
 
     // Wait a moment for the stream to emit new data
     await Future.delayed(const Duration(seconds: 1));
-
-    setState(() {
-      _isRefreshing = false;
-    });
   }
 
   void _handleLogout() {
@@ -287,7 +277,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
+            const Icon(
               CupertinoIcons.chart_bar_square,
               size: 80,
               color: AppTheme.textTertiary,

@@ -151,7 +151,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                             });
                           },
                           backgroundColor: AppTheme.backgroundLight,
-                          selectedColor: AppTheme.primaryBlue.withOpacity(0.2),
+                          selectedColor: AppTheme.primaryBlue.withValues(alpha: 0.2),
                           labelStyle: AppTheme.bodyMedium.copyWith(
                             color: isSelected
                                 ? AppTheme.primaryBlue
@@ -230,7 +230,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
+            const Icon(
               CupertinoIcons.doc_text,
               size: 80,
               color: AppTheme.textTertiary,
@@ -261,7 +261,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
+            const Icon(
               CupertinoIcons.search,
               size: 80,
               color: AppTheme.textTertiary,
@@ -333,7 +333,7 @@ class _TransactionCard extends StatelessWidget {
               // Date and time
               Row(
                 children: [
-                  Icon(
+                  const Icon(
                     CupertinoIcons.time,
                     size: 14,
                     color: AppTheme.textSecondary,
@@ -350,7 +350,7 @@ class _TransactionCard extends StatelessWidget {
               // Transaction details
               Row(
                 children: [
-                  Icon(
+                  const Icon(
                     CupertinoIcons.number,
                     size: 14,
                     color: AppTheme.textSecondary,
@@ -371,7 +371,7 @@ class _TransactionCard extends StatelessWidget {
                 const SizedBox(height: AppTheme.spacingXS),
                 Row(
                   children: [
-                    Icon(
+                    const Icon(
                       CupertinoIcons.person,
                       size: 14,
                       color: AppTheme.textSecondary,
@@ -390,7 +390,7 @@ class _TransactionCard extends StatelessWidget {
                 const SizedBox(height: AppTheme.spacingXS),
                 Row(
                   children: [
-                    Icon(
+                    const Icon(
                       CupertinoIcons.cart,
                       size: 14,
                       color: AppTheme.textSecondary,
@@ -417,7 +417,7 @@ class _TransactionCard extends StatelessWidget {
         vertical: 6,
       ),
       decoration: BoxDecoration(
-        color: AppTheme.primaryBlue.withOpacity(0.1),
+        color: AppTheme.primaryBlue.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(

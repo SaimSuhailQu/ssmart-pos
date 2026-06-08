@@ -42,7 +42,7 @@ class MetricCard extends StatelessWidget {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: effectiveColor.withOpacity(0.1),
+                      color: effectiveColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(AppTheme.radiusS),
                     ),
                     child: Icon(
@@ -55,7 +55,7 @@ class MetricCard extends StatelessWidget {
 
                   // Optional tap indicator
                   if (onTap != null)
-                    Icon(
+                    const Icon(
                       CupertinoIcons.chevron_right,
                       size: 16,
                       color: AppTheme.textTertiary,
