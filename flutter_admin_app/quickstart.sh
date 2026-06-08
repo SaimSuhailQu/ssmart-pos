@@ -69,6 +69,21 @@ fi
 # Step 2: Interactive Firebase configuration
 print_header "Step 2: Firebase Configuration"
 
+echo -e "${BOLD}Configuration Options:${NC}"
+echo ""
+echo "1. ${CYAN}.env file${NC} (Local Development)"
+echo "   • For running app locally"
+echo "   • Faster, simpler"
+echo "   • This script sets this up"
+echo ""
+echo "2. ${CYAN}GitHub Secrets${NC} (CI/CD)"
+echo "   • For GitHub Actions automated builds"
+echo "   • More secure, encrypted"
+echo "   • See GITHUB_SECRETS_SETUP.md"
+echo ""
+echo "This script will configure .env for LOCAL development."
+echo ""
+
 if [ -f ".env" ]; then
     # Check if .env has placeholder values
     if grep -q "your_api_key_here" .env 2>/dev/null; then
@@ -181,7 +196,8 @@ print_header "📚 Resources"
 
 echo "Documentation:"
 echo "  • Quick Reference: ${CYAN}README.md${NC}"
-echo "  • Environment Setup: ${CYAN}ENV_SETUP.md${NC}"
+echo "  • Local Setup (.env): ${CYAN}ENV_SETUP.md${NC}"
+echo "  • CI/CD Setup (GitHub Secrets): ${CYAN}GITHUB_SECRETS_SETUP.md${NC}"
 echo "  • iOS Build Guide: ${CYAN}IOS_BUILD_SETUP.md${NC}"
 echo ""
 
@@ -190,6 +206,11 @@ echo "  • Run app: ${YELLOW}flutter run${NC}"
 echo "  • Build for simulator: ${YELLOW}flutter build ios --simulator${NC}"
 echo "  • Validate config: ${YELLOW}dart run scripts/validate_firebase.dart${NC}"
 echo "  • Check Flutter: ${YELLOW}flutter doctor${NC}"
+echo ""
+
+echo "Next Steps:"
+echo "  • ${CYAN}Local dev:${NC} You're all set! Just run the app."
+echo "  • ${CYAN}CI/CD:${NC} Set up GitHub Secrets (see GITHUB_SECRETS_SETUP.md)"
 echo ""
 
 print_success "Happy coding! 🎉"

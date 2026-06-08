@@ -28,11 +28,18 @@ If you prefer manual setup or the script doesn't work:
    ```
 
 2. **Configure Firebase:**
+
+   **Option A: Local Development (Recommended)**
    ```bash
    cp .env.example .env
    # Edit .env with your Firebase credentials
    ```
-   See [ENV_SETUP.md](./ENV_SETUP.md) for detailed Firebase configuration instructions.
+   See [ENV_SETUP.md](./ENV_SETUP.md) for detailed instructions.
+
+   **Option B: CI/CD with GitHub Secrets**
+   - For GitHub Actions automated builds
+   - More secure, no .env needed
+   - See [GITHUB_SECRETS_SETUP.md](./GITHUB_SECRETS_SETUP.md) for setup guide
 
 3. **Validate configuration:**
    ```bash
@@ -46,7 +53,8 @@ If you prefer manual setup or the script doesn't work:
 
 ### Need Help?
 
-- **Environment Setup Guide**: [ENV_SETUP.md](./ENV_SETUP.md) - Complete Firebase configuration guide
+- **Environment Setup (Local)**: [ENV_SETUP.md](./ENV_SETUP.md) - Firebase .env file configuration
+- **GitHub Secrets (CI/CD)**: [GITHUB_SECRETS_SETUP.md](./GITHUB_SECRETS_SETUP.md) - Secure Firebase setup for GitHub Actions
 - **iOS Build Guide**: [IOS_BUILD_SETUP.md](./IOS_BUILD_SETUP.md) - Build and distribution guide
 - **Troubleshooting**: See the troubleshooting section below
 
@@ -122,6 +130,63 @@ flutter_admin_app/
 │   └── validate_firebase.dart       # Firebase config validator
 └── README.md
 ```
+
+## Firebase Configuration Options
+
+The SSmart POS Admin app supports **two** ways to configure Firebase credentials:
+
+### Option 1: .env File (Local Development) ⭐ Recommended for Local
+
+**Best for:** Local development, testing, quick iteration
+
+**Setup:**
+```bash
+cd flutter_admin_app
+cp .env.example .env
+# Edit .env with your Firebase credentials
+```
+
+**Pros:**
+- ✅ Simple and fast
+- ✅ Easy to edit and update
+- ✅ No extra configuration needed
+- ✅ Works offline
+
+**Cons:**
+- ❌ Must not commit to Git
+- ❌ Each developer needs their own
+- ❌ Not suitable for CI/CD
+
+**Guide:** [ENV_SETUP.md](./ENV_SETUP.md)
+
+### Option 2: GitHub Secrets (CI/CD) ⭐ Recommended for CI/CD
+
+**Best for:** GitHub Actions, automated builds, production deployments
+
+**Setup:**
+1. Go to GitHub repo → Settings → Secrets → Actions
+2. Add 8 Firebase secrets (see guide for details)
+3. Workflow automatically creates .env during build
+
+**Pros:**
+- ✅ Secure (encrypted at rest)
+- ✅ No .env file needed
+- ✅ Easy to update without code changes
+- ✅ Standard for production
+
+**Cons:**
+- ❌ Only for GitHub Actions
+- ❌ Can't use for local development
+- ❌ Requires repository access
+
+**Guide:** [GITHUB_SECRETS_SETUP.md](./GITHUB_SECRETS_SETUP.md)
+
+### Using Both (Recommended)
+
+The best approach is to use **both**:
+- **Local development:** Use .env file (faster iteration)
+- **GitHub Actions CI/CD:** Use GitHub Secrets (more secure)
+- Keep the same Firebase values in both
 
 ## Detailed Setup Instructions
 

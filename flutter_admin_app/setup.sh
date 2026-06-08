@@ -99,6 +99,14 @@ fi
 # Step 2: Create .env file
 print_header "Step 2: Setting Up Environment Configuration"
 
+echo "This script sets up .env file for LOCAL DEVELOPMENT."
+echo ""
+echo "For CI/CD (GitHub Actions), use GitHub Secrets instead:"
+echo "  • More secure (encrypted)"
+echo "  • No .env file needed"
+echo "  • See GITHUB_SECRETS_SETUP.md for guide"
+echo ""
+
 if [ -f ".env" ]; then
     print_warning ".env file already exists"
     read -p "Do you want to overwrite it? (y/N): " -n 1 -r
@@ -188,5 +196,8 @@ else
 fi
 
 echo ""
-print_info "For help, see README.md or ENV_SETUP.md"
+echo "Documentation:"
+echo "  • Local setup: ${YELLOW}ENV_SETUP.md${NC}"
+echo "  • CI/CD setup: ${YELLOW}GITHUB_SECRETS_SETUP.md${NC}"
+echo "  • Quick reference: ${YELLOW}README.md${NC}"
 echo ""

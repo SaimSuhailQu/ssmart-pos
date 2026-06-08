@@ -96,21 +96,86 @@ jobs:
           bundle install --jobs 4 --retry 3
 
       # ========================================================================
-      # STEP 4: Configure Environment
+      # STEP 4: Configure Environment (Firebase from GitHub Secrets)
       # ========================================================================
-      - name: Setup Environment File
+      # This step creates the .env file from GitHub Secrets if available.
+      # For unsigned builds: Firebase secrets are OPTIONAL (can test without backend)
+      # For signed builds: Firebase secrets are RECOMMENDED (for full functionality)
+      #
+      # To configure GitHub Secrets:
+      #   1. Go to Repository Settings → Secrets and variables → Actions
+      #   2. Add the following secrets (get from Firebase Console):
+      #      - FIREBASE_API_KEY
+      #      - FIREBASE_AUTH_DOMAIN
+      #      - FIREBASE_DATABASE_URL
+      #      - FIREBASE_PROJECT_ID
+      #      - FIREBASE_STORAGE_BUCKET
+      #      - FIREBASE_MESSAGING_SENDER_ID
+      #      - FIREBASE_APP_ID
+      #      - FIREBASE_MEASUREMENT_ID
+      #   3. See GITHUB_SECRETS_SETUP.md for detailed guide
+      # ========================================================================
+
+      - name: Setup Environment File from Secrets
         working-directory: ${{ env.WORKING_DIRECTORY }}
         run: |
-          # Create .env file from GitHub Secrets
-          cat > .env << EOF
+          # Check if Firebase secrets are configured
+          if [ -n "${{ secrets.FIREBASE_API_KEY }}" ]; then
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "  Creating .env from GitHub Secrets"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+            # Create .env file from GitHub Secrets
+            cat > .env << 'EOF'
+          # Firebase Configuration
+          # Auto-generated from GitHub Secrets on ${{ github.event.head_commit.timestamp }}
+
           FIREBASE_API_KEY=${{ secrets.FIREBASE_API_KEY }}
-          FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_AUTH_DOMAIN=${{ secrets.FIREBASE_AUTH_DOMAIN }}
           FIREBASE_DATABASE_URL=${{ secrets.FIREBASE_DATABASE_URL }}
+          FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_STORAGE_BUCKET=${{ secrets.FIREBASE_STORAGE_BUCKET }}
+          FIREBASE_MESSAGING_SENDER_ID=${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}
+          FIREBASE_APP_ID=${{ secrets.FIREBASE_APP_ID }}
+          FIREBASE_MEASUREMENT_ID=${{ secrets.FIREBASE_MEASUREMENT_ID }}
           EOF
 
-          # Verify .env file was created
-          echo "Environment file created"
-          ls -la .env
+            echo "✓ Environment file created from secrets"
+            echo "  File size: $(wc -c < .env) bytes"
+
+          else
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "  No Firebase Secrets Found"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo ""
+            echo "Firebase secrets are not configured in GitHub Secrets."
+            echo ""
+            echo "OPTIONS:"
+            echo "  1. UNSIGNED BUILDS (Development):"
+            echo "     → Firebase is optional - app will build without backend"
+            echo "     → Continue with build (no action needed)"
+            echo ""
+            echo "  2. SIGNED BUILDS (Production):"
+            echo "     → Firebase recommended for full functionality"
+            echo "     → Add secrets: Settings → Secrets → Actions"
+            echo "     → See: flutter_admin_app/GITHUB_SECRETS_SETUP.md"
+            echo ""
+
+            # Create placeholder .env for unsigned builds
+            if [ "${{ steps.build_type.outputs.type }}" == "unsigned" ]; then
+              echo "Creating placeholder .env for unsigned build..."
+              cp .env.example .env || echo "# Placeholder .env for build" > .env
+              echo "✓ Placeholder .env created"
+            else
+              echo "⚠ WARNING: Signed build without Firebase secrets"
+              echo "  App will build but Firebase features won't work"
+              echo ""
+              cp .env.example .env || echo "# Placeholder .env for build" > .env
+            fi
+          fi
+
+          echo ""
+          echo "Environment setup complete"
 
       # ========================================================================
       # STEP 5: Install Flutter Dependencies
@@ -385,10 +450,18 @@ jobs:
 #    - MATCH_KEYCHAIN_NAME: Name for temporary keychain (e.g., "fastlane_keychain")
 #    - MATCH_KEYCHAIN_PASSWORD: Password for temporary keychain
 #
-# 3. FIREBASE CONFIGURATION (if using Firebase)
+# 3. FIREBASE CONFIGURATION (Optional for unsigned, recommended for signed)
+#    Configure ALL 8 Firebase secrets for full functionality:
 #    - FIREBASE_API_KEY: Your Firebase API key
-#    - FIREBASE_PROJECT_ID: Your Firebase project ID
+#    - FIREBASE_AUTH_DOMAIN: Your Firebase auth domain
 #    - FIREBASE_DATABASE_URL: Your Firebase database URL
+#    - FIREBASE_PROJECT_ID: Your Firebase project ID
+#    - FIREBASE_STORAGE_BUCKET: Your Firebase storage bucket
+#    - FIREBASE_MESSAGING_SENDER_ID: Your Firebase messaging sender ID
+#    - FIREBASE_APP_ID: Your Firebase app ID
+#    - FIREBASE_MEASUREMENT_ID: Your Firebase measurement ID (Google Analytics)
+#
+#    See: flutter_admin_app/GITHUB_SECRETS_SETUP.md for complete setup guide
 #
 # ============================================================================
 # SETUP GUIDES

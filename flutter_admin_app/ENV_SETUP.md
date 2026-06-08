@@ -2,6 +2,18 @@
 
 Complete guide to configuring your Firebase environment for the SSmart POS Flutter Admin App.
 
+## Overview
+
+This guide covers **two** ways to configure Firebase for the SSmart POS Admin app:
+
+1. **Local Development** → Use `.env` file (faster, simpler)
+2. **CI/CD (GitHub Actions)** → Use GitHub Secrets (more secure)
+
+**Quick Decision:**
+- Working locally? → Use .env file (this guide)
+- Setting up CI/CD? → Use GitHub Secrets ([GITHUB_SECRETS_SETUP.md](./GITHUB_SECRETS_SETUP.md))
+- Both? → Use both (keep values in sync)
+
 ## Quick Setup
 
 If you want to skip the details, run the quick start script:
@@ -327,22 +339,40 @@ For development, staging, and production:
 cp .env.production .env  # For production build
 ```
 
-### Environment Variables in CI/CD
+### Using GitHub Secrets for CI/CD
 
-For GitHub Actions or other CI/CD:
+For GitHub Actions automated builds, use **GitHub Secrets** instead of .env file:
 
-1. Don't commit .env file
-2. Store secrets in CI/CD secrets manager
-3. Generate .env file during build:
+**Why GitHub Secrets?**
+- ✅ More secure (encrypted at rest)
+- ✅ No .env file in repository
+- ✅ Easy to update without code changes
+- ✅ Standard for production CI/CD
 
-```yaml
-# Example GitHub Actions
-- name: Create .env file
-  run: |
-    echo "FIREBASE_API_KEY=${{ secrets.FIREBASE_API_KEY }}" >> .env
-    echo "FIREBASE_AUTH_DOMAIN=${{ secrets.FIREBASE_AUTH_DOMAIN }}" >> .env
-    # ... etc
-```
+**Setup:**
+1. Don't commit .env file to repository
+2. Add Firebase credentials as GitHub Secrets
+3. Workflow automatically creates .env from secrets
+
+**Complete Guide:** See [GITHUB_SECRETS_SETUP.md](./GITHUB_SECRETS_SETUP.md)
+
+**Quick Setup:**
+1. Go to GitHub repo → **Settings** → **Secrets** → **Actions**
+2. Add these 8 secrets (get from Firebase Console):
+   - `FIREBASE_API_KEY`
+   - `FIREBASE_AUTH_DOMAIN`
+   - `FIREBASE_DATABASE_URL`
+   - `FIREBASE_PROJECT_ID`
+   - `FIREBASE_STORAGE_BUCKET`
+   - `FIREBASE_MESSAGING_SENDER_ID`
+   - `FIREBASE_APP_ID`
+   - `FIREBASE_MEASUREMENT_ID`
+3. Run workflow - .env created automatically
+
+**Decision Guide:**
+- **Local development** → Use .env file (this guide)
+- **GitHub Actions CI/CD** → Use GitHub Secrets ([guide](./GITHUB_SECRETS_SETUP.md))
+- **Both** → Keep same values in .env and GitHub Secrets
 
 ## Getting Help
 
