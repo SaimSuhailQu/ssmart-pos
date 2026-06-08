@@ -136,11 +136,6 @@ class AppTheme {
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       ),
 
-      dialogTheme: const DialogTheme(
-        backgroundColor: cardBackground,
-        surfaceTintColor: Colors.transparent,
-      ),
-
       textTheme: TextTheme(
         displayLarge: displayLarge,
         headlineLarge: headlineLarge,

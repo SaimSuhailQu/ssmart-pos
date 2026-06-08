@@ -323,7 +323,7 @@ class _ProductCatalogCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: AppTheme.secondaryPurple.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.solid(color: AppTheme.secondaryPurple.withValues(alpha: 0.25), width: 0.5),
+                    border: Border.all(color: AppTheme.secondaryPurple.withValues(alpha: 0.25), width: 0.5),
                   ),
                   child: Text(
                     product.category,
@@ -340,7 +340,7 @@ class _ProductCatalogCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: stockColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.solid(color: stockColor.withValues(alpha: 0.25), width: 0.5),
+                    border: Border.all(color: stockColor.withValues(alpha: 0.25), width: 0.5),
                   ),
                   child: Row(
                     children: [
