@@ -16,6 +16,30 @@ This guide covers **two** ways to configure Firebase for the SSmart POS Admin ap
 
 ## Quick Setup
 
+### Option 1: Setup with GoogleService-Info.plist (Easiest)
+
+If you have a `GoogleService-Info.plist` file from Firebase Console, use this automated setup:
+
+```bash
+./scripts/setup_from_plist.sh /path/to/GoogleService-Info.plist
+```
+
+This will:
+- Extract all Firebase credentials automatically
+- Create the .env file with correct values
+- Copy plist to ios/Runner/
+- Validate the configuration
+- Show you next steps
+
+**Getting the plist file:**
+1. Go to [Firebase Console](https://console.firebase.google.com)
+2. Select your project
+3. Click gear icon → Project settings
+4. Scroll to "Your apps" → iOS app
+5. Click "Download GoogleService-Info.plist"
+
+### Option 2: Interactive Setup
+
 If you want to skip the details, run the quick start script:
 
 ```bash

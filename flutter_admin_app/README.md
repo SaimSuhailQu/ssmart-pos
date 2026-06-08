@@ -4,7 +4,28 @@ A professional Flutter iOS admin application for monitoring sales, transactions,
 
 ## Quick Start
 
-Get started in under 5 minutes with our automated setup:
+### Got GoogleService-Info.plist? (Fastest Setup - 30 seconds!)
+
+If you have a `GoogleService-Info.plist` file from Firebase Console:
+
+```bash
+cd flutter_admin_app
+./scripts/setup_from_plist.sh /path/to/GoogleService-Info.plist
+flutter pub get
+flutter run
+```
+
+Done! This automatically extracts all Firebase credentials and configures everything.
+
+**How to get the plist file:**
+1. Go to [Firebase Console](https://console.firebase.google.com)
+2. Select your project → Settings (gear icon) → Project settings
+3. Scroll to "Your apps" → iOS app
+4. Click "Download GoogleService-Info.plist"
+
+### Interactive Setup (5 minutes)
+
+If you don't have the plist file or prefer guided setup:
 
 ```bash
 cd flutter_admin_app

@@ -4,6 +4,16 @@ Fast reference for setting up the Flutter iOS Admin App.
 
 ## One-Line Setup
 
+### Got GoogleService-Info.plist?
+
+```bash
+./scripts/setup_from_plist.sh /path/to/GoogleService-Info.plist
+```
+
+This extracts all Firebase credentials automatically and sets up everything. Fastest method!
+
+### Interactive Setup
+
 ```bash
 ./quickstart.sh
 ```
@@ -15,6 +25,9 @@ That's it! Follow the prompts.
 ### Setup & Configuration
 
 ```bash
+# Setup from GoogleService-Info.plist (fastest!)
+./scripts/setup_from_plist.sh /path/to/GoogleService-Info.plist
+
 # Automated setup
 ./setup.sh
 
@@ -24,7 +37,7 @@ That's it! Follow the prompts.
 # Validate Firebase configuration
 dart run scripts/validate_firebase.dart
 
-# Create .env file
+# Create .env file manually
 cp .env.example .env
 ```
 

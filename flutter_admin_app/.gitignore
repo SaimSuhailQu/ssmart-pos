@@ -82,6 +82,10 @@ app.*.map.json
 **/ios/**/*.certSigningRequest
 **/ios/exportOptions.plist
 
+# iOS - Firebase Configuration (NEVER commit these)
+**/ios/**/GoogleService-Info.plist
+GoogleService-Info.plist
+
 # iOS - Keep base configuration (DO NOT ignore these)
 # Runner/
 # Runner.xcodeproj/
