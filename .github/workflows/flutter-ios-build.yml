@@ -364,6 +364,17 @@ jobs:
           bundle exec fastlane run sync_code_signing
 
       # ========================================================================
+      # STEP 7.5: Generate iOS Flutter Configuration
+      # ========================================================================
+      - name: Generate iOS Flutter Configuration
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          echo "Generating iOS Flutter configuration files..."
+          flutter precache --ios
+          flutter build ios --config-only --no-codesign
+          echo "✓ Flutter iOS configuration generated"
+
+      # ========================================================================
       # STEP 8: Install CocoaPods Dependencies
       # ========================================================================
       - name: Install CocoaPods Dependencies
