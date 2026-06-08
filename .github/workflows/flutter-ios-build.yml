@@ -40,7 +40,7 @@ permissions:
 # ENVIRONMENT VARIABLES
 # ============================================================================
 env:
-  FLUTTER_VERSION: '3.24.0'  # Update to match your project's Flutter version
+  FLUTTER_VERSION: '3.41.7'  # Update to match your project's Flutter version
   XCODE_VERSION: '15.2'      # Xcode version on macos-latest
   WORKING_DIRECTORY: flutter_admin_app
 
