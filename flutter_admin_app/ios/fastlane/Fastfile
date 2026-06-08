@@ -75,45 +75,51 @@ platform :ios do
   # ============================================================================
   # LANE: Build Unsigned - Development Build (No Code Signing)
   # ============================================================================
-  desc "Build unsigned development app for simulator"
+  desc "Build unsigned development app for simulator and physical device sideloading"
   desc "Usage: fastlane build_unsigned"
   desc "No Apple Developer account or certificates required"
-  desc "Output: .app bundle for iOS Simulator"
+  desc "Outputs: .app bundle for Simulator and .ipa for Sideloading"
   lane :build_unsigned do
     UI.important("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
     UI.important("  UNSIGNED DEVELOPMENT BUILD")
     UI.important("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
     UI.message("")
-    UI.message("Building for iOS Simulator (no code signing required)")
+    UI.message("Building for iOS Simulator and physical device sideloading...")
     UI.message("")
 
     # Navigate to Flutter project root
     Dir.chdir("..") do
-      # Build for simulator using Flutter
+      UI.message("Building Simulator Debug Bundle (.app)...")
       sh("flutter", "build", "ios", "--simulator", "--debug")
+
+      UI.message("Building Physical Device Unsigned Release Bundle...")
+      sh("flutter", "build", "ios", "--no-codesign", "--release")
+
+      UI.message("Creating Sideloadable Unsigned IPA...")
+      sh("mkdir -p build/ios/iphoneos/Payload")
+      sh("cp -r build/ios/iphoneos/Runner.app build/ios/iphoneos/Payload/")
+      sh("cd build/ios/iphoneos && zip -rq SSmart_POS_Admin_Unsigned.ipa Payload")
     end
 
-    # Find the .app bundle
+    # Find outputs
     app_path = Dir.glob("../build/ios/Debug-iphonesimulator/*.app").first
+    ipa_path = "../build/ios/iphoneos/SSmart_POS_Admin_Unsigned.ipa"
 
-    if app_path
+    if app_path && File.exist?(ipa_path)
       UI.success("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
       UI.success("  BUILD SUCCESSFUL")
       UI.success("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
       UI.message("")
-      UI.message("App bundle created at: #{app_path}")
+      UI.message("1. Simulator app: #{app_path}")
+      UI.message("2. Unsigned IPA (for sideloading): #{File.expand_path(ipa_path)}")
       UI.message("")
-      UI.message("Usage:")
-      UI.message("  1. Install on simulator:")
-      UI.message("     xcrun simctl install booted '#{app_path}'")
-      UI.message("")
-      UI.message("  2. Or drag the .app to a running simulator")
-      UI.message("")
-      UI.important("Note: This build cannot be installed on physical devices")
-      UI.important("      or distributed via TestFlight/App Store")
+      UI.message("How to install the unsigned IPA on a physical iPhone:")
+      UI.message("  - Use Sideloadly (sideloadly.io)")
+      UI.message("  - Use AltStore (altstore.io)")
+      UI.message("  - Use TrollStore (if your iOS version is compatible)")
       UI.message("")
     else
-      UI.user_error!("Build failed: Could not find .app bundle")
+      UI.user_error!("Build failed: Could not locate built bundles")
     end
   end
 

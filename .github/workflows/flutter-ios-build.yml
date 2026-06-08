@@ -116,7 +116,7 @@ jobs:
       # STEP 2: Setup Flutter
       # ========================================================================
       - name: Setup Flutter SDK
-        uses: subosito/flutter-action@f3a8b432e038827e85743b1e8b284e3650228d49 # v2.16.0
+        uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: 'stable'
@@ -394,6 +394,7 @@ jobs:
           name: SSmart-POS-Admin-iOS-Unsigned-${{ steps.build_config.outputs.build_number }}
           path: |
             ${{ env.WORKING_DIRECTORY }}/build/ios/Debug-iphonesimulator/*.app
+            ${{ env.WORKING_DIRECTORY }}/build/ios/iphoneos/*.ipa
           retention-days: 30
           if-no-files-found: error
 
@@ -414,7 +415,7 @@ jobs:
       # ========================================================================
       - name: Create GitHub Release (Signed Builds)
         if: startsWith(github.ref, 'refs/tags/flutter-v') && steps.build_config.outputs.type == 'signed'
-        uses: softprops/action-gh-release@057fc0e729a9443187b58fa589f6603a95d9e56e # v2.0.6
+        uses: softprops/action-gh-release@v2
         with:
           files: |
             ${{ env.WORKING_DIRECTORY }}/build/ios/ipa/*.ipa
