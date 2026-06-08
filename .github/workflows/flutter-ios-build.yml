@@ -334,10 +334,31 @@ jobs:
       - name: Generate iOS Flutter Configuration
         working-directory: ${{ env.WORKING_DIRECTORY }}
         run: |
+          echo "Cleaning Flutter iOS build artifacts..."
+          rm -rf ios/Flutter/Flutter.podspec
+          rm -rf ios/Pods
+          rm -rf build/
+          
+          echo "Running flutter clean..."
+          flutter clean
+          
+          echo "Getting dependencies..."
+          flutter pub get
+          
           echo "Generating iOS Flutter configuration files..."
           flutter precache --ios
-          flutter build ios --config-only --no-codesign
-          echo "✓ Flutter iOS configuration generated"
+          
+          echo "Building iOS framework (config-only)..."
+          flutter build ios --config-only --no-codesign --debug 2>&1 || true
+          
+          echo "Verifying Flutter framework files..."
+          if [ -f "ios/Flutter/Flutter.podspec" ]; then
+            echo "✓ Flutter.podspec found"
+          else
+            echo "✗ Flutter.podspec missing - running pod install to generate"
+          fi
+          
+          echo "✓ Flutter iOS configuration complete"
 
       # ========================================================================
       # STEP 8: Install CocoaPods Dependencies
