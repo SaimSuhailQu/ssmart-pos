@@ -154,9 +154,9 @@ flutter_admin_app/
 
 ## Firebase Configuration Options
 
-The SSmart POS Admin app supports **two** ways to configure Firebase credentials:
+The SSmart POS Admin app supports **two approaches** for configuring Firebase credentials:
 
-### Option 1: .env File (Local Development) ⭐ Recommended for Local
+### Local Development: .env File ⭐
 
 **Best for:** Local development, testing, quick iteration
 
@@ -180,34 +180,63 @@ cp .env.example .env
 
 **Guide:** [ENV_SETUP.md](./ENV_SETUP.md)
 
-### Option 2: GitHub Secrets (CI/CD) ⭐ Recommended for CI/CD
+### CI/CD: GitHub Secrets (Three Methods) ⭐
 
 **Best for:** GitHub Actions, automated builds, production deployments
 
-**Setup:**
-1. Go to GitHub repo → Settings → Secrets → Actions
-2. Add 8 Firebase secrets (see guide for details)
-3. Workflow automatically creates .env during build
+The workflow supports **three methods** to configure Firebase in CI/CD:
 
-**Pros:**
-- ✅ Secure (encrypted at rest)
-- ✅ No .env file needed
-- ✅ Easy to update without code changes
-- ✅ Standard for production
+#### 1. GoogleService-Info.plist (RECOMMENDED)
+- **Single secret:** `GOOGLE_SERVICE_INFO_PLIST`
+- **Setup time:** 2 minutes
+- **How:** Download plist → Encode base64 → Add as secret
+- **Pros:** Simplest, fastest builds, no API calls
 
-**Cons:**
-- ❌ Only for GitHub Actions
-- ❌ Can't use for local development
-- ❌ Requires repository access
+#### 2. GCP Service Account Key
+- **Single secret:** `GCP_SA_KEY`
+- **Setup time:** 5 minutes
+- **How:** Create service account → Download JSON key → Add as secret
+- **Pros:** Programmatic access, follows GCP best practices
 
-**Guide:** [GITHUB_SECRETS_SETUP.md](./GITHUB_SECRETS_SETUP.md)
+#### 3. Individual Secrets (Legacy)
+- **Eight secrets:** `FIREBASE_API_KEY`, `FIREBASE_AUTH_DOMAIN`, etc.
+- **Setup time:** 10 minutes
+- **Pros:** Maximum control over each value
 
-### Using Both (Recommended)
+**Guides:**
+- [FIREBASE_CONFIG_QUICK_START.md](./FIREBASE_CONFIG_QUICK_START.md) - Quick reference
+- [GITHUB_SECRETS_SETUP.md](./GITHUB_SECRETS_SETUP.md) - All three methods
+- [GCP_SERVICE_ACCOUNT_SETUP.md](./GCP_SERVICE_ACCOUNT_SETUP.md) - Detailed GCP setup
 
-The best approach is to use **both**:
+### Recommended Approach
+
+Use **both** for best experience:
 - **Local development:** Use .env file (faster iteration)
-- **GitHub Actions CI/CD:** Use GitHub Secrets (more secure)
-- Keep the same Firebase values in both
+- **GitHub Actions CI/CD:** Use GoogleService-Info.plist secret (simplest)
+- Keep the same Firebase project for consistency
+
+## CI/CD Configuration Options
+
+### Quick Setup Guide
+
+**For GitHub Actions (choose one):**
+
+1. **Easiest:** GoogleService-Info.plist
+   ```bash
+   cat ios/Runner/GoogleService-Info.plist | base64
+   # Add as GOOGLE_SERVICE_INFO_PLIST secret
+   ```
+
+2. **Alternative:** GCP Service Account
+   - Create service account in GCP Console
+   - Grant Firebase Admin role
+   - Add JSON key as `GCP_SA_KEY` secret
+
+3. **Legacy:** Individual Secrets
+   - Add 8 separate Firebase secrets
+   - See [GITHUB_SECRETS_SETUP.md](./GITHUB_SECRETS_SETUP.md)
+
+**Priority:** Workflow checks in order: Plist → GCP SA → Individual Secrets
 
 ## Detailed Setup Instructions
 

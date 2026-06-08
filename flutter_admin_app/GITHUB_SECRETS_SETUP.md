@@ -1,6 +1,38 @@
 # GitHub Secrets Setup Guide
 
-Complete guide for configuring Firebase environment variables as GitHub Secrets for CI/CD workflows.
+Complete guide for configuring Firebase credentials as GitHub Secrets for CI/CD workflows.
+
+## Three Configuration Methods
+
+The workflow now supports **THREE methods** to configure Firebase (in priority order):
+
+### 1. GoogleService-Info.plist (RECOMMENDED) ⭐
+
+**Single secret, simplest setup**
+- Secret name: `GOOGLE_SERVICE_INFO_PLIST`
+- Value: Base64-encoded plist file
+- Setup time: 2 minutes
+
+[Jump to GoogleService-Info.plist setup](#method-1-googleservice-infoplist-recommended-)
+
+### 2. GCP Service Account Key (Alternative)
+
+**Programmatic access, one JSON key**
+- Secret name: `GCP_SA_KEY`
+- Value: Service account JSON key
+- Setup time: 5 minutes
+
+[See complete GCP Service Account guide](./GCP_SERVICE_ACCOUNT_SETUP.md)
+
+### 3. Individual Firebase Secrets (Legacy)
+
+**Maximum control, 8 separate secrets**
+- Eight secret names: `FIREBASE_API_KEY`, etc.
+- Setup time: 10 minutes
+
+[Jump to Individual Secrets setup](#method-3-individual-firebase-secrets-legacy)
+
+---
 
 ## Why Use GitHub Secrets?
 
@@ -26,10 +58,13 @@ GitHub Secrets provide a secure way to store sensitive configuration for your CI
 ## Table of Contents
 
 - [Prerequisites](#prerequisites)
-- [Step-by-Step Setup](#step-by-step-setup)
-- [Secret Naming Convention](#secret-naming-convention)
-- [Getting Firebase Credentials](#getting-firebase-credentials)
-- [Adding Secrets to GitHub](#adding-secrets-to-github)
+- [Method 1: GoogleService-Info.plist (RECOMMENDED)](#method-1-googleservice-infoplist-recommended-)
+- [Method 2: GCP Service Account Key](#method-2-gcp-service-account-key)
+- [Method 3: Individual Firebase Secrets (Legacy)](#method-3-individual-firebase-secrets-legacy)
+  - [Step-by-Step Setup](#step-by-step-setup)
+  - [Secret Naming Convention](#secret-naming-convention)
+  - [Getting Firebase Credentials](#getting-firebase-credentials)
+  - [Adding Secrets to GitHub](#adding-secrets-to-github)
 - [Verifying Setup](#verifying-setup)
 - [Updating Secrets](#updating-secrets)
 - [Security Considerations](#security-considerations)
@@ -40,10 +75,110 @@ GitHub Secrets provide a secure way to store sensitive configuration for your CI
 Before you begin, ensure you have:
 
 - GitHub repository access with **write permissions** (or higher)
-- Firebase project with credentials ready (see [Getting Firebase Credentials](#getting-firebase-credentials))
+- Firebase project with credentials ready
 - Basic understanding of GitHub Actions
 
-## Step-by-Step Setup
+---
+
+## Method 1: GoogleService-Info.plist (RECOMMENDED) ⭐
+
+This is the **simplest and fastest** method. If you have access to Firebase Console, use this approach.
+
+### Why This is Best
+
+- ✅ **Single secret** - Only `GOOGLE_SERVICE_INFO_PLIST` to manage
+- ✅ **Fastest** - No API calls during CI/CD
+- ✅ **Simplest** - Just download, encode, paste
+- ✅ **Most reliable** - Works offline, no dependencies
+
+### Step 1: Download GoogleService-Info.plist
+
+1. Go to [Firebase Console](https://console.firebase.google.com)
+2. Select your project
+3. Click gear icon ⚙️ → **Project settings**
+4. Scroll to **Your apps** section
+5. Click your **iOS app** (or add one)
+6. Click **Download GoogleService-Info.plist**
+
+### Step 2: Encode to Base64
+
+**macOS/Linux:**
+```bash
+cat GoogleService-Info.plist | base64 > encoded-plist.txt
+```
+
+**Windows PowerShell:**
+```powershell
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("GoogleService-Info.plist")) > encoded-plist.txt
+```
+
+### Step 3: Add to GitHub Secrets
+
+1. Go to your repository → **Settings → Secrets and variables → Actions**
+2. Click **New repository secret**
+3. Name: `GOOGLE_SERVICE_INFO_PLIST`
+4. Value: Paste entire contents of `encoded-plist.txt`
+5. Click **Add secret**
+
+### Step 4: Test
+
+Run the workflow - it will automatically detect and use the plist:
+
+```
+✓ Using GoogleService-Info.plist from GitHub Secrets (Method 1 - Recommended)
+✓ Firebase configured successfully via GoogleService-Info.plist
+```
+
+**That's it!** Skip to [Verifying Setup](#verifying-setup) section.
+
+---
+
+## Method 2: GCP Service Account Key
+
+Use this for programmatic access or when you want to follow GCP best practices.
+
+### Quick Overview
+
+- Secret name: `GCP_SA_KEY`
+- Value: Complete JSON service account key
+- Requires: Firebase Admin permissions
+
+### Setup Summary
+
+1. **Create Service Account** in GCP Console
+2. **Grant Firebase Admin role**
+3. **Download JSON key**
+4. **Add key as GitHub Secret** named `GCP_SA_KEY`
+
+### Complete Instructions
+
+For detailed step-by-step instructions including:
+- Service account creation
+- Permission configuration
+- Key management
+- Security best practices
+- Troubleshooting
+
+**See:** [GCP_SERVICE_ACCOUNT_SETUP.md](./GCP_SERVICE_ACCOUNT_SETUP.md)
+
+### Quick Test
+
+After adding `GCP_SA_KEY` secret, run the workflow:
+
+```
+✓ Using GCP Service Account key from GitHub Secrets (Method 2)
+✓ Firebase configured successfully via GCP Service Account
+```
+
+---
+
+## Method 3: Individual Firebase Secrets (Legacy)
+
+This is the original method with 8 separate secrets. **Not recommended** for new setups.
+
+**Consider switching to Method 1** (GoogleService-Info.plist) for simpler management.
+
+### Step-by-Step Setup
 
 ### 1. Navigate to Repository Settings
 

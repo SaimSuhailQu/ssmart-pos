@@ -96,36 +96,128 @@ jobs:
           bundle install --jobs 4 --retry 3
 
       # ========================================================================
-      # STEP 4: Configure Environment (Firebase from GitHub Secrets)
+      # STEP 4: Configure Environment (Firebase Configuration)
       # ========================================================================
-      # This step creates the .env file from GitHub Secrets if available.
-      # For unsigned builds: Firebase secrets are OPTIONAL (can test without backend)
-      # For signed builds: Firebase secrets are RECOMMENDED (for full functionality)
+      # This step creates the .env file using one of THREE methods (in priority order):
       #
-      # To configure GitHub Secrets:
-      #   1. Go to Repository Settings → Secrets and variables → Actions
-      #   2. Add the following secrets (get from Firebase Console):
-      #      - FIREBASE_API_KEY
-      #      - FIREBASE_AUTH_DOMAIN
-      #      - FIREBASE_DATABASE_URL
-      #      - FIREBASE_PROJECT_ID
-      #      - FIREBASE_STORAGE_BUCKET
-      #      - FIREBASE_MESSAGING_SENDER_ID
-      #      - FIREBASE_APP_ID
-      #      - FIREBASE_MEASUREMENT_ID
-      #   3. See GITHUB_SECRETS_SETUP.md for detailed guide
+      # METHOD 1 (RECOMMENDED): GoogleService-Info.plist
+      #   - Add secret: GOOGLE_SERVICE_INFO_PLIST (base64-encoded plist)
+      #   - Fastest, no API calls needed
+      #   - How to create: cat GoogleService-Info.plist | base64
+      #
+      # METHOD 2: GCP Service Account Key
+      #   - Add secret: GCP_SA_KEY (JSON service account key)
+      #   - Programmatic access via gcloud
+      #   - Requires gcloud CLI and Firebase Admin permissions
+      #
+      # METHOD 3 (FALLBACK): Individual Firebase Secrets
+      #   - Add 8 separate secrets (legacy method)
+      #   - FIREBASE_API_KEY, FIREBASE_AUTH_DOMAIN, etc.
+      #   - More tedious but maximum control
+      #
+      # For unsigned builds: Firebase is OPTIONAL (can test without backend)
+      # For signed builds: Firebase is RECOMMENDED (for full functionality)
+      #
+      # See flutter_admin_app/GITHUB_SECRETS_SETUP.md for complete setup guide
       # ========================================================================
 
-      - name: Setup Environment File from Secrets
+      - name: Setup Firebase Configuration (Three-Tier Approach)
         working-directory: ${{ env.WORKING_DIRECTORY }}
+        env:
+          GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+          FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
+          FIREBASE_AUTH_DOMAIN: ${{ secrets.FIREBASE_AUTH_DOMAIN }}
+          FIREBASE_DATABASE_URL: ${{ secrets.FIREBASE_DATABASE_URL }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
+          FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}
+          FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
+          FIREBASE_MEASUREMENT_ID: ${{ secrets.FIREBASE_MEASUREMENT_ID }}
         run: |
-          # Check if Firebase secrets are configured
-          if [ -n "${{ secrets.FIREBASE_API_KEY }}" ]; then
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo "  Creating .env from GitHub Secrets"
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "  Firebase Configuration Setup"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
 
-            # Create .env file from GitHub Secrets
+          # METHOD 1: GoogleService-Info.plist (RECOMMENDED - Fastest & Simplest)
+          if [ -n "$GOOGLE_SERVICE_INFO_PLIST" ]; then
+            echo "✓ Using GoogleService-Info.plist from GitHub Secrets (Method 1 - Recommended)"
+            echo ""
+            echo "This is the fastest method with no API calls required."
+            echo ""
+
+            # Decode base64 plist and save to temporary file
+            echo "$GOOGLE_SERVICE_INFO_PLIST" | base64 -d > temp-plist.xml
+
+            if [ $? -eq 0 ] && [ -f temp-plist.xml ]; then
+              echo "✓ Successfully decoded plist file"
+              echo "  Running setup_from_plist.sh script..."
+              echo ""
+
+              # Make script executable and run it
+              chmod +x scripts/setup_from_plist.sh
+              if ./scripts/setup_from_plist.sh temp-plist.xml; then
+                echo ""
+                echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                echo "✓ Firebase configured successfully via GoogleService-Info.plist"
+                echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+              else
+                echo "✗ Failed to setup from plist file"
+                exit 1
+              fi
+
+              # Cleanup
+              rm -f temp-plist.xml
+            else
+              echo "✗ Failed to decode base64 plist"
+              rm -f temp-plist.xml
+              exit 1
+            fi
+
+          # METHOD 2: GCP Service Account Key (Alternative)
+          elif [ -n "$GCP_SA_KEY" ]; then
+            echo "✓ Using GCP Service Account key from GitHub Secrets (Method 2)"
+            echo ""
+            echo "This method uses gcloud CLI to retrieve Firebase configuration."
+            echo ""
+
+            # Save service account key to temporary file
+            echo "$GCP_SA_KEY" > gcp-key.json
+
+            if [ -f gcp-key.json ]; then
+              echo "✓ Service account key saved"
+              echo "  Running setup_from_gcp_sa.sh script..."
+              echo ""
+
+              # Make script executable and run it
+              chmod +x scripts/setup_from_gcp_sa.sh
+              if ./scripts/setup_from_gcp_sa.sh gcp-key.json; then
+                echo ""
+                echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                echo "✓ Firebase configured successfully via GCP Service Account"
+                echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+              else
+                echo "✗ Failed to setup from GCP service account"
+                rm -f gcp-key.json
+                exit 1
+              fi
+
+              # Cleanup
+              rm -f gcp-key.json
+            else
+              echo "✗ Failed to save service account key"
+              exit 1
+            fi
+
+          # METHOD 3: Individual Firebase Secrets (Legacy Fallback)
+          elif [ -n "$FIREBASE_API_KEY" ]; then
+            echo "✓ Using individual Firebase secrets from GitHub Secrets (Method 3 - Legacy)"
+            echo ""
+            echo "Consider switching to Method 1 (GoogleService-Info.plist) for simpler setup."
+            echo ""
+
+            # Create .env file from individual GitHub Secrets
             cat > .env << 'EOF'
           # Firebase Configuration
           # Auto-generated from GitHub Secrets on ${{ github.event.head_commit.timestamp }}
@@ -140,34 +232,54 @@ jobs:
           FIREBASE_MEASUREMENT_ID=${{ secrets.FIREBASE_MEASUREMENT_ID }}
           EOF
 
-            echo "✓ Environment file created from secrets"
+            echo "✓ Environment file created from individual secrets"
             echo "  File size: $(wc -c < .env) bytes"
+            echo ""
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "✓ Firebase configured successfully via individual secrets"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
+          # NO FIREBASE SECRETS CONFIGURED
           else
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo "  No Firebase Secrets Found"
+            echo "  No Firebase Configuration Found"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo ""
-            echo "Firebase secrets are not configured in GitHub Secrets."
+            echo "No Firebase secrets are configured in GitHub Secrets."
             echo ""
-            echo "OPTIONS:"
-            echo "  1. UNSIGNED BUILDS (Development):"
-            echo "     → Firebase is optional - app will build without backend"
-            echo "     → Continue with build (no action needed)"
+            echo "CONFIGURATION OPTIONS (in priority order):"
             echo ""
-            echo "  2. SIGNED BUILDS (Production):"
-            echo "     → Firebase recommended for full functionality"
-            echo "     → Add secrets: Settings → Secrets → Actions"
-            echo "     → See: flutter_admin_app/GITHUB_SECRETS_SETUP.md"
+            echo "  1. GoogleService-Info.plist (RECOMMENDED - Easiest)"
+            echo "     → Add secret: GOOGLE_SERVICE_INFO_PLIST"
+            echo "     → Value: cat GoogleService-Info.plist | base64"
+            echo "     → Fastest, no API calls, single secret"
+            echo ""
+            echo "  2. GCP Service Account Key (Alternative)"
+            echo "     → Add secret: GCP_SA_KEY"
+            echo "     → Value: Contents of service account JSON key"
+            echo "     → Requires Firebase Admin permissions"
+            echo ""
+            echo "  3. Individual Firebase Secrets (Legacy)"
+            echo "     → Add 8 separate secrets (FIREBASE_API_KEY, etc.)"
+            echo "     → More tedious but maximum control"
+            echo ""
+            echo "BUILD OPTIONS:"
+            echo "  • UNSIGNED BUILDS (Development):"
+            echo "    → Firebase is optional - app will build without backend"
+            echo "    → Continue with build (no action needed)"
+            echo ""
+            echo "  • SIGNED BUILDS (Production):"
+            echo "    → Firebase recommended for full functionality"
+            echo "    → See: flutter_admin_app/GITHUB_SECRETS_SETUP.md"
             echo ""
 
-            # Create placeholder .env for unsigned builds
+            # Create placeholder .env for builds without Firebase
             if [ "${{ steps.build_type.outputs.type }}" == "unsigned" ]; then
               echo "Creating placeholder .env for unsigned build..."
               cp .env.example .env || echo "# Placeholder .env for build" > .env
               echo "✓ Placeholder .env created"
             else
-              echo "⚠ WARNING: Signed build without Firebase secrets"
+              echo "⚠ WARNING: Signed build without Firebase configuration"
               echo "  App will build but Firebase features won't work"
               echo ""
               cp .env.example .env || echo "# Placeholder .env for build" > .env
@@ -451,15 +563,24 @@ jobs:
 #    - MATCH_KEYCHAIN_PASSWORD: Password for temporary keychain
 #
 # 3. FIREBASE CONFIGURATION (Optional for unsigned, recommended for signed)
-#    Configure ALL 8 Firebase secrets for full functionality:
-#    - FIREBASE_API_KEY: Your Firebase API key
-#    - FIREBASE_AUTH_DOMAIN: Your Firebase auth domain
-#    - FIREBASE_DATABASE_URL: Your Firebase database URL
-#    - FIREBASE_PROJECT_ID: Your Firebase project ID
-#    - FIREBASE_STORAGE_BUCKET: Your Firebase storage bucket
-#    - FIREBASE_MESSAGING_SENDER_ID: Your Firebase messaging sender ID
-#    - FIREBASE_APP_ID: Your Firebase app ID
-#    - FIREBASE_MEASUREMENT_ID: Your Firebase measurement ID (Google Analytics)
+#    Choose ONE of three methods (in priority order):
+#
+#    METHOD 1 (RECOMMENDED): GoogleService-Info.plist
+#    - GOOGLE_SERVICE_INFO_PLIST: Base64-encoded plist file
+#    - Create: cat GoogleService-Info.plist | base64
+#    - Simplest, fastest, single secret
+#
+#    METHOD 2: GCP Service Account Key
+#    - GCP_SA_KEY: JSON service account key content
+#    - Requires Firebase Admin permissions
+#    - Programmatic access via gcloud
+#
+#    METHOD 3 (LEGACY): Individual Firebase Secrets
+#    - Configure ALL 8 Firebase secrets separately:
+#      FIREBASE_API_KEY, FIREBASE_AUTH_DOMAIN, FIREBASE_DATABASE_URL,
+#      FIREBASE_PROJECT_ID, FIREBASE_STORAGE_BUCKET, FIREBASE_MESSAGING_SENDER_ID,
+#      FIREBASE_APP_ID, FIREBASE_MEASUREMENT_ID
+#    - More tedious but maximum control
 #
 #    See: flutter_admin_app/GITHUB_SECRETS_SETUP.md for complete setup guide
 #
