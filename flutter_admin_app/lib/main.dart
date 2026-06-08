@@ -66,7 +66,7 @@ class SSMartPOSAdminApp extends StatelessWidget {
         // Firebase service
         ProxyProvider<FirebaseDatabase, FirebaseService>(
           update: (_, database, __) => FirebaseService(database),
-          dispose: (_, service) => service?.dispose(),
+          dispose: (_, service) => service.dispose(),
         ),
       ],
       child: MaterialApp(
