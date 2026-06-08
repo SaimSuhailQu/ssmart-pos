@@ -87,13 +87,14 @@ jobs:
         with:
           ruby-version: '3.2'
           bundler-cache: true
-          working-directory: ${{ env.WORKING_DIRECTORY }}/ios
+          working-directory: ${{ env.WORKING_DIRECTORY }}/ios/fastlane
 
-      - name: Install Bundler Dependencies
-        working-directory: ${{ env.WORKING_DIRECTORY }}/ios
+      - name: Verify Bundler Installation
+        working-directory: ${{ env.WORKING_DIRECTORY }}/ios/fastlane
         run: |
-          bundle config set --local path 'vendor/bundle'
-          bundle install --jobs 4 --retry 3
+          echo "Ruby version: $(ruby --version)"
+          echo "Bundler version: $(bundle --version)"
+          echo "Gemfile location: $(pwd)/Gemfile"
 
       # ========================================================================
       # STEP 4: Configure Environment (Firebase Configuration)
@@ -344,7 +345,7 @@ jobs:
 
       - name: Setup Code Signing with Fastlane Match
         if: steps.build_type.outputs.type == 'signed'
-        working-directory: ${{ env.WORKING_DIRECTORY }}/ios
+        working-directory: ${{ env.WORKING_DIRECTORY }}/ios/fastlane
         env:
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
           MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
@@ -372,7 +373,7 @@ jobs:
       # UNSIGNED BUILD - Development/Testing (No Apple Account Required)
       - name: Build Unsigned Development App
         if: steps.build_type.outputs.type == 'unsigned'
-        working-directory: ${{ env.WORKING_DIRECTORY }}/ios
+        working-directory: ${{ env.WORKING_DIRECTORY }}/ios/fastlane
         run: |
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "  UNSIGNED DEVELOPMENT BUILD"
@@ -423,7 +424,7 @@ jobs:
         if: |
           steps.build_type.outputs.type == 'signed' &&
           (github.event.inputs.deploy_to_testflight == 'true' || startsWith(github.ref, 'refs/tags/flutter-v'))
-        working-directory: ${{ env.WORKING_DIRECTORY }}/ios
+        working-directory: ${{ env.WORKING_DIRECTORY }}/ios/fastlane
         env:
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
           FASTLANE_USER: ${{ secrets.FASTLANE_USER }}
