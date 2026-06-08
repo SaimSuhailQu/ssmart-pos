@@ -291,42 +291,43 @@ jobs:
           echo "Skipping code generation"
 
       # ========================================================================
-      # STEP 7: Setup iOS Code Signing (SIGNED BUILDS ONLY)
+      # STEP 7: Install Apple Certificate & Provisioning Profile (Signed Build only)
       # ========================================================================
-      # For unsigned builds: Skip this entire section
-      # For signed builds: Requires Apple Developer account and Fastlane Match
-      # ========================================================================
-
-      - name: Configure Keychain
-        if: steps.build_config.outputs.type == 'signed'
+      - name: Install Apple Certificate & Provisioning Profile
         env:
-          MATCH_KEYCHAIN_NAME: ${{ secrets.MATCH_KEYCHAIN_NAME }}
-          MATCH_KEYCHAIN_PASSWORD: ${{ secrets.MATCH_KEYCHAIN_PASSWORD }}
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          BUILD_PROVISION_PROFILE_BASE64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          BUILD_TYPE: ${{ steps.build_config.outputs.type }}
         run: |
-          # Create a custom keychain for code signing
-          security create-keychain -p "$MATCH_KEYCHAIN_PASSWORD" "$MATCH_KEYCHAIN_NAME"
-          security set-keychain-settings -lut 21600 "$MATCH_KEYCHAIN_NAME"
-          security unlock-keychain -p "$MATCH_KEYCHAIN_PASSWORD" "$MATCH_KEYCHAIN_NAME"
-
-          # Set the custom keychain as the default
-          security list-keychains -d user -s "$MATCH_KEYCHAIN_NAME" $(security list-keychains -d user | sed s/\"//g)
-          security default-keychain -s "$MATCH_KEYCHAIN_NAME"
-          security set-key-partition-list -S apple-tool:,apple: -s -k "$MATCH_KEYCHAIN_PASSWORD" "$MATCH_KEYCHAIN_NAME"
-
-      - name: Setup Code Signing with Fastlane Match
-        if: steps.build_config.outputs.type == 'signed'
-        working-directory: ${{ env.WORKING_DIRECTORY }}/ios/fastlane
-        env:
-          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
-          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
-          MATCH_GIT_BASIC_AUTH: ${{ secrets.MATCH_GIT_BASIC_AUTH }}
-          MATCH_KEYCHAIN_NAME: ${{ secrets.MATCH_KEYCHAIN_NAME }}
-          MATCH_KEYCHAIN_PASSWORD: ${{ secrets.MATCH_KEYCHAIN_PASSWORD }}
-          FASTLANE_USER: ${{ secrets.FASTLANE_USER }}
-          FASTLANE_TEAM_ID: ${{ secrets.FASTLANE_TEAM_ID }}
-          FASTLANE_SESSION: ${{ secrets.FASTLANE_SESSION }}
-        run: |
-          bundle exec fastlane sync_signing_certificates
+          if [ "$BUILD_TYPE" != "signed" ] || [ -z "$BUILD_CERTIFICATE_BASE64" ]; then
+            echo "No iOS signing secrets found or unsigned build requested. Proceeding with unsigned build..."
+            echo "SIGNED_BUILD=false" >> $GITHUB_ENV
+            exit 0
+          fi
+          echo "SIGNED_BUILD=true" >> $GITHUB_ENV
+          
+          # create variables
+          CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
+          PP_PATH=$RUNNER_TEMP/build_pp.mobileprovision
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          # import certificate and provisioning profile from secrets
+          echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode --output $CERTIFICATE_PATH
+          echo -n "$BUILD_PROVISION_PROFILE_BASE64" | base64 --decode --output $PP_PATH
+          # create temporary keychain
+          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security default-keychain -s $KEYCHAIN_PATH
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          # import certificate to keychain
+          security import $CERTIFICATE_PATH -k $KEYCHAIN_PATH -P "$P12_PASSWORD" -A -t cert -f pkcs12
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          # uuid extraction
+          UUID=$(security cms -D -i $PP_PATH | grep -A1 UUID | grep string | sed -E 's/<\/?string>//g' | xargs)
+          echo "Provisioning Profile UUID: $UUID"
+          # copy provisioning profile to proper system directory
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
 
       # ========================================================================
       # STEP 7.5: Generate iOS Flutter Configuration
@@ -369,67 +370,64 @@ jobs:
           pod install --repo-update
 
       # ========================================================================
-      # STEP 9: Build Flutter iOS App
+      # STEP 9: Build Flutter iOS App (Signed or Unsigned fallback)
       # ========================================================================
-
-      # UNSIGNED BUILD - Development/Testing (No Apple Account Required)
-      - name: Build Unsigned Development App
-        if: steps.build_config.outputs.type == 'unsigned'
-        working-directory: ${{ env.WORKING_DIRECTORY }}/ios/fastlane
-        run: |
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "  UNSIGNED DEVELOPMENT BUILD"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo ""
-          echo "This is an UNSIGNED development build that:"
-          echo "  ✓ Works on iOS Simulator"
-          echo "  ✓ Can be installed locally via Xcode"
-          echo "  ✗ Cannot be distributed or installed on devices without Xcode"
-          echo "  ✗ Not suitable for TestFlight or App Store"
-          echo ""
-          echo "For production builds, use 'signed' build type with Apple Developer account."
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo ""
-
-          bundle exec fastlane build_unsigned
-
-      # SIGNED BUILD - Production (Requires Apple Developer Account)
-      - name: Build Signed IPA
-        if: steps.build_config.outputs.type == 'signed'
+      - name: Build iOS Application
         working-directory: ${{ env.WORKING_DIRECTORY }}
         env:
-          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
-          MATCH_KEYCHAIN_NAME: ${{ secrets.MATCH_KEYCHAIN_NAME }}
-          MATCH_KEYCHAIN_PASSWORD: ${{ secrets.MATCH_KEYCHAIN_PASSWORD }}
           FASTLANE_TEAM_ID: ${{ secrets.FASTLANE_TEAM_ID }}
           BUILD_VERSION: ${{ steps.build_config.outputs.version }}
           BUILD_NUMBER: ${{ steps.build_config.outputs.build_number }}
         run: |
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "  SIGNED PRODUCTION BUILD"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo ""
-          echo "Building signed IPA for App Store distribution..."
-          echo ""
-
-          # Replace YOUR_TEAM_ID placeholder in ExportOptions.plist with actual Team ID
-          if [ -n "$FASTLANE_TEAM_ID" ]; then
-            echo "Replacing YOUR_TEAM_ID placeholder in ExportOptions.plist with actual Team ID..."
-            sed -i.bak "s/YOUR_TEAM_ID/$FASTLANE_TEAM_ID/g" ios/ExportOptions.plist
+          if [ "$SIGNED_BUILD" = "true" ]; then
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "  SIGNED PRODUCTION BUILD"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo ""
+            
+            # Replace YOUR_TEAM_ID placeholder in ExportOptions.plist with actual Team ID
+            if [ -n "$FASTLANE_TEAM_ID" ]; then
+              echo "Replacing YOUR_TEAM_ID placeholder in ExportOptions.plist with actual Team ID..."
+              sed -i.bak "s/YOUR_TEAM_ID/$FASTLANE_TEAM_ID/g" ios/ExportOptions.plist
+            else
+              echo "⚠ WARNING: FASTLANE_TEAM_ID is not set. Proceeding without modification."
+            fi
+            
+            # Build IPA using Flutter (passing DEVELOPMENT_TEAM as xcodebuild setting override)
+            flutter build ipa \
+              --release \
+              --export-options-plist=ios/ExportOptions.plist \
+              --build-name="$BUILD_VERSION" \
+              --build-number="$BUILD_NUMBER" \
+              DEVELOPMENT_TEAM="$FASTLANE_TEAM_ID"
+              
+            # Verify build output
+            ls -lh build/ios/ipa/
           else
-            echo "⚠ WARNING: FASTLANE_TEAM_ID is not set. Proceeding without modification."
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "  UNSIGNED DEVELOPMENT BUILD"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo ""
+            
+            # Build for simulator (useful for testing on macs)
+            flutter build ios --simulator --debug
+            
+            # Build for physical device
+            flutter build ios --release --no-codesign
+            
+            # Package into an IPA manually
+            echo "Packaging unsigned .app into .ipa..."
+            mkdir -p build/ios/iphoneos
+            mkdir -p Payload
+            cp -R build/ios/iphoneos/Runner.app Payload/
+            zip -rq build/ios/iphoneos/ssmartpos.ipa Payload
+            rm -rf Payload
+            echo "Unsigned IPA generated successfully!"
+            
+            # Copy to expected output directory
+            mkdir -p build/ios/ipa
+            cp build/ios/iphoneos/ssmartpos.ipa build/ios/ipa/
           fi
-
-          # Build IPA using Flutter (passing DEVELOPMENT_TEAM as xcodebuild setting override)
-          flutter build ipa \
-            --release \
-            --export-options-plist=ios/ExportOptions.plist \
-            --build-name="$BUILD_VERSION" \
-            --build-number="$BUILD_NUMBER" \
-            DEVELOPMENT_TEAM="$FASTLANE_TEAM_ID"
-
-          # Verify build output
-          ls -lh build/ios/ipa/
 
       # ========================================================================
       # STEP 10: Upload to TestFlight (Signed Builds Only)
@@ -515,7 +513,7 @@ jobs:
       - name: Cleanup Keychain
         if: always() && steps.build_config.outputs.type == 'signed'
         run: |
-          security delete-keychain "${{ secrets.MATCH_KEYCHAIN_NAME }}" || true
+          security delete-keychain $RUNNER_TEMP/app-signing.keychain-db || true
 
 # ============================================================================
 # BUILD TYPES
