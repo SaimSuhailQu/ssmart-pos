@@ -2,6 +2,54 @@
 
 A professional Flutter iOS admin application for monitoring sales, transactions, and analytics in real-time from the SSmart POS system.
 
+## Quick Start
+
+Get started in under 5 minutes with our automated setup:
+
+```bash
+cd flutter_admin_app
+./quickstart.sh
+```
+
+This interactive script will:
+- Check prerequisites (Flutter, Xcode, Git)
+- Install dependencies
+- Set up your Firebase configuration
+- Validate everything is working
+- Optionally run the app immediately
+
+### Manual Setup
+
+If you prefer manual setup or the script doesn't work:
+
+1. **Install dependencies:**
+   ```bash
+   flutter pub get
+   ```
+
+2. **Configure Firebase:**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your Firebase credentials
+   ```
+   See [ENV_SETUP.md](./ENV_SETUP.md) for detailed Firebase configuration instructions.
+
+3. **Validate configuration:**
+   ```bash
+   dart run scripts/validate_firebase.dart
+   ```
+
+4. **Run the app:**
+   ```bash
+   flutter run
+   ```
+
+### Need Help?
+
+- **Environment Setup Guide**: [ENV_SETUP.md](./ENV_SETUP.md) - Complete Firebase configuration guide
+- **iOS Build Guide**: [IOS_BUILD_SETUP.md](./IOS_BUILD_SETUP.md) - Build and distribution guide
+- **Troubleshooting**: See the troubleshooting section below
+
 ## Features
 
 ### ✅ Currently Implemented
@@ -68,10 +116,16 @@ flutter_admin_app/
 ├── pubspec.yaml
 ├── .env                             # Environment variables (create this)
 ├── .env.example                     # Environment template
+├── setup.sh                         # Automated setup script
+├── quickstart.sh                    # Interactive quick start
+├── scripts/
+│   └── validate_firebase.dart       # Firebase config validator
 └── README.md
 ```
 
-## Setup Instructions
+## Detailed Setup Instructions
+
+For detailed manual setup instructions, see the sections below. For quick automated setup, use `./quickstart.sh` as shown in the Quick Start section above.
 
 ### 1. Clone and Navigate
 
@@ -79,88 +133,98 @@ flutter_admin_app/
 cd ssmart-pos/flutter_admin_app
 ```
 
-### 2. Install Dependencies
+### 2. Automated Setup (Recommended)
+
+Use our automated setup script:
+
+```bash
+./setup.sh
+```
+
+Or use the interactive quick start:
+
+```bash
+./quickstart.sh
+```
+
+### 3. Manual Setup (Alternative)
+
+If you prefer manual setup:
+
+#### A. Install Dependencies
 
 ```bash
 flutter pub get
 ```
 
-### 3. Configure Firebase
+#### B. Configure Firebase
 
-#### A. Get Firebase Configuration
+1. **Get Firebase Configuration**
 
-1. Go to [Firebase Console](https://console.firebase.google.com)
-2. Select your project (same one used by Electron POS)
-3. Click the **gear icon** → **Project settings**
-4. Scroll to "Your apps" and click **iOS** (or add iOS app if not exists)
-5. Copy the configuration values
+   Go to [Firebase Console](https://console.firebase.google.com) → Project Settings → General
 
-#### B. Create Environment File
+   See [ENV_SETUP.md](./ENV_SETUP.md) for detailed instructions with screenshots.
 
-```bash
-cp .env.example .env
-```
+2. **Create Environment File**
 
-Edit `.env` and fill in your Firebase credentials:
+   ```bash
+   cp .env.example .env
+   ```
 
-```env
-FIREBASE_API_KEY=AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
-FIREBASE_DATABASE_URL=https://your-project-default-rtdb.firebaseio.com
-FIREBASE_PROJECT_ID=your-project-id
-FIREBASE_STORAGE_BUCKET=your-project.appspot.com
-FIREBASE_MESSAGING_SENDER_ID=123456789012
-FIREBASE_APP_ID=1:123456789012:ios:abcdef123456
-FIREBASE_MEASUREMENT_ID=G-XXXXXXXXXX
-```
+   Edit `.env` and fill in your Firebase credentials:
 
-**Important**: The `.env` file is in `.gitignore` to protect your credentials.
+   ```env
+   FIREBASE_API_KEY=AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+   FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+   FIREBASE_DATABASE_URL=https://your-project-default-rtdb.firebaseio.com
+   FIREBASE_PROJECT_ID=your-project-id
+   FIREBASE_STORAGE_BUCKET=your-project.appspot.com
+   FIREBASE_MESSAGING_SENDER_ID=123456789012
+   FIREBASE_APP_ID=1:123456789012:ios:abcdef123456
+   FIREBASE_MEASUREMENT_ID=G-XXXXXXXXXX
+   ```
 
-### 4. Firebase Realtime Database Rules
+   **Important**: The `.env` file is in `.gitignore` to protect your credentials.
 
-Ensure your Firebase Realtime Database has proper security rules:
+3. **Validate Configuration**
 
-```json
-{
-  "rules": {
-    "sales": {
-      ".read": "auth != null",
-      ".write": "auth != null"
-    }
-  }
-}
-```
+   ```bash
+   dart run scripts/validate_firebase.dart
+   ```
 
-### 5. Create Firebase Admin User
+#### C. Firebase Setup
 
-Since the app uses email/password authentication, create an admin user:
+1. **Database Rules**: Ensure proper security rules in Firebase Console → Realtime Database → Rules:
 
-1. Go to Firebase Console → **Authentication** → **Users**
-2. Click **Add user**
-3. Enter admin email and password
-4. Use these credentials to log into the app
+   ```json
+   {
+     "rules": {
+       "sales": {
+         ".read": "auth != null",
+         ".write": "auth != null"
+       }
+     }
+   }
+   ```
 
-### 6. Run the App
+2. **Create Admin User**: Firebase Console → Authentication → Users → Add user
 
-#### iOS Simulator
+#### D. Run the App
 
 ```bash
 flutter run
 ```
 
-#### Physical iOS Device
-
+For iOS Simulator:
 ```bash
-# List available devices
-flutter devices
-
-# Run on specific device
-flutter run -d <device-id>
+flutter build ios --simulator
 ```
 
-### 7. Build for Release
-
-See the **[Automated iOS Builds](#automated-ios-builds)** section below for production builds using GitHub Actions and TestFlight.
+For physical iOS device:
+```bash
+flutter devices
+flutter run -d <device-id>
+```
 
 ## Usage
 
