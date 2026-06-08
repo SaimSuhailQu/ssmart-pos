@@ -60,10 +60,9 @@ if [ -f ".env" ]; then
     fi
 else
     print_error ".env file not found"
-    print_info "Create it using one of these methods:"
-    echo "  1. ./scripts/setup_from_plist.sh /path/to/GoogleService-Info.plist"
-    echo "  2. ./scripts/setup_from_gcp_sa.sh /path/to/service-account-key.json"
-    echo "  3. cp .env.example .env (then edit manually)"
+    print_info "Create it using the setup script:"
+    echo "  ./scripts/setup_from_plist.sh /path/to/GoogleService-Info.plist"
+    echo "  Or copy and manually edit: cp .env.example .env"
     ISSUES=$((ISSUES + 1))
 fi
 
@@ -166,7 +165,6 @@ echo ""
 print_info "Checking setup scripts..."
 SCRIPTS=(
     "scripts/setup_from_plist.sh"
-    "scripts/setup_from_gcp_sa.sh"
 )
 
 for script in "${SCRIPTS[@]}"; do

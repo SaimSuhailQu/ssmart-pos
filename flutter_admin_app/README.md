@@ -180,33 +180,21 @@ cp .env.example .env
 
 **Guide:** [ENV_SETUP.md](./ENV_SETUP.md)
 
-### CI/CD: GitHub Secrets (Three Methods) ⭐
+### CI/CD: GitHub Secrets ⭐
 
 **Best for:** GitHub Actions, automated builds, production deployments
 
-The workflow supports **three methods** to configure Firebase in CI/CD:
+The workflow uses a single secret to configure Firebase in CI/CD:
 
-#### 1. GoogleService-Info.plist (RECOMMENDED)
+#### GoogleService-Info.plist (Recommended)
 - **Single secret:** `GOOGLE_SERVICE_INFO_PLIST`
 - **Setup time:** 2 minutes
 - **How:** Download plist → Encode base64 → Add as secret
 - **Pros:** Simplest, fastest builds, no API calls
 
-#### 2. GCP Service Account Key
-- **Single secret:** `GCP_SA_KEY`
-- **Setup time:** 5 minutes
-- **How:** Create service account → Download JSON key → Add as secret
-- **Pros:** Programmatic access, follows GCP best practices
-
-#### 3. Individual Secrets (Legacy)
-- **Eight secrets:** `FIREBASE_API_KEY`, `FIREBASE_AUTH_DOMAIN`, etc.
-- **Setup time:** 10 minutes
-- **Pros:** Maximum control over each value
-
 **Guides:**
 - [FIREBASE_CONFIG_QUICK_START.md](./FIREBASE_CONFIG_QUICK_START.md) - Quick reference
-- [GITHUB_SECRETS_SETUP.md](./GITHUB_SECRETS_SETUP.md) - All three methods
-- [GCP_SERVICE_ACCOUNT_SETUP.md](./GCP_SERVICE_ACCOUNT_SETUP.md) - Detailed GCP setup
+- [GITHUB_SECRETS_SETUP.md](./GITHUB_SECRETS_SETUP.md) - GitHub Secrets setup guide
 
 ### Recommended Approach
 
@@ -219,24 +207,14 @@ Use **both** for best experience:
 
 ### Quick Setup Guide
 
-**For GitHub Actions (choose one):**
+**For GitHub Actions:**
 
-1. **Easiest:** GoogleService-Info.plist
+1. **Encode GoogleService-Info.plist:**
    ```bash
    cat ios/Runner/GoogleService-Info.plist | base64
-   # Add as GOOGLE_SERVICE_INFO_PLIST secret
    ```
-
-2. **Alternative:** GCP Service Account
-   - Create service account in GCP Console
-   - Grant Firebase Admin role
-   - Add JSON key as `GCP_SA_KEY` secret
-
-3. **Legacy:** Individual Secrets
-   - Add 8 separate Firebase secrets
-   - See [GITHUB_SECRETS_SETUP.md](./GITHUB_SECRETS_SETUP.md)
-
-**Priority:** Workflow checks in order: Plist → GCP SA → Individual Secrets
+2. **Add Secret:** Add the output as the `GOOGLE_SERVICE_INFO_PLIST` repository secret in GitHub.
+3. **Run Workflow:** The workflow will automatically decode this file and construct the correct environment configuration.
 
 ## Detailed Setup Instructions
 

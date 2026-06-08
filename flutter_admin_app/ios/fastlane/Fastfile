@@ -254,17 +254,7 @@ platform :ios do
   desc "Sync code signing certificates and profiles"
   desc "Usage: fastlane sync_code_signing"
   lane :sync_code_signing do
-    match(
-      type: "appstore",
-      readonly: false,
-      force_for_new_devices: true
-    )
-
-    match(
-      type: "development",
-      readonly: false,
-      force_for_new_devices: true
-    )
+    setup_code_signing
   end
 
   # ============================================================================

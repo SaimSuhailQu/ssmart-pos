@@ -58,15 +58,65 @@ jobs:
       # STEP 1: Checkout Repository
       # ========================================================================
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           fetch-depth: 0  # Fetch all history for version tagging
+
+      # ========================================================================
+      # STEP 1.5: Determine Build Configuration
+      # ========================================================================
+      - name: Determine Build Configuration
+        id: build_config
+        env:
+          GITHUB_REF: ${{ github.ref }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          INPUT_BUILD_TYPE: ${{ github.event.inputs.build_type }}
+          INPUT_BUILD_NUMBER_OVERRIDE: ${{ github.event.inputs.build_number_override }}
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "  Determining Build Configuration"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          
+          # 1. Determine Build Type (signed or unsigned)
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            echo "type=signed" >> $GITHUB_OUTPUT
+            echo "Building SIGNED release from tag"
+          else
+            BUILD_TYPE="${INPUT_BUILD_TYPE:-unsigned}"
+            echo "type=$BUILD_TYPE" >> $GITHUB_OUTPUT
+            echo "Building $BUILD_TYPE build"
+          fi
+
+          # 2. Determine Build Name (SemVer compatible version)
+          if [[ "$GITHUB_REF" == refs/tags/flutter-v* ]]; then
+            # Extract version from tag (e.g., flutter-v1.0.0 -> 1.0.0)
+            VERSION=$(echo "$GITHUB_REF_NAME" | sed 's/flutter-v//')
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "Using version from tag: $VERSION"
+          else
+            # Default fallback for branch/manual builds
+            echo "version=1.0.0" >> $GITHUB_OUTPUT
+            echo "Using default fallback version: 1.0.0"
+          fi
+
+          # 3. Determine Build Number (Integer)
+          if [ -n "$INPUT_BUILD_NUMBER_OVERRIDE" ]; then
+            echo "build_number=$INPUT_BUILD_NUMBER_OVERRIDE" >> $GITHUB_OUTPUT
+            echo "Using overridden build number: $INPUT_BUILD_NUMBER_OVERRIDE"
+          else
+            echo "build_number=$GITHUB_RUN_NUMBER" >> $GITHUB_OUTPUT
+            echo "Using build number from run number: $GITHUB_RUN_NUMBER"
+          fi
+          echo ""
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
       # ========================================================================
       # STEP 2: Setup Flutter
       # ========================================================================
       - name: Setup Flutter SDK
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@f3a8b432e038827e85743b1e8b284e3650228d49 # v2.16.0
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: 'stable'
@@ -83,7 +133,7 @@ jobs:
       # STEP 3: Setup Ruby and Bundler for Fastlane
       # ========================================================================
       - name: Setup Ruby
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@cacc9f1c0b3f4eb8a16a6bb0ed10897b43b9de49 # v1.176.0
         with:
           ruby-version: '3.2'
           bundler-cache: true
@@ -99,22 +149,11 @@ jobs:
       # ========================================================================
       # STEP 4: Configure Environment (Firebase Configuration)
       # ========================================================================
-      # This step creates the .env file using one of THREE methods (in priority order):
+      # This step creates the .env file using the GoogleService-Info.plist file:
       #
-      # METHOD 1 (RECOMMENDED): GoogleService-Info.plist
+      # GoogleService-Info.plist
       #   - Add secret: GOOGLE_SERVICE_INFO_PLIST (base64-encoded plist)
-      #   - Fastest, no API calls needed
       #   - How to create: cat GoogleService-Info.plist | base64
-      #
-      # METHOD 2: GCP Service Account Key
-      #   - Add secret: GCP_SA_KEY (JSON service account key)
-      #   - Programmatic access via gcloud
-      #   - Requires gcloud CLI and Firebase Admin permissions
-      #
-      # METHOD 3 (FALLBACK): Individual Firebase Secrets
-      #   - Add 8 separate secrets (legacy method)
-      #   - FIREBASE_API_KEY, FIREBASE_AUTH_DOMAIN, etc.
-      #   - More tedious but maximum control
       #
       # For unsigned builds: Firebase is OPTIONAL (can test without backend)
       # For signed builds: Firebase is RECOMMENDED (for full functionality)
@@ -122,30 +161,19 @@ jobs:
       # See flutter_admin_app/GITHUB_SECRETS_SETUP.md for complete setup guide
       # ========================================================================
 
-      - name: Setup Firebase Configuration (Three-Tier Approach)
+      - name: Setup Firebase Configuration (GoogleService-Info.plist)
         working-directory: ${{ env.WORKING_DIRECTORY }}
         env:
           GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
-          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
-          FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
-          FIREBASE_AUTH_DOMAIN: ${{ secrets.FIREBASE_AUTH_DOMAIN }}
-          FIREBASE_DATABASE_URL: ${{ secrets.FIREBASE_DATABASE_URL }}
-          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
-          FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
-          FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}
-          FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
-          FIREBASE_MEASUREMENT_ID: ${{ secrets.FIREBASE_MEASUREMENT_ID }}
+          BUILD_TYPE: ${{ steps.build_config.outputs.type }}
         run: |
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "  Firebase Configuration Setup"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo ""
 
-          # METHOD 1: GoogleService-Info.plist (RECOMMENDED - Fastest & Simplest)
           if [ -n "$GOOGLE_SERVICE_INFO_PLIST" ]; then
-            echo "✓ Using GoogleService-Info.plist from GitHub Secrets (Method 1 - Recommended)"
-            echo ""
-            echo "This is the fastest method with no API calls required."
+            echo "✓ Using GoogleService-Info.plist from GitHub Secrets"
             echo ""
 
             # Clean base64 string (remove only newlines and carriage returns) and decode
@@ -176,111 +204,19 @@ jobs:
             else
               echo "✗ Failed to decode base64 plist"
               echo "  The GOOGLE_SERVICE_INFO_PLIST secret may be corrupted or invalid"
-              echo "  Please regenerate: cat GoogleService-Info.plist | base64"
               rm -f temp-plist.xml
               exit 1
             fi
-
-          # METHOD 2: GCP Service Account Key (Alternative)
-          elif [ -n "$GCP_SA_KEY" ]; then
-            echo "✓ Using GCP Service Account key from GitHub Secrets (Method 2)"
-            echo ""
-            echo "This method uses gcloud CLI to retrieve Firebase configuration."
-            echo ""
-
-            # Save service account key to temporary file
-            echo "$GCP_SA_KEY" > gcp-key.json
-
-            if [ -f gcp-key.json ]; then
-              echo "✓ Service account key saved"
-              echo "  Running setup_from_gcp_sa.sh script..."
-              echo ""
-
-              # Make script executable and run it
-              chmod +x scripts/setup_from_gcp_sa.sh
-              if ./scripts/setup_from_gcp_sa.sh gcp-key.json; then
-                echo ""
-                echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                echo "✓ Firebase configured successfully via GCP Service Account"
-                echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-              else
-                echo "✗ Failed to setup from GCP service account"
-                rm -f gcp-key.json
-                exit 1
-              fi
-
-              # Cleanup
-              rm -f gcp-key.json
-            else
-              echo "✗ Failed to save service account key"
-              exit 1
-            fi
-
-          # METHOD 3: Individual Firebase Secrets (Legacy Fallback)
-          elif [ -n "$FIREBASE_API_KEY" ]; then
-            echo "✓ Using individual Firebase secrets from GitHub Secrets (Method 3 - Legacy)"
-            echo ""
-            echo "Consider switching to Method 1 (GoogleService-Info.plist) for simpler setup."
-            echo ""
-
-            # Create .env file from individual GitHub Secrets
-            cat > .env << 'EOF'
-          # Firebase Configuration
-          # Auto-generated from GitHub Secrets on ${{ github.event.head_commit.timestamp }}
-
-          FIREBASE_API_KEY=${{ secrets.FIREBASE_API_KEY }}
-          FIREBASE_AUTH_DOMAIN=${{ secrets.FIREBASE_AUTH_DOMAIN }}
-          FIREBASE_DATABASE_URL=${{ secrets.FIREBASE_DATABASE_URL }}
-          FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }}
-          FIREBASE_STORAGE_BUCKET=${{ secrets.FIREBASE_STORAGE_BUCKET }}
-          FIREBASE_MESSAGING_SENDER_ID=${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}
-          FIREBASE_APP_ID=${{ secrets.FIREBASE_APP_ID }}
-          FIREBASE_MEASUREMENT_ID=${{ secrets.FIREBASE_MEASUREMENT_ID }}
-          EOF
-
-            echo "✓ Environment file created from individual secrets"
-            echo "  File size: $(wc -c < .env) bytes"
-            echo ""
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo "✓ Firebase configured successfully via individual secrets"
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-
-          # NO FIREBASE SECRETS CONFIGURED
           else
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "  No Firebase Configuration Found"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo ""
-            echo "No Firebase secrets are configured in GitHub Secrets."
+            echo "No GOOGLE_SERVICE_INFO_PLIST secret configured in GitHub Secrets."
             echo ""
-            echo "CONFIGURATION OPTIONS (in priority order):"
-            echo ""
-            echo "  1. GoogleService-Info.plist (RECOMMENDED - Easiest)"
-            echo "     → Add secret: GOOGLE_SERVICE_INFO_PLIST"
-            echo "     → Value: cat GoogleService-Info.plist | base64"
-            echo "     → Fastest, no API calls, single secret"
-            echo ""
-            echo "  2. GCP Service Account Key (Alternative)"
-            echo "     → Add secret: GCP_SA_KEY"
-            echo "     → Value: Contents of service account JSON key"
-            echo "     → Requires Firebase Admin permissions"
-            echo ""
-            echo "  3. Individual Firebase Secrets (Legacy)"
-            echo "     → Add 8 separate secrets (FIREBASE_API_KEY, etc.)"
-            echo "     → More tedious but maximum control"
-            echo ""
-            echo "BUILD OPTIONS:"
-            echo "  • UNSIGNED BUILDS (Development):"
-            echo "    → Firebase is optional - app will build without backend"
-            echo "    → Continue with build (no action needed)"
-            echo ""
-            echo "  • SIGNED BUILDS (Production):"
-            echo "    → Firebase recommended for full functionality"
-            echo "    → See: flutter_admin_app/GITHUB_SECRETS_SETUP.md"
-            echo ""
-
+            
             # Create placeholder .env for builds without Firebase
-            if [ "${{ steps.build_type.outputs.type }}" == "unsigned" ]; then
+            if [ "$BUILD_TYPE" == "unsigned" ]; then
               echo "Creating placeholder .env for unsigned build..."
               cp .env.example .env || echo "# Placeholder .env for build" > .env
               echo "✓ Placeholder .env created"
@@ -310,22 +246,6 @@ jobs:
           echo "Skipping code generation"
 
       # ========================================================================
-      # STEP 6: Determine Build Type
-      # ========================================================================
-      - name: Determine Build Type
-        id: build_type
-        run: |
-          # For tagged builds, always use signed
-          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
-            echo "type=signed" >> $GITHUB_OUTPUT
-            echo "Building SIGNED release from tag"
-          else
-            # For manual dispatch, use the selected option
-            echo "type=${{ github.event.inputs.build_type || 'unsigned' }}" >> $GITHUB_OUTPUT
-            echo "Building ${{ github.event.inputs.build_type || 'unsigned' }} build"
-          fi
-
-      # ========================================================================
       # STEP 7: Setup iOS Code Signing (SIGNED BUILDS ONLY)
       # ========================================================================
       # For unsigned builds: Skip this entire section
@@ -333,7 +253,7 @@ jobs:
       # ========================================================================
 
       - name: Configure Keychain
-        if: steps.build_type.outputs.type == 'signed'
+        if: steps.build_config.outputs.type == 'signed'
         env:
           MATCH_KEYCHAIN_NAME: ${{ secrets.MATCH_KEYCHAIN_NAME }}
           MATCH_KEYCHAIN_PASSWORD: ${{ secrets.MATCH_KEYCHAIN_PASSWORD }}
@@ -349,7 +269,7 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple: -s -k "$MATCH_KEYCHAIN_PASSWORD" "$MATCH_KEYCHAIN_NAME"
 
       - name: Setup Code Signing with Fastlane Match
-        if: steps.build_type.outputs.type == 'signed'
+        if: steps.build_config.outputs.type == 'signed'
         working-directory: ${{ env.WORKING_DIRECTORY }}/ios/fastlane
         env:
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
@@ -361,7 +281,7 @@ jobs:
           FASTLANE_TEAM_ID: ${{ secrets.FASTLANE_TEAM_ID }}
           FASTLANE_SESSION: ${{ secrets.FASTLANE_SESSION }}
         run: |
-          bundle exec fastlane run sync_code_signing
+          bundle exec fastlane sync_code_signing
 
       # ========================================================================
       # STEP 7.5: Generate iOS Flutter Configuration
@@ -388,7 +308,7 @@ jobs:
 
       # UNSIGNED BUILD - Development/Testing (No Apple Account Required)
       - name: Build Unsigned Development App
-        if: steps.build_type.outputs.type == 'unsigned'
+        if: steps.build_config.outputs.type == 'unsigned'
         working-directory: ${{ env.WORKING_DIRECTORY }}/ios/fastlane
         run: |
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -409,12 +329,15 @@ jobs:
 
       # SIGNED BUILD - Production (Requires Apple Developer Account)
       - name: Build Signed IPA
-        if: steps.build_type.outputs.type == 'signed'
+        if: steps.build_config.outputs.type == 'signed'
         working-directory: ${{ env.WORKING_DIRECTORY }}
         env:
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
           MATCH_KEYCHAIN_NAME: ${{ secrets.MATCH_KEYCHAIN_NAME }}
           MATCH_KEYCHAIN_PASSWORD: ${{ secrets.MATCH_KEYCHAIN_PASSWORD }}
+          FASTLANE_TEAM_ID: ${{ secrets.FASTLANE_TEAM_ID }}
+          BUILD_VERSION: ${{ steps.build_config.outputs.version }}
+          BUILD_NUMBER: ${{ steps.build_config.outputs.build_number }}
         run: |
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "  SIGNED PRODUCTION BUILD"
@@ -423,12 +346,21 @@ jobs:
           echo "Building signed IPA for App Store distribution..."
           echo ""
 
-          # Build IPA using Flutter
+          # Replace YOUR_TEAM_ID placeholder in ExportOptions.plist with actual Team ID
+          if [ -n "$FASTLANE_TEAM_ID" ]; then
+            echo "Replacing YOUR_TEAM_ID placeholder in ExportOptions.plist with actual Team ID..."
+            sed -i.bak "s/YOUR_TEAM_ID/$FASTLANE_TEAM_ID/g" ios/ExportOptions.plist
+          else
+            echo "⚠ WARNING: FASTLANE_TEAM_ID is not set. Proceeding without modification."
+          fi
+
+          # Build IPA using Flutter (passing DEVELOPMENT_TEAM as xcodebuild setting override)
           flutter build ipa \
             --release \
             --export-options-plist=ios/ExportOptions.plist \
-            --build-name="${{ github.ref_name }}" \
-            --build-number="${{ github.run_number }}"
+            --build-name="$BUILD_VERSION" \
+            --build-number="$BUILD_NUMBER" \
+            DEVELOPMENT_TEAM="$FASTLANE_TEAM_ID"
 
           # Verify build output
           ls -lh build/ios/ipa/
@@ -438,7 +370,7 @@ jobs:
       # ========================================================================
       - name: Upload to TestFlight
         if: |
-          steps.build_type.outputs.type == 'signed' &&
+          steps.build_config.outputs.type == 'signed' &&
           (github.event.inputs.deploy_to_testflight == 'true' || startsWith(github.ref, 'refs/tags/flutter-v'))
         working-directory: ${{ env.WORKING_DIRECTORY }}/ios/fastlane
         env:
@@ -456,10 +388,10 @@ jobs:
 
       # Upload unsigned .app bundle
       - name: Upload Unsigned App Artifact
-        if: steps.build_type.outputs.type == 'unsigned'
-        uses: actions/upload-artifact@v4
+        if: steps.build_config.outputs.type == 'unsigned'
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         with:
-          name: SSmart-POS-Admin-iOS-Unsigned-${{ github.run_number }}
+          name: SSmart-POS-Admin-iOS-Unsigned-${{ steps.build_config.outputs.build_number }}
           path: |
             ${{ env.WORKING_DIRECTORY }}/build/ios/Debug-iphonesimulator/*.app
           retention-days: 30
@@ -467,10 +399,10 @@ jobs:
 
       # Upload signed IPA
       - name: Upload Signed IPA Artifact
-        if: steps.build_type.outputs.type == 'signed'
-        uses: actions/upload-artifact@v4
+        if: steps.build_config.outputs.type == 'signed'
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         with:
-          name: SSmart-POS-Admin-iOS-Signed-${{ github.ref_name }}-${{ github.run_number }}
+          name: SSmart-POS-Admin-iOS-Signed-${{ steps.build_config.outputs.version }}-${{ steps.build_config.outputs.build_number }}
           path: |
             ${{ env.WORKING_DIRECTORY }}/build/ios/ipa/*.ipa
             ${{ env.WORKING_DIRECTORY }}/build/ios/ipa/*.dSYM.zip
@@ -481,16 +413,16 @@ jobs:
       # STEP 12: Create GitHub Release (for tagged builds)
       # ========================================================================
       - name: Create GitHub Release (Signed Builds)
-        if: startsWith(github.ref, 'refs/tags/flutter-v') && steps.build_type.outputs.type == 'signed'
-        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/flutter-v') && steps.build_config.outputs.type == 'signed'
+        uses: softprops/action-gh-release@057fc0e729a9443187b58fa589f6603a95d9e56e # v2.0.6
         with:
           files: |
             ${{ env.WORKING_DIRECTORY }}/build/ios/ipa/*.ipa
           body: |
             ## SSmart POS Admin - iOS Build (SIGNED)
 
-            **Version:** ${{ github.ref_name }}
-            **Build Number:** ${{ github.run_number }}
+            **Version:** ${{ steps.build_config.outputs.version }}
+            **Build Number:** ${{ steps.build_config.outputs.build_number }}
             **Build Type:** Production (Signed)
             **Built:** ${{ github.event.head_commit.timestamp }}
 
@@ -516,7 +448,7 @@ jobs:
       # STEP 13: Cleanup
       # ========================================================================
       - name: Cleanup Keychain
-        if: always() && steps.build_type.outputs.type == 'signed'
+        if: always() && steps.build_config.outputs.type == 'signed'
         run: |
           security delete-keychain "${{ secrets.MATCH_KEYCHAIN_NAME }}" || true
 
@@ -580,24 +512,8 @@ jobs:
 #    - MATCH_KEYCHAIN_PASSWORD: Password for temporary keychain
 #
 # 3. FIREBASE CONFIGURATION (Optional for unsigned, recommended for signed)
-#    Choose ONE of three methods (in priority order):
-#
-#    METHOD 1 (RECOMMENDED): GoogleService-Info.plist
 #    - GOOGLE_SERVICE_INFO_PLIST: Base64-encoded plist file
 #    - Create: cat GoogleService-Info.plist | base64
-#    - Simplest, fastest, single secret
-#
-#    METHOD 2: GCP Service Account Key
-#    - GCP_SA_KEY: JSON service account key content
-#    - Requires Firebase Admin permissions
-#    - Programmatic access via gcloud
-#
-#    METHOD 3 (LEGACY): Individual Firebase Secrets
-#    - Configure ALL 8 Firebase secrets separately:
-#      FIREBASE_API_KEY, FIREBASE_AUTH_DOMAIN, FIREBASE_DATABASE_URL,
-#      FIREBASE_PROJECT_ID, FIREBASE_STORAGE_BUCKET, FIREBASE_MESSAGING_SENDER_ID,
-#      FIREBASE_APP_ID, FIREBASE_MEASUREMENT_ID
-#    - More tedious but maximum control
 #
 #    See: flutter_admin_app/GITHUB_SECRETS_SETUP.md for complete setup guide
 #
