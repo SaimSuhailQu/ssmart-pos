@@ -66,7 +66,6 @@ void main() async {
     'FIREBASE_STORAGE_BUCKET',
     'FIREBASE_MESSAGING_SENDER_ID',
     'FIREBASE_APP_ID',
-    'FIREBASE_MEASUREMENT_ID',
   ];
 
   // Check each required key
@@ -136,14 +135,6 @@ void main() async {
           continue;
         }
         break;
-
-      case 'FIREBASE_MEASUREMENT_ID':
-        if (!value.startsWith('G-')) {
-          hasWarnings = true;
-          printWarning('$key should start with "G-" (optional if Analytics not enabled)');
-          continue;
-        }
-        break;
     }
 
     if (!isValid) {
@@ -151,6 +142,35 @@ void main() async {
       hasErrors = true;
     } else {
       printSuccess('$key ✓');
+    }
+  }
+
+  // Check optional keys
+  final optionalKeys = [
+    'FIREBASE_MEASUREMENT_ID',
+  ];
+
+  for (var key in optionalKeys) {
+    if (config.containsKey(key)) {
+      final value = config[key]!;
+      if (value.isNotEmpty && value != 'null') {
+        if (value.contains('your_') || value.contains('here')) {
+          printWarning('$key has placeholder value: "$value"');
+          hasWarnings = true;
+          continue;
+        }
+
+        switch (key) {
+          case 'FIREBASE_MEASUREMENT_ID':
+            if (!value.startsWith('G-')) {
+              printWarning('$key should start with "G-" (optional if Analytics not enabled)');
+              hasWarnings = true;
+            } else {
+              printSuccess('$key ✓ (optional)');
+            }
+            break;
+        }
+      }
     }
   }
 

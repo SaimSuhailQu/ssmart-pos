@@ -44,7 +44,12 @@ extract_plist_value() {
 
     # Use plutil if available (macOS), otherwise use grep/sed
     if command -v plutil &> /dev/null; then
-        plutil -extract "$key" raw "$plist_file" 2>/dev/null || echo ""
+        local val
+        if val=$(plutil -extract "$key" raw "$plist_file" 2>/dev/null); then
+            echo "$val"
+        else
+            echo ""
+        fi
     else
         # Fallback to grep/sed for Linux or if plutil is not available
         grep -A 1 "<key>$key</key>" "$plist_file" | grep "<string>" | sed 's/.*<string>\(.*\)<\/string>.*/\1/' | tr -d '\t '
