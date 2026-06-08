@@ -191,13 +191,29 @@ jobs:
             echo "✓ Using GoogleService-Info.plist from GitHub Secrets"
             echo ""
 
-            # Clean base64 string (remove only newlines and carriage returns) and decode
-            # This handles both single-line and multi-line base64 input
-            # Note: We preserve spaces as they may be valid base64 padding
-            echo "$GOOGLE_SERVICE_INFO_PLIST" | tr -d '\n\r' | base64 --decode > temp-plist.xml
+            # Clean base64 string and decode
+            # Use printf to avoid echo interpreting special characters
+            printf '%s' "$GOOGLE_SERVICE_INFO_PLIST" | tr -d '\n\r\t ' | base64 --decode > temp-plist.xml 2>/dev/null
+
+            # Fallback: try with -D flag (macOS native base64)
+            if [ ! -s temp-plist.xml ]; then
+              printf '%s' "$GOOGLE_SERVICE_INFO_PLIST" | tr -d '\n\r\t ' | base64 -D > temp-plist.xml 2>/dev/null
+            fi
 
             if [ $? -eq 0 ] && [ -f temp-plist.xml ] && [ -s temp-plist.xml ]; then
               echo "✓ Successfully decoded plist file ($(wc -c < temp-plist.xml) bytes)"
+
+              # Debug: verify the decoded file looks like a valid plist
+              if grep -q "<key>API_KEY</key>" temp-plist.xml; then
+                echo "✓ Decoded file contains expected Firebase keys"
+              else
+                echo "⚠ Warning: Decoded file may not contain expected keys"
+                echo "  File preview (first 3 lines):"
+                head -3 temp-plist.xml
+                echo "  Keys found:"
+                grep "<key>" temp-plist.xml | head -5
+              fi
+
               echo "  Running setup_from_plist.sh script..."
               echo ""
 

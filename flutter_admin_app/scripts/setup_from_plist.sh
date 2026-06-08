@@ -38,22 +38,48 @@ print_info() {
 }
 
 # Function to extract value from plist
+# NOTE: This function is designed to be safe under `set -e`.
+# All extraction attempts use `|| true` to prevent early script exit.
 extract_plist_value() {
     local plist_file="$1"
     local key="$2"
+    local val=""
 
-    # Use plutil if available (macOS), otherwise use grep/sed
-    if command -v plutil &> /dev/null; then
-        local val
-        if val=$(plutil -extract "$key" raw "$plist_file" 2>/dev/null); then
+    # Method 1: Use PlistBuddy (most reliable on macOS)
+    if [ -x /usr/libexec/PlistBuddy ]; then
+        val=$(/usr/libexec/PlistBuddy -c "Print :$key" "$plist_file" 2>/dev/null || true)
+        if [ -n "$val" ]; then
             echo "$val"
-        else
-            echo ""
+            return 0
         fi
-    else
-        # Fallback to grep/sed for Linux or if plutil is not available
-        grep -A 1 "<key>$key</key>" "$plist_file" | grep "<string>" | sed 's/.*<string>\(.*\)<\/string>.*/\1/' | tr -d '\t '
     fi
+
+    # Method 2: Use plutil with explicit stdout (macOS)
+    if command -v plutil &> /dev/null; then
+        # Try with -o - for explicit stdout output
+        val=$(plutil -extract "$key" raw -o - "$plist_file" 2>/dev/null || true)
+        if [ -n "$val" ]; then
+            echo "$val"
+            return 0
+        fi
+        # Try without -o - for older macOS versions
+        val=$(plutil -extract "$key" raw "$plist_file" 2>/dev/null || true)
+        if [ -n "$val" ]; then
+            echo "$val"
+            return 0
+        fi
+    fi
+
+    # Method 3: Fallback to grep/sed (works on Linux and as ultimate fallback)
+    val=$(grep -A 1 "<key>$key</key>" "$plist_file" 2>/dev/null | grep "<string>" | sed 's/.*<string>\(.*\)<\/string>.*/\1/' | tr -d '\t ' || true)
+    if [ -n "$val" ]; then
+        echo "$val"
+        return 0
+    fi
+
+    # Key not found
+    echo ""
+    return 0
 }
 
 # Main script starts here
@@ -94,6 +120,22 @@ print_success "Plist file is valid"
 print_info "Extracting Firebase credentials from plist..."
 echo ""
 
+# Debug: show which extraction method will be used
+if [ -x /usr/libexec/PlistBuddy ]; then
+    print_info "Using PlistBuddy for plist extraction"
+elif command -v plutil &> /dev/null; then
+    print_info "Using plutil for plist extraction"
+else
+    print_info "Using grep/sed fallback for plist extraction"
+fi
+
+# Debug: show file content preview (first 5 lines)
+print_info "Plist file preview (first 5 key lines):"
+grep "<key>" "$PLIST_FILE" | head -5 | while read -r line; do
+    echo "  $line"
+done
+echo ""
+
 API_KEY=$(extract_plist_value "$PLIST_FILE" "API_KEY")
 GCM_SENDER_ID=$(extract_plist_value "$PLIST_FILE" "GCM_SENDER_ID")
 PROJECT_ID=$(extract_plist_value "$PLIST_FILE" "PROJECT_ID")
@@ -110,6 +152,17 @@ MEASUREMENT_ID=$(extract_plist_value "$PLIST_FILE" "MEASUREMENT_ID")
 if [ -z "$MEASUREMENT_ID" ]; then
     MEASUREMENT_ID=""
     print_warning "MEASUREMENT_ID not found (Analytics not enabled)"
+fi
+
+# DATABASE_URL is optional (Realtime Database)
+if [ -z "$DATABASE_URL" ]; then
+    if [ -n "$PROJECT_ID" ]; then
+        DATABASE_URL="https://${PROJECT_ID}-default-rtdb.firebaseio.com"
+        print_warning "DATABASE_URL not found, derived from PROJECT_ID: $DATABASE_URL"
+    else
+        DATABASE_URL=""
+        print_warning "DATABASE_URL not found (Realtime Database not enabled)"
+    fi
 fi
 
 # Validate required fields
@@ -137,11 +190,6 @@ fi
 
 if [ -z "$GOOGLE_APP_ID" ]; then
     print_error "Missing GOOGLE_APP_ID in plist"
-    MISSING_FIELDS=1
-fi
-
-if [ -z "$DATABASE_URL" ]; then
-    print_error "Missing DATABASE_URL in plist"
     MISSING_FIELDS=1
 fi
 
