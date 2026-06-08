@@ -213,7 +213,7 @@ bundle exec fastlane beta
 ### Sync Certificates
 ```bash
 cd flutter_admin_app/ios
-bundle exec fastlane sync_code_signing
+bundle exec fastlane sync_signing_certificates
 ```
 
 ## Support

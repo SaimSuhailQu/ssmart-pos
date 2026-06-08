@@ -42,7 +42,7 @@ This document summarizes the automated iOS build workflow that has been implemen
   - `beta` - Build and upload to TestFlight
   - `build_only` - Build IPA without uploading
   - `release` - Build and upload to App Store
-  - `sync_code_signing` - Sync certificates with Match
+  - `sync_signing_certificates` - Sync certificates with Match
   - `register_new_devices` - Register new test devices
   - `tests` - Run automated tests
 - `Matchfile` - Code signing configuration using Fastlane Match

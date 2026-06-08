@@ -258,8 +258,8 @@ platform :ios do
   # LANE: Sync Code Signing
   # ============================================================================
   desc "Sync code signing certificates and profiles"
-  desc "Usage: fastlane sync_code_signing"
-  lane :sync_code_signing do
+  desc "Usage: fastlane sync_signing_certificates"
+  lane :sync_signing_certificates do
     setup_code_signing
   end
 

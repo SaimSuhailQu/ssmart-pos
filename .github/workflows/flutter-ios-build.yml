@@ -326,7 +326,7 @@ jobs:
           FASTLANE_TEAM_ID: ${{ secrets.FASTLANE_TEAM_ID }}
           FASTLANE_SESSION: ${{ secrets.FASTLANE_SESSION }}
         run: |
-          bundle exec fastlane sync_code_signing
+          bundle exec fastlane sync_signing_certificates
 
       # ========================================================================
       # STEP 7.5: Generate iOS Flutter Configuration
