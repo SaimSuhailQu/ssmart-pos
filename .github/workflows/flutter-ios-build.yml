@@ -148,9 +148,10 @@ jobs:
             echo "This is the fastest method with no API calls required."
             echo ""
 
-            # Clean base64 string (remove whitespace, newlines) and decode
+            # Clean base64 string (remove only newlines and carriage returns) and decode
             # This handles both single-line and multi-line base64 input
-            echo "$GOOGLE_SERVICE_INFO_PLIST" | tr -d '\n\r\t ' | base64 -d > temp-plist.xml
+            # Note: We preserve spaces as they may be valid base64 padding
+            echo "$GOOGLE_SERVICE_INFO_PLIST" | tr -d '\n\r' | base64 --decode > temp-plist.xml
 
             if [ $? -eq 0 ] && [ -f temp-plist.xml ] && [ -s temp-plist.xml ]; then
               echo "✓ Successfully decoded plist file ($(wc -c < temp-plist.xml) bytes)"
