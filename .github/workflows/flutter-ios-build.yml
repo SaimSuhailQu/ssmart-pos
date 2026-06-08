@@ -73,6 +73,7 @@ jobs:
           INPUT_BUILD_TYPE: ${{ github.event.inputs.build_type }}
           INPUT_BUILD_NUMBER_OVERRIDE: ${{ github.event.inputs.build_number_override }}
           GITHUB_RUN_NUMBER: ${{ github.run_number }}
+          HAS_SIGNING_SECRETS: ${{ secrets.MATCH_PASSWORD }}
         run: |
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "  Determining Build Configuration"
@@ -81,8 +82,13 @@ jobs:
           
           # 1. Determine Build Type (signed or unsigned)
           if [[ "$GITHUB_REF" == refs/tags/* ]]; then
-            echo "type=signed" >> $GITHUB_OUTPUT
-            echo "Building SIGNED release from tag"
+            if [ -n "$HAS_SIGNING_SECRETS" ]; then
+              echo "type=signed" >> $GITHUB_OUTPUT
+              echo "Building SIGNED release from tag"
+            else
+              echo "type=unsigned" >> $GITHUB_OUTPUT
+              echo "Building UNSIGNED release from tag (no signing secrets found)"
+            fi
           else
             BUILD_TYPE="${INPUT_BUILD_TYPE:-unsigned}"
             echo "type=$BUILD_TYPE" >> $GITHUB_OUTPUT
@@ -410,21 +416,19 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
-      # ========================================================================
-      # STEP 12: Create GitHub Release (for tagged builds)
-      # ========================================================================
-      - name: Create GitHub Release (Signed Builds)
-        if: startsWith(github.ref, 'refs/tags/flutter-v') && steps.build_config.outputs.type == 'signed'
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/flutter-v')
         uses: softprops/action-gh-release@v2
         with:
           files: |
             ${{ env.WORKING_DIRECTORY }}/build/ios/ipa/*.ipa
+            ${{ env.WORKING_DIRECTORY }}/build/ios/iphoneos/*.ipa
           body: |
-            ## SSmart POS Admin - iOS Build (SIGNED)
+            ## SSmart POS Admin - iOS Build (${{ steps.build_config.outputs.type == 'signed' && 'SIGNED' || 'UNSIGNED' }})
 
             **Version:** ${{ steps.build_config.outputs.version }}
             **Build Number:** ${{ steps.build_config.outputs.build_number }}
-            **Build Type:** Production (Signed)
+            **Build Type:** ${{ steps.build_config.outputs.type == 'signed' && 'Production (Signed)' || 'Development (Unsigned)' }}
             **Built:** ${{ github.event.head_commit.timestamp }}
 
             ### Installation Instructions
