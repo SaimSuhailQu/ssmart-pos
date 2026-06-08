@@ -1,4 +1,4 @@
-import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_core/firebase_core.dart' hide FirebaseService;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/cupertino.dart';
@@ -66,7 +66,7 @@ class SSMartPOSAdminApp extends StatelessWidget {
         // Firebase service
         ProxyProvider<FirebaseDatabase, FirebaseService>(
           update: (_, database, __) => FirebaseService(database),
-          dispose: (_, service) => service.dispose(),
+          dispose: (_, service) => service?.dispose(),
         ),
       ],
       child: MaterialApp(
