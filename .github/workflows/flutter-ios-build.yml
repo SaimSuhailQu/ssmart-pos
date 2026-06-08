@@ -122,7 +122,7 @@ jobs:
       # STEP 2: Setup Flutter
       # ========================================================================
       - name: Setup Flutter SDK
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@44ac965b96f18d999802d4b807e3256d5a3f9fa1 # v2.16.0
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: 'stable'
@@ -139,7 +139,7 @@ jobs:
       # STEP 3: Setup Ruby and Bundler for Fastlane
       # ========================================================================
       - name: Setup Ruby
-        uses: ruby/setup-ruby@cacc9f1c0b3f4eb8a16a6bb0ed10897b43b9de49 # v1.176.0
+        uses: ruby/setup-ruby@afeafc3d1ab54a631816aba4c914a0081c12ff2f # v1.310.0
         with:
           ruby-version: '3.2'
           bundler-cache: true
@@ -221,6 +221,45 @@ jobs:
             echo "No GOOGLE_SERVICE_INFO_PLIST secret configured in GitHub Secrets."
             echo ""
             
+            # Create placeholder GoogleService-Info.plist (needed for Xcode compilation)
+            echo "Creating placeholder GoogleService-Info.plist..."
+            mkdir -p ios/Runner
+            {
+              echo '<?xml version="1.0" encoding="UTF-8"?>'
+              echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">'
+              echo '<plist version="1.0">'
+              echo '<dict>'
+              echo '  <key>API_KEY</key>'
+              echo '  <string>placeholder-api-key</string>'
+              echo '  <key>GCM_SENDER_ID</key>'
+              echo '  <string>123456789012</string>'
+              echo '  <key>PLIST_VERSION</key>'
+              echo '  <string>1</string>'
+              echo '  <key>BUNDLE_ID</key>'
+              echo '  <string>com.ssmartpos.admin</string>'
+              echo '  <key>PROJECT_ID</key>'
+              echo '  <string>placeholder-project-id</string>'
+              echo '  <key>STORAGE_BUCKET</key>'
+              echo '  <string>placeholder-project-id.appspot.com</string>'
+              echo '  <key>IS_ADS_ENABLED</key>'
+              echo '  <false/>'
+              echo '  <key>IS_ANALYTICS_ENABLED</key>'
+              echo '  <false/>'
+              echo '  <key>IS_APPINVITE_ENABLED</key>'
+              echo '  <false/>'
+              echo '  <key>IS_GCM_ENABLED</key>'
+              echo '  <true/>'
+              echo '  <key>IS_SIGNIN_ENABLED</key>'
+              echo '  <false/>'
+              echo '  <key>GOOGLE_APP_ID</key>'
+              echo '  <string>1:123456789012:ios:1234567890123456</string>'
+              echo '  <key>DATABASE_URL</key>'
+              echo '  <string>https://placeholder-project-id-default-rtdb.firebaseio.com</string>'
+              echo '</dict>'
+              echo '</plist>'
+            } > ios/Runner/GoogleService-Info.plist
+            echo "✓ Placeholder GoogleService-Info.plist created"
+
             # Create placeholder .env for builds without Firebase
             if [ "$BUILD_TYPE" == "unsigned" ]; then
               echo "Creating placeholder .env for unsigned build..."
@@ -418,7 +457,7 @@ jobs:
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/flutter-v')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@a74c6b72af54cfa997e81df42d94703d6313a2d0 # v2.0.6
         with:
           files: |
             ${{ env.WORKING_DIRECTORY }}/build/ios/ipa/*.ipa
