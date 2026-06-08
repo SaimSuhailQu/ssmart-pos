@@ -236,7 +236,7 @@ jobs:
               echo '  <key>PLIST_VERSION</key>'
               echo '  <string>1</string>'
               echo '  <key>BUNDLE_ID</key>'
-              echo '  <string>com.ssmartpos.admin</string>'
+              echo '  <string>com.ssmartpos</string>'
               echo '  <key>PROJECT_ID</key>'
               echo '  <string>placeholder-project-id</string>'
               echo '  <key>STORAGE_BUCKET</key>'

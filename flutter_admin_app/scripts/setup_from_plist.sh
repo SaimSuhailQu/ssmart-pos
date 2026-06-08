@@ -203,7 +203,7 @@ FIREBASE_MEASUREMENT_ID=$MEASUREMENT_ID
 
 # Note: MEASUREMENT_ID may be empty if Analytics is not enabled
 # Bundle ID in plist: $BUNDLE_ID
-# This may differ from your app's bundle ID (e.g., com.ssmartpos.admin for admin app)
+# This may differ from your app's bundle ID (e.g., com.ssmartpos for admin app)
 EOF
 
 print_success "Created .env file with Firebase credentials"
@@ -214,10 +214,9 @@ print_info "Bundle ID Information:"
 echo "  Plist Bundle ID: $BUNDLE_ID"
 echo ""
 
-if [ "$BUNDLE_ID" != "com.ssmartpos.admin" ]; then
+if [ "$BUNDLE_ID" != "com.ssmartpos" ]; then
     print_warning "Note: The plist bundle ID ($BUNDLE_ID) differs from the admin app bundle ID"
-    print_warning "This is normal if this is the main POS app's plist being used for the admin app"
-    print_warning "The admin app uses: com.ssmartpos.admin"
+    print_warning "The admin app uses: com.ssmartpos"
     echo ""
 fi
 

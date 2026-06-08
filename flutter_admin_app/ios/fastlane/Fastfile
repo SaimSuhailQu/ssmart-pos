@@ -43,7 +43,7 @@ platform :ios do
       export_method: "app-store",
       export_options: {
         provisioningProfiles: {
-          "com.ssmartpos.admin" => "match AppStore com.ssmartpos.admin"
+          "com.ssmartpos" => "match AppStore com.ssmartpos"
         }
       },
       output_directory: "./build",
@@ -141,7 +141,7 @@ platform :ios do
       export_method: "app-store",
       export_options: {
         provisioningProfiles: {
-          "com.ssmartpos.admin" => "match AppStore com.ssmartpos.admin"
+          "com.ssmartpos" => "match AppStore com.ssmartpos"
         }
       },
       output_directory: "./build",
@@ -186,7 +186,7 @@ platform :ios do
       export_method: "app-store",
       export_options: {
         provisioningProfiles: {
-          "com.ssmartpos.admin" => "match AppStore com.ssmartpos.admin"
+          "com.ssmartpos" => "match AppStore com.ssmartpos"
         }
       },
       output_directory: "./build",
@@ -228,7 +228,7 @@ platform :ios do
 
     match(
       type: "appstore",
-      app_identifier: "com.ssmartpos.admin",
+      app_identifier: "com.ssmartpos",
       readonly: is_ci, # Read-only on CI, can create/update locally
       git_url: ENV["MATCH_GIT_URL"] || "https://github.com/YOUR_USERNAME/certificates.git",
       git_basic_authorization: ENV["MATCH_GIT_BASIC_AUTH"], # Base64 of "username:token"

@@ -13,7 +13,7 @@ git_branch("main")
 storage_mode("git")
 
 # App bundle identifier
-app_identifier(["com.ssmartpos.admin"])
+app_identifier(["com.ssmartpos"])
 
 # Your Apple Developer Account username
 # Set via environment variable: FASTLANE_USER or APPLE_ID
