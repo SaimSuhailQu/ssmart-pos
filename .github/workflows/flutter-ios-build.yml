@@ -203,6 +203,11 @@ jobs:
             if [ $? -eq 0 ] && [ -f temp-plist.xml ] && [ -s temp-plist.xml ]; then
               echo "✓ Successfully decoded plist file ($(wc -c < temp-plist.xml) bytes)"
 
+              # Normalize boolean tags for Xcode compatibility
+              # <true></true> -> <true/> and <false></false> -> <false/>
+              sed -i.bak 's/<true><\/true>/<true\/>/g; s/<false><\/false>/<false\/>/g' temp-plist.xml
+              rm -f temp-plist.xml.bak
+
               # Debug: verify the decoded file looks like a valid plist
               if grep -q "<key>API_KEY</key>" temp-plist.xml; then
                 echo "✓ Decoded file contains expected Firebase keys"

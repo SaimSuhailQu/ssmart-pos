@@ -230,7 +230,15 @@ if [ ! -d "$IOS_RUNNER_DIR" ]; then
 fi
 
 cp "$PLIST_FILE" "$IOS_RUNNER_DIR/GoogleService-Info.plist"
-print_success "Copied GoogleService-Info.plist to ios/Runner/"
+
+# Normalize boolean tags for Xcode compatibility
+# Xcode's SWBUtil plist parser requires self-closing tags: <true/> and <false/>
+# Some Firebase-generated plists use <true></true> and <false></false> which causes
+# SWBUtil.PropertyListConversionError error 2
+sed -i.bak 's/<true><\/true>/<true\/>/g; s/<false><\/false>/<false\/>/g' "$IOS_RUNNER_DIR/GoogleService-Info.plist"
+rm -f "$IOS_RUNNER_DIR/GoogleService-Info.plist.bak"
+
+print_success "Copied GoogleService-Info.plist to ios/Runner/ (normalized)"
 
 # Create .env file
 print_info "Creating .env file with Firebase credentials..."
