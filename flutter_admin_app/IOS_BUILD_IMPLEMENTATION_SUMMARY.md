@@ -43,7 +43,7 @@ This document summarizes the automated iOS build workflow that has been implemen
   - `build_only` - Build IPA without uploading
   - `release` - Build and upload to App Store
   - `sync_code_signing` - Sync certificates with Match
-  - `register_devices` - Register new test devices
+  - `register_new_devices` - Register new test devices
   - `tests` - Run automated tests
 - `Matchfile` - Code signing configuration using Fastlane Match
 - `.env.default` - Environment variable template

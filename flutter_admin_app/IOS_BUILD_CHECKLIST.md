@@ -168,7 +168,7 @@ If you encounter issues, verify:
 - [ ] Review and update documentation
 
 ### As Needed
-- [ ] Add new test devices (`fastlane register_devices`)
+- [ ] Add new test devices (`fastlane register_new_devices`)
 - [ ] Update Fastlane (`bundle update fastlane`)
 - [ ] Update Flutter SDK
 - [ ] Update Xcode when required by Apple

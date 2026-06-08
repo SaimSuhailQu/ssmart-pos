@@ -241,8 +241,8 @@ platform :ios do
   # LANE: Register Devices (for Ad-Hoc/Development builds)
   # ============================================================================
   desc "Register new devices for development"
-  desc "Usage: fastlane register_devices"
-  lane :register_devices do
+  desc "Usage: fastlane register_new_devices"
+  lane :register_new_devices do
     register_devices(
       devices_file: "./fastlane/devices.txt"
       # Format: Device Name<tab>Device UDID
