@@ -8,7 +8,7 @@ import { initDb, getAllProducts, getProductByBarcode, saveSale, getNextSaleId, a
   getAllVendors, addVendor, updateVendor, deleteVendor,
   getAllPurchaseOrders, createPurchaseOrder, receivePurchaseOrder } from './db';
 import { printReceipt, printBarcode } from './printer';
-import { startSyncWorker } from './syncEngine';
+import { startSyncWorker, syncProductsToCloud } from './syncEngine';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
@@ -95,16 +95,22 @@ ipcMain.handle('checkout', async (event, data) => {
   }
 });
 
-ipcMain.handle('add-product', (event, product) => {
-  return addProduct(product);
+ipcMain.handle('add-product', async (event, product) => {
+  const result = addProduct(product);
+  await syncProductsToCloud().catch(err => console.error("Cloud product sync failed on add:", err));
+  return result;
 });
 
-ipcMain.handle('update-product', (event, id, product) => {
-  return updateProduct(id, product);
+ipcMain.handle('update-product', async (event, id, product) => {
+  const result = updateProduct(id, product);
+  await syncProductsToCloud().catch(err => console.error("Cloud product sync failed on update:", err));
+  return result;
 });
 
-ipcMain.handle('delete-product', (event, id) => {
-  return deleteProduct(id);
+ipcMain.handle('delete-product', async (event, id) => {
+  const result = deleteProduct(id);
+  await syncProductsToCloud().catch(err => console.error("Cloud product sync failed on delete:", err));
+  return result;
 });
 
 ipcMain.handle('print-barcode', async (event, product) => {

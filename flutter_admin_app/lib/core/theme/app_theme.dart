@@ -2,24 +2,31 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// Professional iOS-style theme for the admin dashboard
+/// Cyber-Dark Neon Visual Theme for the POS Admin App
+/// Matches the Electron POS application's modern visual system
 class AppTheme {
   // Color Palette
-  static const Color primaryBlue = Color(0xFF007AFF);
-  static const Color secondaryBlue = Color(0xFF5AC8FA);
-  static const Color darkBlue = Color(0xFF0051D5);
+  static const Color primaryCyan = Color(0xFF00F0FF); // Neon Cyan
+  static const Color secondaryPurple = Color(0xFFA855F7); // Neon Purple
+  static const Color primaryTeal = Color(0xFF14B8A6); // Neon Teal (Success)
+  static const Color accentNeon = Color(0xFF00F0FF);
 
-  static const Color successGreen = Color(0xFF34C759);
+  // Backward compatibility mappings for older blue themes (redirecting to cyber colors)
+  static const Color primaryBlue = primaryCyan;
+  static const Color secondaryBlue = secondaryPurple;
+  static const Color darkBlue = secondaryPurple;
+
+  static const Color successGreen = Color(0xFF14B8A6); // Neon Teal
   static const Color warningOrange = Color(0xFFFF9500);
   static const Color errorRed = Color(0xFFFF3B30);
 
-  static const Color backgroundLight = Color(0xFFF2F2F7);
-  static const Color cardBackground = Color(0xFFFFFFFF);
-  static const Color borderColor = Color(0xFFE5E5EA);
+  static const Color backgroundLight = Color(0xFF070B13); // Deep Space Dark Blue
+  static const Color cardBackground = Color(0xFF0D1222); // Dark Glassmorphism Panel
+  static const Color borderColor = Color(0x1AFFFFFF); // 10% White Border
 
-  static const Color textPrimary = Color(0xFF000000);
-  static const Color textSecondary = Color(0xFF8E8E93);
-  static const Color textTertiary = Color(0xFFC7C7CC);
+  static const Color textPrimary = Color(0xFFFFFFFF); // White
+  static const Color textSecondary = Color(0xFF8E95A5); // Slate Gray
+  static const Color textTertiary = Color(0x66FFFFFF); // 40% White
 
   // Text Styles using Google Fonts
   static TextStyle get displayLarge => GoogleFonts.inter(
@@ -89,20 +96,23 @@ class AppTheme {
     color: textTertiary,
   );
 
-  // Light Theme
-  static ThemeData get lightTheme {
+  // Return cyberDarkTheme for backward compatibility
+  static ThemeData get lightTheme => cyberDarkTheme;
+
+  // Main Cyber-Dark Neon Theme
+  static ThemeData get cyberDarkTheme {
     return ThemeData(
       useMaterial3: true,
-      brightness: Brightness.light,
-      primaryColor: primaryBlue,
+      brightness: Brightness.dark,
+      primaryColor: primaryCyan,
       scaffoldBackgroundColor: backgroundLight,
 
-      colorScheme: const ColorScheme.light(
-        primary: primaryBlue,
-        secondary: secondaryBlue,
+      colorScheme: const ColorScheme.dark(
+        primary: primaryCyan,
+        secondary: secondaryPurple,
         error: errorRed,
         surface: cardBackground,
-        onPrimary: Colors.white,
+        onPrimary: Colors.black,
         onSecondary: Colors.white,
         onSurface: textPrimary,
       ),
@@ -113,7 +123,7 @@ class AppTheme {
         elevation: 0,
         centerTitle: false,
         titleTextStyle: titleLarge,
-        iconTheme: const IconThemeData(color: primaryBlue),
+        iconTheme: const IconThemeData(color: primaryCyan),
       ),
 
       cardTheme: CardThemeData(
@@ -124,6 +134,11 @@ class AppTheme {
           side: const BorderSide(color: borderColor, width: 0.5),
         ),
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      ),
+
+      dialogTheme: const DialogTheme(
+        backgroundColor: cardBackground,
+        surfaceTintColor: Colors.transparent,
       ),
 
       textTheme: TextTheme(
@@ -142,14 +157,14 @@ class AppTheme {
 
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: primaryBlue,
-          foregroundColor: Colors.white,
+          backgroundColor: primaryCyan,
+          foregroundColor: Colors.black,
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
           ),
-          textStyle: labelLarge.copyWith(color: Colors.white),
+          textStyle: labelLarge.copyWith(color: Colors.black),
         ),
       ),
 
@@ -166,7 +181,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: primaryBlue, width: 2),
+          borderSide: const BorderSide(color: primaryCyan, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
@@ -175,21 +190,35 @@ class AppTheme {
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         hintStyle: bodyMedium.copyWith(color: textSecondary),
       ),
+
+      chipTheme: ChipThemeData(
+        backgroundColor: backgroundLight,
+        selectedColor: primaryCyan.withValues(alpha: 0.2),
+        secondarySelectedColor: secondaryPurple.withValues(alpha: 0.2),
+        labelStyle: bodyMedium.copyWith(color: textPrimary),
+        secondaryLabelStyle: bodyMedium.copyWith(color: textPrimary),
+        brightness: Brightness.dark,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: const BorderSide(color: borderColor, width: 0.5),
+        ),
+      ),
     );
   }
 
   // iOS Cupertino Theme
   static CupertinoThemeData get cupertinoTheme {
     return CupertinoThemeData(
-      primaryColor: primaryBlue,
+      brightness: Brightness.dark,
+      primaryColor: primaryCyan,
       scaffoldBackgroundColor: backgroundLight,
       barBackgroundColor: cardBackground,
       textTheme: CupertinoTextThemeData(
         primaryColor: textPrimary,
-        textStyle: bodyMedium,
-        actionTextStyle: bodyMedium.copyWith(color: primaryBlue),
-        navTitleTextStyle: titleLarge,
-        navLargeTitleTextStyle: displayLarge,
+        textStyle: bodyMedium.copyWith(color: textPrimary),
+        actionTextStyle: bodyMedium.copyWith(color: primaryCyan),
+        navTitleTextStyle: titleLarge.copyWith(color: textPrimary),
+        navLargeTitleTextStyle: displayLarge.copyWith(color: textPrimary),
       ),
     );
   }

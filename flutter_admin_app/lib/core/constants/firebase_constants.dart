@@ -7,6 +7,9 @@ class FirebasePaths {
   // Connection status path
   static const String connectionInfo = '.info/connected';
 
+  // Products/Catalog data path
+  static const String products = 'products';
+
   // Future paths (not yet implemented in Electron app)
   // Future: Implement these in Electron app for full functionality
   static const String inventory = 'inventory';

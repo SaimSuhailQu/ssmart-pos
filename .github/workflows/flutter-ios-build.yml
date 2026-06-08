@@ -11,7 +11,11 @@ name: Build Flutter iOS Admin App
 
 on:
   push:
+    branches:
+      - main
+      - master
     tags:
+      - 'v*'
       - 'flutter-v*'  # Example: flutter-v1.0.0, flutter-v1.0.1
   workflow_dispatch:   # Allows manual trigger
     inputs:
@@ -99,6 +103,11 @@ jobs:
           if [[ "$GITHUB_REF" == refs/tags/flutter-v* ]]; then
             # Extract version from tag (e.g., flutter-v1.0.0 -> 1.0.0)
             VERSION=$(echo "$GITHUB_REF_NAME" | sed 's/flutter-v//')
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "Using version from tag: $VERSION"
+          elif [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            # Extract version from tag (e.g., v1.0.0 -> 1.0.0)
+            VERSION=$(echo "$GITHUB_REF_NAME" | sed 's/^v//')
             echo "version=$VERSION" >> $GITHUB_OUTPUT
             echo "Using version from tag: $VERSION"
           else
@@ -435,7 +444,7 @@ jobs:
       - name: Upload to TestFlight
         if: |
           steps.build_config.outputs.type == 'signed' &&
-          (github.event.inputs.deploy_to_testflight == 'true' || startsWith(github.ref, 'refs/tags/flutter-v'))
+          (github.event.inputs.deploy_to_testflight == 'true' || startsWith(github.ref, 'refs/tags/flutter-v') || startsWith(github.ref, 'refs/tags/v'))
         working-directory: ${{ env.WORKING_DIRECTORY }}/ios/fastlane
         env:
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
@@ -478,8 +487,8 @@ jobs:
         if: github.event_name != 'pull_request'
         uses: softprops/action-gh-release@a74c6b72af54cfa997e81df42d94703d6313a2d0 # v2.0.6
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/flutter-v') && github.ref_name || 'latest' }}
-          name: ${{ startsWith(github.ref, 'refs/tags/flutter-v') && github.ref_name || 'Latest Release Build' }}
+          tag_name: ${{ (startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/tags/flutter-v')) && github.ref_name || 'latest' }}
+          name: ${{ (startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/tags/flutter-v')) && github.ref_name || 'Latest Release Build' }}
           files: |
             ${{ env.WORKING_DIRECTORY }}/build/ios/ipa/*.ipa
             ${{ env.WORKING_DIRECTORY }}/build/ios/iphoneos/*.ipa
@@ -504,7 +513,7 @@ jobs:
             ### Changes
             ${{ github.event.head_commit.message }}
           draft: false
-          prerelease: ${{ !startsWith(github.ref, 'refs/tags/flutter-v') }}
+          prerelease: ${{ !(startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/tags/flutter-v')) }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

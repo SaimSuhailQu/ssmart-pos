@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:ssmart_pos_admin/core/constants/firebase_constants.dart';
 import 'package:ssmart_pos_admin/models/sale.dart';
+import 'package:ssmart_pos_admin/models/product.dart';
 
 /// Service class for Firebase Realtime Database operations
 /// Handles all interactions with Firebase including real-time streams and data queries
@@ -230,6 +231,41 @@ class FirebaseService {
       print('Connection test failed: $e');
       return false;
     }
+  }
+
+  /// Get real-time stream of all products (items catalog)
+  Stream<List<Product>> getProductsStream() {
+    final productsRef = _database.ref(FirebasePaths.products);
+
+    return productsRef.onValue.map((event) {
+      final productsData = event.snapshot.value;
+
+      if (productsData == null) {
+        return <Product>[];
+      }
+
+      try {
+        final productsMap = productsData as Map<dynamic, dynamic>;
+        final products = <Product>[];
+        
+        productsMap.forEach((key, value) {
+          final id = int.tryParse(key.toString()) ?? 0;
+          if (value is Map) {
+            products.add(Product.fromJson(id, value));
+          }
+        });
+
+        // Sort by product name
+        products.sort((a, b) => a.name.compareTo(b.name));
+        return products;
+      } catch (e) {
+        print('Error parsing products catalog: $e');
+        return <Product>[];
+      }
+    }).handleError((error) {
+      print('Error in products stream: $error');
+      return <Product>[];
+    });
   }
 
   /// Dispose resources

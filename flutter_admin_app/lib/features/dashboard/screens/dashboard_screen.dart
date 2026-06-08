@@ -8,6 +8,7 @@ import 'package:ssmart_pos_admin/features/dashboard/widgets/metric_card.dart';
 import 'package:ssmart_pos_admin/features/dashboard/widgets/recent_transactions.dart';
 import 'package:ssmart_pos_admin/features/dashboard/widgets/sales_chart.dart';
 import 'package:ssmart_pos_admin/features/transactions/screens/transactions_screen.dart';
+import 'package:ssmart_pos_admin/features/catalog/screens/catalog_screen.dart';
 import 'package:ssmart_pos_admin/models/dashboard_metrics.dart';
 import 'package:ssmart_pos_admin/models/sale.dart';
 import 'package:ssmart_pos_admin/services/auth_service.dart';
@@ -85,6 +86,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(CupertinoIcons.square_grid_2x2_fill),
+            tooltip: 'Items Catalog',
+            onPressed: () {
+              Navigator.push(
+                context,
+                CupertinoPageRoute(
+                  builder: (context) => const CatalogScreen(),
+                ),
+              );
+            },
+          ),
           // User info and logout
           PopupMenuButton<String>(
             icon: const Icon(CupertinoIcons.person_circle),

@@ -217,7 +217,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           : Text(
                               'Sign In',
                               style: AppTheme.labelLarge.copyWith(
-                                color: Colors.white,
+                                color: Colors.black,
                               ),
                             ),
                     ),

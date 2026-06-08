@@ -1,6 +1,6 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { getDatabase, ref, set, onValue } from 'firebase/database';
-import { getUnsyncedSales, markSaleAsSynced } from './db';
+import { getUnsyncedSales, markSaleAsSynced, getAllProducts } from './db';
 
 // Firebase configuration injected at build-time by Vite
 const firebaseConfig = {
@@ -76,6 +76,38 @@ export async function syncSalesToCloud() {
   }
 }
 
+export async function syncProductsToCloud() {
+  if (!dbInstance) {
+    console.log("Sync skipped: Firebase DB offline.");
+    return { success: false, status: "OFFLINE" };
+  }
+
+  try {
+    const products = getAllProducts();
+    const productsRef = ref(dbInstance, 'products');
+    
+    const productsMap: Record<string, any> = {};
+    for (const p of products) {
+      productsMap[p.id] = {
+        id: p.id,
+        name: p.name,
+        barcode: p.barcode,
+        price: p.price,
+        stock: p.stock,
+        category: p.category,
+        cost_price: p.cost_price || 0
+      };
+    }
+
+    await set(productsRef, productsMap);
+    console.log(`Successfully synced ${products.length} products to Firebase.`);
+    return { success: true, status: "ONLINE" };
+  } catch (err) {
+    console.error("Sync products failed:", err);
+    return { success: false, status: "OFFLINE" };
+  }
+}
+
 // Start periodic background sync worker (every 15 seconds)
 export function startSyncWorker(onStatusChange?: (status: string) => void) {
   if (dbInstance && onStatusChange) {
@@ -84,6 +116,9 @@ export function startSyncWorker(onStatusChange?: (status: string) => void) {
       if (snap.val() === true) {
         console.log("Firebase status: Connected (Online)");
         onStatusChange("ONLINE");
+        // Initial sync on connect/reconnect
+        syncSalesToCloud();
+        syncProductsToCloud();
       } else {
         console.log("Firebase status: Disconnected (Offline)");
         onStatusChange("OFFLINE");
@@ -95,5 +130,6 @@ export function startSyncWorker(onStatusChange?: (status: string) => void) {
 
   setInterval(async () => {
     await syncSalesToCloud();
+    await syncProductsToCloud();
   }, 15000);
 }
