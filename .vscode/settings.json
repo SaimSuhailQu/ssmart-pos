@@ -1,0 +1,11 @@
+{
+  "css.lint.unknownAtRules": "ignore",
+  "files.exclude": {
+    "**/.vite": true,
+    "**/out": true
+  },
+  "search.exclude": {
+    "**/.vite": true,
+    "**/out": true
+  }
+}

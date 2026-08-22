@@ -1,0 +1,163 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-bg: rgba(18, 18, 18, 0.75);
+    --glass-bg-hover: rgba(35, 35, 35, 0.85);
+    --neon-cyan: #e5e5e5;
+    --neon-purple: #a3a3a3;
+    --neon-teal: #737373;
+  }
+
+  body {
+    @apply bg-[#0e0e10] text-gray-100 font-sans antialiased overflow-hidden select-none;
+  }
+
+  button {
+    @apply cursor-pointer select-none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button:active {
+    transform: scale(0.97);
+    transition: transform 0.05s ease-out;
+  }
+}
+
+@layer utilities {
+  .font-outfit {
+    font-family: 'Outfit', sans-serif;
+  }
+
+  .glass-panel {
+    @apply bg-[#15171e] border border-white/10 shadow-md;
+    contain: content;
+  }
+  
+  .glass-button {
+    @apply bg-white/[0.05] border border-white/10 hover:border-white/30 hover:bg-white/10 hover:text-white transition-all duration-75 shadow-sm active:scale-[0.97] cursor-pointer;
+  }
+
+  .glass-input {
+    @apply bg-neutral-900 border border-white/10 focus:border-white/60 focus:ring-1 focus:ring-white/20 transition-colors duration-75 text-white placeholder-neutral-500;
+  }
+
+  /* Custom Webkit Scrollbar */
+  ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-white/10 rounded-full transition-colors duration-300;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #e5e5e5, #737373);
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+  }
+}
+
+/* Animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes glow {
+  0%, 100% { 
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.1); 
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+  50% { 
+    box-shadow: 0 0 25px rgba(255, 255, 255, 0.25); 
+    border-color: rgba(255, 255, 255, 0.35);
+  }
+}
+
+.animate-glow {
+  animation: glow 3s ease-in-out infinite;
+}
+
+/* High-tech glow pulse */
+@keyframes pulse-fast {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.4)); }
+}
+
+.animate-pulse-fast {
+  animation: pulse-fast 2s ease-in-out infinite;
+}
+
+/* Cybernetic Laser Sweep Animation */
+@keyframes laser-sweep {
+  0% { transform: translateY(0); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(48px); opacity: 0; }
+}
+
+.animate-laser {
+  animation: laser-sweep 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Tactile Thermal Receipt Paper Rollout */
+@keyframes receipt-roll {
+  0% { max-height: 0; opacity: 0; transform: translateY(-20px) scaleY(0.9); }
+  100% { max-height: 800px; opacity: 1; transform: translateY(0) scaleY(1); }
+}
+
+.animate-receipt {
+  animation: receipt-roll 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Receipt scanline laser print effect */
+@keyframes print-scan {
+  0% { top: 0%; opacity: 0; }
+  50% { opacity: 0.8; }
+  100% { top: 100%; opacity: 0; }
+}
+
+.animate-print-scan {
+  animation: print-scan 2s ease-in-out infinite;
+}
+
+/* Hover shine sweep card overlay utility */
+.hover-shine {
+  position: relative;
+  overflow: hidden;
+}
+
+.hover-shine::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -100%;
+  width: 50%;
+  height: 200%;
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.15) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: rotate(25deg);
+  transition: all 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.hover-shine:hover::after {
+  left: 150%;
+  opacity: 1;
+}
+
+

@@ -1,0 +1,176 @@
+ID,Barcode,Name,Category,CostPrice,SalePrice,Stock
+1,896101400234,Pakola Cream Soda 1.5L,Drinks,119,170,97
+2,123456789012,Coca Cola 1.5L,Drinks,133,190,119
+3,222333444555,Nestle Fruita Vitals Orange 1L,Drinks,203,290,59
+6,6924429864484,AAA 1.5V Cell Pack,Electronics,0,30,10
+23,6924429863487,AA 1.5V Cell Pack,Electronics,0,40,9
+34,111111111111,Switch ,Electronics,0,50,20
+126,620514000367,National Haleem Mix (S),Food,0,150,5
+127,8961104240209,Baba Chat Masala (S),Food,0,150,5
+128,788821150363,Shan Achar Ghosht Masala (S),Food,0,150,5
+129,788821151292,Shan Tikka Masala (S),Food,0,150,5
+130,8961104240698,Baba Black Pepper Powder (S),Food,0,150,5
+131,620514000565,National Quorma (S),Food,0,150,5
+132,788821023438,Shan Korma (S),Food,0,150,5
+133,300668732122,Real Kisan Wheat Porrige (L),Food,0,150,5
+134,8680054657591,Delight Strawberry Custard ,Food,105,130,5
+135,8690081634649,Delight Banana Custard ,Food,105,130,5
+136,5028217000991,Laziza Kheer Pudding,Food,0,165,5
+137,4284634275881,Khan Chat Masala Sachet,Food,0,30,5
+138,8964000182857,Khan Bombay Baryani Sachet,Food,0,30,5
+139,651298562406,Khan Qorma Masala Sachet,Food,0,30,5
+140,8964000346549,Olpers Cream Milk 250ml,Food,0,100,5
+141,8961008022185,Milkpak Milk 250ml,Food,0,100,5
+142,8964000702574,Qudrat Milk 250ml,Food,0,60,5
+143,8961014038200,Knorr Masala Noodles Rs.50,Food,0,50,5
+144,8964002982493,Fruitien Masala Noodles Rs.30,Food,0,30,5
+145,8964002982516,Fruitien Chicken Noodles Rs.30,Food,0,30,5
+5,8964000090602,Lays Small Masala,General,0,20,18
+28,8886950072432,Lemon Max Soap (Small),General,0,35,9
+29,8991220001736,Chipser Salted Rs.20,General,17.7,20,23
+31,8961003679759,Candi Biscuits Rs.50,General,0,50,9
+32,8964004770746,Butterpuff  Biscuits Rs.50,General,0,50,9
+33,745577341604,Atta,General,0,3000,4
+35,8964008394180,Rompers Baby Diaper,General,1650,1800,0
+36,745110308591,Zaib Cooking Oil,General,0,500,12
+37,1,White Gold 20kg,General,2850,3000,2
+38,8964000419472,Meezan Cooking Oil,General,559,560,5
+39,8964000419137,Meezan Ghee,General,559,560,5
+40,8961100502790,Dalda Ghee,General,591,591,5
+41,8961100502813,Dalda Cooking Oil,General,591,591,5
+24,8886950099491,Lemon Max Liquid (Large),Household & Cleaning,0,285,4
+25,8886950099484,Lemon Max Liquid (Small),Household & Cleaning,0,180,0
+26,8886950072494,Lemon Max Soap (Large),Household & Cleaning,0,100,11
+27,8886950072470,Lemon Max Soap (Medium),Household & Cleaning,0,60,11
+179,8964004050282,SunBright SpongeWipe Pack,Kitchen,0,400,10
+180,6978554821454,J & S Steelwool,Kitchen,0,50,10
+181,6940597705848,Small Steel wool,Kitchen,0,30,10
+182,8964004050046,Sunbright Scouring Greenpad ,Kitchen,0,150,10
+186,6945711330197,Scour Power Scouring Pad,Kitchen,0,50,10
+188,8964000543061,Tyfon Special Bug Control,Medicine,0,350,10
+191,6001106114862,Mortein Coil,Misc,0,400,10
+42,8961014268348,Lux Velvet Glow,Personal Care,0,160,5
+43,8961014268355,Lux Rose Gold,Personal Care,0,160,8
+44,8961014268331,Lux Vibrant Glow,Personal Care,0,160,5
+45,8001841420554,Safeguard Floral Bloom,Personal Care,0,175,4
+46,8001841420677,Safeguard Pure White,Personal Care,0,175,4
+47,8001841420615,Safeguard Lemon,Personal Care,0,175,3
+48,1141326981464,Dove Glowing Mango,Personal Care,0,450,6
+49,,Dove Original,Personal Care,0,450,3
+50,,Dove Pink Rosa ,Personal Care,0,450,6
+51,6001106209506,Dettol Soap,Personal Care,0,155,6
+52,6308684844809,Kaif Beauty Soap Orange,Personal Care,0,100,6
+53,6308684844809,Kaif Beauty Soap Lemon,Personal Care,0,100,6
+54,6308684844809,Kaif Beauty Soap Pink Rosa,Personal Care,0,100,6
+55,6308684844809,Kaif Beauty Soap Jasmin,Personal Care,0,100,6
+56,7398800019272,Saba Beauty Soap ,Personal Care,0,55,12
+57,8994272013108,Frutis Fruity Soap Lemon,Personal Care,0,70,2
+58,8994272013092,Frutis Fruity Soap Orange,Personal Care,0,70,2
+59,8964001025801,Fina Soap Lemon,Personal Care,0,,11
+60,8999999052973,Ponds Charcoal Facewash,Personal Care,0,350,1
+61,8999999052959,Ponds Niasorcinol Facewash,Personal Care,0,350,1
+62,8901030425806,Vaseline Hair Tonic ,Personal Care,0,300,2
+63,8961014249002,Ponds Moisturising Lotion,Personal Care,0,350,6
+64,8857101118804,Nitro SPF60 Sunblock Cream,Personal Care,0,300,5
+65,8904035417111,Joy Skin Fruits Lotion,Personal Care,0,400,5
+66,5060453450819,Rivaj SPF 60 Sunblock,Personal Care,0,630,5
+67,4084500789395,Pantene Pro-V Anti Hairfall,Personal Care,0,300,5
+68,6223000657423,Johnson Babybath,Personal Care,0,150,5
+69,8964000982563,Mothercare Baby Shampoo,Personal Care,0,320,5
+70,8964000982440,Mothercare Baby Lotion,Personal Care,0,350,5
+71,,Herbion SPF50 Natural Sunblock,Personal Care,0,150,5
+72,8999999597856,Dove Inner glow Facewash ,Personal Care,0,600,5
+73,8999999597856,Dove Beauty Moisture Facewash,Personal Care,0,600,5
+74,,W.Nitro Caviar Cream ,Personal Care,0,80,5
+75,8961014266504,Glow and Lovely Facewash,Personal Care,0,200,5
+76,8961014236880,Fair & Lovely Facewash ,Personal Care,0,220,5
+77,8964001764021,Himalayas Neem Facewash,Personal Care,0,310,5
+78,8964002137985,Shield Baby Feeder,Personal Care,0,200,5
+79,8964001492351,Shield Nipple,Personal Care,0,100,5
+80,4801010560500,Johnson Baby Soap,Personal Care,0,250,5
+81,6921224065238,Dental Flossers,Personal Care,60,100,5
+82,3574661104041,Johnson Dream Cologne,Personal Care,0,300,5
+83,8886950051062,Colgate Toothpaste 20g,Personal Care,0,50,5
+84,8886950052311,Colgate Herbal Toothpaste 20g,Personal Care,0,50,5
+85,8886950050225,Colgate Toothpaste 75g,Personal Care,0,200,5
+86,6291101520106,Medicam Toothpaste 35g,Personal Care,0,120,5
+87,8964000515006,Doctor Toothpaste 35g,Personal Care,0,110,5
+88,858167000018,Olivia Hair Colour Black 1,Personal Care,0,320,5
+89,858167000032,Olivia Hair Colour M.Brown 3 ,Personal Care,0,320,5
+90,858167000094,Olivia Hair Colour Mahogany 9,Personal Care,0,320,5
+91,858167000063,Olivia Hair Colour Ash Blonde 6,Personal Care,0,320,5
+92,858167000568,Olivia Hair Colour C.Brown 11,Personal Care,0,320,5
+93,858167000025,Olivia Hair Colour D.Brown 2,Personal Care,0,320,5
+94,858167000049,Olivia Hair Colour L.Brown 4,Personal Care,0,320,5
+95,858167000087,Olivia Hair Colour Burgundy 8,Personal Care,0,320,5
+96,8581670152869,Rivon Hair Colour Natural Black,Personal Care,0,100,5
+97,8581670152869,Rivon Hair Colour Dark Brown,Personal Care,0,100,5
+98,6972919089022,Gooral Toothbrush,Personal Care,0,100,5
+99,8964001048466,Dr.John Jr Toothbrush,Personal Care,0,70,5
+100,8964001048411,Dr.John Jr Toothbrush,Personal Care,0,70,5
+101,8961014266986,Sunsilk T&L Shampoo ,Personal Care,0,450,5
+102,8961014250381,Sunsilk Hairfall Sol. Shampoo,Personal Care,0,450,5
+103,8961014264531,Dove Nourishing Care Shampoo,Personal Care,0,550,5
+104,8961014264517,Dove Dryness Care Shampoo,Personal Care,0,550,5
+105,8961014266061,Lifeboy Herbal Shampoo,Personal Care,0,340,5
+106,8961014266047,Lifeboy Onion Shampoo,Personal Care,0,340,5
+107,761742815528,Selsun Blue Anti-Dandruf Shampoo,Personal Care,0,600,5
+108,5055810014728,Galaxy Hand Sanitizer Spray Red,Personal Care,0,150,5
+109,5055810014735,Galaxy Hand Sanitizer Spray Green,Personal Care,0,150,5
+110,6936805452611,Wooden Toothpick,Personal Care,0,100,5
+111,692136300224,Cotton Buds,Personal Care,0,100,5
+112,9282494254553,80,Personal Care,0,100,5
+113,5843212214613,Jessica Ice Facial Kit ,Personal Care,0,400,5
+114,3122024,Nyx Matte Lipstick (M),Personal Care,0,250,5
+115,764598123656,O-Riq Hair Removal Spray,Personal Care,0,400,5
+116,8901030651243,Lakme Primer Matte + Lipstick,Personal Care,0,250,5
+117,4994048927787,Silicone Puff,Personal Care,0,250,5
+118,6971981113086,Donuts C.Clear Hand Cream,Personal Care,0,400,5
+119,8852729083350,Yafu Makeup Base Waterproof ,Personal Care,0,200,5
+120,6972422513050,Yafu Whitening Powder Cak,Personal Care,0,350,5
+121,6924934142251,Matte Devotion Lipstick,Personal Care,0,250,5
+122,6975345701230,Watermellon Soap ,Personal Care,0,180,5
+123,20100300602,Fragrance Itar,Personal Care,0,180,5
+124,89006382,Vatika Coconut Oil,Personal Care,0,,5
+125,8964000803202,Aster Hand & Foot Bleach Cream,Personal Care,0,100,5
+146,8964003538484,Coral Sandal Air Freshner,Personal Care,0,300,5
+147,8964003538064,Coral Red Rose Air Freshner,Personal Care,0,300,5
+148,8964003538606,Coral R.Nights Air Freshner,Personal Care,0,300,5
+149,3253581768105,Loccitane Refill Shampoo Gentle,Personal Care,0,1000,5
+150,3253581750803,Loccitane Refill Shampoo Intense ,Personal Care,0,1000,5
+151,11228862004,Flow Rose Lavender Talc Perfume,Personal Care,0,600,5
+152,11228866415,Flow Rose Charming Talc Perfume,Personal Care,0,600,5
+153,8699009443776,Lady Storm Spring Body Spray,Personal Care,0,900,1
+154,8699009447217,Storm Men Cool Body Spray,Personal Care,0,900,1
+155,8699009443752,Lady Storm Angel Body Spray,Personal Care,0,900,1
+156,8699009448122,Storm Oud Orchid Body Spray,Personal Care,0,900,1
+157,4005808829774,Nivia Aqua Cool Deodrant,Personal Care,0,400,1
+158,8886950015309,Brite Surf Sachet Rs.50,Personal Care,0,50,10
+159,8961014270501,Surf Excel Sachet Rs.50,Personal Care,0,50,10
+160,8886950016092,Bonus Sachet Rs.50,Personal Care,0,50,10
+161,8886950013992,Bonus Tristar Surf 1kg,Personal Care,0,270,10
+162,8886950018003,Brite Surf 1kg,Personal Care,0,620,10
+163,8964000997017,Bahu Soap ,Personal Care,0,100,10
+164,8964000039519,Sufi Soap,Personal Care,0,150,10
+165,8964002504183,Viking Blue Whitner,Personal Care,0,50,10
+166,8993560027544,Dettol Antiseptic Wet Wipes ,Personal Care,0,150,10
+167,671860013624,Sensitive Baby Wipes ,Personal Care,0,100,10
+168,5126511533457,Rocket Baby Wipes ,Personal Care,0,150,10
+169,94654404544046456,SunGold Pure Baby Wipes,Personal Care,0,250,10
+170,Bleach01,Robbot Bleach ,Personal Care,0,150,10
+171,418016,Sweep Cleaner,Personal Care,0,100,10
+172,3113911416116,Rahat Pads,Personal Care,0,150,10
+173,9785559933221,Rahat Premium Tissue Roll,Personal Care,0,60,10
+174,736211020673,Black Cobra Insect Killer ,Personal Care,0,400,10
+175,606537856,Insta Glass Cleaner ,Personal Care,0,249,10
+176,392387498347242,Black-ilk Hand Wash 500ml,Personal Care,0,300,10
+177,6001106209124,Dettol Skin Care,Personal Care,0,200,10
+178,9110191859163,Sofine Ultra soft Tissues,Personal Care,0,200,10
+183,8964002502127,King Shoe Shiner,Personal Care,0,250,10
+184,6009689192420,Silkee Lotion Hair Remover,Personal Care,0,40,10
+185,6009679062573,Care Lotion Hair Remover,Personal Care,0,60,10
+187,89610060400440,Rose Petal Tissue,Personal Care,0,270,10
+189,8964002502011,King Shoe Polish ,Personal Care,0,150,10
+190,6972461050006,Lude Shoe Polish,Personal Care,0,100,10
+4,98765432109,Lays Masala Chips (Large),Snacks,70,100,150
+30,8991220001712,Chipser Tomato Rs.20,Snacks,17.7,20,48
