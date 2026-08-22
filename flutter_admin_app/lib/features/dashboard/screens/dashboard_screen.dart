@@ -9,6 +9,9 @@ import 'package:ssmart_pos_admin/features/dashboard/widgets/recent_transactions.
 import 'package:ssmart_pos_admin/features/dashboard/widgets/sales_chart.dart';
 import 'package:ssmart_pos_admin/features/transactions/screens/transactions_screen.dart';
 import 'package:ssmart_pos_admin/features/catalog/screens/catalog_screen.dart';
+import 'package:ssmart_pos_admin/features/customers/screens/customers_khata_screen.dart';
+import 'package:ssmart_pos_admin/features/expenses/screens/expenses_screen.dart';
+import 'package:ssmart_pos_admin/features/vendors/screens/vendors_screen.dart';
 import 'package:ssmart_pos_admin/models/dashboard_metrics.dart';
 import 'package:ssmart_pos_admin/models/sale.dart';
 import 'package:ssmart_pos_admin/services/auth_service.dart';
@@ -195,8 +198,54 @@ class _DashboardScreenState extends State<DashboardScreen> {
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingM),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+          // Quick Navigation Hub
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _buildQuickNavCard(
+                    title: 'Khata / Loans',
+                    subtitle: 'CRM & Udhaar',
+                    icon: CupertinoIcons.book_fill,
+                    color: Colors.amber.shade700,
+                    onTap: () => Navigator.push(
+                      context,
+                      CupertinoPageRoute(builder: (_) => const CustomersKhataScreen()),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppTheme.spacingS),
+                Expanded(
+                  child: _buildQuickNavCard(
+                    title: 'Expenses',
+                    subtitle: 'Cost Ledger',
+                    icon: CupertinoIcons.money_dollar_circle_fill,
+                    color: Colors.redAccent,
+                    onTap: () => Navigator.push(
+                      context,
+                      CupertinoPageRoute(builder: (_) => const ExpensesScreen()),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppTheme.spacingS),
+                Expanded(
+                  child: _buildQuickNavCard(
+                    title: 'Vendors',
+                    subtitle: 'POs & Stocks',
+                    icon: CupertinoIcons.cube_box_fill,
+                    color: Colors.purple,
+                    onTap: () => Navigator.push(
+                      context,
+                      CupertinoPageRoute(builder: (_) => const VendorsScreen()),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppTheme.spacingL),
+
           // Today's metrics header
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
@@ -313,6 +362,58 @@ class _DashboardScreenState extends State<DashboardScreen> {
               onPressed: _handleRefresh,
               icon: const Icon(CupertinoIcons.refresh),
               label: const Text('Refresh'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickNavCard({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
+        decoration: BoxDecoration(
+          color: AppTheme.cardBackground,
+          borderRadius: BorderRadius.circular(AppTheme.radiusM),
+          boxShadow: AppTheme.cardShadow,
+          border: Border.all(color: color.withOpacity(0.2)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 20),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textPrimary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              style: const TextStyle(
+                fontSize: 9,
+                color: AppTheme.textSecondary,
+              ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),

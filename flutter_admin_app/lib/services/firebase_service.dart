@@ -3,6 +3,9 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:ssmart_pos_admin/core/constants/firebase_constants.dart';
 import 'package:ssmart_pos_admin/models/sale.dart';
 import 'package:ssmart_pos_admin/models/product.dart';
+import 'package:ssmart_pos_admin/models/expense.dart';
+import 'package:ssmart_pos_admin/models/customer.dart';
+import 'package:ssmart_pos_admin/models/vendor.dart';
 
 /// Service class for Firebase Realtime Database operations
 /// Handles all interactions with Firebase including real-time streams and data queries
@@ -291,27 +294,82 @@ class FirebaseService {
     });
   }
 
+  /// Get real-time stream of all expenses
+  Stream<List<ExpenseModel>> getExpensesStream() {
+    final expensesRef = _database.ref(FirebasePaths.expenses);
+    return expensesRef.onValue.map((event) {
+      final data = event.snapshot.value;
+      if (data == null) return <ExpenseModel>[];
+      final List<ExpenseModel> list = [];
+      if (data is Map) {
+        data.forEach((k, v) {
+          if (v is Map) list.add(ExpenseModel.fromJson(k.toString(), v));
+        });
+      } else if (data is List) {
+        for (int i = 0; i < data.length; i++) {
+          if (data[i] is Map) list.add(ExpenseModel.fromJson(i.toString(), data[i]));
+        }
+      }
+      list.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+      return list;
+    }).handleError((err) {
+      print('Error in expenses stream: $err');
+      return <ExpenseModel>[];
+    });
+  }
+
+  /// Get real-time stream of all customers with Khata / loan balances
+  Stream<List<CustomerModel>> getCustomersStream() {
+    final custRef = _database.ref(FirebasePaths.customers);
+    return custRef.onValue.map((event) {
+      final data = event.snapshot.value;
+      if (data == null) return <CustomerModel>[];
+      final List<CustomerModel> list = [];
+      if (data is Map) {
+        data.forEach((k, v) {
+          if (v is Map) list.add(CustomerModel.fromJson(k.toString(), v));
+        });
+      } else if (data is List) {
+        for (int i = 0; i < data.length; i++) {
+          if (data[i] is Map) list.add(CustomerModel.fromJson(i.toString(), data[i]));
+        }
+      }
+      list.sort((a, b) => b.balance.compareTo(a.balance));
+      return list;
+    }).handleError((err) {
+      print('Error in customers stream: $err');
+      return <CustomerModel>[];
+    });
+  }
+
+  /// Get real-time stream of all vendors and purchase orders
+  Stream<List<PurchaseOrderModel>> getPurchaseOrdersStream() {
+    final poRef = _database.ref(FirebasePaths.purchaseOrders);
+    return poRef.onValue.map((event) {
+      final data = event.snapshot.value;
+      if (data == null) return <PurchaseOrderModel>[];
+      final List<PurchaseOrderModel> list = [];
+      if (data is Map) {
+        data.forEach((k, v) {
+          if (v is Map) list.add(PurchaseOrderModel.fromJson(k.toString(), v));
+        });
+      } else if (data is List) {
+        for (int i = 0; i < data.length; i++) {
+          if (data[i] is Map) list.add(PurchaseOrderModel.fromJson(i.toString(), data[i]));
+        }
+      }
+      list.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+      return list;
+    }).handleError((err) {
+      print('Error in POs stream: $err');
+      return <PurchaseOrderModel>[];
+    });
+  }
+
   /// Dispose resources
   void dispose() {
     _connectionStatusController.close();
   }
-
-  // Future: Future enhancement - Inventory management
-  // Once the Electron app syncs inventory to Firebase, implement:
-  // - Stream<List<InventoryItem>> getInventoryStream()
-  // - Future<InventoryItem?> getInventoryItemById(String id)
-  // - Stream<List<LowStockItem>> getLowStockAlertsStream()
-
-  // Future: Future enhancement - Cashier sessions
-  // Once the Electron app syncs sessions to Firebase, implement:
-  // - Stream<List<CashierSession>> getActiveSessionsStream()
-  // - Future<SessionReport> getSessionReport(String sessionId)
-  // - Stream<List<CashierSession>> getSessionHistoryStream()
-
-  // Future: Future enhancement - Customer data
-  // Once the Electron app syncs customers to Firebase, implement:
-  // - Stream<List<Customer>> getCustomersStream()
-  // - Future<CustomerAnalytics> getCustomerAnalytics(String customerId)
 }
 
 /// Connection status enum

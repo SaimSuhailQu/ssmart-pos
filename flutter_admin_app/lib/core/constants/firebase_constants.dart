@@ -10,11 +10,12 @@ class FirebasePaths {
   // Products/Catalog data path
   static const String products = 'products';
 
-  // Future paths (not yet implemented in Electron app)
-  // Future: Implement these in Electron app for full functionality
-  static const String inventory = 'inventory';
-  static const String cashierSessions = 'cashier_sessions';
+  // Active sync paths matching POS
+  static const String expenses = 'expenses';
   static const String customers = 'customers';
+  static const String vendors = 'vendors';
+  static const String purchaseOrders = 'purchase_orders';
+  static const String cashierSessions = 'cashier_sessions';
   static const String users = 'users';
 
   /// Get sales path by ID

@@ -1,6 +1,6 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { getDatabase, ref, set, onValue } from 'firebase/database';
-import { getUnsyncedSales, markSaleAsSynced, getAllProducts } from './db';
+import { getUnsyncedSales, markSaleAsSynced, getAllProducts, getAllExpenses, getAllCustomers, getAllVendors, getAllPurchaseOrders } from './db';
 import { Product } from './types';
 
 // Firebase configuration injected at build-time by Vite
@@ -113,6 +113,98 @@ export async function syncProductsToCloud(silent = false) {
   }
 }
 
+export async function syncExpensesToCloud(silent = false) {
+  if (!dbInstance) return { success: false, status: "OFFLINE" };
+  try {
+    const expenses = getAllExpenses();
+    const expensesRef = ref(dbInstance, 'expenses');
+    const expensesMap: Record<string, any> = {};
+    for (const e of expenses as any[]) {
+      expensesMap[e.id] = {
+        id: e.id,
+        amount: e.amount,
+        description: e.description,
+        category: e.category,
+        logged_by: e.logged_by,
+        timestamp: e.timestamp
+      };
+    }
+    await set(expensesRef, expensesMap);
+    return { success: true, status: "ONLINE" };
+  } catch (err) {
+    console.error("Sync expenses failed:", err);
+    return { success: false, status: "OFFLINE" };
+  }
+}
+
+export async function syncCustomersToCloud(silent = false) {
+  if (!dbInstance) return { success: false, status: "OFFLINE" };
+  try {
+    const customers = getAllCustomers();
+    const customersRef = ref(dbInstance, 'customers');
+    const custMap: Record<string, any> = {};
+    for (const c of customers as any[]) {
+      custMap[c.id] = {
+        id: c.id,
+        name: c.name,
+        phone: c.phone || '',
+        email: c.email || '',
+        points: c.points || 0,
+        balance: c.balance || 0
+      };
+    }
+    await set(customersRef, custMap);
+    return { success: true, status: "ONLINE" };
+  } catch (err) {
+    console.error("Sync customers failed:", err);
+    return { success: false, status: "OFFLINE" };
+  }
+}
+
+export async function syncVendorsToCloud(silent = false) {
+  if (!dbInstance) return { success: false, status: "OFFLINE" };
+  try {
+    const vendors = getAllVendors();
+    const pos = getAllPurchaseOrders();
+    const vendorsRef = ref(dbInstance, 'vendors');
+    const posRef = ref(dbInstance, 'purchase_orders');
+
+    const vMap: Record<string, any> = {};
+    for (const v of vendors as any[]) {
+      vMap[v.id] = {
+        id: v.id,
+        name: v.name,
+        contact: v.contact || '',
+        category: v.category || ''
+      };
+    }
+    await set(vendorsRef, vMap);
+
+    const poMap: Record<string, any> = {};
+    for (const po of pos as any[]) {
+      poMap[po.id] = {
+        id: po.id,
+        vendor_id: po.vendor_id,
+        vendor_name: po.vendor_name,
+        status: po.status,
+        total_cost: po.total_cost,
+        paid_amount: po.paid_amount || 0,
+        payment_status: po.payment_status || 'Unpaid',
+        timestamp: po.timestamp,
+        items: po.items || [],
+        payments: po.payments || [],
+        order_entries: po.order_entries || []
+      };
+    }
+    await set(posRef, poMap);
+
+    return { success: true, status: "ONLINE" };
+  } catch (err) {
+    console.error("Sync vendors failed:", err);
+    return { success: false, status: "OFFLINE" };
+  }
+}
+
 // Start periodic background sync worker (every 15 seconds)
 export function startSyncWorker(onStatusChange?: (status: string) => void) {
   if (dbInstance && onStatusChange) {
@@ -121,9 +213,12 @@ export function startSyncWorker(onStatusChange?: (status: string) => void) {
       if (snap.val() === true) {
         console.log("Firebase status: Connected (Online)");
         onStatusChange("ONLINE");
-        // Initial sync on connect/reconnect
+        // Initial full sync on connect/reconnect
         syncSalesToCloud();
         syncProductsToCloud();
+        syncExpensesToCloud();
+        syncCustomersToCloud();
+        syncVendorsToCloud();
       } else {
         console.log("Firebase status: Disconnected (Offline)");
         onStatusChange("OFFLINE");
@@ -133,12 +228,16 @@ export function startSyncWorker(onStatusChange?: (status: string) => void) {
     onStatusChange("OFFLINE");
   }
 
-  // Sync unsynced sales periodically in the background (every 60 seconds)
+  // Periodic background cloud sync every 30 seconds
   setInterval(async () => {
     try {
       await syncSalesToCloud(true);
+      await syncProductsToCloud(true);
+      await syncExpensesToCloud(true);
+      await syncCustomersToCloud(true);
+      await syncVendorsToCloud(true);
     } catch (err) {
-      console.warn("Background sales sync error:", err);
+      console.warn("Background cloud sync error:", err);
     }
-  }, 60000);
+  }, 30000);
 }
