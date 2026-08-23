@@ -38,6 +38,17 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
+      - name: Setup Visual Studio Build Tools (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: microsoft/setup-msbuild@v2
+        with:
+          vs-version: '17'
+
+      - name: Configure node-gyp MSVS version (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: bash
+        run: npm config set msvs_version 2022
+
       - name: Install System Dependencies (Linux Only)
         if: matrix.os == 'ubuntu-latest'
         run: |
