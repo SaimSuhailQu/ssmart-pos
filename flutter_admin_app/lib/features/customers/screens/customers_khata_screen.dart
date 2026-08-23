@@ -30,7 +30,7 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
         stream: firebaseService.getCustomersStream(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const LoadingIndicator(message: 'Loading customer ledgers...');
+            return const AppLoadingIndicator(message: 'Loading customer ledgers...');
           }
 
           if (snapshot.hasError) {
@@ -58,7 +58,6 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                   color: AppTheme.cardBackground,
                   borderRadius: BorderRadius.circular(AppTheme.radiusL),
                   border: Border.all(color: Colors.amber.withOpacity(0.3)),
-                  boxShadow: AppTheme.cardShadow,
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -73,7 +72,7 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                         const SizedBox(height: 4),
                         Text(
                           'PKR ${totalKhata.toStringAsFixed(0)}',
-                          style: AppTheme.displaySmall.copyWith(
+                          style: AppTheme.headlineLarge.copyWith(
                             color: Colors.amber.shade700,
                             fontWeight: FontWeight.bold,
                           ),
@@ -129,9 +128,8 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                               color: AppTheme.cardBackground,
                               borderRadius: BorderRadius.circular(AppTheme.radiusM),
                               border: Border.all(
-                                color: hasDebt ? Colors.amber.withOpacity(0.3) : Colors.black.withOpacity(0.05),
+                                color: hasDebt ? Colors.amber.withOpacity(0.3) : AppTheme.borderColor,
                               ),
-                              boxShadow: AppTheme.cardShadow,
                             ),
                             child: Row(
                               children: [

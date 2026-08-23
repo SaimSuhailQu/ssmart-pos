@@ -24,7 +24,7 @@ class ExpensesScreen extends StatelessWidget {
         stream: firebaseService.getExpensesStream(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const LoadingIndicator(message: 'Loading expenses...');
+            return const AppLoadingIndicator(message: 'Loading expenses...');
           }
 
           if (snapshot.hasError) {
@@ -56,7 +56,6 @@ class ExpensesScreen extends StatelessWidget {
                   color: AppTheme.cardBackground,
                   borderRadius: BorderRadius.circular(AppTheme.radiusL),
                   border: Border.all(color: Colors.red.withOpacity(0.3)),
-                  boxShadow: AppTheme.cardShadow,
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -71,7 +70,7 @@ class ExpensesScreen extends StatelessWidget {
                         const SizedBox(height: 4),
                         Text(
                           'PKR ${totalExpenses.toStringAsFixed(0)}',
-                          style: AppTheme.displaySmall.copyWith(
+                          style: AppTheme.headlineLarge.copyWith(
                             color: Colors.redAccent,
                             fontWeight: FontWeight.bold,
                           ),
@@ -103,7 +102,7 @@ class ExpensesScreen extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: AppTheme.cardBackground,
                         borderRadius: BorderRadius.circular(AppTheme.radiusM),
-                        boxShadow: AppTheme.cardShadow,
+                        border: Border.all(color: AppTheme.borderColor),
                       ),
                       child: Row(
                         children: [

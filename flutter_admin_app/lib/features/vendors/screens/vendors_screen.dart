@@ -24,7 +24,7 @@ class VendorsScreen extends StatelessWidget {
         stream: firebaseService.getPurchaseOrdersStream(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const LoadingIndicator(message: 'Loading vendor ledgers...');
+            return const AppLoadingIndicator(message: 'Loading vendor ledgers...');
           }
 
           if (snapshot.hasError) {
@@ -56,7 +56,6 @@ class VendorsScreen extends StatelessWidget {
                   color: AppTheme.cardBackground,
                   borderRadius: BorderRadius.circular(AppTheme.radiusL),
                   border: Border.all(color: Colors.purple.withOpacity(0.3)),
-                  boxShadow: AppTheme.cardShadow,
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -71,7 +70,7 @@ class VendorsScreen extends StatelessWidget {
                         const SizedBox(height: 4),
                         Text(
                           'PKR ${totalPayable.toStringAsFixed(0)}',
-                          style: AppTheme.displaySmall.copyWith(
+                          style: AppTheme.headlineLarge.copyWith(
                             color: Colors.purple.shade700,
                             fontWeight: FontWeight.bold,
                           ),
@@ -105,7 +104,7 @@ class VendorsScreen extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: AppTheme.cardBackground,
                         borderRadius: BorderRadius.circular(AppTheme.radiusM),
-                        boxShadow: AppTheme.cardShadow,
+                        border: Border.all(color: AppTheme.borderColor),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,

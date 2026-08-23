@@ -198,6 +198,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingM),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           // Quick Navigation Hub
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
@@ -383,7 +385,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         decoration: BoxDecoration(
           color: AppTheme.cardBackground,
           borderRadius: BorderRadius.circular(AppTheme.radiusM),
-          boxShadow: AppTheme.cardShadow,
           border: Border.all(color: color.withOpacity(0.2)),
         ),
         child: Column(
