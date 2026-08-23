@@ -20,8 +20,8 @@ jobs:
     
     strategy:
       matrix:
-        # Cross-builds on all platforms to compile the respective native dependencies
-        os: [windows-latest, ubuntu-latest]
+        # Pin to windows-2022 for rock-solid Visual Studio 2022 compatibility with node-gyp
+        os: [windows-2022, ubuntu-latest]
 
     steps:
       - name: Checkout Source Code
@@ -39,10 +39,10 @@ jobs:
           cache: 'npm'
 
       - name: Setup Visual Studio Build Tools (Windows)
-        if: matrix.os == 'windows-latest'
+        if: matrix.os == 'windows-2022'
         uses: microsoft/setup-msbuild@v2
         with:
-          vs-version: '17'
+          vs-version: '17.0'
 
       - name: Install System Dependencies (Linux Only)
         if: matrix.os == 'ubuntu-latest'
@@ -51,10 +51,12 @@ jobs:
           sudo apt-get install -y rpm libusb-1.0-0-dev libudev-dev
 
       - name: Clean Install Dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
+        
+      - name: Rebuild Native Modules for Electron
+        run: npx @electron/rebuild
         env:
-          npm_config_msvs_version: ${{ matrix.os == 'windows-latest' && '2022' || '' }}
-          GYP_MSVS_VERSION: ${{ matrix.os == 'windows-latest' && '2022' || '' }}
+          npm_config_msvs_version: ${{ matrix.os == 'windows-2022' && '2022' || '' }}
 
       - name: Inject Environment Secrets (.env)
         shell: bash
