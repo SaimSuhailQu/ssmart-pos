@@ -80,6 +80,18 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: pos-distributables-${{ matrix.os }}
+          path: |
+            out/make/**/*.exe
+            out/make/**/*.zip
+            out/make/**/*.deb
+            out/make/**/*.rpm
+            out/make/**/*.nupkg
+            out/make/**/RELEASES
+
       - name: Create Release and Upload Installers
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
