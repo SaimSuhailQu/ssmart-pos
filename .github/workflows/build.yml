@@ -54,7 +54,9 @@ jobs:
         run: npm ci --ignore-scripts
 
       - name: Setup electron-winstaller binaries
-        run: node node_modules/electron-winstaller/script/select-7z-arch.js
+        if: matrix.os == 'windows-2022'
+        working-directory: node_modules/electron-winstaller
+        run: node script/select-7z-arch.js
         
       - name: Rebuild Native Modules for Electron
         run: npx @electron/rebuild
