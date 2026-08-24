@@ -17,20 +17,33 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
-    // Load environment variables
-    await dotenv.load(fileName: '.env');
+    // Load environment variables safely if present
+    try {
+      await dotenv.load(fileName: '.env');
+    } catch (_) {
+      print('Notice: .env file not bundled, using project default configuration.');
+    }
+
+    final apiKey = dotenv.env[FirebaseEnvKeys.apiKey] ?? FirebaseDefaultConfig.apiKey;
+    final authDomain = dotenv.env[FirebaseEnvKeys.authDomain] ?? FirebaseDefaultConfig.authDomain;
+    final databaseUrl = dotenv.env[FirebaseEnvKeys.databaseUrl] ?? FirebaseDefaultConfig.databaseUrl;
+    final projectId = dotenv.env[FirebaseEnvKeys.projectId] ?? FirebaseDefaultConfig.projectId;
+    final storageBucket = dotenv.env[FirebaseEnvKeys.storageBucket] ?? FirebaseDefaultConfig.storageBucket;
+    final messagingSenderId = dotenv.env[FirebaseEnvKeys.messagingSenderId] ?? FirebaseDefaultConfig.messagingSenderId;
+    final appId = dotenv.env[FirebaseEnvKeys.appId] ?? FirebaseDefaultConfig.appId;
+    final measurementId = dotenv.env[FirebaseEnvKeys.measurementId] ?? FirebaseDefaultConfig.measurementId;
 
     // Initialize Firebase
     await Firebase.initializeApp(
       options: FirebaseOptions(
-        apiKey: dotenv.env[FirebaseEnvKeys.apiKey]!,
-        authDomain: dotenv.env[FirebaseEnvKeys.authDomain]!,
-        databaseURL: dotenv.env[FirebaseEnvKeys.databaseUrl]!,
-        projectId: dotenv.env[FirebaseEnvKeys.projectId]!,
-        storageBucket: dotenv.env[FirebaseEnvKeys.storageBucket]!,
-        messagingSenderId: dotenv.env[FirebaseEnvKeys.messagingSenderId]!,
-        appId: dotenv.env[FirebaseEnvKeys.appId]!,
-        measurementId: dotenv.env[FirebaseEnvKeys.measurementId],
+        apiKey: apiKey,
+        authDomain: authDomain,
+        databaseURL: databaseUrl,
+        projectId: projectId,
+        storageBucket: storageBucket,
+        messagingSenderId: messagingSenderId,
+        appId: appId,
+        measurementId: measurementId,
       ),
     );
 

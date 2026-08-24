@@ -34,6 +34,18 @@ class FirebaseEnvKeys {
   static const String measurementId = 'FIREBASE_MEASUREMENT_ID';
 }
 
+/// Fallback Firebase configuration when .env is absent or partially configured
+class FirebaseDefaultConfig {
+  static const String apiKey = 'AIzaSyBBXuvZ1GCj9v-ZfgIFdmxT7fqBck1GJ6c';
+  static const String authDomain = 'ssmart-c6e43.firebaseapp.com';
+  static const String databaseUrl = 'https://ssmart-c6e43-default-rtdb.firebaseio.com';
+  static const String projectId = 'ssmart-c6e43';
+  static const String storageBucket = 'ssmart-c6e43.firebasestorage.app';
+  static const String messagingSenderId = '3113728357';
+  static const String appId = '1:3113728357:web:9f26cd9bf162ab9f60c98c';
+  static const String measurementId = 'G-9LVJLM3R6H';
+}
+
 /// App-wide constants
 class AppConstants {
   // Pagination
