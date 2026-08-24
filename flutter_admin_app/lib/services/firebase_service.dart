@@ -12,7 +12,8 @@ import 'package:ssmart_pos_admin/models/vendor.dart';
 class FirebaseService {
   final FirebaseDatabase _database;
 
-  // Connection status stream controller
+  // Connection status
+  ConnectionStatus _currentStatus = ConnectionStatus.connecting;
   final _connectionStatusController = StreamController<ConnectionStatus>.broadcast();
 
   // Cache for sales data to reduce redundant queries
@@ -44,15 +45,21 @@ class FirebaseService {
     final connectedRef = _database.ref(FirebasePaths.connectionInfo);
     connectedRef.onValue.listen((event) {
       final isConnected = event.snapshot.value as bool? ?? false;
-      _connectionStatusController.add(
-        isConnected ? ConnectionStatus.online : ConnectionStatus.offline,
-      );
+      _currentStatus = isConnected ? ConnectionStatus.online : ConnectionStatus.offline;
+      if (!_connectionStatusController.isClosed) {
+        _connectionStatusController.add(_currentStatus);
+      }
     });
   }
 
-  /// Get connection status stream
-  Stream<ConnectionStatus> get connectionStatusStream =>
-      _connectionStatusController.stream;
+  /// Current connection status
+  ConnectionStatus get currentStatus => _currentStatus;
+
+  /// Get connection status stream (seeded with current state)
+  Stream<ConnectionStatus> get connectionStatusStream async* {
+    yield _currentStatus;
+    yield* _connectionStatusController.stream;
+  }
 
   /// Get real-time stream of all sales
   /// This stream will emit new data whenever sales are added/modified in Firebase

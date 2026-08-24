@@ -67,14 +67,14 @@ class SSMartPOSAdminApp extends StatelessWidget {
           create: (_) => FirebaseDatabase.instance,
         ),
 
-        // Auth service
-        ProxyProvider<FirebaseAuth, AuthService>(
-          update: (_, auth, __) => AuthService(auth),
+        // Auth service (created once)
+        Provider<AuthService>(
+          create: (context) => AuthService(context.read<FirebaseAuth>()),
         ),
 
-        // Firebase service
-        ProxyProvider<FirebaseDatabase, FirebaseService>(
-          update: (_, database, __) => FirebaseService(database),
+        // Firebase service (created once, maintains persistent connection & stream listeners)
+        Provider<FirebaseService>(
+          create: (context) => FirebaseService(context.read<FirebaseDatabase>()),
           dispose: (_, service) => service.dispose(),
         ),
       ],
