@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
 import 'package:ssmart_pos_admin/core/utils/date_utils.dart';
+import 'package:ssmart_pos_admin/core/utils/whatsapp_helper.dart';
 import 'package:ssmart_pos_admin/models/sale.dart';
 import 'package:ssmart_pos_admin/services/firebase_service.dart';
 import 'package:ssmart_pos_admin/widgets/error_widget.dart';
@@ -499,6 +500,12 @@ class _TransactionDetailsSheet extends StatelessWidget {
                   style: AppTheme.titleLarge,
                 ),
                 const Spacer(),
+                TextButton.icon(
+                  icon: const Icon(CupertinoIcons.chat_bubble_2_fill, color: Color(0xFF25D366), size: 18),
+                  label: const Text('WhatsApp', style: TextStyle(color: Color(0xFF25D366), fontWeight: FontWeight.bold)),
+                  onPressed: () => _promptWhatsAppReceipt(context),
+                ),
+                const SizedBox(width: 4),
                 IconButton(
                   icon: const Icon(CupertinoIcons.xmark),
                   onPressed: () => Navigator.pop(context),
@@ -586,6 +593,58 @@ class _TransactionDetailsSheet extends StatelessWidget {
                 ],
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _promptWhatsAppReceipt(BuildContext context) {
+    final phoneCtrl = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.surfaceDark,
+        title: const Text('Send WhatsApp Receipt'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Enter customer WhatsApp phone number to send itemized receipt:', style: TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: phoneCtrl,
+              keyboardType: TextInputType.phone,
+              style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(
+                hintText: '03001234567',
+                labelText: 'Phone Number',
+                prefixIcon: Icon(CupertinoIcons.phone),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF25D366), foregroundColor: Colors.black),
+            icon: const Icon(CupertinoIcons.chat_bubble_2_fill, size: 16),
+            label: const Text('Open WhatsApp', style: TextStyle(fontWeight: FontWeight.bold)),
+            onPressed: () async {
+              final phone = phoneCtrl.text.trim();
+              if (phone.isEmpty) return;
+              Navigator.pop(ctx);
+              final success = await WhatsAppHelper.sendSaleReceipt(sale: sale, phone: phone);
+              if (!success) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Could not open WhatsApp app')),
+                );
+              }
+            },
           ),
         ],
       ),

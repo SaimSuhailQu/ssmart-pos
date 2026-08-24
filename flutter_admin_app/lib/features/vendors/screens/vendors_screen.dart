@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
 import 'package:ssmart_pos_admin/core/utils/date_utils.dart';
+import 'package:ssmart_pos_admin/core/utils/whatsapp_helper.dart';
 import 'package:ssmart_pos_admin/models/vendor.dart';
 import 'package:ssmart_pos_admin/services/firebase_service.dart';
 import 'package:ssmart_pos_admin/widgets/error_widget.dart';
@@ -180,12 +181,27 @@ class VendorsScreen extends StatelessWidget {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
+                              if (po.phone.isNotEmpty) ...[
+                                TextButton.icon(
+                                  icon: const Icon(CupertinoIcons.chat_bubble_2_fill, size: 16, color: Color(0xFF25D366)),
+                                  label: const Text('WhatsApp', style: TextStyle(color: Color(0xFF25D366), fontSize: 12, fontWeight: FontWeight.bold)),
+                                  onPressed: () async {
+                                    final success = await WhatsAppHelper.sendVendorPO(po: po);
+                                    if (!success) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('Could not open WhatsApp app')),
+                                      );
+                                    }
+                                  },
+                                ),
+                                const SizedBox(width: 6),
+                              ],
                               TextButton.icon(
                                 icon: const Icon(CupertinoIcons.pencil, size: 16, color: AppTheme.primaryCyan),
                                 label: const Text('Edit / Record Payment', style: TextStyle(color: AppTheme.primaryCyan, fontSize: 12)),
                                 onPressed: () => _showVendorDialog(context, po),
                               ),
-                              const SizedBox(width: 8),
+                              const SizedBox(width: 6),
                               IconButton(
                                 icon: const Icon(CupertinoIcons.trash, size: 16, color: AppTheme.errorRed),
                                 onPressed: () => _confirmDeletePO(context, po),

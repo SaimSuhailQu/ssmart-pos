@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
+import 'package:ssmart_pos_admin/core/utils/whatsapp_helper.dart';
 import 'package:ssmart_pos_admin/models/customer.dart';
 import 'package:ssmart_pos_admin/services/firebase_service.dart';
 import 'package:ssmart_pos_admin/widgets/error_widget.dart';
@@ -205,20 +206,36 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.end,
                                   children: [
+                                    // WhatsApp Reminder button
+                                    if (item.phone.isNotEmpty) ...[
+                                      TextButton.icon(
+                                        icon: const Icon(CupertinoIcons.chat_bubble_2_fill, size: 16, color: Color(0xFF25D366)),
+                                        label: const Text('WhatsApp', style: TextStyle(color: Color(0xFF25D366), fontSize: 12, fontWeight: FontWeight.bold)),
+                                        onPressed: () async {
+                                          final success = await WhatsAppHelper.sendCustomerKhataReminder(customer: item);
+                                          if (!success) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(content: Text('Could not open WhatsApp app')),
+                                            );
+                                          }
+                                        },
+                                      ),
+                                      const SizedBox(width: 6),
+                                    ],
                                     // Record Wasool / Udhaar button
                                     TextButton.icon(
                                       icon: const Icon(CupertinoIcons.money_dollar_circle, size: 16, color: Colors.amber),
                                       label: const Text('Loan Entry', style: TextStyle(color: Colors.amber, fontSize: 12, fontWeight: FontWeight.bold)),
                                       onPressed: () => _showKhataTransactionDialog(context, item),
                                     ),
-                                    const SizedBox(width: 8),
+                                    const SizedBox(width: 6),
                                     // Edit Customer button
                                     TextButton.icon(
                                       icon: const Icon(CupertinoIcons.pencil, size: 16, color: AppTheme.primaryCyan),
                                       label: const Text('Edit', style: TextStyle(color: AppTheme.primaryCyan, fontSize: 12)),
                                       onPressed: () => _showCustomerDialog(context, item),
                                     ),
-                                    const SizedBox(width: 8),
+                                    const SizedBox(width: 6),
                                     // Delete button
                                     IconButton(
                                       icon: const Icon(CupertinoIcons.trash, size: 16, color: AppTheme.errorRed),
@@ -461,10 +478,29 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                       notes: noteCtrl.text.trim().isEmpty ? null : noteCtrl.text.trim(),
                     );
 
+                    final updatedBalance = type == 'LOAN'
+                        ? customer.balance + amount
+                        : customer.balance - amount;
+
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('Khata updated for ${customer.name}!'),
                         backgroundColor: AppTheme.primaryTeal,
+                        action: customer.phone.isNotEmpty
+                            ? SnackBarAction(
+                                label: 'WhatsApp Receipt',
+                                textColor: Colors.black,
+                                onPressed: () {
+                                  WhatsAppHelper.sendKhataReceipt(
+                                    customerName: customer.name,
+                                    phone: customer.phone,
+                                    amount: amount,
+                                    type: type,
+                                    newBalance: updatedBalance,
+                                  );
+                                },
+                              )
+                            : null,
                       ),
                     );
                   },

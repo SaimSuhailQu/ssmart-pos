@@ -68,23 +68,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Scaffold(
       backgroundColor: AppTheme.backgroundLight,
       appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        title: Row(
           children: [
-            const Text('Dashboard'),
-            StreamBuilder<ConnectionStatus>(
-              stream: firebaseService.connectionStatusStream,
-              builder: (context, snapshot) {
-                final status = snapshot.data ?? ConnectionStatus.connecting;
-                return Text(
-                  status.displayName,
-                  style: AppTheme.labelSmall.copyWith(
-                    color: status.isOnline
-                        ? AppTheme.successGreen
-                        : AppTheme.textSecondary,
-                  ),
-                );
-              },
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.asset(
+                'assets/images/ss_mart_logo.png',
+                height: 32,
+                width: 32,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => const Icon(
+                  CupertinoIcons.chart_bar_square_fill,
+                  size: 28,
+                  color: AppTheme.primaryCyan,
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('SSmart Admin', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                StreamBuilder<ConnectionStatus>(
+                  stream: firebaseService.connectionStatusStream,
+                  builder: (context, snapshot) {
+                    final status = snapshot.data ?? ConnectionStatus.connecting;
+                    return Text(
+                      status.displayName,
+                      style: AppTheme.labelSmall.copyWith(
+                        fontSize: 10,
+                        color: status.isOnline
+                            ? AppTheme.successGreen
+                            : AppTheme.textSecondary,
+                      ),
+                    );
+                  },
+                ),
+              ],
             ),
           ],
         ),
