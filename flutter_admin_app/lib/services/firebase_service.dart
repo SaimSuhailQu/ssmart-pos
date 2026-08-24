@@ -364,6 +364,42 @@ class FirebaseService {
     });
   }
 
+  /// Get real-time stream of audit entries for a specific customer's khata
+  Stream<List<Map<String, dynamic>>> getCustomerKhataStream(String customerId) {
+    final khataRef = _database.ref('customer_khata/$customerId');
+    return khataRef.onValue.map((event) {
+      final data = event.snapshot.value;
+      if (data == null) return <Map<String, dynamic>>[];
+      final List<Map<String, dynamic>> list = [];
+      if (data is Map) {
+        data.forEach((k, v) {
+          if (v is Map) {
+            final entry = Map<String, dynamic>.from(v);
+            entry['key'] = k.toString();
+            list.add(entry);
+          }
+        });
+      } else if (data is List) {
+        for (int i = 0; i < data.length; i++) {
+          if (data[i] is Map) {
+            final entry = Map<String, dynamic>.from(data[i]);
+            entry['key'] = i.toString();
+            list.add(entry);
+          }
+        }
+      }
+      list.sort((a, b) {
+        final tA = a['timestamp']?.toString() ?? '';
+        final tB = b['timestamp']?.toString() ?? '';
+        return tB.compareTo(tA);
+      });
+      return list;
+    }).handleError((err) {
+      print('Error in customer khata stream: $err');
+      return <Map<String, dynamic>>[];
+    });
+  }
+
   /// Get real-time stream of all vendors and purchase orders
   Stream<List<PurchaseOrderModel>> getPurchaseOrdersStream() {
     final poRef = _database.ref(FirebasePaths.purchaseOrders);

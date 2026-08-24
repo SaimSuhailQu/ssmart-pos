@@ -3,10 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
 import 'package:ssmart_pos_admin/core/utils/whatsapp_helper.dart';
+import 'package:ssmart_pos_admin/core/widgets/app_error_widget.dart';
+import 'package:ssmart_pos_admin/core/widgets/app_loading_indicator.dart';
+import 'package:ssmart_pos_admin/features/customers/widgets/customer_khata_details_sheet.dart';
 import 'package:ssmart_pos_admin/models/customer.dart';
 import 'package:ssmart_pos_admin/services/firebase_service.dart';
-import 'package:ssmart_pos_admin/widgets/error_widget.dart';
-import 'package:ssmart_pos_admin/widgets/loading_indicator.dart';
 
 class CustomersKhataScreen extends StatefulWidget {
   const CustomersKhataScreen({super.key});
@@ -141,7 +142,6 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                           final hasDebt = item.balance > 0;
 
                           return Container(
-                            padding: const EdgeInsets.all(AppTheme.spacingM),
                             decoration: BoxDecoration(
                               color: AppTheme.cardBackground,
                               borderRadius: BorderRadius.circular(AppTheme.radiusM),
@@ -149,104 +149,119 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                                 color: hasDebt ? Colors.amber.withOpacity(0.3) : AppTheme.borderColor,
                               ),
                             ),
-                            child: Column(
-                              children: [
-                                Row(
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                              onTap: () => _showKhataDetailsSheet(context, item),
+                              child: Padding(
+                                padding: const EdgeInsets.all(AppTheme.spacingM),
+                                child: Column(
                                   children: [
-                                    CircleAvatar(
-                                      backgroundColor: hasDebt ? Colors.amber.withOpacity(0.15) : AppTheme.primaryBlue.withOpacity(0.1),
-                                      child: Icon(
-                                        CupertinoIcons.person_fill,
-                                        color: hasDebt ? Colors.amber.shade800 : AppTheme.primaryBlue,
-                                      ),
-                                    ),
-                                    const SizedBox(width: AppTheme.spacingM),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            item.name,
-                                            style: AppTheme.bodyLarge.copyWith(fontWeight: FontWeight.bold),
-                                          ),
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            item.phone.isNotEmpty ? item.phone : 'No Phone Listed',
-                                            style: AppTheme.bodySmall.copyWith(color: AppTheme.textSecondary),
-                                          ),
-                                          Text(
-                                            'Loyalty Points: ${item.points}',
-                                            style: AppTheme.labelSmall.copyWith(color: AppTheme.primaryBlue),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                    Row(
                                       children: [
-                                        Text(
-                                          'PKR ${item.balance.toStringAsFixed(0)}',
-                                          style: AppTheme.bodyLarge.copyWith(
-                                            color: hasDebt ? Colors.amber.shade900 : AppTheme.successGreen,
-                                            fontWeight: FontWeight.bold,
+                                        CircleAvatar(
+                                          backgroundColor: hasDebt ? Colors.amber.withOpacity(0.15) : AppTheme.primaryBlue.withOpacity(0.1),
+                                          child: Icon(
+                                            CupertinoIcons.person_fill,
+                                            color: hasDebt ? Colors.amber.shade800 : AppTheme.primaryBlue,
                                           ),
                                         ),
-                                        Text(
-                                          hasDebt ? 'Udhaar Due' : 'Cleared',
-                                          style: AppTheme.labelSmall.copyWith(
-                                            color: hasDebt ? Colors.amber.shade800 : AppTheme.successGreen,
-                                            fontWeight: FontWeight.bold,
+                                        const SizedBox(width: AppTheme.spacingM),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  Expanded(
+                                                    child: Text(
+                                                      item.name,
+                                                      style: AppTheme.bodyLarge.copyWith(fontWeight: FontWeight.bold),
+                                                    ),
+                                                  ),
+                                                  const Icon(CupertinoIcons.chevron_right, size: 14, color: AppTheme.textSecondary),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                item.phone.isNotEmpty ? item.phone : 'No Phone Listed',
+                                                style: AppTheme.bodySmall.copyWith(color: AppTheme.textSecondary),
+                                              ),
+                                              Text(
+                                                'Loyalty Points: ${item.points}',
+                                                style: AppTheme.labelSmall.copyWith(color: AppTheme.primaryBlue),
+                                              ),
+                                            ],
                                           ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Column(
+                                          crossAxisAlignment: CrossAxisAlignment.end,
+                                          children: [
+                                            Text(
+                                              'PKR ${item.balance.toStringAsFixed(0)}',
+                                              style: AppTheme.bodyLarge.copyWith(
+                                                color: hasDebt ? Colors.amber.shade900 : AppTheme.successGreen,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            Text(
+                                              hasDebt ? 'Udhaar Due' : 'Cleared',
+                                              style: AppTheme.labelSmall.copyWith(
+                                                color: hasDebt ? Colors.amber.shade800 : AppTheme.successGreen,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                    const Divider(height: 16, color: AppTheme.borderColor),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: [
+                                        // WhatsApp Reminder button
+                                        if (item.phone.isNotEmpty) ...[
+                                          TextButton.icon(
+                                            icon: const Icon(CupertinoIcons.chat_bubble_2_fill, size: 16, color: Color(0xFF25D366)),
+                                            label: const Text('WhatsApp', style: TextStyle(color: Color(0xFF25D366), fontSize: 12, fontWeight: FontWeight.bold)),
+                                            onPressed: () async {
+                                              final success = await WhatsAppHelper.sendCustomerKhataReminder(customer: item);
+                                              if (!success) {
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  const SnackBar(content: Text('Could not open WhatsApp app')),
+                                                );
+                                              }
+                                            },
+                                          ),
+                                          const SizedBox(width: 6),
+                                        ],
+                                        // Record Wasool / Udhaar button
+                                        TextButton.icon(
+                                          icon: const Icon(CupertinoIcons.money_dollar_circle, size: 16, color: Colors.amber),
+                                          label: const Text('Loan Entry', style: TextStyle(color: Colors.amber, fontSize: 12, fontWeight: FontWeight.bold)),
+                                          onPressed: () => _showKhataTransactionDialog(context, item),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        // Edit Customer button
+                                        TextButton.icon(
+                                          icon: const Icon(CupertinoIcons.pencil, size: 16, color: AppTheme.primaryCyan),
+                                          label: const Text('Edit', style: TextStyle(color: AppTheme.primaryCyan, fontSize: 12)),
+                                          onPressed: () => _showCustomerDialog(context, item),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        // Delete button
+                                        IconButton(
+                                          icon: const Icon(CupertinoIcons.trash, size: 16, color: AppTheme.errorRed),
+                                          onPressed: () => _confirmDeleteCustomer(context, item),
+                                          tooltip: 'Delete',
+                                          padding: EdgeInsets.zero,
+                                          constraints: const BoxConstraints(),
                                         ),
                                       ],
                                     ),
                                   ],
                                 ),
-                                const Divider(height: 16, color: AppTheme.borderColor),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    // WhatsApp Reminder button
-                                    if (item.phone.isNotEmpty) ...[
-                                      TextButton.icon(
-                                        icon: const Icon(CupertinoIcons.chat_bubble_2_fill, size: 16, color: Color(0xFF25D366)),
-                                        label: const Text('WhatsApp', style: TextStyle(color: Color(0xFF25D366), fontSize: 12, fontWeight: FontWeight.bold)),
-                                        onPressed: () async {
-                                          final success = await WhatsAppHelper.sendCustomerKhataReminder(customer: item);
-                                          if (!success) {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              const SnackBar(content: Text('Could not open WhatsApp app')),
-                                            );
-                                          }
-                                        },
-                                      ),
-                                      const SizedBox(width: 6),
-                                    ],
-                                    // Record Wasool / Udhaar button
-                                    TextButton.icon(
-                                      icon: const Icon(CupertinoIcons.money_dollar_circle, size: 16, color: Colors.amber),
-                                      label: const Text('Loan Entry', style: TextStyle(color: Colors.amber, fontSize: 12, fontWeight: FontWeight.bold)),
-                                      onPressed: () => _showKhataTransactionDialog(context, item),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    // Edit Customer button
-                                    TextButton.icon(
-                                      icon: const Icon(CupertinoIcons.pencil, size: 16, color: AppTheme.primaryCyan),
-                                      label: const Text('Edit', style: TextStyle(color: AppTheme.primaryCyan, fontSize: 12)),
-                                      onPressed: () => _showCustomerDialog(context, item),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    // Delete button
-                                    IconButton(
-                                      icon: const Icon(CupertinoIcons.trash, size: 16, color: AppTheme.errorRed),
-                                      onPressed: () => _confirmDeleteCustomer(context, item),
-                                      tooltip: 'Delete',
-                                      padding: EdgeInsets.zero,
-                                      constraints: const BoxConstraints(),
-                                    ),
-                                  ],
-                                ),
-                              ],
+                              ),
                             ),
                           );
                         },
@@ -255,6 +270,18 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
             ],
           );
         },
+      ),
+    );
+  }
+
+  void _showKhataDetailsSheet(BuildContext context, CustomerModel customer) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => CustomerKhataDetailsSheet(
+        customer: customer,
+        onAddEntry: () => _showKhataTransactionDialog(context, customer),
       ),
     );
   }

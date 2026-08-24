@@ -2,11 +2,12 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
-import 'package:ssmart_pos_admin/core/utils/date_utils.dart';
+import 'package:ssmart_pos_admin/core/utils/currency_formatter.dart';
+import 'package:ssmart_pos_admin/core/widgets/app_error_widget.dart';
+import 'package:ssmart_pos_admin/core/widgets/app_loading_indicator.dart';
+import 'package:ssmart_pos_admin/core/widgets/barcode_scanner_sheet.dart';
 import 'package:ssmart_pos_admin/models/product.dart';
 import 'package:ssmart_pos_admin/services/firebase_service.dart';
-import 'package:ssmart_pos_admin/widgets/error_widget.dart';
-import 'package:ssmart_pos_admin/widgets/loading_indicator.dart';
 
 /// Screen displaying the items catalog database with real-time sync
 class CatalogScreen extends StatefulWidget {
@@ -121,22 +122,42 @@ class _CatalogScreenState extends State<CatalogScreen> {
                 padding: const EdgeInsets.all(AppTheme.spacingM),
                 child: Column(
                   children: [
-                    // Search bar
+                    // Search bar with camera scan button
                     TextField(
                       controller: _searchController,
                       style: AppTheme.bodyMedium,
                       decoration: InputDecoration(
-                        hintText: 'Search by name, category, or barcode...',
+                        hintText: 'Search or scan barcode...',
                         prefixIcon: const Icon(CupertinoIcons.search, color: AppTheme.textSecondary),
-                        suffixIcon: _searchQuery.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(CupertinoIcons.xmark_circle_fill, color: AppTheme.textSecondary),
+                        suffixIcon: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (_searchQuery.isNotEmpty)
+                              IconButton(
+                                icon: const Icon(CupertinoIcons.xmark_circle_fill, color: AppTheme.textSecondary, size: 18),
                                 onPressed: () {
                                   _searchController.clear();
                                   setState(() => _searchQuery = '');
                                 },
-                              )
-                            : null,
+                              ),
+                            IconButton(
+                              icon: const Icon(CupertinoIcons.barcode_viewfinder, color: AppTheme.primaryCyan, size: 22),
+                              tooltip: 'Scan Barcode with Camera',
+                              onPressed: () async {
+                                final scanned = await showModalBottomSheet<String>(
+                                  context: context,
+                                  isScrollControlled: true,
+                                  backgroundColor: Colors.transparent,
+                                  builder: (ctx) => const BarcodeScannerSheet(),
+                                );
+                                if (scanned != null && scanned.isNotEmpty) {
+                                  _searchController.text = scanned;
+                                  setState(() => _searchQuery = scanned);
+                                }
+                              },
+                            ),
+                          ],
+                        ),
                       ),
                       onChanged: (val) => setState(() => _searchQuery = val),
                     ),
@@ -264,7 +285,25 @@ class _CatalogScreenState extends State<CatalogScreen> {
               TextField(
                 controller: barcodeCtrl,
                 style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(labelText: 'Barcode / SKU', prefixIcon: Icon(CupertinoIcons.barcode)),
+                decoration: InputDecoration(
+                  labelText: 'Barcode / SKU',
+                  prefixIcon: const Icon(CupertinoIcons.barcode),
+                  suffixIcon: IconButton(
+                    icon: const Icon(CupertinoIcons.camera_fill, color: AppTheme.primaryCyan),
+                    tooltip: 'Scan Barcode',
+                    onPressed: () async {
+                      final scanned = await showModalBottomSheet<String>(
+                        context: ctx,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (scannerCtx) => const BarcodeScannerSheet(),
+                      );
+                      if (scanned != null && scanned.isNotEmpty) {
+                        barcodeCtrl.text = scanned;
+                      }
+                    },
+                  ),
+                ),
               ),
               const SizedBox(height: 12),
               Row(

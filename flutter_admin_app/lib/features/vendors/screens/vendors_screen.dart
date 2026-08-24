@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
 import 'package:ssmart_pos_admin/core/utils/date_utils.dart';
 import 'package:ssmart_pos_admin/core/utils/whatsapp_helper.dart';
+import 'package:ssmart_pos_admin/features/vendors/widgets/vendor_po_details_sheet.dart';
 import 'package:ssmart_pos_admin/models/vendor.dart';
 import 'package:ssmart_pos_admin/services/firebase_service.dart';
 import 'package:ssmart_pos_admin/widgets/error_widget.dart';
@@ -11,6 +12,18 @@ import 'package:ssmart_pos_admin/widgets/loading_indicator.dart';
 
 class VendorsScreen extends StatelessWidget {
   const VendorsScreen({super.key});
+
+  void _showPODetailsSheet(BuildContext context, PurchaseOrderModel po) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => VendorPODetailsSheet(
+        po: po,
+        onEditOrPay: () => _showVendorDialog(context, po),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -118,99 +131,111 @@ class VendorsScreen extends StatelessWidget {
                     final isCleared = po.balanceDue <= 0;
 
                     return Container(
-                      padding: const EdgeInsets.all(AppTheme.spacingM),
                       decoration: BoxDecoration(
                         color: AppTheme.cardBackground,
                         borderRadius: BorderRadius.circular(AppTheme.radiusM),
                         border: Border.all(color: AppTheme.borderColor),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                        onTap: () => _showPODetailsSheet(context, po),
+                        child: Padding(
+                          padding: const EdgeInsets.all(AppTheme.spacingM),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                po.vendorName,
-                                style: AppTheme.bodyLarge.copyWith(fontWeight: FontWeight.bold),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: isCleared ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(AppTheme.radiusS),
-                                ),
-                                child: Text(
-                                  isCleared ? 'PAID' : 'PAYABLE',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: isCleared ? Colors.green : Colors.red,
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Text(
+                                        po.vendorName,
+                                        style: AppTheme.bodyLarge.copyWith(fontWeight: FontWeight.bold),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      const Icon(CupertinoIcons.chevron_right, size: 14, color: AppTheme.textSecondary),
+                                    ],
                                   ),
-                                ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: isCleared ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(AppTheme.radiusS),
+                                    ),
+                                    child: Text(
+                                      isCleared ? 'PAID' : 'PAYABLE',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color: isCleared ? Colors.green : Colors.red,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Billed: PKR ${po.totalCost.toStringAsFixed(0)}',
+                                    style: AppTheme.bodySmall.copyWith(color: AppTheme.textSecondary),
+                                  ),
+                                  Text(
+                                    'Paid: PKR ${po.paidAmount.toStringAsFixed(0)}',
+                                    style: AppTheme.bodySmall.copyWith(color: AppTheme.successGreen),
+                                  ),
+                                  Text(
+                                    'Due: PKR ${po.balanceDue.toStringAsFixed(0)}',
+                                    style: AppTheme.bodySmall.copyWith(
+                                      color: isCleared ? AppTheme.successGreen : Colors.redAccent,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                AppDateUtils.formatDateTime(po.timestamp),
+                                style: AppTheme.labelSmall.copyWith(color: AppTheme.textSecondary),
+                              ),
+                              const Divider(height: 16, color: AppTheme.borderColor),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  if (po.phone.isNotEmpty) ...[
+                                    TextButton.icon(
+                                      icon: const Icon(CupertinoIcons.chat_bubble_2_fill, size: 16, color: Color(0xFF25D366)),
+                                      label: const Text('WhatsApp', style: TextStyle(color: Color(0xFF25D366), fontSize: 12, fontWeight: FontWeight.bold)),
+                                      onPressed: () async {
+                                        final success = await WhatsAppHelper.sendVendorPO(po: po);
+                                        if (!success) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(content: Text('Could not open WhatsApp app')),
+                                          );
+                                        }
+                                      },
+                                    ),
+                                    const SizedBox(width: 6),
+                                  ],
+                                  TextButton.icon(
+                                    icon: const Icon(CupertinoIcons.pencil, size: 16, color: AppTheme.primaryCyan),
+                                    label: const Text('Edit / Record Payment', style: TextStyle(color: AppTheme.primaryCyan, fontSize: 12)),
+                                    onPressed: () => _showVendorDialog(context, po),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  IconButton(
+                                    icon: const Icon(CupertinoIcons.trash, size: 16, color: AppTheme.errorRed),
+                                    onPressed: () => _confirmDeletePO(context, po),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
-                          const SizedBox(height: 6),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Billed: PKR ${po.totalCost.toStringAsFixed(0)}',
-                                style: AppTheme.bodySmall.copyWith(color: AppTheme.textSecondary),
-                              ),
-                              Text(
-                                'Paid: PKR ${po.paidAmount.toStringAsFixed(0)}',
-                                style: AppTheme.bodySmall.copyWith(color: AppTheme.successGreen),
-                              ),
-                              Text(
-                                'Due: PKR ${po.balanceDue.toStringAsFixed(0)}',
-                                style: AppTheme.bodySmall.copyWith(
-                                  color: isCleared ? AppTheme.successGreen : Colors.redAccent,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            AppDateUtils.formatDateTime(po.timestamp),
-                            style: AppTheme.labelSmall.copyWith(color: AppTheme.textSecondary),
-                          ),
-                          const Divider(height: 16, color: AppTheme.borderColor),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              if (po.phone.isNotEmpty) ...[
-                                TextButton.icon(
-                                  icon: const Icon(CupertinoIcons.chat_bubble_2_fill, size: 16, color: Color(0xFF25D366)),
-                                  label: const Text('WhatsApp', style: TextStyle(color: Color(0xFF25D366), fontSize: 12, fontWeight: FontWeight.bold)),
-                                  onPressed: () async {
-                                    final success = await WhatsAppHelper.sendVendorPO(po: po);
-                                    if (!success) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text('Could not open WhatsApp app')),
-                                      );
-                                    }
-                                  },
-                                ),
-                                const SizedBox(width: 6),
-                              ],
-                              TextButton.icon(
-                                icon: const Icon(CupertinoIcons.pencil, size: 16, color: AppTheme.primaryCyan),
-                                label: const Text('Edit / Record Payment', style: TextStyle(color: AppTheme.primaryCyan, fontSize: 12)),
-                                onPressed: () => _showVendorDialog(context, po),
-                              ),
-                              const SizedBox(width: 6),
-                              IconButton(
-                                icon: const Icon(CupertinoIcons.trash, size: 16, color: AppTheme.errorRed),
-                                onPressed: () => _confirmDeletePO(context, po),
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                              ),
-                            ],
-                          ),
-                        ],
+                        ),
                       ),
                     );
                   },
