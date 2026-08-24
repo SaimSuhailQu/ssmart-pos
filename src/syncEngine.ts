@@ -1,5 +1,5 @@
 import { initializeApp, getApps } from 'firebase/app';
-import { getDatabase, ref, set, onValue } from 'firebase/database';
+import { getDatabase, ref, set, get, onValue } from 'firebase/database';
 import { 
   getUnsyncedSales, 
   markSaleAsSynced, 
@@ -13,7 +13,9 @@ import {
   updateProduct,
   getCustomerByPhone,
   addCustomer,
-  updateCustomer
+  updateCustomer,
+  addExpense,
+  addVendor
 } from './db';
 import { Product } from './types';
 
@@ -105,9 +107,10 @@ export async function syncProductsToCloud(silent = false) {
     const products = getAllProducts() as Product[];
     const productsRef = ref(dbInstance, 'products');
     
-    const productsMap: Record<string, any> = {};
+    // Update individual products rather than wiping/overwriting the entire root node
+    const updates: Record<string, any> = {};
     for (const p of products) {
-      productsMap[p.id] = {
+      updates[p.id] = {
         id: p.id,
         name: p.name,
         barcode: p.barcode,
@@ -118,8 +121,7 @@ export async function syncProductsToCloud(silent = false) {
       };
     }
 
-    await set(productsRef, productsMap);
-    console.log(`Successfully synced ${products.length} products to Firebase.`);
+    await set(productsRef, updates);
     return { success: true, status: "ONLINE" };
   } catch (err) {
     console.error("Sync products failed:", err);
@@ -219,83 +221,143 @@ export async function syncVendorsToCloud(silent = false) {
   }
 }
 
+// Ingest changes from Firebase Cloud into POS local SQLite database
+async function ingestCloudDataToLocal() {
+  if (!dbInstance) return;
+
+  try {
+    // 1. Ingest Products
+    const productsSnap = await get(ref(dbInstance, 'products'));
+    if (productsSnap.exists()) {
+      const data = productsSnap.val();
+      const products = Object.values(data);
+      for (const p of products as any[]) {
+        if (!p || !p.barcode || !p.name) continue;
+        const existing = getProductByBarcode(p.barcode) as any;
+        if (existing) {
+          updateProduct(existing.id, {
+            name: p.name,
+            barcode: p.barcode,
+            price: Number(p.price) || 0,
+            stock: Number(p.stock) || 0,
+            category: p.category || 'General',
+            cost_price: Number(p.cost_price) || 0,
+          });
+        } else {
+          addProduct({
+            name: p.name,
+            barcode: p.barcode,
+            price: Number(p.price) || 0,
+            stock: Number(p.stock) || 0,
+            category: p.category || 'General',
+            cost_price: Number(p.cost_price) || 0,
+          });
+        }
+      }
+    }
+
+    // 2. Ingest Customers
+    const customersSnap = await get(ref(dbInstance, 'customers'));
+    if (customersSnap.exists()) {
+      const data = customersSnap.val();
+      const customers = Object.values(data);
+      for (const c of customers as any[]) {
+        if (!c || (!c.phone && !c.name)) continue;
+        const existing = c.phone ? (getCustomerByPhone(c.phone) as any) : null;
+        if (existing) {
+          updateCustomer(existing.id, {
+            name: c.name || existing.name,
+            phone: c.phone || existing.phone,
+            email: c.email || existing.email,
+            points: Number(c.points) || 0,
+          });
+        } else if (c.name) {
+          addCustomer({
+            name: c.name,
+            phone: c.phone || '',
+            email: c.email || '',
+            points: Number(c.points) || 0,
+          });
+        }
+      }
+    }
+
+    // 3. Ingest Expenses
+    const expensesSnap = await get(ref(dbInstance, 'expenses'));
+    if (expensesSnap.exists()) {
+      const data = expensesSnap.val();
+      const expenses = Object.values(data);
+      const localExpenses = getAllExpenses() as any[];
+      const localMap = new Set(localExpenses.map(e => `${e.amount}-${e.description}-${e.timestamp?.substring(0, 16)}`));
+      
+      for (const exp of expenses as any[]) {
+        if (!exp || !exp.amount) continue;
+        const key = `${exp.amount}-${exp.description}-${exp.timestamp?.substring(0, 16)}`;
+        if (!localMap.has(key)) {
+          addExpense({
+            amount: Number(exp.amount) || 0,
+            description: exp.description || 'Mobile Expense',
+            category: exp.category || 'General',
+            loggedBy: exp.logged_by || 'Mobile Admin',
+          });
+        }
+      }
+    }
+
+    // 4. Ingest Vendors & Purchase Orders
+    const vendorsSnap = await get(ref(dbInstance, 'purchase_orders'));
+    if (vendorsSnap.exists()) {
+      const data = vendorsSnap.val();
+      const pos = Object.values(data);
+      for (const po of pos as any[]) {
+        if (!po || !po.vendor_name) continue;
+        const existingVendors = getAllVendors() as any[];
+        let vendor = existingVendors.find(v => v.name?.toLowerCase() === po.vendor_name?.toLowerCase());
+        if (!vendor) {
+          const newVId = addVendor({
+            name: po.vendor_name,
+            contact: po.phone || po.contact_person || '',
+            category: 'General',
+          });
+          vendor = { id: newVId, name: po.vendor_name };
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("Ingest cloud data to local error:", err);
+  }
+}
+
 // Start periodic background sync worker & bidirectional realtime sync
 export function startSyncWorker(onStatusChange?: (status: string) => void) {
   if (dbInstance && onStatusChange) {
     const connectedRef = ref(dbInstance, ".info/connected");
-    onValue(connectedRef, (snap) => {
+    onValue(connectedRef, async (snap) => {
       if (snap.val() === true) {
         console.log("Firebase status: Connected (Online)");
         onStatusChange("ONLINE");
-        // Initial full sync on connect/reconnect
-        syncSalesToCloud();
-        syncProductsToCloud();
-        syncExpensesToCloud();
-        syncCustomersToCloud();
-        syncVendorsToCloud();
+        
+        // Step 1: First ingest any changes created while mobile was offline / mobile was active
+        await ingestCloudDataToLocal();
+
+        // Step 2: Push merged state back to Firebase
+        await syncSalesToCloud();
+        await syncProductsToCloud();
+        await syncExpensesToCloud();
+        await syncCustomersToCloud();
+        await syncVendorsToCloud();
       } else {
         console.log("Firebase status: Disconnected (Offline)");
         onStatusChange("OFFLINE");
       }
     });
 
-    // --- Bidirectional Sync: Listen for Mobile Updates in Real-time ---
+    // Realtime listeners for immediate updates from mobile
     try {
-      // 1. Mobile Products Updates -> Local SQLite
-      onValue(ref(dbInstance, 'products'), (snapshot) => {
-        const data = snapshot.val();
-        if (!data) return;
-        const products = Object.values(data);
-        for (const p of products as any[]) {
-          if (!p || !p.barcode || !p.name) continue;
-          const existing = getProductByBarcode(p.barcode) as any;
-          if (existing) {
-            updateProduct(existing.id, {
-              name: p.name,
-              barcode: p.barcode,
-              price: Number(p.price) || 0,
-              stock: Number(p.stock) || 0,
-              category: p.category || 'General',
-              cost_price: Number(p.cost_price) || 0,
-            });
-          } else {
-            addProduct({
-              name: p.name,
-              barcode: p.barcode,
-              price: Number(p.price) || 0,
-              stock: Number(p.stock) || 0,
-              category: p.category || 'General',
-              cost_price: Number(p.cost_price) || 0,
-            });
-          }
-        }
-      });
-
-      // 2. Mobile Customers Updates -> Local SQLite
-      onValue(ref(dbInstance, 'customers'), (snapshot) => {
-        const data = snapshot.val();
-        if (!data) return;
-        const customers = Object.values(data);
-        for (const c of customers as any[]) {
-          if (!c || !c.phone) continue;
-          const existing = getCustomerByPhone(c.phone) as any;
-          if (existing) {
-            updateCustomer(existing.id, {
-              name: c.name || existing.name,
-              phone: c.phone,
-              email: c.email || '',
-              points: Number(c.points) || 0,
-            });
-          } else if (c.name) {
-            addCustomer({
-              name: c.name,
-              phone: c.phone,
-              email: c.email || '',
-              points: Number(c.points) || 0,
-            });
-          }
-        }
-      });
+      onValue(ref(dbInstance, 'products'), () => ingestCloudDataToLocal());
+      onValue(ref(dbInstance, 'customers'), () => ingestCloudDataToLocal());
+      onValue(ref(dbInstance, 'expenses'), () => ingestCloudDataToLocal());
+      onValue(ref(dbInstance, 'purchase_orders'), () => ingestCloudDataToLocal());
     } catch (e) {
       console.warn("Realtime cloud listener registration error:", e);
     }
@@ -306,6 +368,7 @@ export function startSyncWorker(onStatusChange?: (status: string) => void) {
   // Periodic background cloud push every 30 seconds
   setInterval(async () => {
     try {
+      await ingestCloudDataToLocal();
       await syncSalesToCloud(true);
       await syncProductsToCloud(true);
       await syncExpensesToCloud(true);
