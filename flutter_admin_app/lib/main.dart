@@ -34,6 +34,15 @@ void main() async {
       ),
     );
 
+    // Enable Offline Disk Persistence (100MB Cache for offline CRUD & browsing)
+    try {
+      FirebaseDatabase.instance.setPersistenceEnabled(true);
+      FirebaseDatabase.instance.setPersistenceCacheSizeBytes(100000000); // 100MB
+      print('✓ Firebase offline local disk persistence enabled');
+    } catch (e) {
+      print('Firebase persistence notice: $e');
+    }
+
     print('✓ Firebase initialized successfully');
   } catch (e) {
     print('✗ Firebase initialization failed: $e');

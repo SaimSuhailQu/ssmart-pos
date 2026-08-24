@@ -22,6 +22,21 @@ class FirebaseService {
 
   FirebaseService(this._database) {
     _initializeConnectionListener();
+    _enableOfflineSyncing();
+  }
+
+  /// Automatically caches all records to local disk so app works 100% offline
+  void _enableOfflineSyncing() {
+    try {
+      _database.ref(FirebasePaths.sales).keepSynced(true);
+      _database.ref(FirebasePaths.products).keepSynced(true);
+      _database.ref(FirebasePaths.expenses).keepSynced(true);
+      _database.ref(FirebasePaths.customers).keepSynced(true);
+      _database.ref(FirebasePaths.purchaseOrders).keepSynced(true);
+      _database.ref('customer_khata').keepSynced(true);
+    } catch (e) {
+      print('keepSynced error: $e');
+    }
   }
 
   /// Initialize connection status listener
