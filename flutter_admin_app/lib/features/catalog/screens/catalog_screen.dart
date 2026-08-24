@@ -71,6 +71,19 @@ class _CatalogScreenState extends State<CatalogScreen> {
           icon: const Icon(CupertinoIcons.back),
           onPressed: () => Navigator.pop(context),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(CupertinoIcons.add_circled, color: AppTheme.primaryTeal),
+            tooltip: 'Add New Item',
+            onPressed: () => _showProductDialog(context, null),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: AppTheme.primaryTeal,
+        icon: const Icon(CupertinoIcons.plus, color: Colors.black),
+        label: const Text('Add Product', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        onPressed: () => _showProductDialog(context, null),
       ),
       body: StreamBuilder<List<Product>>(
         stream: firebaseService.getProductsStream(),
@@ -120,53 +133,36 @@ class _CatalogScreenState extends State<CatalogScreen> {
                                 icon: const Icon(CupertinoIcons.xmark_circle_fill, color: AppTheme.textSecondary),
                                 onPressed: () {
                                   _searchController.clear();
-                                  setState(() {
-                                    _searchQuery = '';
-                                  });
+                                  setState(() => _searchQuery = '');
                                 },
                               )
                             : null,
                       ),
-                      onChanged: (value) {
-                        setState(() {
-                          _searchQuery = value;
-                        });
-                      },
+                      onChanged: (val) => setState(() => _searchQuery = val),
                     ),
-                    const SizedBox(height: AppTheme.spacingM),
+                    const SizedBox(height: AppTheme.spacingS),
 
-                    // Categories scrollable row
+                    // Categories horizontal list
                     SizedBox(
-                      height: 38,
-                      child: ListView(
+                      height: 36,
+                      child: ListView.separated(
                         scrollDirection: Axis.horizontal,
-                        children: categories.map((category) {
-                          final isSelected = _selectedCategory == category;
-                          return Padding(
-                            padding: const EdgeInsets.only(right: AppTheme.spacingS),
-                            child: ChoiceChip(
-                              label: Text(category),
-                              selected: isSelected,
-                              onSelected: (selected) {
-                                if (selected) {
-                                  setState(() {
-                                    _selectedCategory = category;
-                                  });
-                                }
-                              },
-                              backgroundColor: AppTheme.backgroundLight,
-                              selectedColor: AppTheme.primaryCyan.withValues(alpha: 0.15),
-                              labelStyle: AppTheme.bodyMedium.copyWith(
-                                color: isSelected ? AppTheme.primaryCyan : AppTheme.textSecondary,
-                                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                              ),
-                              side: BorderSide(
-                                color: isSelected ? AppTheme.primaryCyan.withValues(alpha: 0.4) : AppTheme.borderColor,
-                                width: 0.5,
-                              ),
-                            ),
+                        itemCount: categories.length,
+                        separatorBuilder: (_, __) => const SizedBox(width: 8),
+                        itemBuilder: (context, idx) {
+                          final cat = categories.elementAt(idx);
+                          final isSelected = cat.toLowerCase() == _selectedCategory.toLowerCase();
+
+                          return FilterChip(
+                            label: Text(cat),
+                            selected: isSelected,
+                            onSelected: (selected) {
+                              setState(() {
+                                _selectedCategory = cat;
+                              });
+                            },
                           );
-                        }).toList(),
+                        },
                       ),
                     ),
                   ],
@@ -198,17 +194,198 @@ class _CatalogScreenState extends State<CatalogScreen> {
                 child: filteredProducts.isEmpty
                     ? _buildNoResultsState()
                     : ListView.builder(
-                        padding: const EdgeInsets.only(bottom: AppTheme.spacingL),
+                        padding: const EdgeInsets.only(bottom: AppTheme.spacingXL * 2),
                         itemCount: filteredProducts.length,
                         itemBuilder: (context, index) {
                           final product = filteredProducts[index];
-                          return _ProductCatalogCard(product: product);
+                          return _ProductCatalogCard(
+                            product: product,
+                            onEdit: () => _showProductDialog(context, product),
+                            onDelete: () => _confirmDeleteProduct(context, product),
+                          );
                         },
                       ),
               ),
             ],
           );
         },
+      ),
+    );
+  }
+
+  void _showProductDialog(BuildContext context, Product? product) {
+    final isEditing = product != null;
+    final nameCtrl = TextEditingController(text: product?.name ?? '');
+    final barcodeCtrl = TextEditingController(text: product?.barcode ?? '');
+    final priceCtrl = TextEditingController(text: product?.price != null ? product!.price.toString() : '');
+    final costCtrl = TextEditingController(text: product?.costPrice != null ? product!.costPrice.toString() : '');
+    final stockCtrl = TextEditingController(text: product?.stock != null ? product!.stock.toString() : '0');
+    final catCtrl = TextEditingController(text: product?.category ?? 'General');
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppTheme.surfaceDark,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+          top: 20,
+          left: 20,
+          right: 20,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    isEditing ? 'Edit Product' : 'Add New Product',
+                    style: AppTheme.headlineMedium.copyWith(color: AppTheme.primaryTeal),
+                  ),
+                  IconButton(
+                    icon: const Icon(CupertinoIcons.xmark_circle, color: AppTheme.textSecondary),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: nameCtrl,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(labelText: 'Item Name', prefixIcon: Icon(CupertinoIcons.tag)),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: barcodeCtrl,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(labelText: 'Barcode / SKU', prefixIcon: Icon(CupertinoIcons.barcode)),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: priceCtrl,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(labelText: 'Retail Price (Rs)', prefixIcon: Icon(CupertinoIcons.money_dollar)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
+                      controller: costCtrl,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(labelText: 'Cost Price (Rs)', prefixIcon: Icon(CupertinoIcons.cart)),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: stockCtrl,
+                      keyboardType: TextInputType.number,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(labelText: 'Stock Qty', prefixIcon: Icon(CupertinoIcons.cube_box)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
+                      controller: catCtrl,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(labelText: 'Category', prefixIcon: Icon(CupertinoIcons.folder)),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryTeal,
+                    foregroundColor: Colors.black,
+                  ),
+                  icon: const Icon(CupertinoIcons.checkmark_alt_circle),
+                  label: Text(isEditing ? 'Save Changes' : 'Create Item', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  onPressed: () async {
+                    final name = nameCtrl.text.trim();
+                    final barcode = barcodeCtrl.text.trim();
+                    final price = double.tryParse(priceCtrl.text.trim()) ?? 0;
+                    final cost = double.tryParse(costCtrl.text.trim()) ?? 0;
+                    final stock = int.tryParse(stockCtrl.text.trim()) ?? 0;
+                    final cat = catCtrl.text.trim().isEmpty ? 'General' : catCtrl.text.trim();
+
+                    if (name.isEmpty || barcode.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Please fill item name and barcode')),
+                      );
+                      return;
+                    }
+
+                    Navigator.pop(ctx);
+                    await context.read<FirebaseService>().saveProduct(
+                      id: product?.id,
+                      name: name,
+                      barcode: barcode,
+                      price: price,
+                      costPrice: cost,
+                      stock: stock,
+                      category: cat,
+                    );
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(isEditing ? 'Item "$name" updated!' : 'Item "$name" added to catalog!'),
+                        backgroundColor: AppTheme.primaryTeal,
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _confirmDeleteProduct(BuildContext context, Product product) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.surfaceDark,
+        title: const Text('Delete Product?'),
+        content: Text('Are you sure you want to delete "${product.name}" (${product.barcode})?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.errorRed),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await context.read<FirebaseService>().deleteProduct(product.id);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Deleted "${product.name}"')),
+              );
+            },
+            child: const Text('Delete'),
+          ),
+        ],
       ),
     );
   }
@@ -290,8 +467,14 @@ class _CatalogScreenState extends State<CatalogScreen> {
 /// Card showing individual product details
 class _ProductCatalogCard extends StatelessWidget {
   final Product product;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
 
-  const _ProductCatalogCard({required this.product});
+  const _ProductCatalogCard({
+    required this.product,
+    required this.onEdit,
+    required this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -314,7 +497,7 @@ class _ProductCatalogCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Row 1: Category Tag & Stock Level Badge
+            // Row 1: Category Tag, Stock Level Badge & Action Buttons
             Row(
               children: [
                 // Category badge
@@ -333,7 +516,7 @@ class _ProductCatalogCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                const Spacer(),
+                const SizedBox(width: 8),
                 // Stock level indicator
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -365,6 +548,24 @@ class _ProductCatalogCard extends StatelessWidget {
                       ),
                     ],
                   ),
+                ),
+                const Spacer(),
+                // Edit button
+                IconButton(
+                  icon: const Icon(CupertinoIcons.pencil, size: 18, color: AppTheme.primaryCyan),
+                  onPressed: onEdit,
+                  tooltip: 'Edit Item',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+                const SizedBox(width: 12),
+                // Delete button
+                IconButton(
+                  icon: const Icon(CupertinoIcons.trash, size: 18, color: AppTheme.errorRed),
+                  onPressed: onDelete,
+                  tooltip: 'Delete Item',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
                 ),
               ],
             ),

@@ -19,6 +19,19 @@ class ExpensesScreen extends StatelessWidget {
       backgroundColor: AppTheme.backgroundLight,
       appBar: AppBar(
         title: const Text('Expense Counter'),
+        actions: [
+          IconButton(
+            icon: const Icon(CupertinoIcons.add_circled, color: Colors.redAccent),
+            tooltip: 'Log Expense',
+            onPressed: () => _showAddExpenseDialog(context),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: Colors.redAccent,
+        icon: const Icon(CupertinoIcons.plus, color: Colors.white),
+        label: const Text('Log Expense', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        onPressed: () => _showAddExpenseDialog(context),
       ),
       body: StreamBuilder<List<ExpenseModel>>(
         stream: firebaseService.getExpensesStream(),
@@ -92,7 +105,11 @@ class ExpensesScreen extends StatelessWidget {
               // Itemized Expenses List
               Expanded(
                 child: ListView.separated(
-                  padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
+                  padding: const EdgeInsets.only(
+                    left: AppTheme.spacingM,
+                    right: AppTheme.spacingM,
+                    bottom: AppTheme.spacingXL * 2,
+                  ),
                   itemCount: expenses.length,
                   separatorBuilder: (_, __) => const SizedBox(height: AppTheme.spacingS),
                   itemBuilder: (context, index) {
@@ -135,12 +152,23 @@ class ExpensesScreen extends StatelessWidget {
                               ],
                             ),
                           ),
-                          Text(
-                            '-PKR ${item.amount.toStringAsFixed(0)}',
-                            style: AppTheme.bodyLarge.copyWith(
-                              color: Colors.redAccent,
-                              fontWeight: FontWeight.bold,
-                            ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                '-PKR ${item.amount.toStringAsFixed(0)}',
+                                style: AppTheme.bodyLarge.copyWith(
+                                  color: Colors.redAccent,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(CupertinoIcons.trash, size: 16, color: AppTheme.errorRed),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                                onPressed: () => _confirmDeleteExpense(context, item),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -151,6 +179,135 @@ class ExpensesScreen extends StatelessWidget {
             ],
           );
         },
+      ),
+    );
+  }
+
+  void _showAddExpenseDialog(BuildContext context) {
+    final amountCtrl = TextEditingController();
+    final descCtrl = TextEditingController();
+    final catCtrl = TextEditingController(text: 'General');
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppTheme.surfaceDark,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+          top: 20,
+          left: 20,
+          right: 20,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Log Business Expense',
+                  style: AppTheme.headlineMedium.copyWith(color: Colors.redAccent),
+                ),
+                IconButton(
+                  icon: const Icon(CupertinoIcons.xmark_circle, color: AppTheme.textSecondary),
+                  onPressed: () => Navigator.pop(ctx),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: amountCtrl,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(labelText: 'Expense Amount (PKR)', prefixIcon: Icon(CupertinoIcons.money_dollar)),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: descCtrl,
+              style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(labelText: 'Description / Purpose', prefixIcon: Icon(CupertinoIcons.pencil)),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: catCtrl,
+              style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(labelText: 'Category (e.g. Rent, Utilities, Refreshments)', prefixIcon: Icon(CupertinoIcons.folder)),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.redAccent,
+                  foregroundColor: Colors.white,
+                ),
+                icon: const Icon(CupertinoIcons.checkmark_alt),
+                label: const Text('Record Expense', style: TextStyle(fontWeight: FontWeight.bold)),
+                onPressed: () async {
+                  final amount = double.tryParse(amountCtrl.text.trim()) ?? 0;
+                  final desc = descCtrl.text.trim();
+                  final cat = catCtrl.text.trim().isEmpty ? 'General' : catCtrl.text.trim();
+
+                  if (amount <= 0 || desc.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Please enter an amount and description')),
+                    );
+                    return;
+                  }
+
+                  Navigator.pop(ctx);
+                  await context.read<FirebaseService>().addExpense(
+                    amount: amount,
+                    description: desc,
+                    category: cat,
+                    loggedBy: 'Mobile Admin',
+                  );
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Expense recorded successfully!'),
+                      backgroundColor: Colors.redAccent,
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _confirmDeleteExpense(BuildContext context, ExpenseModel expense) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.surfaceDark,
+        title: const Text('Delete Expense?'),
+        content: Text('Are you sure you want to delete expense of PKR ${expense.amount.toStringAsFixed(0)}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.errorRed),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await context.read<FirebaseService>().deleteExpense(expense.id);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Expense deleted')),
+              );
+            },
+            child: const Text('Delete'),
+          ),
+        ],
       ),
     );
   }

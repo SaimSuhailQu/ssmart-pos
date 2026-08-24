@@ -19,6 +19,19 @@ class VendorsScreen extends StatelessWidget {
       backgroundColor: AppTheme.backgroundLight,
       appBar: AppBar(
         title: const Text('Vendor Ledgers & POs'),
+        actions: [
+          IconButton(
+            icon: const Icon(CupertinoIcons.add_circled, color: Colors.purpleAccent),
+            tooltip: 'Add Vendor PO',
+            onPressed: () => _showVendorDialog(context, null),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: Colors.purple.shade700,
+        icon: const Icon(CupertinoIcons.plus, color: Colors.white),
+        label: const Text('Add Vendor / PO', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        onPressed: () => _showVendorDialog(context, null),
       ),
       body: StreamBuilder<List<PurchaseOrderModel>>(
         stream: firebaseService.getPurchaseOrdersStream(),
@@ -92,7 +105,11 @@ class VendorsScreen extends StatelessWidget {
               // PO List
               Expanded(
                 child: ListView.separated(
-                  padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
+                  padding: const EdgeInsets.only(
+                    left: AppTheme.spacingM,
+                    right: AppTheme.spacingM,
+                    bottom: AppTheme.spacingXL * 2,
+                  ),
                   itemCount: pos.length,
                   separatorBuilder: (_, __) => const SizedBox(height: AppTheme.spacingS),
                   itemBuilder: (context, index) {
@@ -159,6 +176,24 @@ class VendorsScreen extends StatelessWidget {
                             AppDateUtils.formatDateTime(po.timestamp),
                             style: AppTheme.labelSmall.copyWith(color: AppTheme.textSecondary),
                           ),
+                          const Divider(height: 16, color: AppTheme.borderColor),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              TextButton.icon(
+                                icon: const Icon(CupertinoIcons.pencil, size: 16, color: AppTheme.primaryCyan),
+                                label: const Text('Edit / Record Payment', style: TextStyle(color: AppTheme.primaryCyan, fontSize: 12)),
+                                onPressed: () => _showVendorDialog(context, po),
+                              ),
+                              const SizedBox(width: 8),
+                              IconButton(
+                                icon: const Icon(CupertinoIcons.trash, size: 16, color: AppTheme.errorRed),
+                                onPressed: () => _confirmDeletePO(context, po),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                              ),
+                            ],
+                          ),
                         ],
                       ),
                     );
@@ -168,6 +203,172 @@ class VendorsScreen extends StatelessWidget {
             ],
           );
         },
+      ),
+    );
+  }
+
+  void _showVendorDialog(BuildContext context, PurchaseOrderModel? po) {
+    final isEditing = po != null;
+    final nameCtrl = TextEditingController(text: po?.vendorName ?? '');
+    final contactCtrl = TextEditingController(text: po?.contactPerson ?? '');
+    final phoneCtrl = TextEditingController(text: po?.phone ?? '');
+    final emailCtrl = TextEditingController(text: po?.email ?? '');
+    final billedCtrl = TextEditingController(text: po?.totalCost != null ? po!.totalCost.toString() : '');
+    final paidCtrl = TextEditingController(text: po?.paidAmount != null ? po!.paidAmount.toString() : '0');
+    final noteCtrl = TextEditingController(text: po?.notes ?? '');
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppTheme.surfaceDark,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+          top: 20,
+          left: 20,
+          right: 20,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    isEditing ? 'Update Vendor PO' : 'New Vendor Record',
+                    style: AppTheme.headlineMedium.copyWith(color: Colors.purpleAccent),
+                  ),
+                  IconButton(
+                    icon: const Icon(CupertinoIcons.xmark_circle, color: AppTheme.textSecondary),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: nameCtrl,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(labelText: 'Vendor / Company Name', prefixIcon: Icon(CupertinoIcons.building_2_fill)),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: phoneCtrl,
+                keyboardType: TextInputType.phone,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(labelText: 'Phone (WhatsApp Ledger)', prefixIcon: Icon(CupertinoIcons.phone)),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: billedCtrl,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(labelText: 'Total Billed (PKR)', prefixIcon: Icon(CupertinoIcons.money_dollar)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
+                      controller: paidCtrl,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(labelText: 'Amount Paid (PKR)', prefixIcon: Icon(CupertinoIcons.checkmark_seal_fill)),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: noteCtrl,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(labelText: 'Invoice / PO Notes', prefixIcon: Icon(CupertinoIcons.doc_plaintext)),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.purple.shade700,
+                    foregroundColor: Colors.white,
+                  ),
+                  icon: const Icon(CupertinoIcons.checkmark_alt_circle),
+                  label: Text(isEditing ? 'Update Vendor PO' : 'Save Vendor Record', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  onPressed: () async {
+                    final name = nameCtrl.text.trim();
+                    final phone = phoneCtrl.text.trim();
+                    final billed = double.tryParse(billedCtrl.text.trim()) ?? 0;
+                    final paid = double.tryParse(paidCtrl.text.trim()) ?? 0;
+
+                    if (name.isEmpty || billed <= 0) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Please enter vendor name and billed amount')),
+                      );
+                      return;
+                    }
+
+                    final status = paid >= billed ? 'Paid' : (paid > 0 ? 'Partial' : 'Unpaid');
+
+                    Navigator.pop(ctx);
+                    await context.read<FirebaseService>().saveVendorPurchaseOrder(
+                      id: po?.id,
+                      vendorName: name,
+                      contactPerson: contactCtrl.text.trim().isEmpty ? name : contactCtrl.text.trim(),
+                      phone: phone,
+                      email: emailCtrl.text.trim(),
+                      totalAmount: billed,
+                      paidAmount: paid,
+                      paymentStatus: status,
+                      notes: noteCtrl.text.trim(),
+                    );
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(isEditing ? 'Vendor PO updated!' : 'Vendor record added!'),
+                        backgroundColor: Colors.purpleAccent,
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _confirmDeletePO(BuildContext context, PurchaseOrderModel po) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.surfaceDark,
+        title: const Text('Delete Vendor PO?'),
+        content: Text('Are you sure you want to delete purchase order for "${po.vendorName}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.errorRed),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await context.read<FirebaseService>().deleteVendorPurchaseOrder(po.id);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Deleted PO for ${po.vendorName}')),
+              );
+            },
+            child: const Text('Delete'),
+          ),
+        ],
       ),
     );
   }

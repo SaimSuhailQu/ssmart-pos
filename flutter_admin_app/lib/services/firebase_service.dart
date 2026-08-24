@@ -366,6 +366,147 @@ class FirebaseService {
     });
   }
 
+  // ============================================================================
+  // MOBILE CRUD OPERATIONS (Products, Customers, Khata Loans, Expenses, Vendors)
+  // ============================================================================
+
+  /// Product CRUD
+  Future<void> saveProduct({
+    String? id,
+    required String name,
+    required String barcode,
+    required double price,
+    required double costPrice,
+    required int stock,
+    required String category,
+  }) async {
+    final String prodId = id ?? DateTime.now().millisecondsSinceEpoch.toString();
+    final productRef = _database.ref('${FirebasePaths.products}/$prodId');
+    await productRef.set({
+      'id': int.tryParse(prodId) ?? prodId,
+      'name': name,
+      'barcode': barcode,
+      'price': price,
+      'cost_price': costPrice,
+      'stock': stock,
+      'category': category,
+    });
+  }
+
+  Future<void> deleteProduct(String id) async {
+    await _database.ref('${FirebasePaths.products}/$id').remove();
+  }
+
+  /// Customer & Khata CRUD
+  Future<void> saveCustomer({
+    String? id,
+    required String name,
+    required String phone,
+    required String email,
+    double balance = 0,
+    int points = 0,
+  }) async {
+    final String custId = id ?? DateTime.now().millisecondsSinceEpoch.toString();
+    final custRef = _database.ref('${FirebasePaths.customers}/$custId');
+    await custRef.set({
+      'id': int.tryParse(custId) ?? custId,
+      'name': name,
+      'phone': phone,
+      'email': email,
+      'balance': balance,
+      'points': points,
+    });
+  }
+
+  Future<void> deleteCustomer(String id) async {
+    await _database.ref('${FirebasePaths.customers}/$id').remove();
+  }
+
+  /// Record Loan / Payment in Customer Khata
+  Future<void> recordKhataTransaction({
+    required String customerId,
+    required String customerName,
+    required double currentBalance,
+    required double amount,
+    required String type, // 'LOAN' (Udhaar Diya) or 'PAYMENT' (Wasool Hua)
+    required String paymentMethod,
+    String? notes,
+  }) async {
+    final double newBalance = type == 'LOAN'
+        ? currentBalance + amount
+        : currentBalance - amount;
+
+    // Update customer balance
+    await _database.ref('${FirebasePaths.customers}/$customerId/balance').set(newBalance);
+
+    // Push khata entry audit record
+    final entryRef = _database.ref('customer_khata/$customerId').push();
+    await entryRef.set({
+      'id': DateTime.now().millisecondsSinceEpoch,
+      'customer_id': int.tryParse(customerId) ?? customerId,
+      'type': type,
+      'amount': amount,
+      'payment_method': paymentMethod,
+      'notes': notes ?? (type == 'LOAN' ? 'Mobile App Udhaar Entry' : 'Mobile App Loan Repayment'),
+      'timestamp': DateTime.now().toIso8601String(),
+    });
+  }
+
+  /// Expense CRUD
+  Future<void> addExpense({
+    required double amount,
+    required String description,
+    required String category,
+    String loggedBy = 'Mobile Admin',
+  }) async {
+    final String expId = DateTime.now().millisecondsSinceEpoch.toString();
+    final expenseRef = _database.ref('${FirebasePaths.expenses}/$expId');
+    await expenseRef.set({
+      'id': int.tryParse(expId) ?? expId,
+      'amount': amount,
+      'description': description,
+      'category': category,
+      'logged_by': loggedBy,
+      'timestamp': DateTime.now().toIso8601String(),
+    });
+  }
+
+  Future<void> deleteExpense(String id) async {
+    await _database.ref('${FirebasePaths.expenses}/$id').remove();
+  }
+
+  /// Vendor & Restock Purchase Orders CRUD
+  Future<void> saveVendorPurchaseOrder({
+    String? id,
+    required String vendorName,
+    required String contactPerson,
+    required String phone,
+    required String email,
+    required double totalAmount,
+    required double paidAmount,
+    required String paymentStatus,
+    String? notes,
+  }) async {
+    final String poId = id ?? DateTime.now().millisecondsSinceEpoch.toString();
+    final poRef = _database.ref('${FirebasePaths.purchaseOrders}/$poId');
+    await poRef.set({
+      'id': int.tryParse(poId) ?? poId,
+      'vendor_name': vendorName,
+      'contact_person': contactPerson,
+      'phone': phone,
+      'email': email,
+      'total_amount': totalAmount,
+      'paid_amount': paidAmount,
+      'payment_status': paymentStatus,
+      'notes': notes ?? '',
+      'timestamp': DateTime.now().toIso8601String(),
+    });
+  }
+
+  Future<void> deleteVendorPurchaseOrder(String id) async {
+    await _database.ref('${FirebasePaths.purchaseOrders}/$id').remove();
+  }
+
   /// Dispose resources
   void dispose() {
     _connectionStatusController.close();

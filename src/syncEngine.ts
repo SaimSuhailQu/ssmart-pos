@@ -1,6 +1,20 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { getDatabase, ref, set, onValue } from 'firebase/database';
-import { getUnsyncedSales, markSaleAsSynced, getAllProducts, getAllExpenses, getAllCustomers, getAllVendors, getAllPurchaseOrders } from './db';
+import { 
+  getUnsyncedSales, 
+  markSaleAsSynced, 
+  getAllProducts, 
+  getAllExpenses, 
+  getAllCustomers, 
+  getAllVendors, 
+  getAllPurchaseOrders,
+  getProductByBarcode,
+  addProduct,
+  updateProduct,
+  getCustomerByPhone,
+  addCustomer,
+  updateCustomer
+} from './db';
 import { Product } from './types';
 
 // Firebase configuration injected at build-time by Vite
@@ -205,7 +219,7 @@ export async function syncVendorsToCloud(silent = false) {
   }
 }
 
-// Start periodic background sync worker (every 15 seconds)
+// Start periodic background sync worker & bidirectional realtime sync
 export function startSyncWorker(onStatusChange?: (status: string) => void) {
   if (dbInstance && onStatusChange) {
     const connectedRef = ref(dbInstance, ".info/connected");
@@ -224,11 +238,72 @@ export function startSyncWorker(onStatusChange?: (status: string) => void) {
         onStatusChange("OFFLINE");
       }
     });
+
+    // --- Bidirectional Sync: Listen for Mobile Updates in Real-time ---
+    try {
+      // 1. Mobile Products Updates -> Local SQLite
+      onValue(ref(dbInstance, 'products'), (snapshot) => {
+        const data = snapshot.val();
+        if (!data) return;
+        const products = Object.values(data);
+        for (const p of products as any[]) {
+          if (!p || !p.barcode || !p.name) continue;
+          const existing = getProductByBarcode(p.barcode) as any;
+          if (existing) {
+            updateProduct(existing.id, {
+              name: p.name,
+              barcode: p.barcode,
+              price: Number(p.price) || 0,
+              stock: Number(p.stock) || 0,
+              category: p.category || 'General',
+              cost_price: Number(p.cost_price) || 0,
+            });
+          } else {
+            addProduct({
+              name: p.name,
+              barcode: p.barcode,
+              price: Number(p.price) || 0,
+              stock: Number(p.stock) || 0,
+              category: p.category || 'General',
+              cost_price: Number(p.cost_price) || 0,
+            });
+          }
+        }
+      });
+
+      // 2. Mobile Customers Updates -> Local SQLite
+      onValue(ref(dbInstance, 'customers'), (snapshot) => {
+        const data = snapshot.val();
+        if (!data) return;
+        const customers = Object.values(data);
+        for (const c of customers as any[]) {
+          if (!c || !c.phone) continue;
+          const existing = getCustomerByPhone(c.phone) as any;
+          if (existing) {
+            updateCustomer(existing.id, {
+              name: c.name || existing.name,
+              phone: c.phone,
+              email: c.email || '',
+              points: Number(c.points) || 0,
+            });
+          } else if (c.name) {
+            addCustomer({
+              name: c.name,
+              phone: c.phone,
+              email: c.email || '',
+              points: Number(c.points) || 0,
+            });
+          }
+        }
+      });
+    } catch (e) {
+      console.warn("Realtime cloud listener registration error:", e);
+    }
   } else if (!dbInstance && onStatusChange) {
     onStatusChange("OFFLINE");
   }
 
-  // Periodic background cloud sync every 30 seconds
+  // Periodic background cloud push every 30 seconds
   setInterval(async () => {
     try {
       await syncSalesToCloud(true);
