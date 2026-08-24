@@ -318,7 +318,7 @@ class VendorsScreen extends StatelessWidget {
 
                     Navigator.pop(ctx);
                     await context.read<FirebaseService>().saveVendorPurchaseOrder(
-                      id: po?.id,
+                      id: po?.id.toString(),
                       vendorName: name,
                       contactPerson: contactCtrl.text.trim().isEmpty ? name : contactCtrl.text.trim(),
                       phone: phone,
@@ -361,7 +361,7 @@ class VendorsScreen extends StatelessWidget {
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.errorRed),
             onPressed: () async {
               Navigator.pop(ctx);
-              await context.read<FirebaseService>().deleteVendorPurchaseOrder(po.id);
+              await context.read<FirebaseService>().deleteVendorPurchaseOrder(po.id.toString());
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('Deleted PO for ${po.vendorName}')),
               );

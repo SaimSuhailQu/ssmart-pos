@@ -25,6 +25,10 @@ class PurchaseOrderModel {
   final int id;
   final int vendorId;
   final String vendorName;
+  final String contactPerson;
+  final String phone;
+  final String email;
+  final String notes;
   final String status;
   final double totalCost;
   final double paidAmount;
@@ -38,6 +42,10 @@ class PurchaseOrderModel {
     required this.id,
     required this.vendorId,
     required this.vendorName,
+    required this.contactPerson,
+    required this.phone,
+    required this.email,
+    required this.notes,
     required this.status,
     required this.totalCost,
     required this.paidAmount,
@@ -55,6 +63,10 @@ class PurchaseOrderModel {
       id: int.tryParse(id) ?? (json['id'] is int ? json['id'] : 0),
       vendorId: json['vendor_id'] is int ? json['vendor_id'] : 0,
       vendorName: json['vendor_name']?.toString() ?? 'Vendor Account',
+      contactPerson: json['contact_person']?.toString() ?? '',
+      phone: json['phone']?.toString() ?? '',
+      email: json['email']?.toString() ?? '',
+      notes: json['notes']?.toString() ?? '',
       status: json['status']?.toString() ?? 'Pending',
       totalCost: (json['total_cost'] is num) ? (json['total_cost'] as num).toDouble() : 0.0,
       paidAmount: (json['paid_amount'] is num) ? (json['paid_amount'] as num).toDouble() : 0.0,

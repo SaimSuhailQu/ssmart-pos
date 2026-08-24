@@ -300,7 +300,7 @@ class ExpensesScreen extends StatelessWidget {
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.errorRed),
             onPressed: () async {
               Navigator.pop(ctx);
-              await context.read<FirebaseService>().deleteExpense(expense.id);
+              await context.read<FirebaseService>().deleteExpense(expense.id.toString());
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Expense deleted')),
               );

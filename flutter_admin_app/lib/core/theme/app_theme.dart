@@ -22,6 +22,7 @@ class AppTheme {
 
   static const Color backgroundLight = Color(0xFF0A0A0A); // Deep #0A0A0A Dark Background
   static const Color cardBackground = Color(0xFF121212); // Dark Glassmorphism Panel
+  static const Color surfaceDark = Color(0xFF1E1E1E); // Dark Modal & Dialog Surface
   static const Color borderColor = Color(0x1FFFFFFF); // 12% White Border
 
   static const Color textPrimary = Color(0xFFF5F5F5); // Off-White

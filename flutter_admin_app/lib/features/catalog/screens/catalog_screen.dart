@@ -337,7 +337,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
                     Navigator.pop(ctx);
                     await context.read<FirebaseService>().saveProduct(
-                      id: product?.id,
+                      id: product?.id.toString(),
                       name: name,
                       barcode: barcode,
                       price: price,
@@ -378,7 +378,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.errorRed),
             onPressed: () async {
               Navigator.pop(ctx);
-              await context.read<FirebaseService>().deleteProduct(product.id);
+              await context.read<FirebaseService>().deleteProduct(product.id.toString());
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('Deleted "${product.name}"')),
               );

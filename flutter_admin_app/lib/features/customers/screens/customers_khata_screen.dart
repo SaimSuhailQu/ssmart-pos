@@ -333,7 +333,7 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
 
                   Navigator.pop(ctx);
                   await context.read<FirebaseService>().saveCustomer(
-                    id: customer?.id,
+                    id: customer?.id.toString(),
                     name: name,
                     phone: phone,
                     email: email,
@@ -452,7 +452,7 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
 
                     Navigator.pop(ctx);
                     await context.read<FirebaseService>().recordKhataTransaction(
-                      customerId: customer.id,
+                      customerId: customer.id.toString(),
                       customerName: customer.name,
                       currentBalance: customer.balance,
                       amount: amount,
@@ -493,7 +493,7 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.errorRed),
             onPressed: () async {
               Navigator.pop(ctx);
-              await context.read<FirebaseService>().deleteCustomer(customer.id);
+              await context.read<FirebaseService>().deleteCustomer(customer.id.toString());
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('Deleted ${customer.name}')),
               );
