@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
 import 'package:ssmart_pos_admin/core/utils/date_utils.dart';
+import 'package:ssmart_pos_admin/core/utils/receipt_printer_helper.dart';
 import 'package:ssmart_pos_admin/core/utils/whatsapp_helper.dart';
 import 'package:ssmart_pos_admin/models/sale.dart';
 import 'package:ssmart_pos_admin/services/firebase_service.dart';
@@ -500,6 +501,11 @@ class _TransactionDetailsSheet extends StatelessWidget {
                   style: AppTheme.titleLarge,
                 ),
                 const Spacer(),
+                IconButton(
+                  icon: const Icon(CupertinoIcons.printer_fill, color: AppTheme.primaryCyan, size: 20),
+                  tooltip: 'View & Print Thermal Receipt',
+                  onPressed: () => ReceiptPrinterHelper.showReceiptDialog(context, sale: sale),
+                ),
                 TextButton.icon(
                   icon: const Icon(CupertinoIcons.chat_bubble_2_fill, color: Color(0xFF25D366), size: 18),
                   label: const Text('WhatsApp', style: TextStyle(color: Color(0xFF25D366), fontWeight: FontWeight.bold)),

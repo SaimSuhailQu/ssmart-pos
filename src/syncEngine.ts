@@ -202,10 +202,14 @@ export async function syncVendorsToCloud(silent = false) {
         id: po.id,
         vendor_id: po.vendor_id,
         vendor_name: po.vendor_name,
+        contact_person: po.vendor_name || '',
+        phone: po.vendor_contact || '',
         status: po.status,
         total_cost: po.total_cost,
+        total_amount: po.total_cost,
         paid_amount: po.paid_amount || 0,
         payment_status: po.payment_status || 'Unpaid',
+        notes: po.notes || '',
         timestamp: po.timestamp,
         items: po.items || [],
         payments: po.payments || [],
@@ -305,9 +309,27 @@ async function ingestCloudDataToLocal() {
     }
 
     // 4. Ingest Vendors & Purchase Orders
-    const vendorsSnap = await get(ref(dbInstance, 'purchase_orders'));
-    if (vendorsSnap.exists()) {
-      const data = vendorsSnap.val();
+    const vendorsCloudSnap = await get(ref(dbInstance, 'vendors'));
+    if (vendorsCloudSnap.exists()) {
+      const vData = vendorsCloudSnap.val();
+      const cloudVendors = Object.values(vData);
+      const localVendors = getAllVendors() as any[];
+      for (const cv of cloudVendors as any[]) {
+        if (!cv || !cv.name) continue;
+        const existing = localVendors.find(v => v.name?.toLowerCase() === cv.name?.toLowerCase());
+        if (!existing) {
+          addVendor({
+            name: cv.name,
+            contact: cv.contact || '',
+            category: cv.category || 'General',
+          });
+        }
+      }
+    }
+
+    const posSnap = await get(ref(dbInstance, 'purchase_orders'));
+    if (posSnap.exists()) {
+      const data = posSnap.val();
       const pos = Object.values(data);
       for (const po of pos as any[]) {
         if (!po || !po.vendor_name) continue;
@@ -357,6 +379,7 @@ export function startSyncWorker(onStatusChange?: (status: string) => void) {
       onValue(ref(dbInstance, 'products'), () => ingestCloudDataToLocal());
       onValue(ref(dbInstance, 'customers'), () => ingestCloudDataToLocal());
       onValue(ref(dbInstance, 'expenses'), () => ingestCloudDataToLocal());
+      onValue(ref(dbInstance, 'vendors'), () => ingestCloudDataToLocal());
       onValue(ref(dbInstance, 'purchase_orders'), () => ingestCloudDataToLocal());
     } catch (e) {
       console.warn("Realtime cloud listener registration error:", e);

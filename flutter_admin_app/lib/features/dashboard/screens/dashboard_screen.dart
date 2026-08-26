@@ -7,6 +7,7 @@ import 'package:ssmart_pos_admin/core/utils/date_utils.dart';
 import 'package:ssmart_pos_admin/features/dashboard/widgets/metric_card.dart';
 import 'package:ssmart_pos_admin/features/dashboard/widgets/recent_transactions.dart';
 import 'package:ssmart_pos_admin/features/dashboard/widgets/sales_chart.dart';
+import 'package:ssmart_pos_admin/features/pos/screens/mobile_checkout_screen.dart';
 import 'package:ssmart_pos_admin/features/transactions/screens/transactions_screen.dart';
 import 'package:ssmart_pos_admin/features/catalog/screens/catalog_screen.dart';
 import 'package:ssmart_pos_admin/features/customers/screens/customers_khata_screen.dart';
@@ -29,11 +30,7 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   Future<void> _handleRefresh() async {
-    // Clear cache to force fresh data
-    context.read<FirebaseService>().clearCache();
-
-    // Wait a moment for the stream to emit new data
-    await Future.delayed(const Duration(seconds: 1));
+    setState(() {});
   }
 
   void _handleLogout() {
@@ -110,6 +107,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
         actions: [
           IconButton(
+            icon: const Icon(CupertinoIcons.cart_badge_plus, color: AppTheme.primaryCyan),
+            tooltip: 'Mobile POS Billing',
+            onPressed: () {
+              Navigator.push(
+                context,
+                CupertinoPageRoute(
+                  builder: (context) => const MobileCheckoutScreen(),
+                ),
+              );
+            },
+          ),
+          IconButton(
             icon: const Icon(CupertinoIcons.square_grid_2x2_fill),
             tooltip: 'Items Catalog',
             onPressed: () {
@@ -162,6 +171,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ],
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: AppTheme.primaryCyan,
+        icon: const Icon(CupertinoIcons.cart_fill, color: Colors.black),
+        label: const Text(
+          'Make Bill / POS',
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 15),
+        ),
+        onPressed: () {
+          Navigator.push(
+            context,
+            CupertinoPageRoute(
+              builder: (context) => const MobileCheckoutScreen(),
+            ),
+          );
+        },
       ),
       body: RefreshIndicator(
         onRefresh: _handleRefresh,
@@ -227,7 +252,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 Expanded(
                   child: _buildQuickNavCard(
-                    title: 'Khata / Loans',
+                    title: 'New Bill',
+                    subtitle: 'Mobile POS',
+                    icon: CupertinoIcons.cart_fill,
+                    color: AppTheme.primaryCyan,
+                    onTap: () => Navigator.push(
+                      context,
+                      CupertinoPageRoute(builder: (_) => const MobileCheckoutScreen()),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppTheme.spacingXS),
+                Expanded(
+                  child: _buildQuickNavCard(
+                    title: 'Khata',
                     subtitle: 'CRM & Udhaar',
                     icon: CupertinoIcons.book_fill,
                     color: Colors.amber.shade700,
@@ -237,7 +275,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(width: AppTheme.spacingS),
+                const SizedBox(width: AppTheme.spacingXS),
                 Expanded(
                   child: _buildQuickNavCard(
                     title: 'Expenses',
@@ -250,13 +288,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(width: AppTheme.spacingS),
+                const SizedBox(width: AppTheme.spacingXS),
                 Expanded(
                   child: _buildQuickNavCard(
                     title: 'Vendors',
                     subtitle: 'POs & Stocks',
                     icon: CupertinoIcons.cube_box_fill,
-                    color: Colors.purple,
+                    color: Colors.purpleAccent,
                     onTap: () => Navigator.push(
                       context,
                       CupertinoPageRoute(builder: (_) => const VendorsScreen()),

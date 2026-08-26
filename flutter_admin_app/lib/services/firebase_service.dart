@@ -33,6 +33,7 @@ class FirebaseService {
       _database.ref(FirebasePaths.products).keepSynced(true);
       _database.ref(FirebasePaths.expenses).keepSynced(true);
       _database.ref(FirebasePaths.customers).keepSynced(true);
+      _database.ref(FirebasePaths.vendors).keepSynced(true);
       _database.ref(FirebasePaths.purchaseOrders).keepSynced(true);
       _database.ref('customer_khata').keepSynced(true);
     } catch (e) {
@@ -400,6 +401,30 @@ class FirebaseService {
     });
   }
 
+  /// Get real-time stream of all registered vendors
+  Stream<List<VendorModel>> getVendorsStream() {
+    final vendorsRef = _database.ref(FirebasePaths.vendors);
+    return vendorsRef.onValue.map((event) {
+      final data = event.snapshot.value;
+      if (data == null) return <VendorModel>[];
+      final List<VendorModel> list = [];
+      if (data is Map) {
+        data.forEach((k, v) {
+          if (v is Map) list.add(VendorModel.fromJson(k.toString(), v));
+        });
+      } else if (data is List) {
+        for (int i = 0; i < data.length; i++) {
+          if (data[i] is Map) list.add(VendorModel.fromJson(i.toString(), data[i]));
+        }
+      }
+      list.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      return list;
+    }).handleError((err) {
+      print('Error in vendors stream: $err');
+      return <VendorModel>[];
+    });
+  }
+
   /// Get real-time stream of all vendors and purchase orders
   Stream<List<PurchaseOrderModel>> getPurchaseOrdersStream() {
     final poRef = _database.ref(FirebasePaths.purchaseOrders);
@@ -453,6 +478,94 @@ class FirebaseService {
 
   Future<void> deleteProduct(String id) async {
     await _database.ref('${FirebasePaths.products}/$id').remove();
+  }
+
+  /// Process & Complete a Mobile POS Sale Transaction
+  Future<Sale> processMobileSale({
+    required List<SaleItem> items,
+    required double subtotal,
+    required double discount,
+    required double tax,
+    required double total,
+    required String paymentMethod,
+    required double amountTendered,
+    required double changeGiven,
+    String? cashierName,
+    String? customerId,
+    String? customerName,
+    String? customerPhone,
+  }) async {
+    final String saleId = DateTime.now().millisecondsSinceEpoch.toString();
+    final String timestamp = DateTime.now().toIso8601String();
+
+    final sale = Sale(
+      id: saleId,
+      subtotal: subtotal,
+      discount: discount,
+      tax: tax,
+      total: total,
+      paymentMethod: paymentMethod,
+      amountTendered: amountTendered,
+      changeGiven: changeGiven,
+      timestamp: timestamp,
+      storeBranch: 'Mobile POS App',
+      userName: cashierName ?? 'Mobile Cashier',
+      items: items,
+      payments: [
+        PaymentDetail(
+          method: paymentMethod,
+          amount: total,
+        ),
+      ],
+    );
+
+    // 1. Push Sale transaction to Firebase
+    await _database.ref('${FirebasePaths.sales}/$saleId').set(sale.toJson());
+
+    // 2. Decrement inventory for catalog items
+    for (final item in items) {
+      if (item.productId != null) {
+        try {
+          final prodRef = _database.ref('${FirebasePaths.products}/${item.productId}/stock');
+          final snap = await prodRef.get();
+          if (snap.exists && snap.value != null) {
+            final currentStock = (snap.value is num) ? (snap.value as num).toInt() : (int.tryParse(snap.value.toString()) ?? 0);
+            final newStock = (currentStock - item.quantity).clamp(0, 999999);
+            await prodRef.set(newStock);
+          }
+        } catch (e) {
+          print('Inventory update warning for product ${item.productId}: $e');
+        }
+      }
+    }
+
+    // 3. If payment is Khata (Udhaar / Credit), record in customer ledger
+    if (paymentMethod.toLowerCase().contains('khata') || paymentMethod.toLowerCase().contains('udhaar') || paymentMethod.toLowerCase().contains('loan')) {
+      if (customerId != null && customerId.isNotEmpty) {
+        try {
+          final custBalRef = _database.ref('${FirebasePaths.customers}/$customerId/balance');
+          final snap = await custBalRef.get();
+          final currentBal = snap.exists && snap.value is num ? (snap.value as num).toDouble() : 0.0;
+          final newBal = currentBal + total;
+          await custBalRef.set(newBal);
+
+          final khataRef = _database.ref('customer_khata/$customerId').push();
+          await khataRef.set({
+            'id': DateTime.now().millisecondsSinceEpoch,
+            'customer_id': int.tryParse(customerId) ?? customerId,
+            'type': 'LOAN',
+            'amount': total,
+            'payment_method': 'Khata Bill #$saleId',
+            'notes': 'Mobile POS Checkout: ${items.map((i) => '${i.quantity}x ${i.productName}').join(', ')}',
+            'timestamp': timestamp,
+          });
+        } catch (e) {
+          print('Khata credit sale update warning: $e');
+        }
+      }
+    }
+
+    return sale;
   }
 
   /// Customer & Khata CRUD
@@ -533,31 +646,169 @@ class FirebaseService {
     await _database.ref('${FirebasePaths.expenses}/$id').remove();
   }
 
+  /// Vendor CRUD
+  Future<void> saveVendor({
+    String? id,
+    required String name,
+    required String contact,
+    required String category,
+  }) async {
+    final String vendorId = id ?? DateTime.now().millisecondsSinceEpoch.toString();
+    final vendorRef = _database.ref('${FirebasePaths.vendors}/$vendorId');
+    await vendorRef.set({
+      'id': int.tryParse(vendorId) ?? vendorId,
+      'name': name.trim(),
+      'contact': contact.trim(),
+      'category': category.trim().isNotEmpty ? category.trim() : 'General',
+    });
+  }
+
+  Future<void> deleteVendor(String id) async {
+    await _database.ref('${FirebasePaths.vendors}/$id').remove();
+  }
+
   /// Vendor & Restock Purchase Orders CRUD
   Future<void> saveVendorPurchaseOrder({
     String? id,
+    int? vendorId,
     required String vendorName,
-    required String contactPerson,
-    required String phone,
-    required String email,
+    String? contactPerson,
+    String? phone,
+    String? email,
     required double totalAmount,
     required double paidAmount,
+    String? status,
     required String paymentStatus,
     String? notes,
+    List<dynamic>? items,
+    List<dynamic>? payments,
+    List<dynamic>? orderEntries,
   }) async {
     final String poId = id ?? DateTime.now().millisecondsSinceEpoch.toString();
+    final int finalVendorId = vendorId ?? (int.tryParse(poId) ?? 0);
     final poRef = _database.ref('${FirebasePaths.purchaseOrders}/$poId');
-    await poRef.set({
+
+    // If new payments list was provided or initial paid amount was entered
+    List<dynamic> poPayments = payments ?? [];
+    if (poPayments.isEmpty && paidAmount > 0) {
+      poPayments = [
+        {
+          'id': DateTime.now().millisecondsSinceEpoch,
+          'amount': paidAmount,
+          'payment_method': 'Cash',
+          'notes': 'Initial deposit / payment',
+          'timestamp': DateTime.now().toIso8601String(),
+        }
+      ];
+    }
+
+    // Determine normalized payment status
+    String calcPaymentStatus = paymentStatus;
+    if (totalAmount > 0) {
+      if (paidAmount >= totalAmount) {
+        calcPaymentStatus = 'Paid';
+      } else if (paidAmount > 0) {
+        calcPaymentStatus = 'Partially Paid';
+      } else {
+        calcPaymentStatus = 'Unpaid';
+      }
+    }
+
+    final payload = {
       'id': int.tryParse(poId) ?? poId,
+      'vendor_id': finalVendorId,
       'vendor_name': vendorName,
-      'contact_person': contactPerson,
-      'phone': phone,
-      'email': email,
+      'contact_person': (contactPerson != null && contactPerson.trim().isNotEmpty) ? contactPerson.trim() : vendorName,
+      'phone': phone ?? '',
+      'email': email ?? '',
+      'total_cost': totalAmount,
       'total_amount': totalAmount,
       'paid_amount': paidAmount,
-      'payment_status': paymentStatus,
+      'status': status ?? 'Pending',
+      'payment_status': calcPaymentStatus,
       'notes': notes ?? '',
+      'items': items ?? [],
+      'payments': poPayments,
+      'order_entries': orderEntries ?? [],
       'timestamp': DateTime.now().toIso8601String(),
+    };
+
+    await poRef.set(payload);
+
+    // Also auto-sync vendor into vendors collection if not present
+    if (vendorName.trim().isNotEmpty) {
+      final vendorSearchRef = _database.ref('${FirebasePaths.vendors}/$finalVendorId');
+      final snap = await vendorSearchRef.get();
+      if (!snap.exists) {
+        await vendorSearchRef.set({
+          'id': finalVendorId,
+          'name': vendorName.trim(),
+          'contact': phone ?? '',
+          'category': 'General',
+        });
+      }
+    }
+  }
+
+  /// Record Partial or Full Payment on a Purchase Order
+  Future<void> recordVendorPayment({
+    required String poId,
+    required int vendorId,
+    required double amount,
+    required String paymentMethod,
+    String? notes,
+  }) async {
+    final poRef = _database.ref('${FirebasePaths.purchaseOrders}/$poId');
+    final snapshot = await poRef.get();
+
+    if (!snapshot.exists || snapshot.value == null) {
+      throw Exception('Purchase Order #$poId not found');
+    }
+
+    final poData = Map<String, dynamic>.from(snapshot.value as Map);
+    final rawCost = poData['total_cost'] ?? poData['total_amount'] ?? 0.0;
+    final double totalCost = (rawCost is num) ? rawCost.toDouble() : (double.tryParse(rawCost.toString()) ?? 0.0);
+    final rawPaid = poData['paid_amount'] ?? 0.0;
+    final double currentPaid = (rawPaid is num) ? rawPaid.toDouble() : (double.tryParse(rawPaid.toString()) ?? 0.0);
+
+    final double newPaidAmount = currentPaid + amount;
+    String newPaymentStatus = 'Unpaid';
+    if (newPaidAmount >= totalCost && totalCost > 0) {
+      newPaymentStatus = 'Paid';
+    } else if (newPaidAmount > 0) {
+      newPaymentStatus = 'Partially Paid';
+    }
+
+    // Get current payments list
+    List<dynamic> currentPayments = [];
+    if (poData['payments'] is List) {
+      currentPayments = List.from(poData['payments'] as List);
+    } else if (poData['payments'] is Map) {
+      (poData['payments'] as Map).forEach((_, v) {
+        if (v != null) currentPayments.add(v);
+      });
+    }
+
+    currentPayments.add({
+      'id': DateTime.now().millisecondsSinceEpoch,
+      'amount': amount,
+      'payment_method': paymentMethod,
+      'notes': notes ?? 'Payment recorded from mobile app',
+      'timestamp': DateTime.now().toIso8601String(),
+    });
+
+    await poRef.update({
+      'paid_amount': newPaidAmount,
+      'payment_status': newPaymentStatus,
+      'payments': currentPayments,
+    });
+  }
+
+  /// Update Purchase Order Status (e.g. 'Pending' -> 'Received')
+  Future<void> updatePurchaseOrderStatus(String poId, String newStatus) async {
+    final poRef = _database.ref('${FirebasePaths.purchaseOrders}/$poId');
+    await poRef.update({
+      'status': newStatus,
     });
   }
 

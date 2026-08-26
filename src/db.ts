@@ -768,7 +768,7 @@ export function deleteVendor(id: number) {
 
 export function getAllPurchaseOrders() {
   const pos = db.prepare(`
-    SELECT po.*, v.name as vendor_name
+    SELECT po.*, v.name as vendor_name, v.contact as vendor_contact, v.category as vendor_category
     FROM purchase_orders po
     JOIN vendors v ON po.vendor_id = v.id
     ORDER BY po.timestamp DESC
