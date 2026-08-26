@@ -4,9 +4,9 @@ import 'package:intl/intl.dart';
 class AppDateUtils {
   /// Format timestamp to readable date and time
   /// Example: "Dec 15, 2024 at 2:30 PM"
-  static String formatDateTime(String timestamp) {
+  static String formatDateTime(dynamic timestamp) {
     try {
-      final dateTime = DateTime.parse(timestamp);
+      final DateTime dateTime = timestamp is DateTime ? timestamp : DateTime.parse(timestamp.toString());
       final formatter = DateFormat('MMM dd, yyyy \'at\' h:mm a');
       return formatter.format(dateTime);
     } catch (e) {
