@@ -31,6 +31,9 @@ target 'Runner' do
   use_frameworks! :linkage => :static
   use_modular_headers!
 
+  # Resolve dependency conflicts between modern Firebase and MLKit/mobile_scanner
+  pod 'GoogleDataTransport', '>= 10.0.0'
+
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
   target 'RunnerTests' do
     inherit! :search_paths

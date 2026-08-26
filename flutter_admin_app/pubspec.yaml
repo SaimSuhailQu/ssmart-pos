@@ -29,7 +29,7 @@ dependencies:
   intl: ^0.20.2
   flutter_dotenv: ^6.0.1
   url_launcher: ^6.3.1
-  mobile_scanner: ^5.2.3
+  mobile_scanner: ^6.0.0
 
   # Loading indicators
   shimmer: ^3.0.0
