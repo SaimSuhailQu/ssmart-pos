@@ -201,8 +201,8 @@ class ReceiptPrinterHelper {
                               style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 16),
                             ),
                             SizedBox(height: 2),
-                            Text('Main Commercial Area, Lahore', style: TextStyle(color: Colors.black80, fontSize: 11)),
-                            Text('Tel: +92 300 1234567', style: TextStyle(color: Colors.black80, fontSize: 11)),
+                            Text('Main Commercial Area, Lahore', style: TextStyle(color: Colors.black87, fontSize: 11)),
+                            Text('Tel: +92 300 1234567', style: TextStyle(color: Colors.black87, fontSize: 11)),
                             SizedBox(height: 6),
                             Divider(color: Colors.black, thickness: 1.5),
                           ],
@@ -214,11 +214,11 @@ class ReceiptPrinterHelper {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text('Bill #${sale.id}', style: const TextStyle(color: Colors.black, fontSize: 11, fontWeight: FontWeight.bold)),
-                          Text(AppDateUtils.formatDateTime(sale.timestamp), style: const TextStyle(color: Colors.black80, fontSize: 10)),
+                          Text(AppDateUtils.formatDateTime(sale.timestamp), style: const TextStyle(color: Colors.black87, fontSize: 10)),
                         ],
                       ),
                       if (sale.userName != null)
-                        Text('Cashier: ${sale.userName}', style: const TextStyle(color: Colors.black80, fontSize: 10)),
+                        Text('Cashier: ${sale.userName}', style: const TextStyle(color: Colors.black87, fontSize: 10)),
                       const Divider(color: Colors.black45, thickness: 0.8),
 
                       // Items list
@@ -242,7 +242,7 @@ class ReceiptPrinterHelper {
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text('${item.quantity}x @ PKR ${item.price.toStringAsFixed(0)}', style: const TextStyle(color: Colors.black80, fontSize: 11)),
+                                    Text('${item.quantity}x @ PKR ${item.price.toStringAsFixed(0)}', style: const TextStyle(color: Colors.black87, fontSize: 11)),
                                     Text('PKR ${item.total.toStringAsFixed(0)}', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12)),
                                   ],
                                 ),
@@ -303,7 +303,7 @@ class ReceiptPrinterHelper {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: Colors.black80, fontSize: 11)),
+          Text(label, style: const TextStyle(color: Colors.black87, fontSize: 11)),
           Text(value, style: TextStyle(color: isGreen ? Colors.green.shade800 : Colors.black, fontSize: 11, fontWeight: FontWeight.w600)),
         ],
       ),

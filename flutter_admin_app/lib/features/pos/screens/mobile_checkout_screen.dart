@@ -151,7 +151,7 @@ class _MobileCheckoutScreenState extends State<MobileCheckoutScreen> {
     if (scannedBarcode != null && scannedBarcode.isNotEmpty) {
       final matchingProduct = products.firstWhere(
         (p) => p.barcode.trim().toLowerCase() == scannedBarcode.trim().toLowerCase(),
-        orElse: () => Product(id: 0, name: '', barcode: '', price: 0, stock: 0, category: ''),
+        orElse: () => Product(id: 0, name: '', barcode: '', price: 0, stock: 0, category: '', costPrice: 0),
       );
 
       if (matchingProduct.id > 0) {
@@ -573,12 +573,11 @@ class _MobileCheckoutScreenState extends State<MobileCheckoutScreen> {
 
     final List<SaleItem> saleItems = _cart.map((c) {
       return SaleItem(
-        productId: c.productId,
+        productId: c.productId ?? 0,
         productName: c.name,
-        barcode: c.barcode,
+        productBarcode: c.barcode,
         quantity: c.quantity,
         price: c.price,
-        total: c.total,
       );
     }).toList();
 
