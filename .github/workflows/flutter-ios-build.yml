@@ -397,7 +397,9 @@ jobs:
       - name: Install CocoaPods Dependencies
         working-directory: ${{ env.WORKING_DIRECTORY }}/ios
         run: |
-          pod install --repo-update
+          rm -rf Podfile.lock Pods
+          pod repo update
+          pod install
 
       # ========================================================================
       # STEP 9: Build Flutter iOS App (Signed or Unsigned fallback)
