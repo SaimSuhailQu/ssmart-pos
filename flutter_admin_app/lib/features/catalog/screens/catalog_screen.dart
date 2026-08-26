@@ -647,7 +647,7 @@ class _ProductCatalogCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      AppDateUtils.formatCurrency(product.price),
+                      CurrencyFormatter.formatCurrency(product.price),
                       style: AppTheme.titleLarge.copyWith(color: AppTheme.primaryCyan),
                     ),
                   ],
@@ -662,7 +662,7 @@ class _ProductCatalogCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      AppDateUtils.formatCurrency(product.costPrice),
+                      CurrencyFormatter.formatCurrency(product.costPrice),
                       style: AppTheme.titleLarge.copyWith(color: AppTheme.textSecondary),
                     ),
                   ],
