@@ -2,13 +2,51 @@ import 'package:intl/intl.dart';
 
 /// Utility class for date and time formatting
 class AppDateUtils {
+  /// Robustly parse any timestamp format (ISO-8601, SQLite DATETIME, epoch ms, int/string)
+  static DateTime? parseDateTime(dynamic timestamp) {
+    if (timestamp == null) return null;
+    if (timestamp is DateTime) return timestamp;
+    if (timestamp is int) {
+      if (timestamp <= 0) return null;
+      // If seconds instead of milliseconds
+      if (timestamp < 10000000000) {
+        return DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
+      }
+      return DateTime.fromMillisecondsSinceEpoch(timestamp);
+    }
+
+    final str = timestamp.toString().trim();
+    if (str.isEmpty || str == 'null' || str == 'undefined') return null;
+
+    // Check if numeric string (epoch ms)
+    final numVal = int.tryParse(str);
+    if (numVal != null && str.length >= 9) {
+      if (str.length <= 10) {
+        return DateTime.fromMillisecondsSinceEpoch(numVal * 1000);
+      }
+      return DateTime.fromMillisecondsSinceEpoch(numVal);
+    }
+
+    // Try standard ISO-8601 parse
+    final parsed = DateTime.tryParse(str);
+    if (parsed != null) return parsed;
+
+    // Try replacing space with 'T' (SQLite format: 'YYYY-MM-DD HH:MM:SS')
+    final withT = DateTime.tryParse(str.replaceAll(' ', 'T'));
+    if (withT != null) return withT;
+
+    return null;
+  }
+
   /// Format timestamp to readable date and time
   /// Example: "Dec 15, 2024 at 2:30 PM"
   static String formatDateTime(dynamic timestamp) {
     try {
-      final DateTime dateTime = timestamp is DateTime ? timestamp : DateTime.parse(timestamp.toString());
+      final dateTime = parseDateTime(timestamp);
+      if (dateTime == null) return 'Invalid date';
+      final local = dateTime.isUtc ? dateTime.toLocal() : dateTime;
       final formatter = DateFormat('MMM dd, yyyy \'at\' h:mm a');
-      return formatter.format(dateTime);
+      return formatter.format(local);
     } catch (e) {
       return 'Invalid date';
     }
@@ -16,11 +54,13 @@ class AppDateUtils {
 
   /// Format timestamp to date only
   /// Example: "Dec 15, 2024"
-  static String formatDate(String timestamp) {
+  static String formatDate(dynamic timestamp) {
     try {
-      final dateTime = DateTime.parse(timestamp);
+      final dateTime = parseDateTime(timestamp);
+      if (dateTime == null) return 'Invalid date';
+      final local = dateTime.isUtc ? dateTime.toLocal() : dateTime;
       final formatter = DateFormat('MMM dd, yyyy');
-      return formatter.format(dateTime);
+      return formatter.format(local);
     } catch (e) {
       return 'Invalid date';
     }
@@ -28,11 +68,13 @@ class AppDateUtils {
 
   /// Format timestamp to time only
   /// Example: "2:30 PM"
-  static String formatTime(String timestamp) {
+  static String formatTime(dynamic timestamp) {
     try {
-      final dateTime = DateTime.parse(timestamp);
+      final dateTime = parseDateTime(timestamp);
+      if (dateTime == null) return 'Invalid time';
+      final local = dateTime.isUtc ? dateTime.toLocal() : dateTime;
       final formatter = DateFormat('h:mm a');
-      return formatter.format(dateTime);
+      return formatter.format(local);
     } catch (e) {
       return 'Invalid time';
     }
@@ -40,11 +82,13 @@ class AppDateUtils {
 
   /// Format timestamp to relative time
   /// Example: "2 hours ago", "Yesterday", "3 days ago"
-  static String formatRelativeTime(String timestamp) {
+  static String formatRelativeTime(dynamic timestamp) {
     try {
-      final dateTime = DateTime.parse(timestamp);
+      final dateTime = parseDateTime(timestamp);
+      if (dateTime == null) return 'Unknown';
+      final local = dateTime.isUtc ? dateTime.toLocal() : dateTime;
       final now = DateTime.now();
-      final difference = now.difference(dateTime);
+      final difference = now.difference(local);
 
       if (difference.inSeconds < 60) {
         return 'Just now';
@@ -57,7 +101,7 @@ class AppDateUtils {
       } else if (difference.inDays < 7) {
         return '${difference.inDays} days ago';
       } else {
-        return formatDate(timestamp);
+        return formatDate(local);
       }
     } catch (e) {
       return 'Unknown';
@@ -90,14 +134,16 @@ class AppDateUtils {
     );
   }
 
-  /// Check if timestamp is today
-  static bool isToday(String timestamp) {
+  /// Check if timestamp belongs to today (comparing in local timezone)
+  static bool isToday(dynamic timestamp) {
     try {
-      final dateTime = DateTime.parse(timestamp);
+      final dateTime = parseDateTime(timestamp);
+      if (dateTime == null) return false;
+      final local = dateTime.isUtc ? dateTime.toLocal() : dateTime;
       final now = DateTime.now();
-      return dateTime.year == now.year &&
-             dateTime.month == now.month &&
-             dateTime.day == now.day;
+      return local.year == now.year &&
+             local.month == now.month &&
+             local.day == now.day;
     } catch (e) {
       return false;
     }

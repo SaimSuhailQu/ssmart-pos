@@ -42,29 +42,25 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     // Apply date filter
     if (_selectedFilter != 'All') {
       final now = DateTime.now();
-      DateTime startDate;
-
-      switch (_selectedFilter) {
-        case 'Today':
-          startDate = AppDateUtils.getStartOfToday();
-          break;
-        case 'This Week':
-          startDate = now.subtract(const Duration(days: 7));
-          break;
-        case 'This Month':
-          startDate = DateTime(now.year, now.month, 1);
-          break;
-        default:
-          startDate = DateTime(2000, 1, 1);
-      }
 
       filtered = filtered.where((sale) {
-        try {
-          final saleDate = DateTime.parse(sale.timestamp);
-          return saleDate.isAfter(startDate);
-        } catch (e) {
-          return false;
+        if (_selectedFilter == 'Today') {
+          return AppDateUtils.isToday(sale.timestamp);
         }
+
+        final saleDate = AppDateUtils.parseDateTime(sale.timestamp);
+        if (saleDate == null) return false;
+        final localDate = saleDate.isUtc ? saleDate.toLocal() : saleDate;
+
+        if (_selectedFilter == 'This Week') {
+          final weekAgo = now.subtract(const Duration(days: 7));
+          return localDate.isAfter(weekAgo);
+        } else if (_selectedFilter == 'This Month') {
+          final startOfMonth = DateTime(now.year, now.month, 1);
+          return localDate.isAfter(startOfMonth) ||
+                 (localDate.year == now.year && localDate.month == now.month);
+        }
+        return true;
       }).toList();
     }
 

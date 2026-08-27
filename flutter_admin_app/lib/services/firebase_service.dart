@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:ssmart_pos_admin/core/constants/firebase_constants.dart';
+import 'package:ssmart_pos_admin/core/utils/date_utils.dart';
 import 'package:ssmart_pos_admin/models/sale.dart';
 import 'package:ssmart_pos_admin/models/product.dart';
 import 'package:ssmart_pos_admin/models/expense.dart';
@@ -76,73 +77,63 @@ class FirebaseService {
         return <Sale>[];
       }
 
-      try {
-        final List<Sale> sales = [];
-        if (salesData is Map) {
-          salesData.forEach((key, value) {
-            if (value != null && value is Map) {
-              sales.add(
-                Sale.fromJson(
-                  key.toString(),
-                  value,
-                ),
-              );
-            }
-          });
-        } else if (salesData is List) {
-          for (int i = 0; i < salesData.length; i++) {
-            final value = salesData[i];
-            if (value != null && value is Map) {
-              sales.add(
-                Sale.fromJson(
-                  i.toString(),
-                  value,
-                ),
-              );
-            }
+      final List<Sale> sales = [];
+
+      void addSaleSafely(String key, dynamic value) {
+        if (value != null && value is Map) {
+          try {
+            sales.add(
+              Sale.fromJson(
+                key,
+                value,
+              ),
+            );
+          } catch (e) {
+            print('Error parsing individual sale $key: $e');
           }
         }
-
-        // Sort by timestamp descending (newest first)
-        sales.sort((a, b) {
-          try {
-            final dateA = DateTime.parse(a.timestamp);
-            final dateB = DateTime.parse(b.timestamp);
-            return dateB.compareTo(dateA);
-          } catch (e) {
-            return 0;
-          }
-        });
-
-        // Update cache
-        _cachedSales = sales;
-        _cacheTimestamp = DateTime.now();
-
-        return sales;
-      } catch (e) {
-        print('Error parsing sales data: $e');
-        return _cachedSales ?? <Sale>[];
       }
+
+      if (salesData is Map) {
+        salesData.forEach((key, value) {
+          addSaleSafely(key.toString(), value);
+        });
+      } else if (salesData is List) {
+        for (int i = 0; i < salesData.length; i++) {
+          final value = salesData[i];
+          addSaleSafely(i.toString(), value);
+        }
+      }
+
+      // Sort by timestamp descending (newest first)
+      sales.sort((a, b) {
+        try {
+          final dateA = AppDateUtils.parseDateTime(a.timestamp);
+          final dateB = AppDateUtils.parseDateTime(b.timestamp);
+          if (dateA == null && dateB == null) return 0;
+          if (dateA == null) return 1;
+          if (dateB == null) return -1;
+          return dateB.compareTo(dateA);
+        } catch (e) {
+          return 0;
+        }
+      });
+
+      // Update cache
+      _cachedSales = sales;
+      _cacheTimestamp = DateTime.now();
+
+      return sales;
     }).handleError((error) {
       print('Error in sales stream: $error');
-      return <Sale>[];
+      return _cachedSales ?? <Sale>[];
     });
   }
 
   /// Get sales for today only
   Stream<List<Sale>> getTodaysSalesStream() {
     return getSalesStream().map((sales) {
-      final now = DateTime.now();
-      final todayStart = DateTime(now.year, now.month, now.day);
-
-      return sales.where((sale) {
-        try {
-          final saleDate = DateTime.parse(sale.timestamp);
-          return saleDate.isAfter(todayStart);
-        } catch (e) {
-          return false;
-        }
-      }).toList();
+      return sales.where((sale) => AppDateUtils.isToday(sale.timestamp)).toList();
     });
   }
 
@@ -150,12 +141,10 @@ class FirebaseService {
   Stream<List<Sale>> getSalesInRangeStream(DateTime start, DateTime end) {
     return getSalesStream().map((sales) {
       return sales.where((sale) {
-        try {
-          final saleDate = DateTime.parse(sale.timestamp);
-          return saleDate.isAfter(start) && saleDate.isBefore(end);
-        } catch (e) {
-          return false;
-        }
+        final saleDate = AppDateUtils.parseDateTime(sale.timestamp);
+        if (saleDate == null) return false;
+        final local = saleDate.isUtc ? saleDate.toLocal() : saleDate;
+        return local.isAfter(start) && local.isBefore(end);
       }).toList();
     });
   }
@@ -543,12 +532,6 @@ class FirebaseService {
     if (paymentMethod.toLowerCase().contains('khata') || paymentMethod.toLowerCase().contains('udhaar') || paymentMethod.toLowerCase().contains('loan')) {
       if (customerId != null && customerId.isNotEmpty) {
         try {
-          final custBalRef = _database.ref('${FirebasePaths.customers}/$customerId/balance');
-          final snap = await custBalRef.get();
-          final currentBal = snap.exists && snap.value is num ? (snap.value as num).toDouble() : 0.0;
-          final newBal = currentBal + total;
-          await custBalRef.set(newBal);
-
           final khataRef = _database.ref('customer_khata/$customerId').push();
           await khataRef.set({
             'id': DateTime.now().millisecondsSinceEpoch,
@@ -559,6 +542,35 @@ class FirebaseService {
             'notes': 'Mobile POS Checkout: ${items.map((i) => '${i.quantity}x ${i.productName}').join(', ')}',
             'timestamp': timestamp,
           });
+
+          // Compute exact balance from all entries
+          final snap = await _database.ref('customer_khata/$customerId').get();
+          if (snap.exists && snap.value != null) {
+            double calcBal = 0.0;
+            final data = snap.value;
+            if (data is Map) {
+              data.forEach((_, v) {
+                if (v is Map) {
+                  final eType = v['type']?.toString().toUpperCase() ?? 'LOAN';
+                  final double eAmt = (v['amount'] is num)
+                      ? (v['amount'] as num).toDouble()
+                      : (double.tryParse(v['amount']?.toString() ?? '0') ?? 0.0);
+                  calcBal += (eType == 'LOAN' ? eAmt : -eAmt);
+                }
+              });
+            } else if (data is List) {
+              for (final v in data) {
+                if (v is Map) {
+                  final eType = v['type']?.toString().toUpperCase() ?? 'LOAN';
+                  final double eAmt = (v['amount'] is num)
+                      ? (v['amount'] as num).toDouble()
+                      : (double.tryParse(v['amount']?.toString() ?? '0') ?? 0.0);
+                  calcBal += (eType == 'LOAN' ? eAmt : -eAmt);
+                }
+              }
+            }
+            await _database.ref('${FirebasePaths.customers}/$customerId/balance').set(calcBal);
+          }
         } catch (e) {
           print('Khata credit sale update warning: $e');
         }
@@ -591,6 +603,7 @@ class FirebaseService {
 
   Future<void> deleteCustomer(String id) async {
     await _database.ref('${FirebasePaths.customers}/$id').remove();
+    await _database.ref('customer_khata/$id').remove();
   }
 
   /// Record Loan / Payment in Customer Khata
@@ -603,14 +616,7 @@ class FirebaseService {
     required String paymentMethod,
     String? notes,
   }) async {
-    final double newBalance = type == 'LOAN'
-        ? currentBalance + amount
-        : currentBalance - amount;
-
-    // Update customer balance
-    await _database.ref('${FirebasePaths.customers}/$customerId/balance').set(newBalance);
-
-    // Push khata entry audit record
+    // 1. Push khata entry audit record
     final entryRef = _database.ref('customer_khata/$customerId').push();
     await entryRef.set({
       'id': DateTime.now().millisecondsSinceEpoch,
@@ -621,6 +627,43 @@ class FirebaseService {
       'notes': notes ?? (type == 'LOAN' ? 'Mobile App Udhaar Entry' : 'Mobile App Loan Repayment'),
       'timestamp': DateTime.now().toIso8601String(),
     });
+
+    // 2. Fetch all khata entries to calculate the exact, authoritative balance
+    try {
+      final snap = await _database.ref('customer_khata/$customerId').get();
+      if (snap.exists && snap.value != null) {
+        double calcBal = 0.0;
+        final data = snap.value;
+        if (data is Map) {
+          data.forEach((_, v) {
+            if (v is Map) {
+              final eType = v['type']?.toString().toUpperCase() ?? 'LOAN';
+              final double eAmt = (v['amount'] is num)
+                  ? (v['amount'] as num).toDouble()
+                  : (double.tryParse(v['amount']?.toString() ?? '0') ?? 0.0);
+              calcBal += (eType == 'LOAN' ? eAmt : -eAmt);
+            }
+          });
+        } else if (data is List) {
+          for (final v in data) {
+            if (v is Map) {
+              final eType = v['type']?.toString().toUpperCase() ?? 'LOAN';
+              final double eAmt = (v['amount'] is num)
+                  ? (v['amount'] as num).toDouble()
+                  : (double.tryParse(v['amount']?.toString() ?? '0') ?? 0.0);
+              calcBal += (eType == 'LOAN' ? eAmt : -eAmt);
+            }
+          }
+        }
+        await _database.ref('${FirebasePaths.customers}/$customerId/balance').set(calcBal);
+      } else {
+        final double newBalance = type == 'LOAN' ? currentBalance + amount : currentBalance - amount;
+        await _database.ref('${FirebasePaths.customers}/$customerId/balance').set(newBalance);
+      }
+    } catch (e) {
+      final double newBalance = type == 'LOAN' ? currentBalance + amount : currentBalance - amount;
+      await _database.ref('${FirebasePaths.customers}/$customerId/balance').set(newBalance);
+    }
   }
 
   /// Expense CRUD

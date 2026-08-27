@@ -548,16 +548,63 @@ export function getCustomerByPhone(phone: string) {
   return db.prepare('SELECT * FROM customers WHERE phone = ?').get(phone);
 }
 
-export function addCustomer(customer: { name: string, phone: string, email: string, points?: number }) {
-  const insert = db.prepare('INSERT INTO customers (name, phone, email, points) VALUES (?, ?, ?, ?)');
-  const info = insert.run(customer.name, customer.phone, customer.email, customer.points || 0);
+export function addCustomer(customer: { name: string, phone?: string, email?: string, points?: number, balance?: number }) {
+  const cleanPhone = customer.phone && customer.phone.trim().length > 0 ? customer.phone.trim() : null;
+  const insert = db.prepare('INSERT INTO customers (name, phone, email, points, balance) VALUES (?, ?, ?, ?, ?)');
+  const info = insert.run(customer.name, cleanPhone, customer.email || '', customer.points || 0, customer.balance || 0);
   return info.lastInsertRowid;
 }
 
-export function updateCustomer(id: number, customer: { name: string, phone: string, email: string, points: number }) {
+export function updateCustomer(id: number, customer: { name: string, phone?: string, email?: string, points: number }) {
+  const cleanPhone = customer.phone && customer.phone.trim().length > 0 ? customer.phone.trim() : null;
   const update = db.prepare('UPDATE customers SET name = ?, phone = ?, email = ?, points = ? WHERE id = ?');
-  const info = update.run(customer.name, customer.phone, customer.email, customer.points, id);
+  const info = update.run(customer.name, cleanPhone, customer.email || '', customer.points, id);
   return info.changes > 0;
+}
+
+export function upsertCustomer(c: { id?: number, name: string, phone?: string, email?: string, points?: number, balance?: number }) {
+  const cleanPhone = c.phone && c.phone.trim().length > 0 ? c.phone.trim() : null;
+  const points = Number(c.points) || 0;
+  const balance = Number(c.balance) || 0;
+
+  let existing: any = null;
+  if (c.id && c.id > 0) {
+    existing = db.prepare('SELECT * FROM customers WHERE id = ?').get(c.id);
+  }
+  if (!existing && cleanPhone) {
+    existing = db.prepare('SELECT * FROM customers WHERE phone = ?').get(cleanPhone);
+  }
+
+  if (existing) {
+    db.prepare(`
+      UPDATE customers 
+      SET name = ?, phone = COALESCE(?, phone), email = ?, points = ?
+      WHERE id = ?
+    `).run(c.name || existing.name, cleanPhone, c.email ?? existing.email ?? '', points, existing.id);
+    return existing.id;
+  } else {
+    if (c.id && c.id > 0) {
+      try {
+        db.prepare(`
+          INSERT INTO customers (id, name, phone, email, points, balance)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `).run(c.id, c.name, cleanPhone, c.email || '', points, balance);
+        return c.id;
+      } catch {
+        const res = db.prepare(`
+          INSERT INTO customers (name, phone, email, points, balance)
+          VALUES (?, ?, ?, ?, ?)
+        `).run(c.name, cleanPhone, c.email || '', points, balance);
+        return res.lastInsertRowid as number;
+      }
+    } else {
+      const res = db.prepare(`
+        INSERT INTO customers (name, phone, email, points, balance)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(c.name, cleanPhone, c.email || '', points, balance);
+      return res.lastInsertRowid as number;
+    }
+  }
 }
 
 export function deleteCustomer(id: number) {
@@ -578,6 +625,90 @@ export function getCustomerKhataEntries(customerId: number) {
     WHERE cke.customer_id = ?
     ORDER BY cke.timestamp DESC
   `).all(customerId);
+}
+
+export function getAllCustomerKhataEntries() {
+  return db.prepare(`
+    SELECT cke.*, s.total as sale_total
+    FROM customer_khata_entries cke
+    LEFT JOIN sales s ON cke.sale_id = s.id
+    ORDER BY cke.timestamp DESC
+  `).all() as any[];
+}
+
+export function recalculateCustomerBalance(customerId: number) {
+  const row = db.prepare(`
+    SELECT 
+      COALESCE(SUM(CASE WHEN type = 'LOAN' THEN amount ELSE -amount END), 0) as balance
+    FROM customer_khata_entries
+    WHERE customer_id = ?
+  `).get(customerId) as { balance: number } | undefined;
+
+  const balance = row ? row.balance : 0;
+  db.prepare('UPDATE customers SET balance = ? WHERE id = ?').run(balance, customerId);
+  return balance;
+}
+
+export function recalculateAllCustomerBalances() {
+  const customers = db.prepare('SELECT id FROM customers').all() as { id: number }[];
+  for (const c of customers) {
+    recalculateCustomerBalance(c.id);
+  }
+}
+
+export function upsertCloudKhataEntry(entry: any) {
+  if (!entry || entry.amount === undefined || !entry.customer_id) return false;
+  const custId = Number(entry.customer_id) || 0;
+  if (custId <= 0) return false;
+
+  // Make sure customer exists in customers table
+  const custExists = db.prepare('SELECT id FROM customers WHERE id = ?').get(custId);
+  if (!custExists) {
+    try {
+      db.prepare('INSERT OR IGNORE INTO customers (id, name, phone, email, points, balance) VALUES (?, ?, NULL, ?, 0, 0)')
+        .run(custId, entry.customer_name || `Customer #${custId}`, '');
+    } catch {
+      // ignore
+    }
+  }
+
+  const amount = Number(entry.amount) || 0;
+  const type = (entry.type || 'LOAN').toString().toUpperCase();
+  const paymentMethod = entry.payment_method || entry.paymentMethod || (type === 'LOAN' ? 'Credit / Loan' : 'Cash');
+  const notes = entry.notes || '';
+  const timestamp = entry.timestamp || new Date().toISOString();
+  
+  // Verify saleId exists in local sales table to prevent FOREIGN KEY violation
+  let saleId: number | null = null;
+  if (entry.sale_id) {
+    const sId = Number(entry.sale_id);
+    if (!isNaN(sId) && sId > 0) {
+      const saleExists = db.prepare('SELECT id FROM sales WHERE id = ?').get(sId);
+      if (saleExists) {
+        saleId = sId;
+      }
+    }
+  }
+
+  const timePrefix = timestamp.substring(0, 19);
+
+  // Check if entry already exists
+  const existing = db.prepare(`
+    SELECT id FROM customer_khata_entries 
+    WHERE customer_id = ? AND type = ? AND ABS(amount - ?) < 0.001 
+      AND (timestamp LIKE ? OR timestamp = ?)
+  `).get(custId, type, amount, `${timePrefix}%`, timestamp);
+
+  if (!existing) {
+    db.prepare(`
+      INSERT INTO customer_khata_entries (customer_id, sale_id, type, amount, notes, payment_method, timestamp)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(custId, saleId, type, amount, notes, paymentMethod, timestamp);
+
+    recalculateCustomerBalance(custId);
+    return true;
+  }
+  return false;
 }
 
 export function addCustomerLoanPayment(data: { customerId: number, amount: number, paymentMethod?: string, notes?: string }) {
@@ -645,6 +776,108 @@ export function markSaleAsSynced(saleId: number) {
   return db.prepare('UPDATE sales SET synced = 1 WHERE id = ?').run(saleId).changes > 0;
 }
 
+// Ingest / Upsert Sale from Firebase Cloud into SQLite
+export function upsertCloudSale(cloudSale: any) {
+  if (!cloudSale || cloudSale.id === undefined || cloudSale.id === null) return false;
+
+  const numericId = Number(cloudSale.id);
+  if (isNaN(numericId) || numericId <= 0) return false;
+
+  const existing = db.prepare('SELECT id, status, refund_amount FROM sales WHERE id = ?').get(numericId) as any;
+
+  const subtotal = Number(cloudSale.subtotal) || 0;
+  const tax = Number(cloudSale.tax) || 0;
+  const discount = Number(cloudSale.discount) || 0;
+  const total = Number(cloudSale.total) || 0;
+  const paymentMethod = cloudSale.payment_method || cloudSale.paymentMethod || 'Cash';
+  const amountTendered = Number(cloudSale.amount_tendered || cloudSale.amountTendered) || total;
+  const changeGiven = Number(cloudSale.change_given || cloudSale.changeGiven) || 0;
+  const timestamp = cloudSale.timestamp || new Date().toISOString();
+  const userId = cloudSale.user_id ? Number(cloudSale.user_id) : null;
+  const status = cloudSale.status || 'Completed';
+  const refundAmount = Number(cloudSale.refund_amount) || 0;
+
+  if (existing) {
+    db.prepare(`
+      UPDATE sales 
+      SET status = ?, refund_amount = ?, synced = 1
+      WHERE id = ?
+    `).run(status, refundAmount, numericId);
+    return true;
+  }
+
+  // Insert new sale into SQLite
+  const transaction = db.transaction(() => {
+    db.prepare(`
+      INSERT INTO sales (id, subtotal, tax, discount, total, payment_method, amount_tendered, change_given, timestamp, synced, user_id, status, refund_amount)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)
+    `).run(numericId, subtotal, tax, discount, total, paymentMethod, amountTendered, changeGiven, timestamp, userId, status, refundAmount);
+
+    // Items
+    let itemsList = cloudSale.items || [];
+    if (itemsList && typeof itemsList === 'object' && !Array.isArray(itemsList)) {
+      itemsList = Object.values(itemsList);
+    }
+
+    const insertSaleItem = db.prepare('INSERT INTO sale_items (sale_id, product_id, qty, price) VALUES (?, ?, ?, ?)');
+    for (const item of itemsList) {
+      if (!item) continue;
+      const rawProdId = Number(item.product_id ?? item.productId) || 0;
+      let prodId = rawProdId;
+
+      // Ensure product exists in products table
+      if (prodId > 0) {
+        const prodExists = db.prepare('SELECT id FROM products WHERE id = ?').get(prodId);
+        if (!prodExists) {
+          const barcode = item.product_barcode || item.productBarcode || `AUTO-${prodId}`;
+          const name = item.product_name || item.productName || `Product #${prodId}`;
+          const category = item.product_category || item.productCategory || 'General';
+          const price = Number(item.price) || 0;
+          try {
+            db.prepare('INSERT OR IGNORE INTO products (id, name, barcode, price, stock, category, cost_price) VALUES (?, ?, ?, ?, 0, ?, 0)')
+              .run(prodId, name, barcode, price, category);
+          } catch (e) {
+            const res = db.prepare('INSERT INTO products (name, barcode, price, stock, category, cost_price) VALUES (?, ?, ?, 0, ?, 0)')
+              .run(name, barcode, price, category);
+            prodId = res.lastInsertRowid as number;
+          }
+        }
+      } else {
+        const name = item.product_name || item.productName || 'Custom Item';
+        const price = Number(item.price) || 0;
+        const res = db.prepare('INSERT INTO products (name, barcode, price, stock, category, cost_price) VALUES (?, ?, ?, 0, ?, 0)')
+          .run(name, `GEN-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`, price, 'General');
+        prodId = res.lastInsertRowid as number;
+      }
+
+      const qty = Number(item.qty ?? item.quantity) || 1;
+      const price = Number(item.price) || 0;
+      insertSaleItem.run(numericId, prodId, qty, price);
+    }
+
+    // Payments
+    let paymentsList = cloudSale.payments || [];
+    if (paymentsList && typeof paymentsList === 'object' && !Array.isArray(paymentsList)) {
+      paymentsList = Object.values(paymentsList);
+    }
+
+    const insertPayment = db.prepare('INSERT INTO payments (sale_id, method, amount) VALUES (?, ?, ?)');
+    if (paymentsList.length > 0) {
+      for (const p of paymentsList) {
+        if (!p) continue;
+        const method = p.method || p.payment_method || paymentMethod;
+        const amount = Number(p.amount) || total;
+        insertPayment.run(numericId, method, amount);
+      }
+    } else {
+      insertPayment.run(numericId, paymentMethod, total);
+    }
+  });
+
+  transaction();
+  return true;
+}
+
 // --- Sales History & Returns Data Access ---
 export function getAllSales() {
   const sales = db.prepare(`
@@ -656,11 +889,14 @@ export function getAllSales() {
 
   if (sales.length === 0) return [];
 
-  // Batch query all sale items and payments in 2 efficient queries instead of 2 per sale
+  // Batch query all sale items and payments with LEFT JOIN so no items are dropped
   const allItems = db.prepare(`
-    SELECT si.*, p.name as product_name, p.barcode as product_barcode, p.category as product_category
+    SELECT si.*, 
+           COALESCE(p.name, 'Product #' || si.product_id) as product_name, 
+           COALESCE(p.barcode, '') as product_barcode, 
+           COALESCE(p.category, 'General') as product_category
     FROM sale_items si
-    JOIN products p ON si.product_id = p.id
+    LEFT JOIN products p ON si.product_id = p.id
   `).all() as any[];
 
   const allPayments = db.prepare('SELECT * FROM payments').all() as any[];
@@ -1105,20 +1341,26 @@ export function getSalesAnalytics() {
       COALESCE(SUM(s.refund_amount), 0) as refunds,
       COUNT(s.id) as orders,
       COALESCE((
-        SELECT SUM((si.qty - si.returned_qty) * p.cost_price)
+        SELECT SUM((si.qty - si.returned_qty) * COALESCE(p.cost_price, 0))
         FROM sale_items si
         JOIN sales s2 ON si.sale_id = s2.id
-        JOIN products p ON si.product_id = p.id
-        WHERE date(s2.timestamp) = date('now')
+        LEFT JOIN products p ON si.product_id = p.id
+        WHERE substr(s2.timestamp, 1, 10) = strftime('%Y-%m-%d', 'now', 'localtime') 
+           OR date(s2.timestamp) = date('now') 
+           OR date(s2.timestamp, 'localtime') = date('now', 'localtime')
       ), 0) as cost
     FROM sales s
-    WHERE date(s.timestamp) = date('now')
+    WHERE substr(s.timestamp, 1, 10) = strftime('%Y-%m-%d', 'now', 'localtime') 
+       OR date(s.timestamp) = date('now') 
+       OR date(s.timestamp, 'localtime') = date('now', 'localtime')
   `).get() as { revenue: number, refunds: number, orders: number, cost: number };
 
   const todayExpenses = (db.prepare(`
     SELECT COALESCE(SUM(amount), 0) as total 
     FROM expenses 
-    WHERE date(timestamp) = date('now')
+    WHERE substr(timestamp, 1, 10) = strftime('%Y-%m-%d', 'now', 'localtime') 
+       OR date(timestamp) = date('now') 
+       OR date(timestamp, 'localtime') = date('now', 'localtime')
   `).get() as { total: number }).total;
 
   const todayFinancials = {

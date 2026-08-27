@@ -3,17 +3,22 @@ import { getDatabase, ref, set, get, onValue } from 'firebase/database';
 import { 
   getUnsyncedSales, 
   markSaleAsSynced, 
+  upsertCloudSale,
   getAllProducts, 
   getAllExpenses, 
   getAllCustomers, 
   getAllVendors, 
   getAllPurchaseOrders,
+  getAllCustomerKhataEntries,
+  upsertCloudKhataEntry,
+  recalculateAllCustomerBalances,
   getProductByBarcode,
   addProduct,
   updateProduct,
   getCustomerByPhone,
   addCustomer,
   updateCustomer,
+  upsertCustomer,
   addExpense,
   addVendor
 } from './db';
@@ -156,6 +161,7 @@ export async function syncExpensesToCloud(silent = false) {
 export async function syncCustomersToCloud(silent = false) {
   if (!dbInstance) return { success: false, status: "OFFLINE" };
   try {
+    recalculateAllCustomerBalances();
     const customers = getAllCustomers();
     const customersRef = ref(dbInstance, 'customers');
     const custMap: Record<string, any> = {};
@@ -173,6 +179,53 @@ export async function syncCustomersToCloud(silent = false) {
     return { success: true, status: "ONLINE" };
   } catch (err) {
     console.error("Sync customers failed:", err);
+    return { success: false, status: "OFFLINE" };
+  }
+}
+
+export async function syncCustomerKhataToCloud(silent = false) {
+  if (!dbInstance) return { success: false, status: "OFFLINE" };
+  try {
+    const entries = getAllCustomerKhataEntries();
+    const khataRef = ref(dbInstance, 'customer_khata');
+    const khataMap: Record<string, Record<string, any>> = {};
+
+    for (const e of entries) {
+      if (!e || !e.customer_id) continue;
+      const custKey = e.customer_id.toString();
+      if (!khataMap[custKey]) {
+        khataMap[custKey] = {};
+      }
+      const entryKey = e.id ? e.id.toString() : `${e.type}_${e.amount}_${e.timestamp?.substring(0, 19)}`;
+      khataMap[custKey][entryKey] = {
+        id: e.id,
+        customer_id: e.customer_id,
+        sale_id: e.sale_id || null,
+        type: e.type,
+        amount: e.amount,
+        notes: e.notes || '',
+        payment_method: e.payment_method || (e.type === 'LOAN' ? 'Credit / Loan' : 'Cash'),
+        timestamp: e.timestamp
+      };
+    }
+
+    // Merge each customer's khata map
+    for (const [custId, entryDict] of Object.entries(khataMap)) {
+      const custKhataRef = ref(dbInstance, `customer_khata/${custId}`);
+      const snap = await get(custKhataRef);
+      let merged = { ...entryDict };
+      if (snap.exists()) {
+        const val = snap.val();
+        if (typeof val === 'object' && val !== null) {
+          merged = { ...val, ...merged };
+        }
+      }
+      await set(custKhataRef, merged);
+    }
+
+    return { success: true, status: "ONLINE" };
+  } catch (err) {
+    console.error("Sync customer khata failed:", err);
     return { success: false, status: "OFFLINE" };
   }
 }
@@ -264,24 +317,27 @@ async function ingestCloudDataToLocal() {
     const customersSnap = await get(ref(dbInstance, 'customers'));
     if (customersSnap.exists()) {
       const data = customersSnap.val();
-      const customers = Object.values(data);
-      for (const c of customers as any[]) {
+      const cloudCustomers = Array.isArray(data)
+        ? data.filter(Boolean)
+        : Object.entries(data).map(([k, v]: [string, any]) => ({ id: k, ...v }));
+
+      for (const c of cloudCustomers as any[]) {
         if (!c || (!c.phone && !c.name)) continue;
-        const existing = c.phone ? (getCustomerByPhone(c.phone) as any) : null;
-        if (existing) {
-          updateCustomer(existing.id, {
-            name: c.name || existing.name,
-            phone: c.phone || existing.phone,
-            email: c.email || existing.email,
-            points: Number(c.points) || 0,
-          });
-        } else if (c.name) {
-          addCustomer({
-            name: c.name,
-            phone: c.phone || '',
+        const custId = Number(c.id);
+        const validId = !isNaN(custId) && custId > 0 ? custId : undefined;
+        const cleanPhone = c.phone && String(c.phone).trim().length > 0 ? String(c.phone).trim() : undefined;
+
+        try {
+          upsertCustomer({
+            id: validId,
+            name: c.name || `Customer #${c.id}`,
+            phone: cleanPhone,
             email: c.email || '',
             points: Number(c.points) || 0,
+            balance: Number(c.balance) || 0
           });
+        } catch (err) {
+          console.warn(`Failed to upsert cloud customer #${c.id}:`, err);
         }
       }
     }
@@ -345,6 +401,54 @@ async function ingestCloudDataToLocal() {
         }
       }
     }
+
+    // 5. Ingest Sales (e.g. from Mobile POS)
+    const salesSnap = await get(ref(dbInstance, 'sales'));
+    if (salesSnap.exists()) {
+      const sData = salesSnap.val();
+      const cloudSales: any[] = [];
+      if (Array.isArray(sData)) {
+        for (let i = 0; i < sData.length; i++) {
+          if (sData[i]) cloudSales.push({ id: i, ...sData[i] });
+        }
+      } else if (typeof sData === 'object' && sData !== null) {
+        for (const [k, v] of Object.entries(sData)) {
+          if (v && typeof v === 'object') {
+            cloudSales.push({ id: (v as any).id || k, ...(v as any) });
+          }
+        }
+      }
+
+      for (const sale of cloudSales) {
+        if (!sale || sale.id === undefined || sale.id === null) continue;
+        try {
+          upsertCloudSale(sale);
+        } catch (err) {
+          console.warn(`Failed to upsert cloud sale #${sale.id}:`, err);
+        }
+      }
+    }
+
+    // 6. Ingest Customer Khata / Udhaar Entries (e.g. from Mobile POS)
+    const khataSnap = await get(ref(dbInstance, 'customer_khata'));
+    if (khataSnap.exists()) {
+      const kData = khataSnap.val();
+      if (typeof kData === 'object' && kData !== null) {
+        for (const [custId, entries] of Object.entries(kData)) {
+          if (!entries || typeof entries !== 'object') continue;
+          const entriesList = Array.isArray(entries) ? entries : Object.values(entries);
+          for (const e of entriesList) {
+            if (!e || typeof e !== 'object') continue;
+            try {
+              upsertCloudKhataEntry({ customer_id: custId, ...e });
+            } catch (err) {
+              console.warn(`Failed to upsert cloud khata entry for customer #${custId}:`, err);
+            }
+          }
+        }
+      }
+      recalculateAllCustomerBalances();
+    }
   } catch (err) {
     console.warn("Ingest cloud data to local error:", err);
   }
@@ -367,6 +471,7 @@ export function startSyncWorker(onStatusChange?: (status: string) => void) {
         await syncProductsToCloud();
         await syncExpensesToCloud();
         await syncCustomersToCloud();
+        await syncCustomerKhataToCloud();
         await syncVendorsToCloud();
       } else {
         console.log("Firebase status: Disconnected (Offline)");
@@ -376,8 +481,10 @@ export function startSyncWorker(onStatusChange?: (status: string) => void) {
 
     // Realtime listeners for immediate updates from mobile
     try {
+      onValue(ref(dbInstance, 'sales'), () => ingestCloudDataToLocal());
       onValue(ref(dbInstance, 'products'), () => ingestCloudDataToLocal());
       onValue(ref(dbInstance, 'customers'), () => ingestCloudDataToLocal());
+      onValue(ref(dbInstance, 'customer_khata'), () => ingestCloudDataToLocal());
       onValue(ref(dbInstance, 'expenses'), () => ingestCloudDataToLocal());
       onValue(ref(dbInstance, 'vendors'), () => ingestCloudDataToLocal());
       onValue(ref(dbInstance, 'purchase_orders'), () => ingestCloudDataToLocal());
@@ -396,6 +503,7 @@ export function startSyncWorker(onStatusChange?: (status: string) => void) {
       await syncProductsToCloud(true);
       await syncExpensesToCloud(true);
       await syncCustomersToCloud(true);
+      await syncCustomerKhataToCloud(true);
       await syncVendorsToCloud(true);
     } catch (err) {
       console.warn("Background cloud sync error:", err);

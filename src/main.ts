@@ -10,7 +10,7 @@ import { initDb, getAllProducts, getProductByBarcode, saveSale, getNextSaleId, a
   getAllPurchaseOrders, createPurchaseOrder, receivePurchaseOrder, deletePurchaseOrder,
   addVendorPayment, getVendorPayments, getVendorOrderEntries } from './db';
 import { printReceipt, printBarcode } from './printer';
-import { startSyncWorker, syncProductsToCloud } from './syncEngine';
+import { startSyncWorker, syncProductsToCloud, syncCustomersToCloud, syncCustomerKhataToCloud } from './syncEngine';
 import { sendWhatsAppMessage } from './whatsappService';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
@@ -98,6 +98,11 @@ ipcMain.handle('checkout', async (event, data) => {
       console.warn('Background receipt print warning:', printErr);
     });
 
+    if (data.paymentData?.customerId || data.paymentData?.paymentMethod === 'Credit / Loan') {
+      syncCustomerKhataToCloud(true).catch(e => console.warn('Khata sync err on checkout:', e));
+      syncCustomersToCloud(true).catch(e => console.warn('Customer sync err on checkout:', e));
+    }
+
     return { success: true, saleId };
   } catch (err: any) {
     console.error('Checkout error:', err);
@@ -178,28 +183,40 @@ ipcMain.handle('get-customer-by-phone', (event, phone) => {
   return getCustomerByPhone(phone);
 });
 
-ipcMain.handle('add-customer', (event, customer) => {
-  return addCustomer(customer);
+ipcMain.handle('add-customer', async (event, customer) => {
+  const res = addCustomer(customer);
+  syncCustomersToCloud(true);
+  return res;
 });
 
-ipcMain.handle('update-customer', (event, id, customer) => {
-  return updateCustomer(id, customer);
+ipcMain.handle('update-customer', async (event, id, customer) => {
+  const res = updateCustomer(id, customer);
+  syncCustomersToCloud(true);
+  return res;
 });
 
-ipcMain.handle('delete-customer', (event, id) => {
-  return deleteCustomer(id);
+ipcMain.handle('delete-customer', async (event, id) => {
+  const res = deleteCustomer(id);
+  syncCustomersToCloud(true);
+  return res;
 });
 
 ipcMain.handle('get-customer-khata', (event, customerId) => {
   return getCustomerKhataEntries(customerId);
 });
 
-ipcMain.handle('add-customer-loan-payment', (event, data) => {
-  return addCustomerLoanPayment(data);
+ipcMain.handle('add-customer-loan-payment', async (event, data) => {
+  const res = addCustomerLoanPayment(data);
+  syncCustomerKhataToCloud(true);
+  syncCustomersToCloud(true);
+  return res;
 });
 
-ipcMain.handle('add-customer-loan-entry', (event, data) => {
-  return addCustomerLoanEntry(data);
+ipcMain.handle('add-customer-loan-entry', async (event, data) => {
+  const res = addCustomerLoanEntry(data);
+  syncCustomerKhataToCloud(true);
+  syncCustomersToCloud(true);
+  return res;
 });
 
 // Users & Shifts IPC Handlers

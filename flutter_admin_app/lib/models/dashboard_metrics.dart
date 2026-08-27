@@ -1,3 +1,4 @@
+import 'package:ssmart_pos_admin/core/utils/date_utils.dart';
 import 'package:ssmart_pos_admin/models/sale.dart';
 
 /// Aggregated metrics for the dashboard
@@ -40,12 +41,12 @@ class DashboardMetrics {
     final transactionCount = sales.length;
 
     // Calculate average transaction value
-    final averageTransactionValue = totalRevenue / transactionCount;
+    final averageTransactionValue = transactionCount > 0 ? totalRevenue / transactionCount : 0.0;
 
     // Calculate revenue by payment method
     final revenueByPaymentMethod = <String, double>{};
     for (final sale in sales) {
-      final method = sale.paymentMethod;
+      final method = sale.paymentMethod.isNotEmpty ? sale.paymentMethod : 'Cash';
       revenueByPaymentMethod[method] =
           (revenueByPaymentMethod[method] ?? 0.0) + sale.total;
     }
@@ -62,18 +63,10 @@ class DashboardMetrics {
     );
   }
 
-  /// Calculate today's metrics from a list of sales
+  /// Calculate today's metrics from a list of sales using resilient timezone comparison
   factory DashboardMetrics.todayFromSales(List<Sale> sales) {
-    final now = DateTime.now();
-    final todayStart = DateTime(now.year, now.month, now.day);
-
     final todaySales = sales.where((sale) {
-      try {
-        final saleDate = DateTime.parse(sale.timestamp);
-        return saleDate.isAfter(todayStart);
-      } catch (e) {
-        return false;
-      }
+      return AppDateUtils.isToday(sale.timestamp);
     }).toList();
 
     return DashboardMetrics.fromSales(todaySales, daysHistory: 1);
@@ -94,16 +87,18 @@ class DashboardMetrics {
     // Aggregate sales by day
     for (final sale in sales) {
       try {
-        final saleDate = DateTime.parse(sale.timestamp);
-        final dateKey = _dateKey(saleDate);
+        final saleDate = AppDateUtils.parseDateTime(sale.timestamp);
+        if (saleDate == null) continue;
+        final localDate = saleDate.isUtc ? saleDate.toLocal() : saleDate;
+        final dateKey = _dateKey(localDate);
 
         // Only include if within the date range
-        final daysAgo = now.difference(saleDate).inDays;
+        final daysAgo = now.difference(localDate).inDays;
         if (daysAgo < days && dailyMap.containsKey(dateKey)) {
           dailyMap[dateKey] = (dailyMap[dateKey] ?? 0.0) + sale.total;
         }
       } catch (e) {
-        print('Error parsing sale date: $e');
+        print('Error aggregating sale daily revenue: $e');
       }
     }
 

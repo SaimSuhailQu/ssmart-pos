@@ -33,21 +33,21 @@ class Sale {
     this.payments,
   });
 
-  /// Create Sale from Firebase Realtime Database snapshot
+  /// Create Sale from Firebase Realtime Database snapshot safely
   factory Sale.fromJson(String id, Map<dynamic, dynamic> json) {
     return Sale(
       id: id,
-      subtotal: (json['subtotal'] as num?)?.toDouble() ?? 0.0,
-      tax: (json['tax'] as num?)?.toDouble() ?? 0.0,
-      discount: (json['discount'] as num?)?.toDouble() ?? 0.0,
-      total: (json['total'] as num?)?.toDouble() ?? 0.0,
-      paymentMethod: json['payment_method'] as String? ?? 'Unknown',
-      amountTendered: (json['amount_tendered'] as num?)?.toDouble() ?? 0.0,
-      changeGiven: (json['change_given'] as num?)?.toDouble() ?? 0.0,
-      timestamp: json['timestamp'] as String? ?? '',
-      storeBranch: json['store_branch'] as String?,
-      userId: json['user_id'] as int?,
-      userName: json['user_name'] as String?,
+      subtotal: _toDouble(json['subtotal']),
+      tax: _toDouble(json['tax']),
+      discount: _toDouble(json['discount']),
+      total: _toDouble(json['total']),
+      paymentMethod: _toString(json['payment_method'], 'Cash'),
+      amountTendered: _toDouble(json['amount_tendered']),
+      changeGiven: _toDouble(json['change_given']),
+      timestamp: _toString(json['timestamp']),
+      storeBranch: json['store_branch'] != null ? _toString(json['store_branch']) : null,
+      userId: json['user_id'] != null ? _toInt(json['user_id']) : null,
+      userName: json['user_name'] != null ? _toString(json['user_name']) : null,
       items: _parseItems(json['items']),
       payments: _parsePayments(json['payments']),
     );
@@ -80,10 +80,12 @@ class Sale {
     try {
       if (itemsData is List) {
         return itemsData
+            .where((item) => item != null && item is Map)
             .map((item) => SaleItem.fromJson(item as Map<dynamic, dynamic>))
             .toList();
       } else if (itemsData is Map) {
         return itemsData.values
+            .where((item) => item != null && item is Map)
             .map((item) => SaleItem.fromJson(item as Map<dynamic, dynamic>))
             .toList();
       }
@@ -100,10 +102,12 @@ class Sale {
     try {
       if (paymentsData is List) {
         return paymentsData
+            .where((payment) => payment != null && payment is Map)
             .map((payment) => PaymentDetail.fromJson(payment as Map<dynamic, dynamic>))
             .toList();
       } else if (paymentsData is Map) {
         return paymentsData.values
+            .where((payment) => payment != null && payment is Map)
             .map((payment) => PaymentDetail.fromJson(payment as Map<dynamic, dynamic>))
             .toList();
       }
@@ -169,12 +173,16 @@ class SaleItem {
 
   factory SaleItem.fromJson(Map<dynamic, dynamic> json) {
     return SaleItem(
-      productId: json['product_id'] as int? ?? 0,
-      productName: json['product_name'] as String? ?? 'Unknown',
-      productBarcode: json['product_barcode'] as String?,
-      productCategory: json['product_category'] as String?,
-      quantity: json['qty'] as int? ?? 1,
-      price: (json['price'] as num?)?.toDouble() ?? 0.0,
+      productId: _toInt(json['product_id'] ?? json['productId']),
+      productName: _toString(json['product_name'] ?? json['productName'] ?? json['name'], 'Unknown Item'),
+      productBarcode: json['product_barcode'] != null || json['barcode'] != null
+          ? _toString(json['product_barcode'] ?? json['barcode'])
+          : null,
+      productCategory: json['product_category'] != null || json['category'] != null
+          ? _toString(json['product_category'] ?? json['category'])
+          : null,
+      quantity: _toInt(json['qty'] ?? json['quantity'] ?? 1, fallback: 1),
+      price: _toDouble(json['price']),
     );
   }
 
@@ -205,8 +213,8 @@ class PaymentDetail {
 
   factory PaymentDetail.fromJson(Map<dynamic, dynamic> json) {
     return PaymentDetail(
-      method: json['method'] as String? ?? 'Unknown',
-      amount: (json['amount'] as num?)?.toDouble() ?? 0.0,
+      method: _toString(json['method'] ?? json['payment_method'], 'Cash'),
+      amount: _toDouble(json['amount']),
     );
   }
 
@@ -216,4 +224,32 @@ class PaymentDetail {
       'amount': amount,
     };
   }
+}
+
+// Type parsing helpers
+double _toDouble(dynamic val) {
+  if (val == null) return 0.0;
+  if (val is double) return val;
+  if (val is int) return val.toDouble();
+  if (val is num) return val.toDouble();
+  if (val is String) {
+    return double.tryParse(val.trim()) ?? 0.0;
+  }
+  return 0.0;
+}
+
+int _toInt(dynamic val, {int fallback = 0}) {
+  if (val == null) return fallback;
+  if (val is int) return val;
+  if (val is num) return val.toInt();
+  if (val is String) {
+    return int.tryParse(val.trim()) ?? (double.tryParse(val.trim())?.toInt() ?? fallback);
+  }
+  return fallback;
+}
+
+String _toString(dynamic val, [String fallback = '']) {
+  if (val == null) return fallback;
+  final s = val.toString().trim();
+  return s.isEmpty ? fallback : s;
 }

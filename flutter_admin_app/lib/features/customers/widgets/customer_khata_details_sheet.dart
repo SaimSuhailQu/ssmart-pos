@@ -100,95 +100,7 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
             ),
           ),
 
-          // Total Balance Overview Bar
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: hasDebt
-                      ? [Colors.amber.shade900.withOpacity(0.4), Colors.amber.shade700.withOpacity(0.2)]
-                      : [Colors.green.shade900.withOpacity(0.4), Colors.green.shade700.withOpacity(0.2)],
-                ),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: hasDebt ? Colors.amber.withOpacity(0.4) : Colors.green.withOpacity(0.4),
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        hasDebt ? 'TOTAL UDHAAR (DUE BALANCE)' : 'ACCOUNT BALANCE',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.1,
-                          color: hasDebt ? Colors.amber.shade200 : Colors.green.shade200,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'PKR ${customer.balance.toStringAsFixed(0)}',
-                        style: TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.w900,
-                          color: hasDebt ? Colors.amber : AppTheme.successGreen,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      if (customer.phone.isNotEmpty)
-                        IconButton.filled(
-                          style: IconButton.styleFrom(backgroundColor: const Color(0xFF25D366)),
-                          icon: const Icon(CupertinoIcons.chat_bubble_2_fill, color: Colors.white, size: 20),
-                          tooltip: 'Send WhatsApp Reminder',
-                          onPressed: () => WhatsAppHelper.sendCustomerKhataReminder(customer: customer),
-                        ),
-                      const SizedBox(width: 8),
-                      IconButton.filled(
-                        style: IconButton.styleFrom(backgroundColor: Colors.amber.shade700),
-                        icon: const Icon(CupertinoIcons.plus, color: Colors.black, size: 20),
-                        tooltip: 'Add Khata Entry',
-                        onPressed: () {
-                          Navigator.pop(context);
-                          onAddEntry();
-                        },
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 8),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              children: [
-                Icon(CupertinoIcons.list_bullet_below_rectangle, size: 16, color: AppTheme.primaryCyan),
-                SizedBox(width: 6),
-                Text(
-                  'Khata Statement / Audit History',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-
-          // Ledger Entries Stream
+          // Stream of ledger entries & live balance calculation
           Expanded(
             child: StreamBuilder<List<Map<String, dynamic>>>(
               stream: firebaseService.getCustomerKhataStream(customer.id.toString()),
@@ -198,104 +110,214 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                 }
 
                 final entries = snapshot.data ?? [];
-                if (entries.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(CupertinoIcons.doc_text, size: 48, color: Colors.white.withOpacity(0.2)),
-                        const SizedBox(height: 10),
-                        const Text(
-                          'No individual audit transactions recorded yet.',
-                          style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
-                        ),
-                      ],
-                    ),
-                  );
+
+                // Authoritative live balance from entries
+                double computedBalance = 0.0;
+                for (final e in entries) {
+                  final eType = e['type']?.toString().toUpperCase() ?? 'LOAN';
+                  final double eAmt = (e['amount'] is num)
+                      ? (e['amount'] as num).toDouble()
+                      : (double.tryParse(e['amount']?.toString() ?? '0') ?? 0.0);
+                  if (eType == 'LOAN') {
+                    computedBalance += eAmt;
+                  } else {
+                    computedBalance -= eAmt;
+                  }
                 }
 
-                return ListView.separated(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                  itemCount: entries.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 8),
-                  itemBuilder: (context, index) {
-                    final e = entries[index];
-                    final isPayment = e['type'] == 'PAYMENT';
-                    final double amount = (e['amount'] is num) ? (e['amount'] as num).toDouble() : 0.0;
-                    final String notes = e['notes']?.toString() ?? '';
-                    final String timestamp = e['timestamp']?.toString() ?? '';
-                    final String paymentMethod = e['payment_method']?.toString() ?? 'Cash';
+                final displayBalance = entries.isNotEmpty ? computedBalance : customer.balance;
+                final bool hasCurrentDebt = displayBalance > 0;
 
-                    DateTime parsedTime;
-                    try {
-                      parsedTime = DateTime.parse(timestamp);
-                    } catch (_) {
-                      parsedTime = DateTime.now();
-                    }
-
-                    return Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppTheme.cardBackground,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: isPayment ? Colors.green.withOpacity(0.2) : Colors.amber.withOpacity(0.2),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: isPayment ? Colors.green.withOpacity(0.15) : Colors.amber.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Icon(
-                              isPayment ? CupertinoIcons.arrow_down_left : CupertinoIcons.arrow_up_right,
-                              color: isPayment ? AppTheme.successGreen : Colors.amber,
-                              size: 20,
-                            ),
+                return Column(
+                  children: [
+                    // Total Balance Overview Bar
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: hasCurrentDebt
+                                ? [Colors.amber.shade900.withOpacity(0.4), Colors.amber.shade700.withOpacity(0.2)]
+                                : [Colors.green.shade900.withOpacity(0.4), Colors.green.shade700.withOpacity(0.2)],
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: hasCurrentDebt ? Colors.amber.withOpacity(0.4) : Colors.green.withOpacity(0.4),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  isPayment ? 'Wasool / Payment Recv ($paymentMethod)' : 'Udhaar Given (Loan)',
+                                  hasCurrentDebt ? 'TOTAL UDHAAR (DUE BALANCE)' : 'ACCOUNT BALANCE',
                                   style: TextStyle(
-                                    color: isPayment ? AppTheme.successGreen : Colors.amber,
+                                    fontSize: 11,
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 13,
+                                    letterSpacing: 1.1,
+                                    color: hasCurrentDebt ? Colors.amber.shade200 : Colors.green.shade200,
                                   ),
                                 ),
-                                if (notes.isNotEmpty) ...[
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    notes,
-                                    style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
-                                  ),
-                                ],
-                                const SizedBox(height: 2),
+                                const SizedBox(height: 4),
                                 Text(
-                                  AppDateUtils.formatDateTime(parsedTime),
-                                  style: const TextStyle(color: Colors.white38, fontSize: 11),
+                                  'PKR ${displayBalance.toStringAsFixed(0)}',
+                                  style: TextStyle(
+                                    fontSize: 26,
+                                    fontWeight: FontWeight.w900,
+                                    color: hasCurrentDebt ? Colors.amber : AppTheme.successGreen,
+                                  ),
                                 ),
                               ],
                             ),
-                          ),
+                            Row(
+                              children: [
+                                if (customer.phone.isNotEmpty)
+                                  IconButton.filled(
+                                    style: IconButton.styleFrom(backgroundColor: const Color(0xFF25D366)),
+                                    icon: const Icon(CupertinoIcons.chat_bubble_2_fill, color: Colors.white, size: 20),
+                                    tooltip: 'Send WhatsApp Reminder',
+                                    onPressed: () => WhatsAppHelper.sendCustomerKhataReminder(
+                                      customer: customer.copyWith(balance: displayBalance),
+                                    ),
+                                  ),
+                                const SizedBox(width: 8),
+                                IconButton.filled(
+                                  style: IconButton.styleFrom(backgroundColor: Colors.amber.shade700),
+                                  icon: const Icon(CupertinoIcons.plus, color: Colors.black, size: 20),
+                                  tooltip: 'Add Khata Entry',
+                                  onPressed: () {
+                                    Navigator.pop(context);
+                                    onAddEntry();
+                                  },
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 8),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 20),
+                      child: Row(
+                        children: [
+                          Icon(CupertinoIcons.list_bullet_below_rectangle, size: 16, color: AppTheme.primaryCyan),
+                          SizedBox(width: 6),
                           Text(
-                            '${isPayment ? '-' : '+'}PKR ${amount.toStringAsFixed(0)}',
+                            'Khata Statement / Audit History',
                             style: TextStyle(
-                              color: isPayment ? AppTheme.successGreen : Colors.amber,
-                              fontSize: 15,
+                              color: Colors.white,
+                              fontSize: 14,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                         ],
                       ),
-                    );
-                  },
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Entries List
+                    Expanded(
+                      child: entries.isEmpty
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(CupertinoIcons.doc_text, size: 48, color: Colors.white.withOpacity(0.2)),
+                                  const SizedBox(height: 10),
+                                  const Text(
+                                    'No individual audit transactions recorded yet.',
+                                    style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : ListView.separated(
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                              itemCount: entries.length,
+                              separatorBuilder: (_, __) => const SizedBox(height: 8),
+                              itemBuilder: (context, index) {
+                                final e = entries[index];
+                                final isPayment = (e['type']?.toString().toUpperCase() ?? 'LOAN') == 'PAYMENT';
+                                final double amount = (e['amount'] is num)
+                                    ? (e['amount'] as num).toDouble()
+                                    : (double.tryParse(e['amount']?.toString() ?? '0') ?? 0.0);
+                                final String notes = e['notes']?.toString() ?? '';
+                                final String timestamp = e['timestamp']?.toString() ?? '';
+                                final String paymentMethod = e['payment_method']?.toString() ?? 'Cash';
+
+                                final parsedTime = AppDateUtils.parseDateTime(timestamp) ?? DateTime.now();
+
+                                return Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.cardBackground,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: isPayment ? Colors.green.withOpacity(0.2) : Colors.amber.withOpacity(0.2),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: isPayment ? Colors.green.withOpacity(0.15) : Colors.amber.withOpacity(0.15),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Icon(
+                                          isPayment ? CupertinoIcons.arrow_down_left : CupertinoIcons.arrow_up_right,
+                                          color: isPayment ? AppTheme.successGreen : Colors.amber,
+                                          size: 20,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              isPayment ? 'Wasool / Payment Recv ($paymentMethod)' : 'Udhaar Given (Loan)',
+                                              style: TextStyle(
+                                                color: isPayment ? AppTheme.successGreen : Colors.amber,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 13,
+                                              ),
+                                            ),
+                                            if (notes.isNotEmpty) ...[
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                notes,
+                                                style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                                              ),
+                                            ],
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              AppDateUtils.formatDateTime(parsedTime),
+                                              style: const TextStyle(color: Colors.white38, fontSize: 11),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Text(
+                                        '${isPayment ? '-' : '+'}PKR ${amount.toStringAsFixed(0)}',
+                                        style: TextStyle(
+                                          color: isPayment ? AppTheme.successGreen : Colors.amber,
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
                 );
               },
             ),
