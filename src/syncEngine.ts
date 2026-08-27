@@ -188,7 +188,6 @@ export async function syncCustomerKhataToCloud(silent = false) {
   if (!dbInstance) return { success: false, status: "OFFLINE" };
   try {
     const entries = getAllCustomerKhataEntries();
-    const khataRef = ref(dbInstance, 'customer_khata');
     const khataMap: Record<string, Record<string, any>> = {};
 
     for (const e of entries) {
@@ -197,9 +196,10 @@ export async function syncCustomerKhataToCloud(silent = false) {
       if (!khataMap[custKey]) {
         khataMap[custKey] = {};
       }
-      const entryKey = e.id ? e.id.toString() : `${e.type}_${e.amount}_${e.timestamp?.substring(0, 19)}`;
-      khataMap[custKey][entryKey] = {
-        id: e.id,
+      const syncKey = e.sync_id || (e.id ? `khata_${e.id}` : `khata_${e.type}_${e.amount}_${e.timestamp}`);
+      khataMap[custKey][syncKey] = {
+        id: syncKey,
+        sync_id: syncKey,
         customer_id: e.customer_id,
         sale_id: e.sale_id || null,
         type: e.type,
@@ -210,18 +210,10 @@ export async function syncCustomerKhataToCloud(silent = false) {
       };
     }
 
-    // Merge each customer's khata map
+    // Write exact synchronized map for each customer
     for (const [custId, entryDict] of Object.entries(khataMap)) {
       const custKhataRef = ref(dbInstance, `customer_khata/${custId}`);
-      const snap = await get(custKhataRef);
-      let merged = { ...entryDict };
-      if (snap.exists()) {
-        const val = snap.val();
-        if (typeof val === 'object' && val !== null) {
-          merged = { ...val, ...merged };
-        }
-      }
-      await set(custKhataRef, merged);
+      await set(custKhataRef, entryDict);
     }
 
     return { success: true, status: "ONLINE" };

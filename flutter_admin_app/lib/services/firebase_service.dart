@@ -360,24 +360,27 @@ class FirebaseService {
     return khataRef.onValue.map((event) {
       final data = event.snapshot.value;
       if (data == null) return <Map<String, dynamic>>[];
-      final List<Map<String, dynamic>> list = [];
+      final Map<String, Map<String, dynamic>> uniqueMap = {};
       if (data is Map) {
         data.forEach((k, v) {
           if (v is Map) {
             final entry = Map<String, dynamic>.from(v);
-            entry['key'] = k.toString();
-            list.add(entry);
+            final String entryKey = entry['sync_id']?.toString() ?? entry['id']?.toString() ?? k.toString();
+            entry['key'] = entryKey;
+            uniqueMap[entryKey] = entry;
           }
         });
       } else if (data is List) {
         for (int i = 0; i < data.length; i++) {
           if (data[i] is Map) {
             final entry = Map<String, dynamic>.from(data[i]);
-            entry['key'] = i.toString();
-            list.add(entry);
+            final String entryKey = entry['sync_id']?.toString() ?? entry['id']?.toString() ?? i.toString();
+            entry['key'] = entryKey;
+            uniqueMap[entryKey] = entry;
           }
         }
       }
+      final list = uniqueMap.values.toList();
       list.sort((a, b) {
         final tA = a['timestamp']?.toString() ?? '';
         final tB = b['timestamp']?.toString() ?? '';
@@ -532,9 +535,11 @@ class FirebaseService {
     if (paymentMethod.toLowerCase().contains('khata') || paymentMethod.toLowerCase().contains('udhaar') || paymentMethod.toLowerCase().contains('loan')) {
       if (customerId != null && customerId.isNotEmpty) {
         try {
-          final khataRef = _database.ref('customer_khata/$customerId').push();
+          final String entryKey = 'khata_sale_${saleId}_${DateTime.now().millisecondsSinceEpoch}';
+          final khataRef = _database.ref('customer_khata/$customerId/$entryKey');
           await khataRef.set({
-            'id': DateTime.now().millisecondsSinceEpoch,
+            'id': entryKey,
+            'sync_id': entryKey,
             'customer_id': int.tryParse(customerId) ?? customerId,
             'type': 'LOAN',
             'amount': total,
@@ -616,10 +621,12 @@ class FirebaseService {
     required String paymentMethod,
     String? notes,
   }) async {
-    // 1. Push khata entry audit record
-    final entryRef = _database.ref('customer_khata/$customerId').push();
+    // 1. Save khata entry audit record with unique key
+    final String entryKey = 'khata_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(9999)}';
+    final entryRef = _database.ref('customer_khata/$customerId/$entryKey');
     await entryRef.set({
-      'id': DateTime.now().millisecondsSinceEpoch,
+      'id': entryKey,
+      'sync_id': entryKey,
       'customer_id': int.tryParse(customerId) ?? customerId,
       'type': type,
       'amount': amount,

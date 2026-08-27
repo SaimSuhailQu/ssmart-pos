@@ -324,10 +324,17 @@ export function initDb() {
         notes TEXT DEFAULT '',
         payment_method TEXT DEFAULT 'Cash',
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+        sync_id TEXT UNIQUE,
         FOREIGN KEY (customer_id) REFERENCES customers(id),
         FOREIGN KEY (sale_id) REFERENCES sales(id)
       );
     `);
+    try {
+      db.exec("ALTER TABLE customer_khata_entries ADD COLUMN sync_id TEXT;");
+    } catch {
+      // Column already exists
+    }
+    db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_cke_sync_id ON customer_khata_entries(sync_id);");
   } catch (err) {
     console.error("Customer khata table creation error:", err);
   }
@@ -461,7 +468,9 @@ export function saveSale(items: any[], paymentData: { subtotal: number, tax: num
 
       // If sale has loan / credit (Udhaar) for a selected customer, log to customer's running loan ledger
       if ((p.method === 'Credit / Loan' || p.method === 'Loan' || p.method === 'Udhaar') && paymentData.customerId) {
-        insertKhata.run(paymentData.customerId, saleId, 'LOAN', p.amount, `Store POS Order #${saleId}`, 'Credit / Loan');
+        const syncId = `khata_sale_${saleId}_${Date.now()}`;
+        db.prepare('INSERT INTO customer_khata_entries (customer_id, sale_id, type, amount, notes, payment_method, sync_id) VALUES (?, ?, ?, ?, ?, ?, ?)')
+          .run(paymentData.customerId, saleId, 'LOAN', p.amount, `Store POS Order #${saleId}`, 'Credit / Loan', syncId);
         updateCustomerBalance.run(p.amount, paymentData.customerId);
       }
     }
@@ -686,6 +695,7 @@ export function upsertCloudKhataEntry(entry: any) {
   const paymentMethod = entry.payment_method || entry.paymentMethod || (type === 'LOAN' ? 'Credit / Loan' : 'Cash');
   const notes = entry.notes || '';
   const timestamp = entry.timestamp || new Date().toISOString();
+  const syncId = entry.sync_id || (entry.id ? String(entry.id) : `khata_${custId}_${type}_${amount}_${timestamp}`);
   
   // Verify saleId exists in local sales table to prevent FOREIGN KEY violation
   let saleId: number | null = null;
@@ -701,31 +711,37 @@ export function upsertCloudKhataEntry(entry: any) {
 
   const timePrefix = timestamp.substring(0, 19);
 
-  // Check if entry already exists
-  const existing = db.prepare(`
-    SELECT id FROM customer_khata_entries 
-    WHERE customer_id = ? AND type = ? AND ABS(amount - ?) < 0.001 
-      AND (timestamp LIKE ? OR timestamp = ?)
-  `).get(custId, type, amount, `${timePrefix}%`, timestamp);
+  // Check if entry already exists by sync_id OR by (customer_id, type, amount, timestamp)
+  const existing = (syncId ? db.prepare('SELECT id FROM customer_khata_entries WHERE sync_id = ?').get(syncId) : null) ||
+                   db.prepare(`
+                     SELECT id FROM customer_khata_entries 
+                     WHERE customer_id = ? AND type = ? AND ABS(amount - ?) < 0.001 
+                       AND (timestamp LIKE ? OR timestamp = ?)
+                   `).get(custId, type, amount, `${timePrefix}%`, timestamp);
 
-  if (!existing) {
-    db.prepare(`
-      INSERT INTO customer_khata_entries (customer_id, sale_id, type, amount, notes, payment_method, timestamp)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(custId, saleId, type, amount, notes, paymentMethod, timestamp);
-
-    recalculateCustomerBalance(custId);
-    return true;
+  if (existing) {
+    if (syncId) {
+      db.prepare('UPDATE customer_khata_entries SET sync_id = ? WHERE id = ? AND (sync_id IS NULL OR sync_id = ?)').run(syncId, (existing as any).id, syncId);
+    }
+    return false;
   }
-  return false;
+
+  db.prepare(`
+    INSERT INTO customer_khata_entries (customer_id, sale_id, type, amount, notes, payment_method, timestamp, sync_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(custId, saleId, type, amount, notes, paymentMethod, timestamp, syncId);
+
+  recalculateCustomerBalance(custId);
+  return true;
 }
 
 export function addCustomerLoanPayment(data: { customerId: number, amount: number, paymentMethod?: string, notes?: string }) {
-  const insertKhata = db.prepare('INSERT INTO customer_khata_entries (customer_id, type, amount, notes, payment_method) VALUES (?, ?, ?, ?, ?)');
+  const syncId = `khata_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const insertKhata = db.prepare('INSERT INTO customer_khata_entries (customer_id, type, amount, notes, payment_method, sync_id) VALUES (?, ?, ?, ?, ?, ?)');
   const updateBalance = db.prepare('UPDATE customers SET balance = balance - ? WHERE id = ?');
 
   const transaction = db.transaction(() => {
-    insertKhata.run(data.customerId, 'PAYMENT', data.amount, data.notes || 'Loan Repayment (Udhaar Wasool)', data.paymentMethod || 'Cash');
+    insertKhata.run(data.customerId, 'PAYMENT', data.amount, data.notes || 'Loan Repayment (Udhaar Wasool)', data.paymentMethod || 'Cash', syncId);
     updateBalance.run(data.amount, data.customerId);
   });
 
@@ -734,11 +750,12 @@ export function addCustomerLoanPayment(data: { customerId: number, amount: numbe
 }
 
 export function addCustomerLoanEntry(data: { customerId: number, amount: number, notes?: string }) {
-  const insertKhata = db.prepare('INSERT INTO customer_khata_entries (customer_id, type, amount, notes, payment_method) VALUES (?, ?, ?, ?, ?)');
+  const syncId = `khata_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const insertKhata = db.prepare('INSERT INTO customer_khata_entries (customer_id, type, amount, notes, payment_method, sync_id) VALUES (?, ?, ?, ?, ?, ?)');
   const updateBalance = db.prepare('UPDATE customers SET balance = balance + ? WHERE id = ?');
 
   const transaction = db.transaction(() => {
-    insertKhata.run(data.customerId, 'LOAN', data.amount, data.notes || 'Manual Credit / Loan Entry', 'Credit / Loan');
+    insertKhata.run(data.customerId, 'LOAN', data.amount, data.notes || 'Manual Credit / Loan Entry', 'Credit / Loan', syncId);
     updateBalance.run(data.amount, data.customerId);
   });
 
