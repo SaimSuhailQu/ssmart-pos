@@ -666,6 +666,22 @@ class FirebaseService {
     }
   }
 
+  Future<void> clearAllKhataRecords() async {
+    // 1. Remove all audit entries
+    await _database.ref('customer_khata').remove();
+
+    // 2. Reset all customer balances to 0
+    final custSnap = await _database.ref(FirebasePaths.customers).get();
+    if (custSnap.exists && custSnap.value != null) {
+      final val = custSnap.value;
+      if (val is Map) {
+        for (final key in val.keys) {
+          await _database.ref('${FirebasePaths.customers}/$key/balance').set(0);
+        }
+      }
+    }
+  }
+
   /// Expense CRUD
   Future<void> addExpense({
     required double amount,

@@ -10,7 +10,7 @@ import { initDb, getAllProducts, getProductByBarcode, saveSale, getNextSaleId, a
   getAllPurchaseOrders, createPurchaseOrder, receivePurchaseOrder, deletePurchaseOrder,
   addVendorPayment, getVendorPayments, getVendorOrderEntries } from './db';
 import { printReceipt, printBarcode } from './printer';
-import { startSyncWorker, syncProductsToCloud, syncCustomersToCloud, syncCustomerKhataToCloud } from './syncEngine';
+import { startSyncWorker, syncProductsToCloud, syncCustomersToCloud, syncCustomerKhataToCloud, clearAllKhataFromCloudAndLocal } from './syncEngine';
 import { sendWhatsAppMessage } from './whatsappService';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
@@ -217,6 +217,10 @@ ipcMain.handle('add-customer-loan-entry', async (event, data) => {
   syncCustomerKhataToCloud(true);
   syncCustomersToCloud(true);
   return res;
+});
+
+ipcMain.handle('clear-all-khata', async () => {
+  return await clearAllKhataFromCloudAndLocal();
 });
 
 // Users & Shifts IPC Handlers

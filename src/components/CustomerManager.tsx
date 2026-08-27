@@ -97,6 +97,20 @@ export const CustomerManager: React.FC = () => {
     }
   };
 
+  const handleClearAllKhata = async () => {
+    if (window.confirm('Are you sure you want to clear all Khata records and reset all customer balances to Rs. 0 in local & cloud database? This cannot be undone.')) {
+      try {
+        await window.api.clearAllKhata();
+        await loadCustomers();
+        if (selectedCustomerForKhata) {
+          loadCustomerKhata(selectedCustomerForKhata.id);
+        }
+      } catch (err) {
+        console.error('Failed to clear khata:', err);
+      }
+    }
+  };
+
   const handlePayLoanSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCustomerForKhata) return;
@@ -231,6 +245,14 @@ export const CustomerManager: React.FC = () => {
               <span className="text-[10px] text-amber-300 uppercase font-black tracking-wider block">Total Outstanding Udhaar</span>
               <span className="text-lg font-black text-amber-400 font-mono">Rs. {totalOutstandingUdhaar.toLocaleString()}</span>
             </div>
+
+            <button
+              onClick={handleClearAllKhata}
+              className="px-4 py-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 font-bold rounded-xl transition flex items-center gap-2 cursor-pointer active:scale-95 text-sm"
+              title="Reset all customer Khata loan/payment transactions and zero balances"
+            >
+              <Trash2 size={16} /> Reset Khata
+            </button>
 
             <button
               onClick={handleOpenAdd}

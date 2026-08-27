@@ -183,6 +183,7 @@ declare global {
       getCustomerKhata: (customerId: number) => Promise<CustomerKhataEntry[]>;
       addCustomerLoanPayment: (data: { customerId: number, amount: number, paymentMethod?: string, notes?: string }) => Promise<boolean>;
       addCustomerLoanEntry: (data: { customerId: number, amount: number, notes?: string }) => Promise<boolean>;
+      clearAllKhata: () => Promise<{ success: boolean, message?: string, error?: string }>;
 
       // Users & Shifts
       verifyUserPin: (pin: string) => Promise<{ id: number, name: string, role: string } | undefined>;

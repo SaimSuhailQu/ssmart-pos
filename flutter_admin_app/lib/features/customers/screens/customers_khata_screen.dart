@@ -33,6 +33,26 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
             tooltip: 'Add New Customer',
             onPressed: () => _showCustomerDialog(context, null),
           ),
+          PopupMenuButton<String>(
+            icon: const Icon(CupertinoIcons.ellipsis_vertical, color: Colors.white70),
+            onSelected: (val) {
+              if (val == 'clear_khata') {
+                _confirmClearAllKhata(context);
+              }
+            },
+            itemBuilder: (ctx) => [
+              const PopupMenuItem(
+                value: 'clear_khata',
+                child: Row(
+                  children: [
+                    Icon(CupertinoIcons.trash, color: AppTheme.errorRed, size: 18),
+                    SizedBox(width: 8),
+                    Text('Reset / Clear All Khata', style: TextStyle(color: AppTheme.errorRed, fontSize: 13, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -562,6 +582,40 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
               );
             },
             child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmClearAllKhata(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.surfaceDark,
+        title: const Text('Reset All Khata Records?', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: const Text(
+          'This will permanently delete all audit loan/payment transactions and reset all customer balances to PKR 0 in the cloud and local system. Are you sure?',
+          style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.errorRed, foregroundColor: Colors.white),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await context.read<FirebaseService>().clearAllKhataRecords();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('All Khata records cleared & balances reset to PKR 0!'),
+                  backgroundColor: AppTheme.primaryTeal,
+                ),
+              );
+            },
+            child: const Text('Yes, Reset All', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),

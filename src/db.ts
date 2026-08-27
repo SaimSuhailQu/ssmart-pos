@@ -627,6 +627,15 @@ export function getCustomerKhataEntries(customerId: number) {
   `).all(customerId);
 }
 
+export function clearAllKhataRecords() {
+  const transaction = db.transaction(() => {
+    db.prepare('DELETE FROM customer_khata_entries').run();
+    db.prepare('UPDATE customers SET balance = 0').run();
+  });
+  transaction();
+  return true;
+}
+
 export function getAllCustomerKhataEntries() {
   return db.prepare(`
     SELECT cke.*, s.total as sale_total

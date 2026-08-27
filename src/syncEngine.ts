@@ -12,6 +12,7 @@ import {
   getAllCustomerKhataEntries,
   upsertCloudKhataEntry,
   recalculateAllCustomerBalances,
+  clearAllKhataRecords,
   getProductByBarcode,
   addProduct,
   updateProduct,
@@ -228,6 +229,29 @@ export async function syncCustomerKhataToCloud(silent = false) {
     console.error("Sync customer khata failed:", err);
     return { success: false, status: "OFFLINE" };
   }
+}
+
+export async function clearAllKhataFromCloudAndLocal() {
+  clearAllKhataRecords();
+  if (dbInstance) {
+    try {
+      await set(ref(dbInstance, 'customer_khata'), null);
+      const custSnap = await get(ref(dbInstance, 'customers'));
+      if (custSnap.exists()) {
+        const val = custSnap.val();
+        if (typeof val === 'object' && val !== null) {
+          for (const key of Object.keys(val)) {
+            await set(ref(dbInstance, `customers/${key}/balance`), 0);
+          }
+        }
+      }
+      return { success: true, message: 'All Khata records and balances cleared from cloud and local.' };
+    } catch (err) {
+      console.error('Failed to clear cloud khata:', err);
+      return { success: false, error: String(err) };
+    }
+  }
+  return { success: true, message: 'Cleared locally (offline).' };
 }
 
 export async function syncVendorsToCloud(silent = false) {
