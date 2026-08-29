@@ -311,12 +311,46 @@ export const SalesRecordManager: React.FC = () => {
                   <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Sale Order ID: #{selectedSale.id}</p>
                 </div>
               </div>
-              <button 
-                onClick={() => setSelectedSale(null)} 
-                className="p-2 text-gray-400 hover:text-white glass-button rounded-full"
-              >
-                <X size={20} />
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={async () => {
+                    try {
+                      const items = (selectedSale.items || []).map((it) => ({
+                        name: it.product_name,
+                        price: it.price,
+                        qty: it.qty
+                      }));
+                      await window.api.printReceipt(
+                        items,
+                        {
+                          subtotal: selectedSale.subtotal,
+                          discount: selectedSale.discount,
+                          tax: selectedSale.tax,
+                          total: selectedSale.total,
+                          change: 0,
+                          cashierName: selectedSale.cashier_name,
+                          payments: [{ method: selectedSale.payment_method, amount: selectedSale.total }]
+                        },
+                        selectedSale.id,
+                        selectedSale.cashier_name
+                      );
+                      setSuccess(`Receipt for Sale #${selectedSale.id} sent to thermal printer!`);
+                    } catch (err: any) {
+                      setError(err.message || 'Failed to print receipt.');
+                    }
+                  }}
+                  className="px-4 py-2 bg-gradient-to-r from-neutral-200 to-emerald-600 hover:from-white hover:to-emerald-500 text-black font-extrabold rounded-xl text-xs uppercase tracking-wider shadow-lg flex items-center gap-2 cursor-pointer active:scale-95 transition-all"
+                  title="Print Thermal Receipt from Desktop Printer"
+                >
+                  <Printer size={15} /> Reprint Bill
+                </button>
+                <button 
+                  onClick={() => setSelectedSale(null)} 
+                  className="p-2 text-gray-400 hover:text-white glass-button rounded-full cursor-pointer"
+                >
+                  <X size={20} />
+                </button>
+              </div>
             </div>
 
             <div className="overflow-y-auto p-8 flex flex-col gap-6 scrollbar-thin scrollbar-thumb-white/10">
