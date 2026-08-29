@@ -20,6 +20,8 @@ class VendorsScreen extends StatefulWidget {
 
 class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final TextEditingController _poSearchController = TextEditingController();
+  final TextEditingController _vendorSearchController = TextEditingController();
   String _poSearchQuery = '';
   String _poFilter = 'ALL'; // ALL, PENDING, RECEIVED, PAYABLE, PAID
   String _vendorSearchQuery = '';
@@ -42,11 +44,18 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging) {
+        setState(() {});
+      }
+    });
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _poSearchController.dispose();
+    _vendorSearchController.dispose();
     super.dispose();
   }
 
@@ -221,11 +230,21 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM, vertical: 8),
                 child: TextField(
+                  controller: _poSearchController,
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     hintText: 'Search POs by vendor, phone, notes...',
                     hintStyle: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
                     prefixIcon: const Icon(CupertinoIcons.search, size: 20, color: AppTheme.textSecondary),
+                    suffixIcon: _poSearchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(CupertinoIcons.clear_circled_solid, size: 18, color: Colors.white54),
+                            onPressed: () {
+                              _poSearchController.clear();
+                              setState(() => _poSearchQuery = '');
+                            },
+                          )
+                        : null,
                     filled: true,
                     fillColor: AppTheme.cardBackground,
                     contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
@@ -532,15 +551,15 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
             }
 
             final filteredVendors = vendors.where((v) {
-              final q = _vendorSearchQuery.toLowerCase();
-              final matchQuery = q.isEmpty ||
-                  v.name.toLowerCase().contains(q) ||
-                  v.contact.contains(q) ||
-                  v.category.toLowerCase().contains(q);
+              final q = _vendorSearchQuery.trim().toLowerCase();
+              if (q.isNotEmpty) {
+                final tokens = q.split(RegExp(r'\s+'));
+                final searchable = '${v.name} ${v.contact} ${v.category}'.toLowerCase();
+                final matchesAll = tokens.every((t) => searchable.contains(t));
+                if (!matchesAll) return false;
+              }
 
-              if (!matchQuery) return false;
-
-              if (_selectedCategory != 'ALL' && v.category.toLowerCase() != _selectedCategory.toLowerCase()) {
+              if (_selectedCategory != 'ALL' && v.category.trim().toLowerCase() != _selectedCategory.toLowerCase()) {
                 return false;
               }
 
@@ -553,11 +572,21 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                 Padding(
                   padding: const EdgeInsets.fromLTRB(AppTheme.spacingM, AppTheme.spacingM, AppTheme.spacingM, 4),
                   child: TextField(
+                    controller: _vendorSearchController,
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       hintText: 'Search vendors by name, phone, category...',
                       hintStyle: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
                       prefixIcon: const Icon(CupertinoIcons.search, size: 20, color: AppTheme.textSecondary),
+                      suffixIcon: _vendorSearchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(CupertinoIcons.clear_circled_solid, size: 18, color: Colors.white54),
+                              onPressed: () {
+                                _vendorSearchController.clear();
+                                setState(() => _vendorSearchQuery = '');
+                              },
+                            )
+                          : null,
                       filled: true,
                       fillColor: AppTheme.cardBackground,
                       contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
@@ -609,9 +638,26 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                 Expanded(
                   child: filteredVendors.isEmpty
                       ? Center(
-                          child: Text(
-                            vendors.isEmpty ? 'No vendors added yet.' : 'No vendors matching query.',
-                            style: const TextStyle(color: AppTheme.textSecondary),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(CupertinoIcons.building_2_fill, size: 64, color: AppTheme.textSecondary),
+                              const SizedBox(height: 12),
+                              Text(
+                                vendors.isEmpty ? 'No vendors added yet.' : 'No vendors matching "$_vendorSearchQuery".',
+                                style: const TextStyle(color: AppTheme.textSecondary),
+                              ),
+                              const SizedBox(height: 12),
+                              ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.purpleAccent,
+                                  foregroundColor: Colors.white,
+                                ),
+                                icon: const Icon(CupertinoIcons.plus),
+                                label: const Text('Add New Vendor Profile'),
+                                onPressed: () => _showAddEditVendorDialog(context),
+                              ),
+                            ],
                           ),
                         )
                       : ListView.separated(

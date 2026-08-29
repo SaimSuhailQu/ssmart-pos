@@ -21,14 +21,40 @@ class Product {
 
   /// Create Product from Firebase snapshot data
   factory Product.fromJson(int id, Map<dynamic, dynamic> json) {
+    final parsedId = (json['id'] is num)
+        ? (json['id'] as num).toInt()
+        : (int.tryParse(json['id']?.toString() ?? '') ?? id);
+
+    final parsedStock = (json['stock'] is num)
+        ? (json['stock'] as num).toInt()
+        : (int.tryParse(json['stock']?.toString() ?? '') ?? 0);
+
+    final parsedPrice = (json['price'] is num)
+        ? (json['price'] as num).toDouble()
+        : (double.tryParse(json['price']?.toString() ?? '') ?? 0.0);
+
+    final parsedCostPrice = (json['cost_price'] is num)
+        ? (json['cost_price'] as num).toDouble()
+        : (json['costPrice'] is num)
+            ? (json['costPrice'] as num).toDouble()
+            : (double.tryParse(json['cost_price']?.toString() ?? json['costPrice']?.toString() ?? '') ?? 0.0);
+
     return Product(
-      id: id,
-      name: json['name'] as String? ?? 'Unknown',
-      barcode: json['barcode'] as String? ?? '',
-      price: (json['price'] as num?)?.toDouble() ?? 0.0,
-      stock: json['stock'] as int? ?? 0,
-      category: json['category'] as String? ?? 'General',
-      costPrice: (json['cost_price'] as num?)?.toDouble() ?? 0.0,
+      id: parsedId,
+      name: json['name']?.toString().trim().isNotEmpty == true
+          ? json['name'].toString().trim()
+          : (json['product_name']?.toString().trim().isNotEmpty == true
+              ? json['product_name'].toString().trim()
+              : 'Product $parsedId'),
+      barcode: json['barcode']?.toString().trim() ??
+          json['product_barcode']?.toString().trim() ??
+          '',
+      price: parsedPrice,
+      stock: parsedStock,
+      category: json['category']?.toString().trim().isNotEmpty == true
+          ? json['category'].toString().trim()
+          : 'General',
+      costPrice: parsedCostPrice,
     );
   }
 

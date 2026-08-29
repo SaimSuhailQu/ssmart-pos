@@ -38,10 +38,17 @@ class MobileCheckoutScreen extends StatefulWidget {
 
 class _MobileCheckoutScreenState extends State<MobileCheckoutScreen> {
   final List<CartItemModel> _cart = [];
+  final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   String _selectedCategory = 'ALL';
   double _discount = 0.0;
   double _tax = 0.0;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   // Selected customer for this bill (null = Walk-in Cash Customer)
   CustomerModel? _selectedCustomer;
@@ -712,14 +719,18 @@ class _MobileCheckoutScreenState extends State<MobileCheckoutScreen> {
           final products = snapshot.data ?? [];
 
           // Extract categories
-          final categories = {'ALL', ...products.map((p) => p.category).where((c) => c.isNotEmpty)}.toList();
+          final categories = {'ALL', ...products.map((p) => p.category.trim()).where((c) => c.isNotEmpty)}.toList();
 
           final filteredProducts = products.where((p) {
-            final q = _searchQuery.toLowerCase();
-            final matchQuery = q.isEmpty || p.name.toLowerCase().contains(q) || p.barcode.toLowerCase().contains(q);
-            if (!matchQuery) return false;
+            final q = _searchQuery.trim().toLowerCase();
+            if (q.isNotEmpty) {
+              final tokens = q.split(RegExp(r'\s+'));
+              final searchable = '${p.name} ${p.barcode} ${p.category}'.toLowerCase();
+              final matchesAllTokens = tokens.every((t) => searchable.contains(t));
+              if (!matchesAllTokens) return false;
+            }
 
-            if (_selectedCategory != 'ALL' && p.category.toLowerCase() != _selectedCategory.toLowerCase()) {
+            if (_selectedCategory != 'ALL' && p.category.trim().toLowerCase() != _selectedCategory.toLowerCase()) {
               return false;
             }
             return true;
@@ -734,11 +745,21 @@ class _MobileCheckoutScreenState extends State<MobileCheckoutScreen> {
                   children: [
                     Expanded(
                       child: TextField(
+                        controller: _searchController,
                         style: const TextStyle(color: Colors.white),
                         decoration: InputDecoration(
                           hintText: 'Search products by name or barcode...',
                           hintStyle: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
                           prefixIcon: const Icon(CupertinoIcons.search, size: 20, color: AppTheme.textSecondary),
+                          suffixIcon: _searchQuery.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(CupertinoIcons.clear_circled_solid, size: 18, color: Colors.white54),
+                                  onPressed: () {
+                                    _searchController.clear();
+                                    setState(() => _searchQuery = '');
+                                  },
+                                )
+                              : null,
                           filled: true,
                           fillColor: AppTheme.cardBackground,
                           contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
