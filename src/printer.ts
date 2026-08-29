@@ -130,15 +130,15 @@ function generateReceiptHtml(
           padding: 0;
         }
         .receipt-wrapper {
-          width: 72mm;
-          margin-left: 3.5mm;
+          width: 68mm;
+          margin-left: 0.5mm;
           margin-right: auto;
           margin-top: 0mm;
           margin-bottom: 0mm;
           padding-top: 0mm;
           padding-bottom: 8px;
-          padding-left: 1.5mm;
-          padding-right: 1.5mm;
+          padding-left: 1mm;
+          padding-right: 1mm;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
           font-size: 10.5px;
           line-height: 1.25;
@@ -349,8 +349,8 @@ export function printBarcode(product: any): Promise<boolean> {
           padding: 0;
         }
         .barcode-label {
-          width: 72mm;
-          margin-left: 3.5mm;
+          width: 68mm;
+          margin-left: 1mm;
           margin-right: auto;
           padding: 2mm 2mm 8mm 2mm;
           text-align: center;
