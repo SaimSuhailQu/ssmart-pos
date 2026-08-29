@@ -115,16 +115,16 @@ void main() async {
         break;
 
       case 'FIREBASE_STORAGE_BUCKET':
-        if (!value.endsWith('.appspot.com')) {
+        if (!value.endsWith('.appspot.com') && !value.endsWith('.firebasestorage.app')) {
           isValid = false;
-          formatIssue = 'Should end with ".appspot.com"';
+          formatIssue = 'Should end with ".appspot.com" or ".firebasestorage.app"';
         }
         break;
 
       case 'FIREBASE_MESSAGING_SENDER_ID':
-        if (!RegExp(r'^\d{12}$').hasMatch(value)) {
+        if (!RegExp(r'^\d{8,14}$').hasMatch(value)) {
           isValid = false;
-          formatIssue = 'Should be a 12-digit number';
+          formatIssue = 'Should be a numeric Firebase project number';
         }
         break;
 

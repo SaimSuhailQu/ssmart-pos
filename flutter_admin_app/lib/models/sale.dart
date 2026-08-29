@@ -13,6 +13,9 @@ class Sale {
   final String? storeBranch;
   final int? userId;
   final String? userName;
+  final String? customerId;
+  final String? customerName;
+  final String? customerPhone;
   final List<SaleItem>? items;
   final List<PaymentDetail>? payments;
 
@@ -29,6 +32,9 @@ class Sale {
     this.storeBranch,
     this.userId,
     this.userName,
+    this.customerId,
+    this.customerName,
+    this.customerPhone,
     this.items,
     this.payments,
   });
@@ -48,6 +54,9 @@ class Sale {
       storeBranch: json['store_branch'] != null ? _toString(json['store_branch']) : null,
       userId: json['user_id'] != null ? _toInt(json['user_id']) : null,
       userName: json['user_name'] != null ? _toString(json['user_name']) : null,
+      customerId: json['customer_id'] != null ? _toString(json['customer_id']) : null,
+      customerName: json['customer_name'] != null ? _toString(json['customer_name']) : null,
+      customerPhone: json['customer_phone'] != null ? _toString(json['customer_phone']) : null,
       items: _parseItems(json['items']),
       payments: _parsePayments(json['payments']),
     );
@@ -68,6 +77,9 @@ class Sale {
       if (storeBranch != null) 'store_branch': storeBranch,
       if (userId != null) 'user_id': userId,
       if (userName != null) 'user_name': userName,
+      if (customerId != null) 'customer_id': customerId,
+      if (customerName != null) 'customer_name': customerName,
+      if (customerPhone != null) 'customer_phone': customerPhone,
       if (items != null) 'items': items!.map((i) => i.toJson()).toList(),
       if (payments != null) 'payments': payments!.map((p) => p.toJson()).toList(),
     };
@@ -131,6 +143,9 @@ class Sale {
     String? storeBranch,
     int? userId,
     String? userName,
+    String? customerId,
+    String? customerName,
+    String? customerPhone,
     List<SaleItem>? items,
     List<PaymentDetail>? payments,
   }) {
@@ -147,6 +162,9 @@ class Sale {
       storeBranch: storeBranch ?? this.storeBranch,
       userId: userId ?? this.userId,
       userName: userName ?? this.userName,
+      customerId: customerId ?? this.customerId,
+      customerName: customerName ?? this.customerName,
+      customerPhone: customerPhone ?? this.customerPhone,
       items: items ?? this.items,
       payments: payments ?? this.payments,
     );

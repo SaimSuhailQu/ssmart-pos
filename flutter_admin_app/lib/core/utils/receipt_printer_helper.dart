@@ -1,10 +1,12 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
 import 'package:ssmart_pos_admin/core/utils/date_utils.dart';
 import 'package:ssmart_pos_admin/core/utils/whatsapp_helper.dart';
 import 'package:ssmart_pos_admin/models/sale.dart';
+import 'package:ssmart_pos_admin/services/firebase_service.dart';
 
 /// Helper utility for generating and displaying formatted thermal receipts
 class ReceiptPrinterHelper {
