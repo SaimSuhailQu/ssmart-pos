@@ -11,9 +11,9 @@ class ReceiptPrinterHelper {
   /// Generate 58mm / 80mm ESC-POS style text representation of a sale
   static String generateTextReceipt({
     required Sale sale,
-    String storeName = 'SS MART & GENERAL STORE',
-    String storeAddress = 'Main Commercial Area, Lahore',
-    String storePhone = '+92 300 1234567',
+    String storeName = 'SS MART',
+    String storeAddress = 'Old Lakar Mandi, Opposite Railway Station, Havelian',
+    String storePhone = '0316-5915787',
   }) {
     final buffer = StringBuffer();
     final width = 38; // 58mm standard character width
@@ -34,13 +34,14 @@ class ReceiptPrinterHelper {
     }
 
     buffer.writeln(center(storeName));
-    buffer.writeln(center(storeAddress));
-    buffer.writeln(center('Tel: $storePhone'));
+    buffer.writeln(center('Old Lakar Mandi'));
+    buffer.writeln(center('Opposite Railway Station, Havelian'));
+    buffer.writeln(center('Ph: $storePhone'));
     buffer.writeln(line());
-    buffer.writeln(formatRow('Receipt #: ${sale.id}', 'POS-1'));
+    buffer.writeln(formatRow('Inv #: ${sale.id}', ''));
     buffer.writeln(formatRow('Date: ${sale.timestamp.length >= 16 ? sale.timestamp.substring(0, 16) : sale.timestamp}', ''));
     if (sale.userName != null && sale.userName!.isNotEmpty) {
-      buffer.writeln(formatRow('Cashier: ${sale.userName}', ''));
+      buffer.writeln(formatRow('User: ${sale.userName}', ''));
     }
     buffer.writeln(dashedLine());
     buffer.writeln(formatRow('ITEM', 'QTY  PRICE  TOTAL'));
@@ -75,9 +76,8 @@ class ReceiptPrinterHelper {
     }
 
     buffer.writeln(dashedLine());
-    buffer.writeln(center('Thank you for shopping at SS Mart!'));
-    buffer.writeln(center('Goods once sold are returnable within 3 days'));
-    buffer.writeln(center('*** SSmart POS System ***'));
+    buffer.writeln(center('THANKS FOR YOUR VISIT'));
+    buffer.writeln(center('Software Developed By: SSQ'));
 
     return buffer.toString();
   }
@@ -137,6 +137,34 @@ class ReceiptPrinterHelper {
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
               child: Row(
                 children: [
+                  // Print from computer connected printer
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primaryCyan,
+                        foregroundColor: Colors.black,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      icon: const Icon(CupertinoIcons.printer_fill, size: 18),
+                      label: const Text('Print POS', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      onPressed: () async {
+                        try {
+                          await ctx.read<FirebaseService>().requestRemotePrint(sale: sale);
+                          ScaffoldMessenger.of(ctx).showSnackBar(
+                            const SnackBar(
+                              content: Text('🖨️ Sent print command to computer printer!'),
+                              backgroundColor: AppTheme.successGreen,
+                            ),
+                          );
+                        } catch (e) {
+                          ScaffoldMessenger.of(ctx).showSnackBar(
+                            SnackBar(content: Text('Print error: $e'), backgroundColor: AppTheme.errorRed),
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 6),
                   Expanded(
                     child: ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
@@ -145,27 +173,24 @@ class ReceiptPrinterHelper {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
                       icon: const Icon(CupertinoIcons.chat_bubble_2_fill, size: 18),
-                      label: const Text('WhatsApp', style: TextStyle(fontWeight: FontWeight.bold)),
+                      label: const Text('WhatsApp', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                       onPressed: () => _promptWhatsApp(ctx, sale),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryCyan,
-                        foregroundColor: Colors.black,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                      icon: const Icon(CupertinoIcons.doc_on_clipboard, size: 18),
-                      label: const Text('Copy Bill', style: TextStyle(fontWeight: FontWeight.bold)),
-                      onPressed: () {
-                        Clipboard.setData(ClipboardData(text: textReceipt));
-                        ScaffoldMessenger.of(ctx).showSnackBar(
-                          const SnackBar(content: Text('Receipt text copied to clipboard!')),
-                        );
-                      },
+                  const SizedBox(width: 6),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white10,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: textReceipt));
+                      ScaffoldMessenger.of(ctx).showSnackBar(
+                        const SnackBar(content: Text('Receipt text copied!')),
+                      );
+                    },
+                    child: const Icon(CupertinoIcons.doc_on_clipboard, size: 18),
                   ),
                 ],
               ),
@@ -197,12 +222,13 @@ class ReceiptPrinterHelper {
                         child: Column(
                           children: [
                             Text(
-                              'SS MART & GENERAL STORE',
-                              style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 16),
+                              'SS MART',
+                              style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 0.8),
                             ),
                             SizedBox(height: 2),
-                            Text('Main Commercial Area, Lahore', style: TextStyle(color: Colors.black87, fontSize: 11)),
-                            Text('Tel: +92 300 1234567', style: TextStyle(color: Colors.black87, fontSize: 11)),
+                            Text('Old Lakar Mandi', style: TextStyle(color: Colors.black87, fontSize: 11)),
+                            Text('Opposite Railway Station, Havelian', style: TextStyle(color: Colors.black87, fontSize: 11)),
+                            Text('Ph: 0316-5915787', style: TextStyle(color: Colors.black87, fontSize: 11, fontWeight: FontWeight.bold)),
                             SizedBox(height: 6),
                             Divider(color: Colors.black, thickness: 1.5),
                           ],

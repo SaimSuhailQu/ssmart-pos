@@ -944,6 +944,42 @@ class FirebaseService {
     await _database.ref('${FirebasePaths.purchaseOrders}/$id').remove();
   }
 
+  /// Request printing a receipt from the computer printer connected via USB
+  Future<void> requestRemotePrint({required Sale sale}) async {
+    final String printReqId = 'print_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(9999)}';
+    final printRef = _database.ref('${FirebasePaths.printRequests}/$printReqId');
+
+    final itemsPayload = (sale.items ?? []).map((i) => {
+      'name': i.productName,
+      'price': i.price,
+      'qty': i.quantity,
+      'total': i.total,
+    }).toList();
+
+    await printRef.set({
+      'id': printReqId,
+      'sale_id': sale.id,
+      'timestamp': DateTime.now().toIso8601String(),
+      'status': 'PENDING',
+      'items': itemsPayload,
+      'payment': {
+        'subtotal': sale.subtotal,
+        'discount': sale.discount,
+        'tax': sale.tax,
+        'total': sale.total,
+        'change': sale.changeGiven,
+        'cashierName': sale.userName ?? 'Mobile Cashier',
+        'customerName': sale.customerName ?? '',
+        'payments': [
+          {
+            'method': sale.paymentMethod,
+            'amount': sale.amountTendered > 0 ? sale.amountTendered : sale.total,
+          }
+        ],
+      },
+    });
+  }
+
   /// Dispose resources
   void dispose() {
     _connectionStatusController.close();

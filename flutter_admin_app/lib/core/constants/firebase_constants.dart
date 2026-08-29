@@ -17,6 +17,7 @@ class FirebasePaths {
   static const String purchaseOrders = 'purchase_orders';
   static const String cashierSessions = 'cashier_sessions';
   static const String users = 'users';
+  static const String printRequests = 'print_requests';
 
   /// Get sales path by ID
   static String saleById(String saleId) => '$sales/$saleId';

@@ -504,6 +504,36 @@ export function startSyncWorker(onStatusChange?: (status: string) => void) {
       onValue(ref(dbInstance, 'expenses'), () => ingestCloudDataToLocal());
       onValue(ref(dbInstance, 'vendors'), () => ingestCloudDataToLocal());
       onValue(ref(dbInstance, 'purchase_orders'), () => ingestCloudDataToLocal());
+
+      // Realtime listener for Remote Print Requests sent from Mobile POS
+      onValue(ref(dbInstance, 'print_requests'), async (snap) => {
+        if (!snap.exists() || !snap.value) return;
+        const requests = snap.value;
+        if (typeof requests !== 'object') return;
+
+        for (const [key, req] of Object.entries(requests)) {
+          const printJob = req as any;
+          if (printJob && printJob.status === 'PENDING') {
+            try {
+              // Import printer dynamically to avoid circular dependencies
+              const { printReceipt } = await import('./printer');
+              const items = printJob.items || [];
+              const payment = printJob.payment || {};
+              const saleId = printJob.sale_id;
+              const cashierName = payment.cashierName || 'Mobile Cashier';
+
+              console.log(`[Remote Print] Printing receipt for Sale #${saleId} requested from mobile...`);
+              await printReceipt(items, payment, saleId, cashierName);
+
+              // Mark print job as COMPLETED and remove from queue
+              await set(ref(dbInstance, `print_requests/${key}`), null);
+            } catch (pErr) {
+              console.error(`[Remote Print] Failed to print receipt for job ${key}:`, pErr);
+              await set(ref(dbInstance, `print_requests/${key}/status`), 'FAILED');
+            }
+          }
+        }
+      });
     } catch (e) {
       console.warn("Realtime cloud listener registration error:", e);
     }
