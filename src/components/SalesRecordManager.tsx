@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Sale, SaleItemDetails } from '../types';
-import { Search, Receipt, Calendar, User, Undo2, CheckCircle, Ban, ArrowRightLeft, DollarSign, X, ShoppingBag } from 'lucide-react';
+import { Search, Receipt, Calendar, User, Undo2, CheckCircle, Ban, ArrowRightLeft, DollarSign, X, ShoppingBag, Printer } from 'lucide-react';
 
 export const SalesRecordManager: React.FC = () => {
   const [sales, setSales] = useState<Sale[]>([]);
@@ -316,13 +316,18 @@ export const SalesRecordManager: React.FC = () => {
                   onClick={async () => {
                     try {
                       const items = (selectedSale.items || []).map((it) => ({
+                        id: it.product_id,
+                        barcode: it.product_barcode,
                         name: it.product_name,
                         price: it.price,
+                        cost_price: 0,
+                        stock: 0,
+                        category: it.product_category,
                         qty: it.qty
                       }));
-                      await window.api.printReceipt(
+                      await window.api.printReceipt({
                         items,
-                        {
+                        paymentData: {
                           subtotal: selectedSale.subtotal,
                           discount: selectedSale.discount,
                           tax: selectedSale.tax,
@@ -331,9 +336,9 @@ export const SalesRecordManager: React.FC = () => {
                           cashierName: selectedSale.cashier_name,
                           payments: [{ method: selectedSale.payment_method, amount: selectedSale.total }]
                         },
-                        selectedSale.id,
-                        selectedSale.cashier_name
-                      );
+                        saleId: selectedSale.id,
+                        cashierName: selectedSale.cashier_name
+                      });
                       setSuccess(`Receipt for Sale #${selectedSale.id} sent to thermal printer!`);
                     } catch (err: any) {
                       setError(err.message || 'Failed to print receipt.');
