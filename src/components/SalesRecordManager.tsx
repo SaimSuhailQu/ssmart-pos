@@ -333,7 +333,6 @@ export const SalesRecordManager: React.FC = () => {
                           tax: selectedSale.tax,
                           total: selectedSale.total,
                           change: 0,
-                          cashierName: selectedSale.cashier_name,
                           payments: [{ method: selectedSale.payment_method, amount: selectedSale.total }]
                         },
                         saleId: selectedSale.id,
