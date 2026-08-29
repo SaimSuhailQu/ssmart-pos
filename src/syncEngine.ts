@@ -507,8 +507,8 @@ export function startSyncWorker(onStatusChange?: (status: string) => void) {
 
       // Realtime listener for Remote Print Requests sent from Mobile POS
       onValue(ref(dbInstance, 'print_requests'), async (snap) => {
-        if (!snap.exists() || !snap.value) return;
-        const requests = snap.value;
+        if (!snap.exists() || !snap.val()) return;
+        const requests = snap.val();
         if (typeof requests !== 'object') return;
 
         for (const [key, req] of Object.entries(requests)) {
