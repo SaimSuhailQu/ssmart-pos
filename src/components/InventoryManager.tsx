@@ -90,9 +90,12 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
   });
 
   return (
-    <div className="flex flex-col h-full bg-transparent text-gray-200 p-4 font-outfit">
-      
-      <div className="flex-1 glass-panel rounded-3xl overflow-hidden flex flex-col relative z-10 border-white/5 shadow-2xl">
+    <div className="glass-panel p-5 rounded-3xl border border-white/10 shadow-[0_0_50px_rgba(255, 255, 255, 0.05)] h-full flex flex-col relative overflow-hidden animate-in fade-in duration-300">
+      {/* Background Glows */}
+      <div className="absolute top-0 right-0 w-80 h-80 bg-white/10 blur-[100px] -mr-40 -mt-40 rounded-full"></div>
+      <div className="absolute bottom-0 left-0 w-80 h-80 bg-white/10 blur-[100px] -ml-40 -mb-40 rounded-full"></div>
+
+      <div className="relative z-10 flex flex-col h-full overflow-hidden">
         <header className="p-6 border-b border-white/5 bg-black/20 sticky top-0 z-20 flex justify-between items-center backdrop-blur-md">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-neutral-200 to-emerald-500 flex items-center justify-center shadow-[0_0_20px_rgba(255, 255, 255, 0.3)]">

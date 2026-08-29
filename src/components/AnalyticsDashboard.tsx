@@ -132,7 +132,7 @@ export const AnalyticsDashboard: React.FC = () => {
   };
 
   return (
-    <div className="glass-panel p-6 md:p-8 rounded-3xl border border-white/10 shadow-[0_0_50px_rgba(255, 255, 255, 0.05)] h-full flex flex-col relative overflow-hidden font-outfit animate-in fade-in duration-300">
+    <div className="glass-panel p-5 rounded-3xl border border-white/10 shadow-[0_0_50px_rgba(255, 255, 255, 0.05)] h-full flex flex-col relative overflow-hidden font-outfit animate-in fade-in duration-300">
       
       {/* Background Neon Orbs */}
       <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 blur-[100px] -mr-40 -mt-40 rounded-full pointer-events-none"></div>

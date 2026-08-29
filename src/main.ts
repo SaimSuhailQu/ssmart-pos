@@ -10,7 +10,7 @@ import { initDb, getAllProducts, getProductByBarcode, saveSale, getNextSaleId, a
   getAllPurchaseOrders, createPurchaseOrder, receivePurchaseOrder, deletePurchaseOrder,
   addVendorPayment, getVendorPayments, getVendorOrderEntries } from './db';
 import { printReceipt, printBarcode } from './printer';
-import { startSyncWorker, syncProductsToCloud, syncCustomersToCloud, syncCustomerKhataToCloud, clearAllKhataFromCloudAndLocal } from './syncEngine';
+import { startSyncWorker, syncProductsToCloud, syncCustomersToCloud, syncCustomerKhataToCloud, clearAllKhataFromCloudAndLocal, syncVendorsToCloud } from './syncEngine';
 import { sendWhatsAppMessage } from './whatsappService';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
@@ -291,36 +291,51 @@ ipcMain.handle('get-all-vendors', () => {
   return getAllVendors();
 });
 
-ipcMain.handle('add-vendor', (event, vendor) => {
-  return addVendor(vendor);
+ipcMain.handle('add-vendor', async (event, vendor) => {
+  const res = addVendor(vendor);
+  syncVendorsToCloud(true);
+  return res;
 });
 
-ipcMain.handle('update-vendor', (event, id, vendor) => {
-  return updateVendor(id, vendor);
+ipcMain.handle('update-vendor', async (event, id, vendor) => {
+  const res = updateVendor(id, vendor);
+  syncVendorsToCloud(true);
+  return res;
 });
 
-ipcMain.handle('delete-vendor', (event, id) => {
-  return deleteVendor(id);
+ipcMain.handle('delete-vendor', async (event, id) => {
+  const res = deleteVendor(id);
+  syncVendorsToCloud(true);
+  return res;
 });
 
 ipcMain.handle('get-all-purchase-orders', () => {
   return getAllPurchaseOrders();
 });
 
-ipcMain.handle('create-purchase-order', (event, vendorId, items, customTotalCost, notes) => {
-  return createPurchaseOrder(vendorId, items, customTotalCost, notes);
+ipcMain.handle('create-purchase-order', async (event, vendorId, items, customTotalCost, notes) => {
+  const res = createPurchaseOrder(vendorId, items, customTotalCost, notes);
+  syncVendorsToCloud(true);
+  return res;
 });
 
-ipcMain.handle('receive-purchase-order', (event, poId) => {
-  return receivePurchaseOrder(poId);
+ipcMain.handle('receive-purchase-order', async (event, poId) => {
+  const res = receivePurchaseOrder(poId);
+  syncVendorsToCloud(true);
+  syncProductsToCloud();
+  return res;
 });
 
-ipcMain.handle('delete-purchase-order', (event, poId) => {
-  return deletePurchaseOrder(poId);
+ipcMain.handle('delete-purchase-order', async (event, poId) => {
+  const res = deletePurchaseOrder(poId);
+  syncVendorsToCloud(true);
+  return res;
 });
 
-ipcMain.handle('add-vendor-payment', (event, payment) => {
-  return addVendorPayment(payment);
+ipcMain.handle('add-vendor-payment', async (event, payment) => {
+  const res = addVendorPayment(payment);
+  syncVendorsToCloud(true);
+  return res;
 });
 
 ipcMain.handle('get-vendor-payments', (event, vendorId) => {

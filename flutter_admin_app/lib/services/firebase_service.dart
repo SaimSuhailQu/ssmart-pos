@@ -331,20 +331,81 @@ class FirebaseService {
     });
   }
 
-  /// Get real-time stream of all customers with Khata / loan balances
+  /// Get real-time stream of all customers with live dynamically-computed Khata balances
   Stream<List<CustomerModel>> getCustomersStream() {
     final custRef = _database.ref(FirebasePaths.customers);
-    return custRef.onValue.map((event) {
+    final khataRef = _database.ref('customer_khata');
+
+    return custRef.onValue.asyncMap((event) async {
       final data = event.snapshot.value;
       if (data == null) return <CustomerModel>[];
+
+      // Fetch latest customer_khata snapshot to ensure 100% accurate balances
+      Map<String, double> liveBalances = {};
+      try {
+        final khataSnap = await khataRef.get();
+        if (khataSnap.exists && khataSnap.value != null) {
+          final kVal = khataSnap.value;
+          if (kVal is Map) {
+            kVal.forEach((cId, entries) {
+              double bal = 0.0;
+              if (entries is Map) {
+                entries.forEach((_, e) {
+                  if (e is Map) {
+                    final eType = e['type']?.toString().toUpperCase() ?? 'LOAN';
+                    final double eAmt = (e['amount'] is num)
+                        ? (e['amount'] as num).toDouble()
+                        : (double.tryParse(e['amount']?.toString() ?? '0') ?? 0.0);
+                    bal += (eType == 'LOAN' ? eAmt : -eAmt);
+                  }
+                });
+              } else if (entries is List) {
+                for (final e in entries) {
+                  if (e is Map) {
+                    final eType = e['type']?.toString().toUpperCase() ?? 'LOAN';
+                    final double eAmt = (e['amount'] is num)
+                        ? (e['amount'] as num).toDouble()
+                        : (double.tryParse(e['amount']?.toString() ?? '0') ?? 0.0);
+                    bal += (eType == 'LOAN' ? eAmt : -eAmt);
+                  }
+                }
+              }
+              liveBalances[cId.toString()] = bal;
+            });
+          }
+        }
+      } catch (e) {
+        print('Khata balance merge error: $e');
+      }
+
       final List<CustomerModel> list = [];
       if (data is Map) {
         data.forEach((k, v) {
-          if (v is Map) list.add(CustomerModel.fromJson(k.toString(), v));
+          if (v is Map) {
+            var model = CustomerModel.fromJson(k.toString(), v);
+            final keyStr = k.toString();
+            final idStr = model.id;
+            if (liveBalances.containsKey(keyStr)) {
+              model = model.copyWith(balance: liveBalances[keyStr]!);
+            } else if (liveBalances.containsKey(idStr)) {
+              model = model.copyWith(balance: liveBalances[idStr]!);
+            }
+            list.add(model);
+          }
         });
       } else if (data is List) {
         for (int i = 0; i < data.length; i++) {
-          if (data[i] is Map) list.add(CustomerModel.fromJson(i.toString(), data[i]));
+          if (data[i] is Map) {
+            var model = CustomerModel.fromJson(i.toString(), data[i]);
+            final keyStr = i.toString();
+            final idStr = model.id;
+            if (liveBalances.containsKey(keyStr)) {
+              model = model.copyWith(balance: liveBalances[keyStr]!);
+            } else if (liveBalances.containsKey(idStr)) {
+              model = model.copyWith(balance: liveBalances[idStr]!);
+            }
+            list.add(model);
+          }
         }
       }
       list.sort((a, b) => b.balance.compareTo(a.balance));

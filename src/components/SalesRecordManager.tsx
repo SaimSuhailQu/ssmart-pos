@@ -128,11 +128,11 @@ export const SalesRecordManager: React.FC = () => {
   const netRevenue = totalGrossRevenue - totalRefunds;
 
   return (
-    <div className="flex flex-col h-full bg-transparent text-gray-200 p-4 font-outfit">
+    <div className="flex flex-col h-full bg-transparent text-gray-200 font-outfit overflow-hidden">
       
       {/* Top statistics banners */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-        <div className="glass-panel p-5 rounded-2xl flex items-center gap-4 relative overflow-hidden border-white/5">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3 flex-shrink-0">
+        <div className="glass-panel p-3.5 rounded-2xl flex items-center gap-3 relative overflow-hidden border-white/5">
           <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 blur-[30px] rounded-full -mr-6 -mt-6"></div>
           <div className="w-12 h-12 rounded-xl bg-white/10 border border-white/30 flex items-center justify-center text-neutral-200">
             <Receipt size={24} />

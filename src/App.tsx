@@ -367,27 +367,27 @@ const App: React.FC = () => {
 
   // Navigation Panel JSX helper
   const renderNavbar = () => (
-    <div className="glass-panel p-3 rounded-2xl flex justify-center gap-4 relative z-30 text-gray-100">
+    <div className="glass-panel py-1.5 px-3 rounded-2xl flex flex-wrap items-center justify-center gap-2 relative z-30 text-gray-100 shadow-xl flex-shrink-0">
       <button 
         onClick={() => setViewMode('POS')} 
-        className={`px-6 py-2.5 rounded-xl font-bold transition flex items-center gap-2 ${
+        className={`px-3.5 py-1.5 rounded-xl font-bold text-xs transition flex items-center gap-1.5 cursor-pointer ${
           viewMode === 'POS' 
-            ? 'bg-white/20 text-neutral-200 border border-white/50 shadow-[0_0_15px_rgba(255, 255, 255, 0.2)]'
+            ? 'bg-white/20 text-neutral-200 border border-white/50 shadow-[0_0_12px_rgba(255,255,255,0.2)]'
             : 'text-gray-400 hover:text-white glass-button'
         }`}
       >
-        <LayoutGrid size={18} /> POS Terminal
+        <LayoutGrid size={15} /> POS Terminal
       </button>
 
       <button 
         onClick={() => setViewMode('SALES_RECORD')} 
-        className={`px-6 py-2.5 rounded-xl font-bold transition flex items-center gap-2 ${
+        className={`px-3.5 py-1.5 rounded-xl font-bold text-xs transition flex items-center gap-1.5 cursor-pointer ${
           viewMode === 'SALES_RECORD' 
-            ? 'bg-white/20 text-neutral-200 border border-white/50 shadow-[0_0_15px_rgba(255, 255, 255, 0.2)]'
+            ? 'bg-white/20 text-neutral-200 border border-white/50 shadow-[0_0_12px_rgba(255,255,255,0.2)]'
             : 'text-gray-400 hover:text-white glass-button'
         }`}
       >
-        <History size={18} /> Sales Records
+        <History size={15} /> Sales Records
       </button>
 
       {/* Admin and Manager exclusive tabs */}
@@ -398,13 +398,13 @@ const App: React.FC = () => {
               setLowStockOnlyView(false);
               setViewMode('INVENTORY');
             }} 
-            className={`px-6 py-2.5 rounded-xl font-bold transition flex items-center gap-2 relative ${
+            className={`px-3.5 py-1.5 rounded-xl font-bold text-xs transition flex items-center gap-1.5 relative cursor-pointer ${
               viewMode === 'INVENTORY' 
-                ? 'bg-white/20 text-neutral-200 border border-white/50 shadow-[0_0_15px_rgba(255, 255, 255, 0.2)]'
+                ? 'bg-white/20 text-neutral-200 border border-white/50 shadow-[0_0_12px_rgba(255,255,255,0.2)]'
                 : 'text-gray-400 hover:text-white glass-button'
             }`}
           >
-            <PackageOpen size={18} /> Inventory Manager
+            <PackageOpen size={15} /> Inventory
             {lowStockCount > 0 && (
               <span 
                 onClick={(e) => {
@@ -412,7 +412,7 @@ const App: React.FC = () => {
                   setLowStockOnlyView(true);
                   setViewMode('INVENTORY');
                 }}
-                className="ml-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500 text-black animate-pulse hover:bg-amber-400 transition-colors shadow-[0_0_10px_rgba(245,158,11,0.6)] cursor-pointer"
+                className="ml-1 px-1.5 py-0.2 rounded-full text-[9px] font-black bg-amber-500 text-black animate-pulse hover:bg-amber-400 transition-colors shadow-[0_0_8px_rgba(245,158,11,0.6)] cursor-pointer"
                 title={`${lowStockCount} items have low stock (≤ 5 units). Click to view.`}
               >
                 {lowStockCount} LOW
@@ -421,23 +421,23 @@ const App: React.FC = () => {
           </button>
           <button 
             onClick={() => setViewMode('CUSTOMERS')} 
-            className={`px-6 py-2.5 rounded-xl font-bold transition flex items-center gap-2 ${
+            className={`px-3.5 py-1.5 rounded-xl font-bold text-xs transition flex items-center gap-1.5 cursor-pointer ${
               viewMode === 'CUSTOMERS' 
-                ? 'bg-white/20 text-neutral-200 border border-white/50 shadow-[0_0_15px_rgba(255, 255, 255, 0.2)]'
+                ? 'bg-white/20 text-neutral-200 border border-white/50 shadow-[0_0_12px_rgba(255,255,255,0.2)]'
                 : 'text-gray-400 hover:text-white glass-button'
             }`}
           >
-            <Users size={18} /> CRM & Loyalty
+            <Users size={15} /> Customers & Khata
           </button>
           <button 
             onClick={() => setViewMode('VENDORS')} 
-            className={`px-6 py-2.5 rounded-xl font-bold transition flex items-center gap-2 ${
+            className={`px-3.5 py-1.5 rounded-xl font-bold text-xs transition flex items-center gap-1.5 cursor-pointer ${
               viewMode === 'VENDORS' 
-                ? 'bg-white/20 text-neutral-200 border border-white/50 shadow-[0_0_15px_rgba(255, 255, 255, 0.2)]'
+                ? 'bg-white/20 text-neutral-200 border border-white/50 shadow-[0_0_12px_rgba(255,255,255,0.2)]'
                 : 'text-gray-400 hover:text-white glass-button'
             }`}
           >
-            <Truck size={18} /> Vendor & POs
+            <Truck size={15} /> Vendors & POs
           </button>
         </>
       )}
@@ -446,34 +446,34 @@ const App: React.FC = () => {
       {currentUser.role === 'Admin' && (
         <button 
           onClick={() => setViewMode('ANALYTICS')} 
-          className={`px-6 py-2.5 rounded-xl font-bold transition flex items-center gap-2 ${
+          className={`px-3.5 py-1.5 rounded-xl font-bold text-xs transition flex items-center gap-1.5 cursor-pointer ${
             viewMode === 'ANALYTICS' 
-              ? 'bg-white/20 text-neutral-200 border border-white/50 shadow-[0_0_15px_rgba(255, 255, 255, 0.2)]'
+              ? 'bg-white/20 text-neutral-200 border border-white/50 shadow-[0_0_12px_rgba(255,255,255,0.2)]'
               : 'text-gray-400 hover:text-white glass-button'
           }`}
         >
-          <BarChart3 size={18} /> Financials
+          <BarChart3 size={15} /> Financials
         </button>
       )}
 
       <button 
         onClick={() => setViewMode('EXPENSES')} 
-        className={`px-6 py-2.5 rounded-xl font-bold transition flex items-center gap-2 ${
+        className={`px-3.5 py-1.5 rounded-xl font-bold text-xs transition flex items-center gap-1.5 cursor-pointer ${
           viewMode === 'EXPENSES' 
-            ? 'bg-white/20 text-neutral-200 border border-white/50 shadow-[0_0_15px_rgba(255, 255, 255, 0.2)]'
+            ? 'bg-white/20 text-neutral-200 border border-white/50 shadow-[0_0_12px_rgba(255,255,255,0.2)]'
             : 'text-gray-400 hover:text-white glass-button'
         }`}
       >
-        <DollarSign size={18} /> Expense Counter
+        <DollarSign size={15} /> Expenses
       </button>
 
       {/* Direct User Logout Button */}
       <button 
         onClick={() => setCurrentUser(null)} 
-        className="px-6 py-2.5 rounded-xl font-bold transition flex items-center gap-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 border border-red-500/20 glass-button cursor-pointer"
+        className="px-3.5 py-1.5 rounded-xl font-bold text-xs transition flex items-center gap-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 border border-red-500/20 glass-button cursor-pointer ml-auto"
         title="Lock POS / Logout Current User"
       >
-        <Shield size={18} /> Logout ({currentUser.name})
+        <Shield size={15} /> Logout ({currentUser.name})
       </button>
     </div>
   );
@@ -481,16 +481,14 @@ const App: React.FC = () => {
   // Render Inventory View
   if (viewMode === 'INVENTORY') {
     return (
-      <div className="h-screen w-full flex flex-col font-outfit selection:bg-white/30 bg-transparent p-4">
-        <div className="flex-1 overflow-hidden">
+      <div className="h-screen w-full flex flex-col font-outfit selection:bg-white/30 bg-transparent p-2.5 gap-2 overflow-hidden">
+        <div className="flex-1 overflow-hidden min-h-0">
           <InventoryManager 
             initialLowStockOnly={lowStockOnlyView} 
             onProductsUpdated={loadProducts}
           />
         </div>
-        <div className="mt-4">
-          {renderNavbar()}
-        </div>
+        {renderNavbar()}
       </div>
     );
   }
@@ -498,13 +496,11 @@ const App: React.FC = () => {
   // Render CRM/Customer View
   if (viewMode === 'CUSTOMERS') {
     return (
-      <div className="h-screen w-full flex flex-col font-outfit bg-transparent p-4">
-        <div className="flex-1 overflow-hidden">
+      <div className="h-screen w-full flex flex-col font-outfit bg-transparent p-2.5 gap-2 overflow-hidden">
+        <div className="flex-1 overflow-hidden min-h-0">
           <CustomerManager />
         </div>
-        <div className="mt-4">
-          {renderNavbar()}
-        </div>
+        {renderNavbar()}
       </div>
     );
   }
@@ -512,13 +508,11 @@ const App: React.FC = () => {
   // Render Vendor View
   if (viewMode === 'VENDORS') {
     return (
-      <div className="h-screen w-full flex flex-col font-outfit bg-transparent p-4">
-        <div className="flex-1 overflow-hidden">
+      <div className="h-screen w-full flex flex-col font-outfit bg-transparent p-2.5 gap-2 overflow-hidden">
+        <div className="flex-1 overflow-hidden min-h-0">
           <VendorManager />
         </div>
-        <div className="mt-4">
-          {renderNavbar()}
-        </div>
+        {renderNavbar()}
       </div>
     );
   }
@@ -526,13 +520,11 @@ const App: React.FC = () => {
   // Render Analytics View
   if (viewMode === 'ANALYTICS') {
     return (
-      <div className="h-screen w-full flex flex-col font-outfit bg-transparent p-4">
-        <div className="flex-1 overflow-hidden">
+      <div className="h-screen w-full flex flex-col font-outfit bg-transparent p-2.5 gap-2 overflow-hidden">
+        <div className="flex-1 overflow-hidden min-h-0">
           <AnalyticsDashboard />
         </div>
-        <div className="mt-4">
-          {renderNavbar()}
-        </div>
+        {renderNavbar()}
       </div>
     );
   }
@@ -540,13 +532,11 @@ const App: React.FC = () => {
   // Render Sales Records View
   if (viewMode === 'SALES_RECORD') {
     return (
-      <div className="h-screen w-full flex flex-col font-outfit bg-transparent p-4">
-        <div className="flex-1 overflow-hidden">
+      <div className="h-screen w-full flex flex-col font-outfit bg-transparent p-2.5 gap-2 overflow-hidden">
+        <div className="flex-1 overflow-hidden min-h-0">
           <SalesRecordManager />
         </div>
-        <div className="mt-4">
-          {renderNavbar()}
-        </div>
+        {renderNavbar()}
       </div>
     );
   }
@@ -554,20 +544,18 @@ const App: React.FC = () => {
   // Render Expenses View
   if (viewMode === 'EXPENSES') {
     return (
-      <div className="h-screen w-full flex flex-col font-outfit bg-transparent p-4">
-        <div className="flex-1 overflow-hidden">
+      <div className="h-screen w-full flex flex-col font-outfit bg-transparent p-2.5 gap-2 overflow-hidden">
+        <div className="flex-1 overflow-hidden min-h-0">
           <ExpenseManager currentUser={currentUser} />
         </div>
-        <div className="mt-4">
-          {renderNavbar()}
-        </div>
+        {renderNavbar()}
       </div>
     );
   }
 
   // Render POS View
   return (
-    <div className="flex flex-col h-screen font-outfit selection:bg-white/30 bg-transparent p-4 gap-4">
+    <div className="flex flex-col h-screen font-outfit selection:bg-white/30 bg-transparent p-2.5 gap-2 overflow-hidden">
       <div className="flex flex-1 overflow-hidden gap-4 rounded-3xl">
         {/* Left side: Collapsible Product Catalog Panel */}
         {isCatalogOpen && (
