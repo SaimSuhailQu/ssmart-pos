@@ -12,8 +12,8 @@ export function initDb() {
   db.pragma('journal_mode = WAL');
   db.pragma('synchronous = NORMAL');
   db.pragma('temp_store = MEMORY');
-  db.pragma('cache_size = -64000');
-  db.pragma('mmap_size = 268435456');
+  db.pragma('cache_size = -16000'); // 16MB SQLite Cache (Low RAM footprint)
+  db.pragma('mmap_size = 67108864'); // 64MB mmap
 
   // Create tables & performance indexes
   db.exec(`

@@ -497,13 +497,22 @@ export function startSyncWorker(onStatusChange?: (status: string) => void) {
 
     // Realtime listeners for immediate updates from mobile
     try {
-      onValue(ref(dbInstance, 'sales'), () => ingestCloudDataToLocal());
-      onValue(ref(dbInstance, 'products'), () => ingestCloudDataToLocal());
-      onValue(ref(dbInstance, 'customers'), () => ingestCloudDataToLocal());
-      onValue(ref(dbInstance, 'customer_khata'), () => ingestCloudDataToLocal());
-      onValue(ref(dbInstance, 'expenses'), () => ingestCloudDataToLocal());
-      onValue(ref(dbInstance, 'vendors'), () => ingestCloudDataToLocal());
-      onValue(ref(dbInstance, 'purchase_orders'), () => ingestCloudDataToLocal());
+      // Debounced cloud ingestion to prevent continuous memory allocations
+      let debounceTimer: any = null;
+      const triggerDebouncedIngest = () => {
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          ingestCloudDataToLocal();
+        }, 1200);
+      };
+
+      onValue(ref(dbInstance, 'sales'), triggerDebouncedIngest);
+      onValue(ref(dbInstance, 'products'), triggerDebouncedIngest);
+      onValue(ref(dbInstance, 'customers'), triggerDebouncedIngest);
+      onValue(ref(dbInstance, 'customer_khata'), triggerDebouncedIngest);
+      onValue(ref(dbInstance, 'expenses'), triggerDebouncedIngest);
+      onValue(ref(dbInstance, 'vendors'), triggerDebouncedIngest);
+      onValue(ref(dbInstance, 'purchase_orders'), triggerDebouncedIngest);
 
       // Realtime listener for Remote Print Requests sent from Mobile POS
       onValue(ref(dbInstance, 'print_requests'), async (snap) => {
@@ -541,10 +550,9 @@ export function startSyncWorker(onStatusChange?: (status: string) => void) {
     onStatusChange("OFFLINE");
   }
 
-  // Periodic background cloud push every 30 seconds
+  // Periodic background cloud push every 45 seconds (lightweight schedule)
   setInterval(async () => {
     try {
-      await ingestCloudDataToLocal();
       await syncSalesToCloud(true);
       await syncProductsToCloud(true);
       await syncExpensesToCloud(true);
@@ -554,5 +562,5 @@ export function startSyncWorker(onStatusChange?: (status: string) => void) {
     } catch (err) {
       console.warn("Background cloud sync error:", err);
     }
-  }, 30000);
+  }, 45000);
 }

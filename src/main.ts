@@ -18,24 +18,29 @@ if (require('electron-squirrel-startup')) {
   app.quit();
 }
 
-// Enable GPU acceleration and rasterization switches for high performance
+// Memory and GPU optimization switches for low RAM consumption
+app.commandLine.appendSwitch('js-flags', '--max-old-space-size=256 --expose-gc');
+app.commandLine.appendSwitch('disable-http-cache');
+app.commandLine.appendSwitch('disable-speech-api');
 app.commandLine.appendSwitch('enable-gpu-rasterization');
 app.commandLine.appendSwitch('enable-zero-copy');
 app.commandLine.appendSwitch('ignore-gpu-blocklist');
-app.commandLine.appendSwitch('enable-native-gpu-memory-buffers');
 app.commandLine.appendSwitch('disable-renderer-backgrounding');
 app.commandLine.appendSwitch('disable-background-timer-throttling');
 
 let mainWindow: BrowserWindow | null = null;
 
 const createWindow = () => {
-  // Create the browser window with optimized webPreferences
+  // Create the browser window with optimized memory-efficient webPreferences
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    backgroundColor: '#0b0c10',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       backgroundThrottling: false,
+      devTools: process.env.NODE_ENV === 'development',
+      spellcheck: false,
     },
   });
 
