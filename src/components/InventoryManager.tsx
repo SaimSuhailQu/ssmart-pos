@@ -164,6 +164,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                       }
 
                       const updates: any[] = [];
+                      const newProducts: any[] = [];
                       for (let i = 1; i < lines.length; i++) {
                         const rawLine = lines[i];
                         const cols: string[] = [];
@@ -201,7 +202,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                             category
                           });
                         } else {
-                          await window.api.addProduct({
+                          newProducts.push({
                             name,
                             barcode,
                             category,
@@ -210,6 +211,10 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                             stock
                           });
                         }
+                      }
+
+                      if (newProducts.length > 0) {
+                        await window.api.bulkAddProducts(newProducts);
                       }
 
                       if (updates.length > 0) {

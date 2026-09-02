@@ -48,6 +48,11 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (isProcessing) return;
+      
+      // If user is typing in a search or text input field, don't hijack alphanumeric keys
+      const activeTag = (document.activeElement?.tagName || '').toLowerCase();
+      const isInputFocused = activeTag === 'input' || activeTag === 'textarea';
+
       if (e.key === 'Escape') {
         e.preventDefault();
         onClose();
@@ -56,7 +61,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax
         if (isEnough) {
           handlePay();
         }
-      } else if (method === 'Cash') {
+      } else if (method === 'Cash' && !isInputFocused) {
         if ((e.key >= '0' && e.key <= '9') || e.key === '.') {
           handleKeypad(e.key);
         } else if (e.key === 'Backspace') {

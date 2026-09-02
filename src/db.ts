@@ -165,16 +165,22 @@ export function initDb() {
 
     -- Performance Indexes
     CREATE INDEX IF NOT EXISTS idx_products_barcode ON products(barcode);
+    CREATE INDEX IF NOT EXISTS idx_products_name ON products(name);
     CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
     CREATE INDEX IF NOT EXISTS idx_sales_timestamp ON sales(timestamp);
     CREATE INDEX IF NOT EXISTS idx_sales_synced ON sales(synced);
     CREATE INDEX IF NOT EXISTS idx_sales_user ON sales(user_id);
+    CREATE INDEX IF NOT EXISTS idx_sales_status ON sales(status);
     CREATE INDEX IF NOT EXISTS idx_sale_items_sale_id ON sale_items(sale_id);
     CREATE INDEX IF NOT EXISTS idx_sale_items_product_id ON sale_items(product_id);
     CREATE INDEX IF NOT EXISTS idx_payments_sale_id ON payments(sale_id);
     CREATE INDEX IF NOT EXISTS idx_expenses_timestamp ON expenses(timestamp);
+    CREATE INDEX IF NOT EXISTS idx_expenses_category ON expenses(category);
     CREATE INDEX IF NOT EXISTS idx_po_vendor_id ON purchase_orders(vendor_id);
     CREATE INDEX IF NOT EXISTS idx_po_items_po_id ON purchase_order_items(po_id);
+    CREATE INDEX IF NOT EXISTS idx_customers_phone ON customers(phone);
+    CREATE INDEX IF NOT EXISTS idx_cke_cust_id ON customer_khata_entries(customer_id);
+    CREATE INDEX IF NOT EXISTS idx_cke_timestamp ON customer_khata_entries(timestamp);
   `);
 
   // Seed default admin and cashier if users table is empty
