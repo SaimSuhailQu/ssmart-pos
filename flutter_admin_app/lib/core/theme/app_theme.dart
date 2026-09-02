@@ -5,7 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 /// Sleek Monochrome Dark Theme for the POS Admin App
 /// Matches the Electron POS application's modern visual system
 class AppTheme {
-  // Color Palette - Matches POS Desktop App
+  // Color Palette - Matches POS Desktop App Frosted Glass Aesthetics
   static const Color primaryCyan = Color(0xFFE5E5E5); // Sleek Silver/White
   static const Color secondaryPurple = Color(0xFFA3A3A3); // Medium Slate Grey
   static const Color primaryTeal = Color(0xFF737373); // Muted Slate
@@ -14,20 +14,21 @@ class AppTheme {
   // Backward compatibility mappings for older theme references
   static const Color primaryBlue = Color(0xFFE5E5E5);
   static const Color secondaryBlue = Color(0xFFA3A3A3);
-  static const Color darkBlue = Color(0xFF1C1C1E);
+  static const Color darkBlue = Color(0xFF1E2230);
 
   static const Color successGreen = Color(0xFF34D399); // Emerald Green
   static const Color warningOrange = Color(0xFFF59E0B);
   static const Color errorRed = Color(0xFFEF4444);
 
-  static const Color backgroundLight = Color(0xFF0A0A0A); // Deep #0A0A0A Dark Background
-  static const Color cardBackground = Color(0xFF121212); // Dark Glassmorphism Panel
-  static const Color surfaceDark = Color(0xFF1E1E1E); // Dark Modal & Dialog Surface
-  static const Color borderColor = Color(0x1FFFFFFF); // 12% White Border
+  static const Color backgroundLight = Color(0xFF0B0C10); // Deep Radial Obsidian
+  static const Color cardBackground = Color(0xFF141722); // Frosted Glassmorphic Panel
+  static const Color surfaceDark = Color(0xFF1A1E2B); // Modal & Dialog Surface
+  static const Color borderColor = Color(0x1AFFFFFF); // 10% White Border
+  static const Color borderHighlight = Color(0x33FFFFFF); // 20% White Top Highlight
 
-  static const Color textPrimary = Color(0xFFF5F5F5); // Off-White
-  static const Color textSecondary = Color(0xFFA3A3A3); // Slate Gray
-  static const Color textTertiary = Color(0x66FFFFFF); // 40% White
+  static const Color textPrimary = Color(0xFFF8FAFC); // Crisp Off-White
+  static const Color textSecondary = Color(0xFF94A3B8); // Slate 400
+  static const Color textTertiary = Color(0x6694A3B8); // 40% Slate
 
   // Text Styles using Google Fonts
   static TextStyle get displayLarge => GoogleFonts.inter(
