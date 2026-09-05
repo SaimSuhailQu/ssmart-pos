@@ -1,5 +1,5 @@
 import { initializeApp, getApps } from 'firebase/app';
-import { getDatabase, ref, set, get, onValue } from 'firebase/database';
+import { getDatabase, ref, set, update, get, onValue } from 'firebase/database';
 import { 
   getUnsyncedSales, 
   markSaleAsSynced, 
@@ -164,10 +164,9 @@ export async function syncCustomersToCloud(silent = false) {
   try {
     recalculateAllCustomerBalances();
     const customers = getAllCustomers();
-    const customersRef = ref(dbInstance, 'customers');
-    const custMap: Record<string, any> = {};
+    const updates: Record<string, any> = {};
     for (const c of customers as any[]) {
-      custMap[c.id] = {
+      updates[`customers/${c.id}`] = {
         id: c.id,
         name: c.name,
         phone: c.phone || '',
@@ -176,7 +175,9 @@ export async function syncCustomersToCloud(silent = false) {
         balance: c.balance || 0
       };
     }
-    await set(customersRef, custMap);
+    if (Object.keys(updates).length > 0) {
+      await update(ref(dbInstance), updates);
+    }
     return { success: true, status: "ONLINE" };
   } catch (err) {
     console.error("Sync customers failed:", err);
@@ -188,16 +189,14 @@ export async function syncCustomerKhataToCloud(silent = false) {
   if (!dbInstance) return { success: false, status: "OFFLINE" };
   try {
     const entries = getAllCustomerKhataEntries();
-    const khataMap: Record<string, Record<string, any>> = {};
+    const updates: Record<string, any> = {};
 
     for (const e of entries) {
       if (!e || !e.customer_id) continue;
       const custKey = e.customer_id.toString();
-      if (!khataMap[custKey]) {
-        khataMap[custKey] = {};
-      }
       const syncKey = e.sync_id || (e.id ? `khata_${e.id}` : `khata_${e.type}_${e.amount}_${e.timestamp}`);
-      khataMap[custKey][syncKey] = {
+      
+      updates[`customer_khata/${custKey}/${syncKey}`] = {
         id: syncKey,
         sync_id: syncKey,
         customer_id: e.customer_id,
@@ -210,10 +209,8 @@ export async function syncCustomerKhataToCloud(silent = false) {
       };
     }
 
-    // Write exact synchronized map for each customer
-    for (const [custId, entryDict] of Object.entries(khataMap)) {
-      const custKhataRef = ref(dbInstance, `customer_khata/${custId}`);
-      await set(custKhataRef, entryDict);
+    if (Object.keys(updates).length > 0) {
+      await update(ref(dbInstance), updates);
     }
 
     return { success: true, status: "ONLINE" };

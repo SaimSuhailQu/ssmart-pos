@@ -1,0 +1,35 @@
+# Xcode user-specific files
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.moved-aside
+xcuserdata/
+DerivedData/
+build/
+
+# CocoaPods
+Pods/
+.symlinks/
+
+# Flutter generated files
+Flutter/App.framework
+Flutter/Flutter.framework
+Flutter/Flutter.podspec
+Flutter/Generated.xcconfig
+Flutter/flutter_export_environment.sh
+ServiceDefinitions.json
+GeneratedPluginRegistrant.*
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+fastlane/*.ipa
+
+# Code signing - NEVER commit these
+*.mobileprovision
+*.p12
+*.certSigningRequest
+exportOptions.plist
