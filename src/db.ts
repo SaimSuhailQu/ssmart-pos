@@ -825,7 +825,16 @@ export function upsertCloudSale(cloudSale: any) {
   const amountTendered = Number(cloudSale.amount_tendered || cloudSale.amountTendered) || total;
   const changeGiven = Number(cloudSale.change_given || cloudSale.changeGiven) || 0;
   const timestamp = cloudSale.timestamp || new Date().toISOString();
-  const userId = cloudSale.user_id ? Number(cloudSale.user_id) : null;
+  let validUserId: number | null = null;
+  if (cloudSale.user_id) {
+    const parsedUid = Number(cloudSale.user_id);
+    if (!isNaN(parsedUid) && parsedUid > 0) {
+      const userExists = db.prepare('SELECT id FROM users WHERE id = ?').get(parsedUid);
+      if (userExists) {
+        validUserId = parsedUid;
+      }
+    }
+  }
   const status = cloudSale.status || 'Completed';
   const refundAmount = Number(cloudSale.refund_amount) || 0;
 
@@ -843,7 +852,7 @@ export function upsertCloudSale(cloudSale: any) {
     db.prepare(`
       INSERT INTO sales (id, subtotal, tax, discount, total, payment_method, amount_tendered, change_given, timestamp, synced, user_id, status, refund_amount)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)
-    `).run(numericId, subtotal, tax, discount, total, paymentMethod, amountTendered, changeGiven, timestamp, userId, status, refundAmount);
+    `).run(numericId, subtotal, tax, discount, total, paymentMethod, amountTendered, changeGiven, timestamp, validUserId, status, refundAmount);
 
     // Items
     let itemsList = cloudSale.items || [];
@@ -855,36 +864,61 @@ export function upsertCloudSale(cloudSale: any) {
     for (const item of itemsList) {
       if (!item) continue;
       const rawProdId = Number(item.product_id ?? item.productId) || 0;
-      let prodId = rawProdId;
+      let actualProdId: number | null = null;
 
-      // Ensure product exists in products table
-      if (prodId > 0) {
-        const prodExists = db.prepare('SELECT id FROM products WHERE id = ?').get(prodId);
-        if (!prodExists) {
-          const barcode = item.product_barcode || item.productBarcode || `AUTO-${prodId}`;
-          const name = item.product_name || item.productName || `Product #${prodId}`;
-          const category = item.product_category || item.productCategory || 'General';
-          const price = Number(item.price) || 0;
-          try {
-            db.prepare('INSERT OR IGNORE INTO products (id, name, barcode, price, stock, category, cost_price) VALUES (?, ?, ?, ?, 0, ?, 0)')
-              .run(prodId, name, barcode, price, category);
-          } catch (e) {
-            const res = db.prepare('INSERT INTO products (name, barcode, price, stock, category, cost_price) VALUES (?, ?, ?, 0, ?, 0)')
-              .run(name, barcode, price, category);
-            prodId = res.lastInsertRowid as number;
-          }
+      // 1. Try finding by product id
+      if (rawProdId > 0) {
+        const prodById = db.prepare('SELECT id FROM products WHERE id = ?').get(rawProdId) as any;
+        if (prodById) {
+          actualProdId = prodById.id;
         }
-      } else {
-        const name = item.product_name || item.productName || 'Custom Item';
+      }
+
+      // 2. Try finding by barcode
+      const rawBarcode = item.product_barcode || item.productBarcode || item.barcode;
+      if (!actualProdId && rawBarcode && String(rawBarcode).trim().length > 0) {
+        const cleanBarcode = String(rawBarcode).trim();
+        const prodByBc = db.prepare('SELECT id FROM products WHERE barcode = ?').get(cleanBarcode) as any;
+        if (prodByBc) {
+          actualProdId = prodByBc.id;
+        }
+      }
+
+      // 3. If still not found, create the product safely
+      if (!actualProdId) {
+        const name = item.product_name || item.productName || item.name || (rawProdId > 0 ? `Product #${rawProdId}` : 'Custom Item');
+        const category = item.product_category || item.productCategory || item.category || 'General';
         const price = Number(item.price) || 0;
-        const res = db.prepare('INSERT INTO products (name, barcode, price, stock, category, cost_price) VALUES (?, ?, ?, 0, ?, 0)')
-          .run(name, `GEN-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`, price, 'General');
-        prodId = res.lastInsertRowid as number;
+        const barcode = (rawBarcode && String(rawBarcode).trim().length > 0)
+          ? String(rawBarcode).trim()
+          : (rawProdId > 0 ? `AUTO-${rawProdId}` : `GEN-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`);
+
+        // Check if barcode already exists under another id
+        const existingWithBc = db.prepare('SELECT id FROM products WHERE barcode = ?').get(barcode) as any;
+        if (existingWithBc) {
+          actualProdId = existingWithBc.id;
+        } else if (rawProdId > 0) {
+          try {
+            db.prepare('INSERT INTO products (id, name, barcode, price, stock, category, cost_price) VALUES (?, ?, ?, ?, 0, ?, 0)')
+              .run(rawProdId, name, barcode, price, category);
+            actualProdId = rawProdId;
+          } catch {
+            const res = db.prepare('INSERT INTO products (name, barcode, price, stock, category, cost_price) VALUES (?, ?, ?, 0, ?, 0)')
+              .run(name, `AUTO-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`, price, category);
+            actualProdId = res.lastInsertRowid as number;
+          }
+        } else {
+          const res = db.prepare('INSERT INTO products (name, barcode, price, stock, category, cost_price) VALUES (?, ?, ?, 0, ?, 0)')
+            .run(name, barcode, price, category);
+          actualProdId = res.lastInsertRowid as number;
+        }
       }
 
       const qty = Number(item.qty ?? item.quantity) || 1;
       const price = Number(item.price) || 0;
-      insertSaleItem.run(numericId, prodId, qty, price);
+      if (actualProdId) {
+        insertSaleItem.run(numericId, actualProdId, qty, price);
+      }
     }
 
     // Payments
