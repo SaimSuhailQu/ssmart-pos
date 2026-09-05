@@ -6,6 +6,8 @@ class ExpenseModel {
   final String loggedBy;
   final String timestamp;
 
+  String get date => timestamp;
+
   ExpenseModel({
     required this.id,
     required this.amount,
