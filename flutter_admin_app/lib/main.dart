@@ -16,6 +16,52 @@ void main() async {
   // Ensure Flutter bindings are initialized
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Bulletproof custom ErrorWidget builder so uncaught widget errors never produce a blank grey screen
+  ErrorWidget.builder = (FlutterErrorDetails details) {
+    return Material(
+      color: const Color(0xFF0B0C10),
+      child: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.error_outline_rounded,
+                    color: Color(0xFFEF4444),
+                    size: 56,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Application Encountered an Error',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    details.exceptionAsString(),
+                    style: const TextStyle(
+                      color: Color(0xFF94A3B8),
+                      fontSize: 13,
+                      fontFamily: 'monospace',
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  };
+
   try {
     // Load environment variables safely if present
     try {
@@ -102,6 +148,11 @@ class SSMartPOSAdminApp extends StatelessWidget {
             return StreamBuilder<User?>(
               stream: authService.authStateChanges,
               builder: (context, snapshot) {
+                // If stream encountered an error, fail safely to LoginScreen
+                if (snapshot.hasError) {
+                  return const LoginScreen();
+                }
+
                 // Show loading while checking auth state
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const _SplashScreen();
