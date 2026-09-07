@@ -96,7 +96,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                       return ChoiceChip(
                         label: Text(method),
                         selected: isSelected,
-                        selectedColor: AppTheme.primaryTeal.withOpacity(0.3),
+                        selectedColor: AppTheme.primaryTeal.withValues(alpha: 0.3),
                         backgroundColor: AppTheme.cardBackground,
                         labelStyle: TextStyle(
                           color: isSelected ? AppTheme.primaryTeal : Colors.white70,
@@ -153,6 +153,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                             notes: noteCtrl.text.trim().isNotEmpty ? noteCtrl.text.trim() : null,
                           );
 
+                          if (!context.mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text('Payment of PKR ${amount.toStringAsFixed(0)} recorded!'),
@@ -160,6 +161,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                             ),
                           );
                         } catch (e) {
+                          if (!context.mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text('Payment failed: $e'), backgroundColor: AppTheme.errorRed),
                           );
@@ -215,7 +217,7 @@ class VendorPODetailsSheet extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 26,
-                  backgroundColor: Colors.purple.withOpacity(0.2),
+                  backgroundColor: Colors.purple.withValues(alpha: 0.2),
                   child: const Icon(CupertinoIcons.cube_box_fill, color: Colors.purpleAccent, size: 28),
                 ),
                 const SizedBox(width: 14),
@@ -266,12 +268,12 @@ class VendorPODetailsSheet extends StatelessWidget {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: isCleared
-                      ? [Colors.green.shade900.withOpacity(0.4), Colors.green.shade700.withOpacity(0.2)]
-                      : [Colors.red.shade900.withOpacity(0.4), Colors.red.shade700.withOpacity(0.2)],
+                      ? [Colors.green.shade900.withValues(alpha: 0.4), Colors.green.shade700.withValues(alpha: 0.2)]
+                      : [Colors.red.shade900.withValues(alpha: 0.4), Colors.red.shade700.withValues(alpha: 0.2)],
                 ),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: isCleared ? Colors.green.withOpacity(0.4) : Colors.red.withOpacity(0.4),
+                  color: isCleared ? Colors.green.withValues(alpha: 0.4) : Colors.red.withValues(alpha: 0.4),
                 ),
               ),
               child: Column(
@@ -348,7 +350,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                     style: OutlinedButton.styleFrom(
                       foregroundColor: po.isReceived ? Colors.orangeAccent : AppTheme.successGreen,
                       side: BorderSide(
-                        color: po.isReceived ? Colors.orangeAccent.withOpacity(0.5) : AppTheme.successGreen.withOpacity(0.5),
+                        color: po.isReceived ? Colors.orangeAccent.withValues(alpha: 0.5) : AppTheme.successGreen.withValues(alpha: 0.5),
                       ),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
@@ -360,6 +362,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                     onPressed: () async {
                       final newStatus = po.isReceived ? 'Pending' : 'Received';
                       await context.read<FirebaseService>().updatePurchaseOrderStatus(po.id.toString(), newStatus);
+                      if (!context.mounted) return;
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text('PO #${po.id} marked as $newStatus')),
@@ -454,7 +457,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                         ],
                       ),
                     );
-                  }).toList(),
+                  }),
                   const SizedBox(height: 12),
                 ],
 
@@ -492,7 +495,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                         ],
                       ),
                     );
-                  }).toList(),
+                  }),
                   const SizedBox(height: 12),
                 ],
 
@@ -515,7 +518,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: AppTheme.cardBackground,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.green.withOpacity(0.2)),
+                        border: Border.all(color: Colors.green.withValues(alpha: 0.2)),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -540,7 +543,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                         ],
                       ),
                     );
-                  }).toList(),
+                  }),
                 ],
               ],
             ),

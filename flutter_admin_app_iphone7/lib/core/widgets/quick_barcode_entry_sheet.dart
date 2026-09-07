@@ -194,7 +194,7 @@ class _QuickBarcodeEntrySheetState extends State<QuickBarcodeEntrySheet> {
                       _buildActionKey(
                         icon: CupertinoIcons.clear,
                         label: 'CLR',
-                        color: Colors.redAccent.withOpacity(0.2),
+                        color: Colors.redAccent.withValues(alpha: 0.2),
                         textColor: Colors.redAccent,
                         onTap: () => setState(() => _codeController.clear()),
                       ),
@@ -247,7 +247,7 @@ class _QuickBarcodeEntrySheetState extends State<QuickBarcodeEntrySheet> {
             height: 42,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.06),
+              color: Colors.white.withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(

@@ -578,18 +578,16 @@ class FirebaseService {
 
     // 2. Decrement inventory for catalog items
     for (final item in items) {
-      if (item.productId != null) {
-        try {
-          final prodRef = _database.ref('${FirebasePaths.products}/${item.productId}/stock');
-          final snap = await prodRef.get();
-          if (snap.exists && snap.value != null) {
-            final currentStock = (snap.value is num) ? (snap.value as num).toInt() : (int.tryParse(snap.value.toString()) ?? 0);
-            final newStock = (currentStock - item.quantity).clamp(0, 999999);
-            await prodRef.set(newStock);
-          }
-        } catch (e) {
-          print('Inventory update warning for product ${item.productId}: $e');
+      try {
+        final prodRef = _database.ref('${FirebasePaths.products}/${item.productId}/stock');
+        final snap = await prodRef.get();
+        if (snap.exists && snap.value != null) {
+          final currentStock = (snap.value is num) ? (snap.value as num).toInt() : (int.tryParse(snap.value.toString()) ?? 0);
+          final newStock = (currentStock - item.quantity).clamp(0, 999999);
+          await prodRef.set(newStock);
         }
+      } catch (e) {
+        print('Inventory update warning for product ${item.productId}: $e');
       }
     }
 
@@ -954,7 +952,7 @@ class FirebaseService {
       'price': i.price,
       'qty': i.quantity,
       'total': i.total,
-    }).toList();
+    },).toList();
 
     await printRef.set({
       'id': printReqId,

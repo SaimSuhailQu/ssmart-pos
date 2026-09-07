@@ -634,6 +634,7 @@ class _TransactionDetailsSheet extends StatelessWidget {
               if (phone.isEmpty) return;
               Navigator.pop(ctx);
               final success = await WhatsAppHelper.sendSaleReceipt(sale: sale, phone: phone);
+              if (!context.mounted) return;
               if (!success) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Could not open WhatsApp app')),

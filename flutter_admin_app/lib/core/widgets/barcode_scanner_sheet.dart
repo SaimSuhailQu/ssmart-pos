@@ -111,7 +111,7 @@ class _BarcodeScannerSheetState extends State<BarcodeScannerSheet> {
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: AppTheme.primaryCyan.withOpacity(0.3),
+                        color: AppTheme.primaryCyan.withValues(alpha: 0.3),
                         blurRadius: 15,
                         spreadRadius: 2,
                       ),
@@ -123,7 +123,7 @@ class _BarcodeScannerSheetState extends State<BarcodeScannerSheet> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.7),
+                      color: Colors.black.withValues(alpha: 0.7),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(color: Colors.white12),
                     ),

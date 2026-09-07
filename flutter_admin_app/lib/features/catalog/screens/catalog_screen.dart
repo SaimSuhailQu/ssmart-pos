@@ -395,6 +395,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                       category: cat,
                     );
 
+                    if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(isEditing ? 'Item "$name" updated!' : 'Item "$name" added to catalog!'),
@@ -428,6 +429,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
             onPressed: () async {
               Navigator.pop(ctx);
               await context.read<FirebaseService>().deleteProduct(product.id.toString());
+              if (!context.mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('Deleted "${product.name}"')),
               );

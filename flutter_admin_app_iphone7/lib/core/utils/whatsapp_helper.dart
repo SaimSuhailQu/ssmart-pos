@@ -82,8 +82,8 @@ _SSmart POS Automation_''';
     final message = '''
 🏪 *SS MART & GENERAL STORE*
 ━━━━━━━━━━━━━━━━━━━━━
-*Customer:* ${customerName}
-*Transaction:* ${actionText}
+*Customer:* $customerName
+*Transaction:* $actionText
 *Amount:* PKR ${amount.toStringAsFixed(0)}
 💰 *Updated Balance Due: PKR ${newBalance.toStringAsFixed(0)}*
 📅 *Date:* ${DateTime.now().toString().substring(0, 16)}

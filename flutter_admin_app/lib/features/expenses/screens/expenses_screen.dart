@@ -70,7 +70,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
 
           final filteredExpenses = allExpenses.where((e) {
             if (q.isNotEmpty) {
-              final searchable = '${e.description} ${e.category} ${e.loggedBy ?? ''} ${e.amount.toStringAsFixed(0)}'.toLowerCase();
+              final searchable = '${e.description} ${e.category} ${e.loggedBy} ${e.amount.toStringAsFixed(0)}'.toLowerCase();
               final matchesQuery = tokens.every((t) => searchable.contains(t));
               if (!matchesQuery) return false;
             }
@@ -94,7 +94,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                 decoration: BoxDecoration(
                   color: AppTheme.cardBackground,
                   borderRadius: BorderRadius.circular(AppTheme.radiusL),
-                  border: Border.all(color: Colors.red.withOpacity(0.3)),
+                  border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -119,7 +119,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.red.withOpacity(0.1),
+                        color: Colors.red.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(AppTheme.radiusM),
                       ),
                       child: const Icon(CupertinoIcons.money_dollar_circle_fill, color: Colors.redAccent, size: 32),
@@ -216,7 +216,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                                 Container(
                                   padding: const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
-                                    color: Colors.red.withOpacity(0.1),
+                                    color: Colors.red.withValues(alpha: 0.1),
                                     shape: BoxShape.circle,
                                   ),
                                   child: const Icon(CupertinoIcons.arrow_down_right, color: Colors.redAccent, size: 20),
@@ -370,6 +370,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                       loggedBy: 'Mobile Admin',
                     );
 
+                    if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Expense recorded successfully!'),
@@ -403,6 +404,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
             onPressed: () async {
               Navigator.pop(ctx);
               await context.read<FirebaseService>().deleteExpense(expense.id.toString());
+              if (!context.mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Expense deleted')),
               );

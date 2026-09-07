@@ -94,7 +94,7 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
           final filtered = customers.where((c) {
             if (q.isEmpty) return true;
             final cDigits = _digitsOnly(c.phone);
-            final searchable = '${c.name} ${c.phone} ${c.email ?? ''}'.toLowerCase();
+            final searchable = '${c.name} ${c.phone} ${c.email}'.toLowerCase();
             final matchesText = tokens.every((t) => searchable.contains(t));
             final matchesPhone = digitsQuery.isNotEmpty && cDigits.contains(digitsQuery);
             return matchesText || matchesPhone;
@@ -109,7 +109,7 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                 decoration: BoxDecoration(
                   color: AppTheme.cardBackground,
                   borderRadius: BorderRadius.circular(AppTheme.radiusL),
-                  border: Border.all(color: Colors.amber.withOpacity(0.3)),
+                  border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -134,7 +134,7 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.amber.withOpacity(0.1),
+                        color: Colors.amber.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(AppTheme.radiusM),
                       ),
                       child: const Icon(CupertinoIcons.book_fill, color: Colors.amber, size: 32),
@@ -190,7 +190,7 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                               color: AppTheme.cardBackground,
                               borderRadius: BorderRadius.circular(AppTheme.radiusM),
                               border: Border.all(
-                                color: hasDebt ? Colors.amber.withOpacity(0.3) : AppTheme.borderColor,
+                                color: hasDebt ? Colors.amber.withValues(alpha: 0.3) : AppTheme.borderColor,
                               ),
                             ),
                             child: InkWell(
@@ -203,7 +203,7 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                                     Row(
                                       children: [
                                         CircleAvatar(
-                                          backgroundColor: hasDebt ? Colors.amber.withOpacity(0.15) : AppTheme.primaryBlue.withOpacity(0.1),
+                                          backgroundColor: hasDebt ? Colors.amber.withValues(alpha: 0.15) : AppTheme.primaryBlue.withValues(alpha: 0.1),
                                           child: Icon(
                                             CupertinoIcons.person_fill,
                                             color: hasDebt ? Colors.amber.shade800 : AppTheme.primaryBlue,
@@ -270,6 +270,7 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                                             label: const Text('WhatsApp', style: TextStyle(color: Color(0xFF25D366), fontSize: 12, fontWeight: FontWeight.bold)),
                                             onPressed: () async {
                                               final success = await WhatsAppHelper.sendCustomerKhataReminder(customer: item);
+                                              if (!context.mounted) return;
                                               if (!success) {
                                                 ScaffoldMessenger.of(context).showSnackBar(
                                                   const SnackBar(content: Text('Could not open WhatsApp app')),
@@ -429,6 +430,7 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                     points: points,
                   );
 
+                  if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(isEditing ? 'Customer "$name" updated!' : 'Customer "$name" added!'),
@@ -452,139 +454,134 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppTheme.surfaceDark,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setModalState) => Padding(
+        builder: (context, setModalState) => Container(
+          decoration: const BoxDecoration(
+            color: AppTheme.surfaceDark,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
           padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
-            top: 20,
-            left: 20,
-            right: 20,
+            bottom: MediaQuery.of(context).viewInsets.bottom + AppTheme.spacingL,
+            top: AppTheme.spacingL,
+            left: AppTheme.spacingL,
+            right: AppTheme.spacingL,
           ),
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-              Text(
-                'Khata Entry: ${customer.name}',
-                style: AppTheme.headlineMedium.copyWith(color: Colors.amber),
-              ),
-              Text(
-                'Current Balance: PKR ${customer.balance.toStringAsFixed(0)}',
-                style: const TextStyle(color: AppTheme.textSecondary),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: type == 'PAYMENT' ? AppTheme.successGreen : AppTheme.cardBackground,
-                        foregroundColor: type == 'PAYMENT' ? Colors.black : Colors.white,
-                      ),
-                      onPressed: () => setModalState(() => type = 'PAYMENT'),
-                      child: const Text('Payment Wasool (-)'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: type == 'LOAN' ? Colors.amber.shade700 : AppTheme.cardBackground,
-                        foregroundColor: type == 'LOAN' ? Colors.black : Colors.white,
-                      ),
-                      onPressed: () => setModalState(() => type = 'LOAN'),
-                      child: const Text('Give Loan (+)'),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: amountCtrl,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(labelText: 'Amount (PKR)', prefixIcon: Icon(CupertinoIcons.money_dollar)),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: noteCtrl,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(labelText: 'Notes / Reason', prefixIcon: Icon(CupertinoIcons.pencil)),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: type == 'PAYMENT' ? AppTheme.successGreen : Colors.amber.shade700,
-                    foregroundColor: Colors.black,
-                  ),
-                  icon: const Icon(CupertinoIcons.checkmark_alt),
-                  label: Text(
-                    type == 'PAYMENT' ? 'Record Payment Wasool' : 'Record Loan (Udhaar)',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  onPressed: () async {
-                    final amount = double.tryParse(amountCtrl.text.trim()) ?? 0;
-                    if (amount <= 0) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Please enter a valid amount')),
-                      );
-                      return;
-                    }
-
-                    Navigator.pop(ctx);
-                    await context.read<FirebaseService>().recordKhataTransaction(
-                      customerId: customer.id.toString(),
-                      customerName: customer.name,
-                      currentBalance: customer.balance,
-                      amount: amount,
-                      type: type,
-                      paymentMethod: 'Cash',
-                      notes: noteCtrl.text.trim().isEmpty ? null : noteCtrl.text.trim(),
-                    );
-
-                    final updatedBalance = type == 'LOAN'
-                        ? customer.balance + amount
-                        : customer.balance - amount;
-
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Khata updated for ${customer.name}!'),
-                        backgroundColor: AppTheme.primaryTeal,
-                        action: customer.phone.isNotEmpty
-                            ? SnackBarAction(
-                                label: 'WhatsApp Receipt',
-                                textColor: Colors.black,
-                                onPressed: () {
-                                  WhatsAppHelper.sendKhataReceipt(
-                                    customerName: customer.name,
-                                    phone: customer.phone,
-                                    amount: amount,
-                                    type: type,
-                                    newBalance: updatedBalance,
-                                  );
-                                },
-                              )
-                            : null,
-                      ),
-                    );
-                  },
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Khata Entry: ${customer.name}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                    IconButton(icon: const Icon(CupertinoIcons.xmark_circle_fill, color: AppTheme.textSecondary), onPressed: () => Navigator.pop(ctx)),
+                  ],
                 ),
-              ),
-            ],
+                const SizedBox(height: AppTheme.spacingM),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ChoiceChip(
+                        label: const Text('Cash Received (Wasool)'),
+                        selected: type == 'PAYMENT',
+                        selectedColor: AppTheme.successGreen,
+                        onSelected: (val) {
+                          if (val) setModalState(() => type = 'PAYMENT');
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: AppTheme.spacingS),
+                    Expanded(
+                      child: ChoiceChip(
+                        label: const Text('Give Loan (Udhaar)'),
+                        selected: type == 'LOAN',
+                        selectedColor: Colors.amber.shade700,
+                        onSelected: (val) {
+                          if (val) setModalState(() => type = 'LOAN');
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppTheme.spacingM),
+                TextField(
+                  controller: amountCtrl,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                  decoration: const InputDecoration(labelText: 'Amount (PKR)', prefixIcon: Icon(CupertinoIcons.money_dollar)),
+                ),
+                const SizedBox(height: AppTheme.spacingM),
+                TextField(
+                  controller: noteCtrl,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(labelText: 'Description / Notes (Optional)', prefixIcon: Icon(CupertinoIcons.doc_text)),
+                ),
+                const SizedBox(height: AppTheme.spacingL),
+                SizedBox(
+                  height: 48,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: type == 'PAYMENT' ? AppTheme.successGreen : Colors.amber.shade700,
+                    ),
+                    child: Text('Confirm ${type == 'PAYMENT' ? 'Wasool' : 'Udhaar'}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    onPressed: () async {
+                      final amount = double.tryParse(amountCtrl.text.trim()) ?? 0;
+                      if (amount <= 0) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Please enter a valid amount')),
+                        );
+                        return;
+                      }
+
+                      Navigator.pop(ctx);
+                      await context.read<FirebaseService>().recordKhataTransaction(
+                        customerId: customer.id.toString(),
+                        customerName: customer.name,
+                        currentBalance: customer.balance,
+                        amount: amount,
+                        type: type,
+                        paymentMethod: 'Cash',
+                        notes: noteCtrl.text.trim().isEmpty ? null : noteCtrl.text.trim(),
+                      );
+
+                      final updatedBalance = type == 'LOAN'
+                          ? customer.balance + amount
+                          : customer.balance - amount;
+
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Khata updated for ${customer.name}!'),
+                          backgroundColor: AppTheme.primaryTeal,
+                          action: customer.phone.isNotEmpty
+                              ? SnackBarAction(
+                                  label: 'WhatsApp Receipt',
+                                  textColor: Colors.black,
+                                  onPressed: () {
+                                    WhatsAppHelper.sendKhataReceipt(
+                                      customerName: customer.name,
+                                      phone: customer.phone,
+                                      amount: amount,
+                                      type: type,
+                                      newBalance: updatedBalance,
+                                    );
+                                  },
+                                )
+                              : null,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   void _confirmDeleteCustomer(BuildContext context, CustomerModel customer) {
     showDialog(
@@ -603,6 +600,7 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
             onPressed: () async {
               Navigator.pop(ctx);
               await context.read<FirebaseService>().deleteCustomer(customer.id.toString());
+              if (!context.mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('Deleted ${customer.name}')),
               );
@@ -634,6 +632,7 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
             onPressed: () async {
               Navigator.pop(ctx);
               await context.read<FirebaseService>().clearAllKhataRecords();
+              if (!context.mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('All Khata records cleared & balances reset to PKR 0!'),

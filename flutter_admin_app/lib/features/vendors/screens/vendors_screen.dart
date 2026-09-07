@@ -187,7 +187,7 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                 decoration: BoxDecoration(
                   color: AppTheme.cardBackground,
                   borderRadius: BorderRadius.circular(AppTheme.radiusL),
-                  border: Border.all(color: Colors.purple.withOpacity(0.3)),
+                  border: Border.all(color: Colors.purple.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -217,7 +217,7 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.purple.withOpacity(0.15),
+                        color: Colors.purple.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(AppTheme.radiusM),
                       ),
                       child: const Icon(CupertinoIcons.cube_box_fill, color: Colors.purpleAccent, size: 30),
@@ -314,7 +314,7 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
       child: FilterChip(
         label: Text(label),
         selected: isSelected,
-        selectedColor: Colors.purple.withOpacity(0.3),
+        selectedColor: Colors.purple.withValues(alpha: 0.3),
         backgroundColor: AppTheme.cardBackground,
         labelStyle: TextStyle(
           color: isSelected ? Colors.purpleAccent : Colors.white70,
@@ -374,7 +374,7 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                         margin: const EdgeInsets.only(right: 4),
                         decoration: BoxDecoration(
-                          color: po.isReceived ? Colors.teal.withOpacity(0.15) : Colors.orange.withOpacity(0.15),
+                          color: po.isReceived ? Colors.teal.withValues(alpha: 0.15) : Colors.orange.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(AppTheme.radiusS),
                         ),
                         child: Text(
@@ -390,7 +390,7 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                         decoration: BoxDecoration(
-                          color: isCleared ? Colors.green.withOpacity(0.15) : Colors.red.withOpacity(0.15),
+                          color: isCleared ? Colors.green.withValues(alpha: 0.15) : Colors.red.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(AppTheme.radiusS),
                         ),
                         child: Text(
@@ -412,7 +412,7 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: AppTheme.surfaceDark.withOpacity(0.5),
+                  color: AppTheme.surfaceDark.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -615,7 +615,7 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                         child: FilterChip(
                           label: Text(cat),
                           selected: isSelected,
-                          selectedColor: Colors.purple.withOpacity(0.3),
+                          selectedColor: Colors.purple.withValues(alpha: 0.3),
                           backgroundColor: AppTheme.cardBackground,
                           labelStyle: TextStyle(
                             color: isSelected ? Colors.purpleAccent : Colors.white70,
@@ -705,7 +705,7 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                     children: [
                       CircleAvatar(
                         radius: 20,
-                        backgroundColor: Colors.purple.withOpacity(0.2),
+                        backgroundColor: Colors.purple.withValues(alpha: 0.2),
                         child: Text(
                           vendor.name.isNotEmpty ? vendor.name[0].toUpperCase() : 'V',
                           style: const TextStyle(color: Colors.purpleAccent, fontWeight: FontWeight.bold, fontSize: 16),
@@ -755,7 +755,7 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text('Balance Due', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 10)),
+                    const Text('Balance Due', style: TextStyle(color: AppTheme.textSecondary, fontSize: 10)),
                     Text(
                       'PKR ${due.toStringAsFixed(0)}',
                       style: TextStyle(
@@ -930,7 +930,7 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                       ChoiceChip(
                         label: const Text('Pending'),
                         selected: selectedStatus == 'Pending',
-                        selectedColor: Colors.orange.withOpacity(0.3),
+                        selectedColor: Colors.orange.withValues(alpha: 0.3),
                         labelStyle: TextStyle(
                           color: selectedStatus == 'Pending' ? Colors.orangeAccent : Colors.white70,
                           fontWeight: selectedStatus == 'Pending' ? FontWeight.bold : FontWeight.normal,
@@ -943,7 +943,7 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                       ChoiceChip(
                         label: const Text('Received'),
                         selected: selectedStatus == 'Received',
-                        selectedColor: Colors.teal.withOpacity(0.3),
+                        selectedColor: Colors.teal.withValues(alpha: 0.3),
                         labelStyle: TextStyle(
                           color: selectedStatus == 'Received' ? Colors.tealAccent : Colors.white70,
                           fontWeight: selectedStatus == 'Received' ? FontWeight.bold : FontWeight.normal,
@@ -1008,6 +1008,7 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                           orderEntries: po?.orderEntries,
                         );
 
+                        if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(isEditing ? 'Purchase Order updated!' : 'Purchase Order created!'),
@@ -1102,7 +1103,7 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                       return ChoiceChip(
                         label: Text(c),
                         selected: isSelected,
-                        selectedColor: Colors.purple.withOpacity(0.3),
+                        selectedColor: Colors.purple.withValues(alpha: 0.3),
                         labelStyle: TextStyle(
                           color: isSelected ? Colors.purpleAccent : Colors.white70,
                           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
@@ -1145,6 +1146,7 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                           category: selectedCat,
                         );
 
+                        if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(isEditing ? 'Vendor updated!' : 'Vendor profile saved!'),
@@ -1180,6 +1182,7 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
             onPressed: () async {
               Navigator.pop(ctx);
               await context.read<FirebaseService>().deleteVendorPurchaseOrder(po.id.toString());
+              if (!context.mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('Deleted PO for ${po.vendorName}')),
               );
@@ -1208,6 +1211,7 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
             onPressed: () async {
               Navigator.pop(ctx);
               await context.read<FirebaseService>().deleteVendor(vendor.id.toString());
+              if (!context.mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('Deleted vendor profile for ${vendor.name}')),
               );

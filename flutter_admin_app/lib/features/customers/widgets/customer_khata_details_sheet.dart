@@ -51,7 +51,7 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 26,
-                  backgroundColor: hasDebt ? Colors.amber.withOpacity(0.2) : AppTheme.primaryBlue.withOpacity(0.2),
+                  backgroundColor: hasDebt ? Colors.amber.withValues(alpha: 0.2) : AppTheme.primaryBlue.withValues(alpha: 0.2),
                   child: Icon(
                     CupertinoIcons.person_fill,
                     color: hasDebt ? Colors.amber : AppTheme.primaryBlue,
@@ -138,12 +138,12 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: hasCurrentDebt
-                                ? [Colors.amber.shade900.withOpacity(0.4), Colors.amber.shade700.withOpacity(0.2)]
-                                : [Colors.green.shade900.withOpacity(0.4), Colors.green.shade700.withOpacity(0.2)],
+                                ? [Colors.amber.shade900.withValues(alpha: 0.4), Colors.amber.shade700.withValues(alpha: 0.2)]
+                                : [Colors.green.shade900.withValues(alpha: 0.4), Colors.green.shade700.withValues(alpha: 0.2)],
                           ),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: hasCurrentDebt ? Colors.amber.withOpacity(0.4) : Colors.green.withOpacity(0.4),
+                            color: hasCurrentDebt ? Colors.amber.withValues(alpha: 0.4) : Colors.green.withValues(alpha: 0.4),
                           ),
                         ),
                         child: Row(
@@ -227,7 +227,7 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(CupertinoIcons.doc_text, size: 48, color: Colors.white.withOpacity(0.2)),
+                                  Icon(CupertinoIcons.doc_text, size: 48, color: Colors.white.withValues(alpha: 0.2)),
                                   const SizedBox(height: 10),
                                   const Text(
                                     'No individual audit transactions recorded yet.',
@@ -258,7 +258,7 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                                     color: AppTheme.cardBackground,
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
-                                      color: isPayment ? Colors.green.withOpacity(0.2) : Colors.amber.withOpacity(0.2),
+                                      color: isPayment ? Colors.green.withValues(alpha: 0.2) : Colors.amber.withValues(alpha: 0.2),
                                     ),
                                   ),
                                   child: Row(
@@ -266,7 +266,7 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                                       Container(
                                         padding: const EdgeInsets.all(8),
                                         decoration: BoxDecoration(
-                                          color: isPayment ? Colors.green.withOpacity(0.15) : Colors.amber.withOpacity(0.15),
+                                          color: isPayment ? Colors.green.withValues(alpha: 0.15) : Colors.amber.withValues(alpha: 0.15),
                                           borderRadius: BorderRadius.circular(8),
                                         ),
                                         child: Icon(

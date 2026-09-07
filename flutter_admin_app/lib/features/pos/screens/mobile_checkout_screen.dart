@@ -69,7 +69,7 @@ class _MobileCheckoutScreenState extends State<MobileCheckoutScreen> {
           barcode: product.barcode,
           price: product.price,
           quantity: 1,
-        ));
+        ),);
       }
     });
 
@@ -136,7 +136,7 @@ class _MobileCheckoutScreenState extends State<MobileCheckoutScreen> {
                   barcode: 'MANUAL',
                   price: price,
                   quantity: qty,
-                ));
+                ),);
               });
 
               Navigator.pop(ctx);
@@ -155,6 +155,8 @@ class _MobileCheckoutScreenState extends State<MobileCheckoutScreen> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => const BarcodeScannerSheet(),
     );
+
+    if (!mounted) return;
 
     if (scannedBarcode != null && scannedBarcode.isNotEmpty) {
       final matchingProduct = products.firstWhere(
@@ -344,7 +346,7 @@ class _MobileCheckoutScreenState extends State<MobileCheckoutScreen> {
                     decoration: BoxDecoration(
                       color: AppTheme.cardBackground,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppTheme.primaryCyan.withOpacity(0.3)),
+                      border: Border.all(color: AppTheme.primaryCyan.withValues(alpha: 0.3)),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -361,7 +363,7 @@ class _MobileCheckoutScreenState extends State<MobileCheckoutScreen> {
                           ],
                         ),
                         Text(
-                          '${_cart.length} items (${_totalItemCount} pcs)',
+                          '${_cart.length} items ($_totalItemCount pcs)',
                           style: const TextStyle(color: Colors.white70, fontSize: 12),
                         ),
                       ],
@@ -412,7 +414,7 @@ class _MobileCheckoutScreenState extends State<MobileCheckoutScreen> {
                       return ChoiceChip(
                         label: Text(method),
                         selected: isSelected,
-                        selectedColor: AppTheme.primaryCyan.withOpacity(0.3),
+                        selectedColor: AppTheme.primaryCyan.withValues(alpha: 0.3),
                         backgroundColor: AppTheme.cardBackground,
                         labelStyle: TextStyle(
                           color: isSelected ? AppTheme.primaryCyan : Colors.white70,
@@ -612,6 +614,8 @@ class _MobileCheckoutScreenState extends State<MobileCheckoutScreen> {
         _selectedCustomer = null;
       });
 
+      if (!context.mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Sale successfully recorded & stock updated!'),
@@ -622,6 +626,7 @@ class _MobileCheckoutScreenState extends State<MobileCheckoutScreen> {
       // Open printable visual receipt sheet with WhatsApp & Print options
       ReceiptPrinterHelper.showReceiptDialog(context, sale: sale);
     } catch (e) {
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error saving sale: $e'), backgroundColor: AppTheme.errorRed),
       );
@@ -651,7 +656,7 @@ class _MobileCheckoutScreenState extends State<MobileCheckoutScreen> {
           border: const Border(top: BorderSide(color: AppTheme.borderColor)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.3),
+              color: Colors.black.withValues(alpha: 0.3),
               blurRadius: 10,
               offset: const Offset(0, -4),
             ),
@@ -802,7 +807,7 @@ class _MobileCheckoutScreenState extends State<MobileCheckoutScreen> {
                       child: FilterChip(
                         label: Text(cat),
                         selected: isSelected,
-                        selectedColor: AppTheme.primaryCyan.withOpacity(0.3),
+                        selectedColor: AppTheme.primaryCyan.withValues(alpha: 0.3),
                         backgroundColor: AppTheme.cardBackground,
                         labelStyle: TextStyle(
                           color: isSelected ? AppTheme.primaryCyan : Colors.white70,

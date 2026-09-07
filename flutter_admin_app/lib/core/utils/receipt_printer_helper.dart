@@ -152,6 +152,7 @@ class ReceiptPrinterHelper {
                       onPressed: () async {
                         try {
                           await ctx.read<FirebaseService>().requestRemotePrint(sale: sale);
+                          if (!ctx.mounted) return;
                           ScaffoldMessenger.of(ctx).showSnackBar(
                             const SnackBar(
                               content: Text('🖨️ Sent print command to computer printer!'),
@@ -159,6 +160,7 @@ class ReceiptPrinterHelper {
                             ),
                           );
                         } catch (e) {
+                          if (!ctx.mounted) return;
                           ScaffoldMessenger.of(ctx).showSnackBar(
                             SnackBar(content: Text('Print error: $e'), backgroundColor: AppTheme.errorRed),
                           );
@@ -209,7 +211,7 @@ class ReceiptPrinterHelper {
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
+                      color: Colors.black.withValues(alpha: 0.3),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -277,7 +279,7 @@ class ReceiptPrinterHelper {
                               ],
                             ),
                           );
-                        }).toList(),
+                        }),
 
                       const Divider(color: Colors.black45, thickness: 0.8),
 
@@ -382,6 +384,7 @@ class ReceiptPrinterHelper {
 
               Navigator.pop(ctx);
               final success = await WhatsAppHelper.sendSaleReceipt(sale: sale, phone: phone);
+              if (!context.mounted) return;
               if (!success) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Could not open WhatsApp')),
