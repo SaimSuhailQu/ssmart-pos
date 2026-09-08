@@ -72,14 +72,22 @@ void main() async {
       print('Notice: .env file not bundled, using project default configuration.');
     }
 
-    final apiKey = dotenv.env[FirebaseEnvKeys.apiKey] ?? FirebaseDefaultConfig.apiKey;
-    final authDomain = dotenv.env[FirebaseEnvKeys.authDomain] ?? FirebaseDefaultConfig.authDomain;
-    final databaseUrl = dotenv.env[FirebaseEnvKeys.databaseUrl] ?? FirebaseDefaultConfig.databaseUrl;
-    final projectId = dotenv.env[FirebaseEnvKeys.projectId] ?? FirebaseDefaultConfig.projectId;
-    final storageBucket = dotenv.env[FirebaseEnvKeys.storageBucket] ?? FirebaseDefaultConfig.storageBucket;
-    final messagingSenderId = dotenv.env[FirebaseEnvKeys.messagingSenderId] ?? FirebaseDefaultConfig.messagingSenderId;
-    final appId = dotenv.env[FirebaseEnvKeys.appId] ?? FirebaseDefaultConfig.appId;
-    final measurementId = dotenv.env[FirebaseEnvKeys.measurementId] ?? FirebaseDefaultConfig.measurementId;
+    // Safely extract keys without throwing if dotenv failed to load
+    String? getEnv(String key) {
+      if (dotenv.isInitialized) {
+        return dotenv.maybeGet(key);
+      }
+      return null;
+    }
+
+    final apiKey = getEnv(FirebaseEnvKeys.apiKey) ?? FirebaseDefaultConfig.apiKey;
+    final authDomain = getEnv(FirebaseEnvKeys.authDomain) ?? FirebaseDefaultConfig.authDomain;
+    final databaseUrl = getEnv(FirebaseEnvKeys.databaseUrl) ?? FirebaseDefaultConfig.databaseUrl;
+    final projectId = getEnv(FirebaseEnvKeys.projectId) ?? FirebaseDefaultConfig.projectId;
+    final storageBucket = getEnv(FirebaseEnvKeys.storageBucket) ?? FirebaseDefaultConfig.storageBucket;
+    final messagingSenderId = getEnv(FirebaseEnvKeys.messagingSenderId) ?? FirebaseDefaultConfig.messagingSenderId;
+    final appId = getEnv(FirebaseEnvKeys.appId) ?? FirebaseDefaultConfig.appId;
+    final measurementId = getEnv(FirebaseEnvKeys.measurementId) ?? FirebaseDefaultConfig.measurementId;
 
     // Initialize Firebase
     // On iOS/macOS with GoogleService-Info.plist in the bundle, Firebase.initializeApp() without options
