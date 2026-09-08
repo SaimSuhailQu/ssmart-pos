@@ -13,6 +13,7 @@ import { initDb, getAllProducts, getProductByBarcode, saveSale, getNextSaleId, a
 import { printReceipt, printBarcode } from './printer';
 import { startSyncWorker, syncProductsToCloud, syncCustomersToCloud, syncCustomerKhataToCloud, clearAllKhataFromCloudAndLocal, syncVendorsToCloud } from './syncEngine';
 import { sendWhatsAppMessage } from './whatsappService';
+import { setupAutoUpdater, checkForUpdatesManual, quitAndInstallUpdate } from './updater';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
@@ -68,6 +69,9 @@ app.on('ready', () => {
   initDb();
   
   createWindow();
+
+  // Initialize auto updater for background silent OTA updates
+  setupAutoUpdater(mainWindow);
 
   // Start background Sync worker to Firebase and broadcast status changes to Renderer
   startSyncWorker((status) => {
@@ -386,4 +390,13 @@ ipcMain.handle('get-vendor-order-entries', (event, vendorId) => {
 // --- WhatsApp Background Automation IPC ---
 ipcMain.handle('send-whatsapp-message', async (event, toPhone, messageText, config) => {
   return await sendWhatsAppMessage(toPhone, messageText, config);
+});
+
+// --- Auto-Updater IPC ---
+ipcMain.handle('check-for-updates', () => {
+  return checkForUpdatesManual();
+});
+
+ipcMain.handle('quit-and-install-update', () => {
+  quitAndInstallUpdate();
 });

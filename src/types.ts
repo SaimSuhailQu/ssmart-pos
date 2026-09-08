@@ -224,6 +224,11 @@ declare global {
 
       // WhatsApp Background Automation
       sendWhatsAppMessage: (toPhone: string, messageText: string, config?: { phoneNumberId?: string, accessToken?: string }) => Promise<{ success: boolean; error?: string }>;
+
+      // Auto-Updater
+      checkForUpdates: () => Promise<{ success: boolean; message?: string; error?: string }>;
+      quitAndInstallUpdate: () => Promise<void>;
+      onUpdaterStatus: (callback: (data: { status: 'checking' | 'available' | 'up-to-date' | 'downloaded' | 'error'; version?: string; releaseNotes?: string; error?: string }) => void) => void;
     }
   }
 }

@@ -65,5 +65,12 @@ contextBridge.exposeInMainWorld('api', {
   getVendorOrderEntries: (vendorId?: number) => ipcRenderer.invoke('get-vendor-order-entries', vendorId),
 
   // WhatsApp Automation
-  sendWhatsAppMessage: (toPhone: string, messageText: string, config?: any) => ipcRenderer.invoke('send-whatsapp-message', toPhone, messageText, config)
+  sendWhatsAppMessage: (toPhone: string, messageText: string, config?: any) => ipcRenderer.invoke('send-whatsapp-message', toPhone, messageText, config),
+
+  // Auto-Updater
+  checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+  quitAndInstallUpdate: () => ipcRenderer.invoke('quit-and-install-update'),
+  onUpdaterStatus: (callback: (data: { status: string; version?: string; releaseNotes?: string; error?: string }) => void) => {
+    ipcRenderer.on('updater-status', (event, data) => callback(data));
+  }
 });

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useScanner } from './hooks/useScanner';
 import { CartItem, Product, PaymentData } from './types';
-import { ShoppingCart, PackageSearch, Printer, CheckCircle, LayoutGrid, PackageOpen, Users, Shield, BarChart3, History, DollarSign, Truck } from 'lucide-react';
+import { ShoppingCart, PackageSearch, Printer, CheckCircle, LayoutGrid, PackageOpen, Users, Shield, BarChart3, History, DollarSign, Truck, RefreshCw, Sparkles } from 'lucide-react';
 import { ProductGrid } from './components/ProductGrid';
 import { Cart } from './components/Cart';
 import { OrderControls } from './components/OrderControls';
@@ -41,6 +41,7 @@ const App: React.FC = () => {
   const [syncStatus, setSyncStatus] = useState<string>('ONLINE');
   const [discount, setDiscount] = useState<number>(0);
   const [isNetworkOnline, setIsNetworkOnline] = useState<boolean>(navigator.onLine);
+  const [updateInfo, setUpdateInfo] = useState<{ status: string; version?: string } | null>(null);
 
   // Enforce strict Role-Based Access Control view bounds
   useEffect(() => {
@@ -60,7 +61,7 @@ const App: React.FC = () => {
     }
   }, [viewMode]);
 
-  // Listen to network connectivity and background sync engine updates
+  // Listen to network connectivity, background sync engine, and auto-updater updates
   useEffect(() => {
     const handleOnline = () => setIsNetworkOnline(true);
     const handleOffline = () => setIsNetworkOnline(false);
@@ -71,6 +72,15 @@ const App: React.FC = () => {
     if (window.api.onSyncStatusChanged) {
       window.api.onSyncStatusChanged((status) => {
         setSyncStatus(status);
+      });
+    }
+
+    if (window.api.onUpdaterStatus) {
+      window.api.onUpdaterStatus((info) => {
+        console.log('[Updater Status]:', info);
+        if (info.status === 'downloaded' || info.status === 'available') {
+          setUpdateInfo(info);
+        }
       });
     }
 
@@ -368,6 +378,16 @@ const App: React.FC = () => {
   // Navigation Panel JSX helper
   const renderNavbar = () => (
     <div className="glass-panel py-1.5 px-3 rounded-2xl flex flex-wrap items-center justify-center gap-2 relative z-30 text-gray-100 shadow-xl flex-shrink-0">
+      {updateInfo?.status === 'downloaded' && (
+        <button
+          onClick={() => window.api.quitAndInstallUpdate()}
+          className="px-3 py-1.5 rounded-xl font-bold text-xs bg-emerald-500 hover:bg-emerald-400 text-black shadow-[0_0_15px_rgba(16,185,129,0.5)] flex items-center gap-1.5 animate-pulse cursor-pointer"
+          title="Click to restart and apply new version"
+        >
+          <Sparkles size={14} /> Update Ready: Restart POS ({updateInfo.version || 'New'})
+        </button>
+      )}
+
       <button 
         onClick={() => setViewMode('POS')} 
         className={`px-3.5 py-1.5 rounded-xl font-bold text-xs transition flex items-center gap-1.5 cursor-pointer ${
