@@ -2,11 +2,13 @@ import 'package:firebase_core/firebase_core.dart' hide FirebaseService;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
 import 'package:ssmart_pos_admin/core/constants/firebase_constants.dart';
 import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
+import 'package:ssmart_pos_admin/core/widgets/app_error_widget.dart';
 import 'package:ssmart_pos_admin/features/auth/screens/login_screen.dart';
 import 'package:ssmart_pos_admin/features/dashboard/screens/dashboard_screen.dart';
 import 'package:ssmart_pos_admin/services/auth_service.dart';
@@ -80,42 +82,104 @@ void main() async {
     final measurementId = dotenv.env[FirebaseEnvKeys.measurementId] ?? FirebaseDefaultConfig.measurementId;
 
     // Initialize Firebase
-    await Firebase.initializeApp(
-      options: FirebaseOptions(
-        apiKey: apiKey,
-        authDomain: authDomain,
-        databaseURL: databaseUrl,
-        projectId: projectId,
-        storageBucket: storageBucket,
-        messagingSenderId: messagingSenderId,
-        appId: appId,
-        measurementId: measurementId,
-      ),
-    );
-
-    // Enable Offline Disk Persistence (100MB Cache for offline CRUD & browsing)
+    // On iOS/macOS with GoogleService-Info.plist in the bundle, Firebase.initializeApp() without options
+    // reads directly from the native plist with full bundle ID validation.
+    // Otherwise, we supply the options explicitly (with iosBundleId included for iOS fallback).
     try {
-      FirebaseDatabase.instance.setPersistenceEnabled(true);
-      FirebaseDatabase.instance.setPersistenceCacheSizeBytes(100000000); // 100MB
-      print('✓ Firebase offline local disk persistence enabled');
-    } catch (e) {
-      print('Firebase persistence notice: $e');
-    }
+      if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+        try {
+          await Firebase.initializeApp();
+        } catch (iosInitErr) {
+          print('Native plist init notice: $iosInitErr. Falling back to explicit options...');
+          await Firebase.initializeApp(
+            options: FirebaseOptions(
+              apiKey: apiKey,
+              authDomain: authDomain,
+              databaseURL: databaseUrl,
+              projectId: projectId,
+              storageBucket: storageBucket,
+              messagingSenderId: messagingSenderId,
+              appId: appId,
+              measurementId: measurementId,
+              iosBundleId: 'com.ssmart.pos.admin',
+            ),
+          );
+        }
+      } else {
+        await Firebase.initializeApp(
+          options: FirebaseOptions(
+            apiKey: apiKey,
+            authDomain: authDomain,
+            databaseURL: databaseUrl,
+            projectId: projectId,
+            storageBucket: storageBucket,
+            messagingSenderId: messagingSenderId,
+            appId: appId,
+            measurementId: measurementId,
+          ),
+        );
+      }
 
-    print('✓ Firebase initialized successfully');
+      // Enable Offline Disk Persistence (100MB Cache for offline CRUD & browsing)
+      try {
+        FirebaseDatabase.instance.setPersistenceEnabled(true);
+        FirebaseDatabase.instance.setPersistenceCacheSizeBytes(100000000); // 100MB
+        print('✓ Firebase offline local disk persistence enabled');
+      } catch (e) {
+        print('Firebase persistence notice: $e');
+      }
+
+      print('✓ Firebase initialized successfully');
+      isFirebaseReady = true;
+    } catch (e, stack) {
+      print('✗ Firebase initialization failed: $e\n$stack');
+      initError = e.toString();
+    }
   } catch (e) {
-    print('✗ Firebase initialization failed: $e');
-    // Continue anyway - the app will show offline state
+    print('✗ Unexpected setup error: $e');
+    initError = e.toString();
   }
 
-  runApp(const SSMartPOSAdminApp());
+  runApp(SSMartPOSAdminApp(
+    isFirebaseReady: isFirebaseReady,
+    initError: initError,
+  ));
 }
 
+bool isFirebaseReady = false;
+String? initError;
+
 class SSMartPOSAdminApp extends StatelessWidget {
-  const SSMartPOSAdminApp({super.key});
+  final bool isFirebaseReady;
+  final String? initError;
+
+  const SSMartPOSAdminApp({
+    super.key,
+    this.isFirebaseReady = true,
+    this.initError,
+  });
 
   @override
   Widget build(BuildContext context) {
+    // If Firebase failed to initialize, show clean error & retry screen instead of crashing into [core/no app]
+    if (!isFirebaseReady) {
+      return MaterialApp(
+        title: 'SSmart POS Admin',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.lightTheme,
+        home: Scaffold(
+          backgroundColor: const Color(0xFF0B0C10),
+          body: AppErrorWidget(
+            message: 'Firebase Connection Error',
+            error: initError ?? 'Failed to initialize Firebase services. Please check network and configuration.',
+            onRetry: () {
+              main();
+            },
+          ),
+        ),
+      );
+    }
+
     return MultiProvider(
       providers: [
         // Firebase services
