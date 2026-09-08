@@ -41,13 +41,23 @@ class AppErrorWidget extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             if (error != null && error!.isNotEmpty) ...[
-              const SizedBox(height: AppTheme.spacingS),
-              Text(
-                error!,
-                style: AppTheme.bodySmall.copyWith(color: AppTheme.textSecondary),
-                textAlign: TextAlign.center,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
+              const SizedBox(height: AppTheme.spacingM),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.black45,
+                  borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                  border: Border.all(color: Colors.white12),
+                ),
+                child: SelectableText(
+                  error!,
+                  style: AppTheme.bodySmall.copyWith(
+                    color: const Color(0xFFE2E8F0),
+                    fontFamily: 'monospace',
+                    fontSize: 12,
+                  ),
+                  textAlign: TextAlign.left,
+                ),
               ),
             ],
             if (onRetry != null) ...[
