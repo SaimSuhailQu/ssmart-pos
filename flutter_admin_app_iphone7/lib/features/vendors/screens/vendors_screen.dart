@@ -43,7 +43,7 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
         setState(() {});
@@ -81,13 +81,17 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
         title: const Text('Vendors & Purchase Orders'),
         bottom: TabBar(
           controller: _tabController,
+          isScrollable: true,
+          tabAlignment: TabAlignment.start,
           indicatorColor: Colors.purpleAccent,
           labelColor: Colors.purpleAccent,
           unselectedLabelColor: AppTheme.textSecondary,
-          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
           tabs: const [
-            Tab(icon: Icon(CupertinoIcons.doc_text_fill, size: 20), text: 'Purchase Orders'),
-            Tab(icon: Icon(CupertinoIcons.building_2_fill, size: 20), text: 'Vendors Directory'),
+            Tab(icon: Icon(CupertinoIcons.doc_text_fill, size: 18), text: 'Purchase Orders'),
+            Tab(icon: Icon(CupertinoIcons.building_2_fill, size: 18), text: 'Vendors Directory'),
+            Tab(icon: Icon(CupertinoIcons.creditcard_fill, size: 18), text: 'Payment Ledger'),
+            Tab(icon: Icon(CupertinoIcons.cube_box_fill, size: 18), text: 'Order Entries'),
           ],
         ),
         actions: [
@@ -104,26 +108,30 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: Colors.purple.shade700,
-        icon: const Icon(CupertinoIcons.plus, color: Colors.white),
-        label: Text(
-          _tabController.index == 0 ? 'New Purchase Order' : 'Add New Vendor',
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        onPressed: () {
-          if (_tabController.index == 0) {
-            _showAddEditPODialog(context);
-          } else {
-            _showAddEditVendorDialog(context);
-          }
-        },
-      ),
+      floatingActionButton: (_tabController.index == 0 || _tabController.index == 1)
+          ? FloatingActionButton.extended(
+              backgroundColor: Colors.purple.shade700,
+              icon: const Icon(CupertinoIcons.plus, color: Colors.white),
+              label: Text(
+                _tabController.index == 0 ? 'New Purchase Order' : 'Add New Vendor',
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+              onPressed: () {
+                if (_tabController.index == 0) {
+                  _showAddEditPODialog(context);
+                } else {
+                  _showAddEditVendorDialog(context);
+                }
+              },
+            )
+          : null,
       body: TabBarView(
         controller: _tabController,
         children: [
           _buildPurchaseOrdersTab(firebaseService),
           _buildVendorsDirectoryTab(firebaseService),
+          _buildPaymentLedgerTab(firebaseService),
+          _buildOrderEntriesTab(firebaseService),
         ],
       ),
     );
@@ -472,20 +480,52 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                     label: const Text('Pay', style: TextStyle(color: AppTheme.primaryTeal, fontSize: 11, fontWeight: FontWeight.bold)),
                     onPressed: () => _showPODetailsSheet(context, po),
                   ),
-                  const SizedBox(width: 4),
-                  TextButton.icon(
-                    style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4)),
-                    icon: const Icon(CupertinoIcons.pencil, size: 15, color: Colors.purpleAccent),
-                    label: const Text('Edit', style: TextStyle(color: Colors.purpleAccent, fontSize: 11)),
-                    onPressed: () => _showAddEditPODialog(context, po: po),
-                  ),
-                  const SizedBox(width: 4),
-                  IconButton(
-                    icon: const Icon(CupertinoIcons.trash, size: 16, color: AppTheme.errorRed),
-                    tooltip: 'Delete PO',
-                    onPressed: () => _confirmDeletePO(context, po),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
+                  Builder(
+                    builder: (context) {
+                      final poCreated = DateTime.tryParse(po.timestamp.replaceAll(' ', 'T')) ?? DateTime.now();
+                      final poDiffMins = DateTime.now().difference(poCreated).inMinutes;
+                      final bool poIsEditable = poDiffMins <= 30;
+                      final int poRemainingMins = (30 - poDiffMins).clamp(0, 30);
+
+                      if (poIsEditable) {
+                        return Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            TextButton.icon(
+                              style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4)),
+                              icon: const Icon(CupertinoIcons.pencil, size: 14, color: Colors.purpleAccent),
+                              label: Text('Edit (${poRemainingMins}m)', style: const TextStyle(color: Colors.purpleAccent, fontSize: 11)),
+                              onPressed: () => _showAddEditPODialog(context, po: po),
+                            ),
+                            const SizedBox(width: 4),
+                            IconButton(
+                              icon: const Icon(CupertinoIcons.trash, size: 16, color: AppTheme.errorRed),
+                              tooltip: 'Undo / Delete PO (${poRemainingMins}m left)',
+                              onPressed: () => _confirmDeletePO(context, po),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                            ),
+                          ],
+                        );
+                      } else {
+                        return Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.06),
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(color: Colors.white10),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(CupertinoIcons.lock_fill, size: 11, color: Colors.white38),
+                              SizedBox(width: 3),
+                              Text('Permanent', style: TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                        );
+                      }
+                    },
                   ),
                 ],
               ),
@@ -1165,13 +1205,548 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
     );
   }
 
+  // ============================================================================
+  // TAB 3: PAYMENT LEDGER (Audit stream of all vendor payments with 30-min undo)
+  // ============================================================================
+  Widget _buildPaymentLedgerTab(FirebaseService firebaseService) {
+    return StreamBuilder<List<PurchaseOrderModel>>(
+      stream: firebaseService.getPurchaseOrdersStream(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const AppLoadingIndicator(message: 'Loading payment ledger...');
+        }
+        if (snapshot.hasError) {
+          return AppErrorWidget(
+            message: 'Failed to load payments: ${snapshot.error}',
+            onRetry: () => setState(() {}),
+          );
+        }
+
+        final pos = snapshot.data ?? [];
+        final List<Map<String, dynamic>> allPayments = [];
+
+        for (final po in pos) {
+          for (int i = 0; i < po.payments.length; i++) {
+            final p = po.payments[i];
+            if (p is Map) {
+              final map = Map<String, dynamic>.from(p);
+              map['po_id'] = po.id;
+              map['vendor_name'] = po.vendorName;
+              map['payment_index'] = i;
+              allPayments.add(map);
+            }
+          }
+        }
+
+        // Sort descending by timestamp
+        allPayments.sort((a, b) {
+          final tA = a['timestamp']?.toString() ?? '';
+          final tB = b['timestamp']?.toString() ?? '';
+          return tB.compareTo(tA);
+        });
+
+        final double totalPaidAllTime = allPayments.fold<double>(
+          0.0,
+          (sum, p) => sum + ((p['amount'] is num) ? (p['amount'] as num).toDouble() : (double.tryParse(p['amount']?.toString() ?? '') ?? 0.0)),
+        );
+
+        return RefreshIndicator(
+          onRefresh: () async => setState(() {}),
+          child: Column(
+            children: [
+              // Summary KPI
+              Container(
+                margin: const EdgeInsets.all(AppTheme.spacingM),
+                padding: const EdgeInsets.all(AppTheme.spacingM),
+                decoration: BoxDecoration(
+                  color: AppTheme.cardBackground,
+                  borderRadius: BorderRadius.circular(AppTheme.radiusL),
+                  border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Total Vendor Payments Disbursed',
+                          style: AppTheme.labelMedium.copyWith(color: AppTheme.textSecondary),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'PKR ${totalPaidAllTime.toStringAsFixed(0)}',
+                          style: AppTheme.headlineLarge.copyWith(
+                            color: AppTheme.successGreen,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${allPayments.length} Payment installments recorded',
+                          style: const TextStyle(color: Colors.white70, fontSize: 11),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                      ),
+                      child: const Icon(CupertinoIcons.creditcard_fill, color: AppTheme.successGreen, size: 30),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Payments list
+              Expanded(
+                child: allPayments.isEmpty
+                    ? const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(CupertinoIcons.creditcard, size: 64, color: AppTheme.textSecondary),
+                            SizedBox(height: 12),
+                            Text('No vendor payments recorded yet.', style: TextStyle(color: AppTheme.textSecondary)),
+                          ],
+                        ),
+                      )
+                    : ListView.separated(
+                        padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM, vertical: 8),
+                        itemCount: allPayments.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: AppTheme.spacingS),
+                        itemBuilder: (context, index) {
+                          final pay = allPayments[index];
+                          final double amount = (pay['amount'] is num) ? (pay['amount'] as num).toDouble() : (double.tryParse(pay['amount']?.toString() ?? '') ?? 0.0);
+                          final String method = pay['payment_method']?.toString() ?? 'Cash';
+                          final String time = pay['timestamp']?.toString() ?? '';
+                          final String notes = pay['notes']?.toString() ?? '';
+                          final String vendorName = pay['vendor_name']?.toString() ?? 'Vendor';
+                          final dynamic poId = pay['po_id'];
+                          final dynamic paymentId = pay['id'] ?? pay['payment_index'];
+
+                          // 30 minute grace window
+                          bool isEditable = false;
+                          int remainingMins = 0;
+                          if (time.isNotEmpty) {
+                            try {
+                              final parsed = DateTime.parse(time.replaceAll(' ', 'T'));
+                              final diffMins = DateTime.now().difference(parsed).inMinutes;
+                              isEditable = diffMins <= 30;
+                              remainingMins = (30 - diffMins).clamp(0, 30);
+                            } catch (_) {}
+                          }
+
+                          return Container(
+                            padding: const EdgeInsets.all(AppTheme.spacingM),
+                            decoration: BoxDecoration(
+                              color: AppTheme.cardBackground,
+                              borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                              border: Border.all(color: Colors.green.withValues(alpha: 0.2)),
+                            ),
+                            child: Row(
+                              children: [
+                                CircleAvatar(
+                                  radius: 20,
+                                  backgroundColor: Colors.green.withValues(alpha: 0.2),
+                                  child: const Icon(CupertinoIcons.checkmark_alt, color: AppTheme.successGreen, size: 20),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        vendorName,
+                                        style: AppTheme.bodyLarge.copyWith(fontWeight: FontWeight.bold),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'PO #$poId • $method ${notes.isNotEmpty ? '• $notes' : ''}',
+                                        style: const TextStyle(color: Colors.white70, fontSize: 11),
+                                      ),
+                                      if (time.isNotEmpty) ...[
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          AppDateUtils.formatDateTime(time),
+                                          style: const TextStyle(color: AppTheme.textSecondary, fontSize: 10),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      'PKR ${amount.toStringAsFixed(0)}',
+                                      style: AppTheme.titleMedium.copyWith(
+                                        color: AppTheme.successGreen,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    if (isEditable)
+                                      InkWell(
+                                        onTap: () async {
+                                          final confirm = await showDialog<bool>(
+                                            context: context,
+                                            builder: (c) => AlertDialog(
+                                              backgroundColor: AppTheme.surfaceDark,
+                                              title: const Text('Undo Vendor Payment?'),
+                                              content: Text('Remove this payment installment of PKR ${amount.toStringAsFixed(0)} for $vendorName? ($remainingMins min left in 30-min window)'),
+                                              actions: [
+                                                TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
+                                                ElevatedButton(
+                                                  style: ElevatedButton.styleFrom(backgroundColor: AppTheme.errorRed),
+                                                  onPressed: () => Navigator.pop(c, true),
+                                                  child: const Text('Remove'),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                          if (confirm == true) {
+                                            try {
+                                              await firebaseService.deleteVendorPayment(
+                                                poId: poId.toString(),
+                                                paymentId: paymentId,
+                                              );
+                                              if (context.mounted) {
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  const SnackBar(content: Text('Payment installment removed and balance restored!'), backgroundColor: AppTheme.successGreen),
+                                                );
+                                              }
+                                            } catch (e) {
+                                              if (context.mounted) {
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  SnackBar(content: Text('Failed: $e'), backgroundColor: AppTheme.errorRed),
+                                                );
+                                              }
+                                            }
+                                          }
+                                        },
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: Colors.red.withValues(alpha: 0.15),
+                                            borderRadius: BorderRadius.circular(4),
+                                            border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                                          ),
+                                          child: Text(
+                                            'Undo (${remainingMins}m)',
+                                            style: const TextStyle(color: Colors.redAccent, fontSize: 10, fontWeight: FontWeight.bold),
+                                          ),
+                                        ),
+                                      )
+                                    else
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withValues(alpha: 0.05),
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: const Text(
+                                          '🔒 Permanent',
+                                          style: TextStyle(color: Colors.white38, fontSize: 9, fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // ============================================================================
+  // TAB 4: ORDER ENTRIES (Itemized invoice deliveries ledger across all vendors)
+  // ============================================================================
+  Widget _buildOrderEntriesTab(FirebaseService firebaseService) {
+    return StreamBuilder<List<PurchaseOrderModel>>(
+      stream: firebaseService.getPurchaseOrdersStream(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const AppLoadingIndicator(message: 'Loading order deliveries...');
+        }
+        if (snapshot.hasError) {
+          return AppErrorWidget(
+            message: 'Failed to load order deliveries: ${snapshot.error}',
+            onRetry: () => setState(() {}),
+          );
+        }
+
+        final pos = snapshot.data ?? [];
+        final List<Map<String, dynamic>> allEntries = [];
+
+        for (final po in pos) {
+          for (int i = 0; i < po.orderEntries.length; i++) {
+            final entry = po.orderEntries[i];
+            if (entry is Map) {
+              final map = Map<String, dynamic>.from(entry);
+              map['po_id'] = po.id;
+              map['vendor_name'] = po.vendorName;
+              map['entry_index'] = i;
+              allEntries.add(map);
+            }
+          }
+        }
+
+        // Sort descending by timestamp
+        allEntries.sort((a, b) {
+          final tA = a['timestamp']?.toString() ?? '';
+          final tB = b['timestamp']?.toString() ?? '';
+          return tB.compareTo(tA);
+        });
+
+        final double totalDeliveriesBilled = allEntries.fold<double>(
+          0.0,
+          (sum, e) => sum + ((e['amount'] is num) ? (e['amount'] as num).toDouble() : (double.tryParse(e['amount']?.toString() ?? '') ?? 0.0)),
+        );
+
+        return RefreshIndicator(
+          onRefresh: () async => setState(() {}),
+          child: Column(
+            children: [
+              // Summary KPI
+              Container(
+                margin: const EdgeInsets.all(AppTheme.spacingM),
+                padding: const EdgeInsets.all(AppTheme.spacingM),
+                decoration: BoxDecoration(
+                  color: AppTheme.cardBackground,
+                  borderRadius: BorderRadius.circular(AppTheme.radiusL),
+                  border: Border.all(color: Colors.cyan.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Total Stock Deliveries Invoiced',
+                          style: AppTheme.labelMedium.copyWith(color: AppTheme.textSecondary),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'PKR ${totalDeliveriesBilled.toStringAsFixed(0)}',
+                          style: AppTheme.headlineLarge.copyWith(
+                            color: AppTheme.primaryCyan,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${allEntries.length} Stock deliveries logged',
+                          style: const TextStyle(color: Colors.white70, fontSize: 11),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.cyan.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                      ),
+                      child: const Icon(CupertinoIcons.cube_box_fill, color: AppTheme.primaryCyan, size: 30),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Deliveries list
+              Expanded(
+                child: allEntries.isEmpty
+                    ? const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(CupertinoIcons.cube_box, size: 64, color: AppTheme.textSecondary),
+                            SizedBox(height: 12),
+                            Text('No order deliveries recorded yet.', style: TextStyle(color: AppTheme.textSecondary)),
+                          ],
+                        ),
+                      )
+                    : ListView.separated(
+                        padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM, vertical: 8),
+                        itemCount: allEntries.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: AppTheme.spacingS),
+                        itemBuilder: (context, index) {
+                          final entry = allEntries[index];
+                          final double amount = (entry['amount'] is num) ? (entry['amount'] as num).toDouble() : (double.tryParse(entry['amount']?.toString() ?? '') ?? 0.0);
+                          final String notes = entry['notes']?.toString() ?? 'Stock delivery invoice';
+                          final String time = entry['timestamp']?.toString() ?? '';
+                          final String vendorName = entry['vendor_name']?.toString() ?? 'Vendor';
+                          final dynamic poId = entry['po_id'];
+                          final dynamic entryId = entry['id'] ?? entry['entry_index'];
+
+                          // 30 minute grace window
+                          bool isEditable = false;
+                          int remainingMins = 0;
+                          if (time.isNotEmpty) {
+                            try {
+                              final parsed = DateTime.parse(time.replaceAll(' ', 'T'));
+                              final diffMins = DateTime.now().difference(parsed).inMinutes;
+                              isEditable = diffMins <= 30;
+                              remainingMins = (30 - diffMins).clamp(0, 30);
+                            } catch (_) {}
+                          }
+
+                          return Container(
+                            padding: const EdgeInsets.all(AppTheme.spacingM),
+                            decoration: BoxDecoration(
+                              color: AppTheme.cardBackground,
+                              borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                              border: Border.all(color: Colors.cyan.withValues(alpha: 0.2)),
+                            ),
+                            child: Row(
+                              children: [
+                                CircleAvatar(
+                                  radius: 20,
+                                  backgroundColor: Colors.cyan.withValues(alpha: 0.2),
+                                  child: const Icon(CupertinoIcons.cube_box, color: AppTheme.primaryCyan, size: 20),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        vendorName,
+                                        style: AppTheme.bodyLarge.copyWith(fontWeight: FontWeight.bold),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'PO #$poId • $notes',
+                                        style: const TextStyle(color: Colors.white70, fontSize: 11),
+                                      ),
+                                      if (time.isNotEmpty) ...[
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          AppDateUtils.formatDateTime(time),
+                                          style: const TextStyle(color: AppTheme.textSecondary, fontSize: 10),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      'PKR ${amount.toStringAsFixed(0)}',
+                                      style: AppTheme.titleMedium.copyWith(
+                                        color: AppTheme.primaryCyan,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    if (isEditable)
+                                      InkWell(
+                                        onTap: () async {
+                                          final confirm = await showDialog<bool>(
+                                            context: context,
+                                            builder: (c) => AlertDialog(
+                                              backgroundColor: AppTheme.surfaceDark,
+                                              title: const Text('Undo Order Delivery?'),
+                                              content: Text('Remove this order delivery of PKR ${amount.toStringAsFixed(0)} for $vendorName? ($remainingMins min left in 30-min window)'),
+                                              actions: [
+                                                TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
+                                                ElevatedButton(
+                                                  style: ElevatedButton.styleFrom(backgroundColor: AppTheme.errorRed),
+                                                  onPressed: () => Navigator.pop(c, true),
+                                                  child: const Text('Remove'),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                          if (confirm == true) {
+                                            try {
+                                              await firebaseService.deleteVendorOrderEntry(
+                                                poId: poId.toString(),
+                                                entryId: entryId,
+                                              );
+                                              if (context.mounted) {
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  const SnackBar(content: Text('Order delivery invoice removed and PO cost adjusted!'), backgroundColor: AppTheme.successGreen),
+                                                );
+                                              }
+                                            } catch (e) {
+                                              if (context.mounted) {
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  SnackBar(content: Text('Failed: $e'), backgroundColor: AppTheme.errorRed),
+                                                );
+                                              }
+                                            }
+                                          }
+                                        },
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: Colors.red.withValues(alpha: 0.15),
+                                            borderRadius: BorderRadius.circular(4),
+                                            border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                                          ),
+                                          child: Text(
+                                            'Undo (${remainingMins}m)',
+                                            style: const TextStyle(color: Colors.redAccent, fontSize: 10, fontWeight: FontWeight.bold),
+                                          ),
+                                        ),
+                                      )
+                                    else
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withValues(alpha: 0.05),
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: const Text(
+                                          '🔒 Permanent',
+                                          style: TextStyle(color: Colors.white38, fontSize: 9, fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   void _confirmDeletePO(BuildContext context, PurchaseOrderModel po) {
+    final created = DateTime.tryParse(po.timestamp.replaceAll(' ', 'T')) ?? DateTime.now();
+    final diffMins = DateTime.now().difference(created).inMinutes;
+    if (diffMins > 30) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('This Purchase Order is older than 30 minutes and is permanent.'), backgroundColor: AppTheme.errorRed),
+      );
+      return;
+    }
+    final remainingMins = (30 - diffMins).clamp(0, 30);
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppTheme.surfaceDark,
         title: const Text('Delete Purchase Order?'),
-        content: Text('Are you sure you want to delete PO #${po.id} for "${po.vendorName}"?'),
+        content: Text('Are you sure you want to delete PO #${po.id} for "${po.vendorName}"? ($remainingMins min left to undo)'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -1181,11 +1756,18 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.errorRed),
             onPressed: () async {
               Navigator.pop(ctx);
-              await context.read<FirebaseService>().deleteVendorPurchaseOrder(po.id.toString());
-              if (!context.mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Deleted PO for ${po.vendorName}')),
-              );
+              try {
+                await context.read<FirebaseService>().deleteVendorPurchaseOrder(po.id.toString());
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Deleted PO for ${po.vendorName}'), backgroundColor: AppTheme.successGreen),
+                );
+              } catch (e) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Failed: $e'), backgroundColor: AppTheme.errorRed),
+                );
+              }
             },
             child: const Text('Delete'),
           ),

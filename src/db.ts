@@ -1246,18 +1246,141 @@ export function receivePurchaseOrder(poId: number) {
   return true;
 }
 
-export function deletePurchaseOrder(poId: number) {
+export function deletePurchaseOrder(poId: number, bypassTimeCheck: boolean = false) {
+  const selectPO = db.prepare('SELECT * FROM purchase_orders WHERE id = ?');
   const deleteItems = db.prepare('DELETE FROM purchase_order_items WHERE po_id = ?');
   const deletePayments = db.prepare('DELETE FROM vendor_payments WHERE po_id = ?');
   const deleteEntries = db.prepare('DELETE FROM vendor_order_entries WHERE po_id = ?');
   const deletePO = db.prepare('DELETE FROM purchase_orders WHERE id = ?');
 
   const transaction = db.transaction(() => {
+    const po = selectPO.get(poId) as any;
+    if (!po) throw new Error('Purchase Order not found');
+
+    if (!bypassTimeCheck) {
+      const createdTime = new Date(po.timestamp.replace(' ', 'T')).getTime();
+      const diffMinutes = (Date.now() - createdTime) / (1000 * 60);
+      if (diffMinutes > 30) {
+        throw new Error('Purchase Order was created more than 30 minutes ago and is now permanent.');
+      }
+    }
+
     deleteItems.run(poId);
     deletePayments.run(poId);
     deleteEntries.run(poId);
     deletePO.run(poId);
   });
+  transaction();
+  return true;
+}
+
+export function deleteVendorPayment(paymentId: number, bypassTimeCheck: boolean = false) {
+  const selectPayment = db.prepare('SELECT * FROM vendor_payments WHERE id = ?');
+  const selectPO = db.prepare('SELECT * FROM purchase_orders WHERE id = ?');
+  const deletePaymentStmt = db.prepare('DELETE FROM vendor_payments WHERE id = ?');
+  const updatePO = db.prepare('UPDATE purchase_orders SET paid_amount = MAX(0, paid_amount - ?), payment_status = CASE WHEN MAX(0, paid_amount - ?) >= total_cost AND total_cost > 0 THEN \'Paid\' WHEN MAX(0, paid_amount - ?) > 0 THEN \'Partially Paid\' ELSE \'Unpaid\' END WHERE id = ?');
+
+  const transaction = db.transaction(() => {
+    const payment = selectPayment.get(paymentId) as any;
+    if (!payment) throw new Error('Payment record not found');
+
+    if (!bypassTimeCheck) {
+      const createdTime = new Date(payment.timestamp.replace(' ', 'T')).getTime();
+      const diffMinutes = (Date.now() - createdTime) / (1000 * 60);
+      if (diffMinutes > 30) {
+        throw new Error('This payment was recorded more than 30 minutes ago and is now permanent.');
+      }
+    }
+
+    deletePaymentStmt.run(paymentId);
+    if (payment.po_id) {
+      updatePO.run(payment.amount, payment.amount, payment.amount, payment.po_id);
+    }
+  });
+
+  transaction();
+  return true;
+}
+
+export function updateVendorPayment(paymentId: number, updateData: { amount: number, paymentMethod?: string, notes?: string }, bypassTimeCheck: boolean = false) {
+  const selectPayment = db.prepare('SELECT * FROM vendor_payments WHERE id = ?');
+  const updatePaymentStmt = db.prepare('UPDATE vendor_payments SET amount = ?, payment_method = ?, notes = ? WHERE id = ?');
+  const updatePO = db.prepare('UPDATE purchase_orders SET paid_amount = MAX(0, paid_amount + ?), payment_status = CASE WHEN MAX(0, paid_amount + ?) >= total_cost AND total_cost > 0 THEN \'Paid\' WHEN MAX(0, paid_amount + ?) > 0 THEN \'Partially Paid\' ELSE \'Unpaid\' END WHERE id = ?');
+
+  const transaction = db.transaction(() => {
+    const payment = selectPayment.get(paymentId) as any;
+    if (!payment) throw new Error('Payment record not found');
+
+    if (!bypassTimeCheck) {
+      const createdTime = new Date(payment.timestamp.replace(' ', 'T')).getTime();
+      const diffMinutes = (Date.now() - createdTime) / (1000 * 60);
+      if (diffMinutes > 30) {
+        throw new Error('This payment was recorded more than 30 minutes ago and is now permanent.');
+      }
+    }
+
+    const diff = updateData.amount - payment.amount;
+    updatePaymentStmt.run(updateData.amount, updateData.paymentMethod || payment.payment_method, updateData.notes ?? payment.notes, paymentId);
+    if (payment.po_id && diff !== 0) {
+      updatePO.run(diff, diff, diff, payment.po_id);
+    }
+  });
+
+  transaction();
+  return true;
+}
+
+export function deleteVendorOrderEntry(entryId: number, bypassTimeCheck: boolean = false) {
+  const selectEntry = db.prepare('SELECT * FROM vendor_order_entries WHERE id = ?');
+  const deleteEntryStmt = db.prepare('DELETE FROM vendor_order_entries WHERE id = ?');
+  const updatePO = db.prepare('UPDATE purchase_orders SET total_cost = MAX(0, total_cost - ?), payment_status = CASE WHEN paid_amount >= MAX(0, total_cost - ?) AND MAX(0, total_cost - ?) > 0 THEN \'Paid\' WHEN paid_amount > 0 THEN \'Partially Paid\' ELSE \'Unpaid\' END WHERE id = ?');
+
+  const transaction = db.transaction(() => {
+    const entry = selectEntry.get(entryId) as any;
+    if (!entry) throw new Error('Order entry record not found');
+
+    if (!bypassTimeCheck) {
+      const createdTime = new Date(entry.timestamp.replace(' ', 'T')).getTime();
+      const diffMinutes = (Date.now() - createdTime) / (1000 * 60);
+      if (diffMinutes > 30) {
+        throw new Error('This order entry was recorded more than 30 minutes ago and is now permanent.');
+      }
+    }
+
+    deleteEntryStmt.run(entryId);
+    if (entry.po_id) {
+      updatePO.run(entry.amount, entry.amount, entry.amount, entry.po_id);
+    }
+  });
+
+  transaction();
+  return true;
+}
+
+export function updateVendorOrderEntry(entryId: number, updateData: { amount: number, notes?: string }, bypassTimeCheck: boolean = false) {
+  const selectEntry = db.prepare('SELECT * FROM vendor_order_entries WHERE id = ?');
+  const updateEntryStmt = db.prepare('UPDATE vendor_order_entries SET amount = ?, notes = ? WHERE id = ?');
+  const updatePO = db.prepare('UPDATE purchase_orders SET total_cost = MAX(0, total_cost + ?), payment_status = CASE WHEN paid_amount >= MAX(0, total_cost + ?) AND MAX(0, total_cost + ?) > 0 THEN \'Paid\' WHEN paid_amount > 0 THEN \'Partially Paid\' ELSE \'Unpaid\' END WHERE id = ?');
+
+  const transaction = db.transaction(() => {
+    const entry = selectEntry.get(entryId) as any;
+    if (!entry) throw new Error('Order entry record not found');
+
+    if (!bypassTimeCheck) {
+      const createdTime = new Date(entry.timestamp.replace(' ', 'T')).getTime();
+      const diffMinutes = (Date.now() - createdTime) / (1000 * 60);
+      if (diffMinutes > 30) {
+        throw new Error('This order entry was recorded more than 30 minutes ago and is now permanent.');
+      }
+    }
+
+    const diff = updateData.amount - entry.amount;
+    updateEntryStmt.run(updateData.amount, updateData.notes ?? entry.notes, entryId);
+    if (entry.po_id && diff !== 0) {
+      updatePO.run(diff, diff, diff, entry.po_id);
+    }
+  });
+
   transaction();
   return true;
 }

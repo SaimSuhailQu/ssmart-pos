@@ -8,7 +8,8 @@ import { initDb, getAllProducts, getProductByBarcode, saveSale, getNextSaleId, a
   getAllExpenses, addExpense, updateExpense, deleteExpense,
   getAllVendors, addVendor, updateVendor, deleteVendor,
   getAllPurchaseOrders, createPurchaseOrder, receivePurchaseOrder, deletePurchaseOrder,
-  addVendorPayment, getVendorPayments, getVendorOrderEntries } from './db';
+  addVendorPayment, deleteVendorPayment, updateVendorPayment, deleteVendorOrderEntry, updateVendorOrderEntry,
+  getVendorPayments, getVendorOrderEntries } from './db';
 import { printReceipt, printBarcode } from './printer';
 import { startSyncWorker, syncProductsToCloud, syncCustomersToCloud, syncCustomerKhataToCloud, clearAllKhataFromCloudAndLocal, syncVendorsToCloud } from './syncEngine';
 import { sendWhatsAppMessage } from './whatsappService';
@@ -331,14 +332,38 @@ ipcMain.handle('receive-purchase-order', async (event, poId) => {
   return res;
 });
 
-ipcMain.handle('delete-purchase-order', async (event, poId) => {
-  const res = deletePurchaseOrder(poId);
+ipcMain.handle('delete-purchase-order', async (event, poId, bypassTimeCheck) => {
+  const res = deletePurchaseOrder(poId, bypassTimeCheck);
   syncVendorsToCloud(true);
   return res;
 });
 
 ipcMain.handle('add-vendor-payment', async (event, payment) => {
   const res = addVendorPayment(payment);
+  syncVendorsToCloud(true);
+  return res;
+});
+
+ipcMain.handle('delete-vendor-payment', async (event, paymentId, bypassTimeCheck) => {
+  const res = deleteVendorPayment(paymentId, bypassTimeCheck);
+  syncVendorsToCloud(true);
+  return res;
+});
+
+ipcMain.handle('update-vendor-payment', async (event, paymentId, updateData, bypassTimeCheck) => {
+  const res = updateVendorPayment(paymentId, updateData, bypassTimeCheck);
+  syncVendorsToCloud(true);
+  return res;
+});
+
+ipcMain.handle('delete-vendor-order-entry', async (event, entryId, bypassTimeCheck) => {
+  const res = deleteVendorOrderEntry(entryId, bypassTimeCheck);
+  syncVendorsToCloud(true);
+  return res;
+});
+
+ipcMain.handle('update-vendor-order-entry', async (event, entryId, updateData, bypassTimeCheck) => {
+  const res = updateVendorOrderEntry(entryId, updateData, bypassTimeCheck);
   syncVendorsToCloud(true);
   return res;
 });

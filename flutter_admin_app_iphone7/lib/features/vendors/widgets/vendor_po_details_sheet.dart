@@ -468,10 +468,26 @@ class VendorPODetailsSheet extends StatelessWidget {
                     style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
                   ),
                   const SizedBox(height: 8),
-                  ...po.orderEntries.map((entry) {
+                  ...po.orderEntries.asMap().entries.map((entryItem) {
+                    final int idx = entryItem.key;
+                    final entry = entryItem.value;
                     final double amount = (entry['amount'] is num) ? (entry['amount'] as num).toDouble() : (double.tryParse(entry['amount']?.toString() ?? '') ?? 0.0);
                     final String notes = entry['notes']?.toString() ?? 'Purchase order entry';
                     final String time = entry['timestamp']?.toString() ?? '';
+                    final dynamic entryId = entry['id'] ?? idx;
+
+                    // 30 minute grace period calculation
+                    bool isEditable = false;
+                    int remainingMins = 0;
+                    if (time.isNotEmpty) {
+                      try {
+                        final parsed = DateTime.parse(time.replaceAll(' ', 'T'));
+                        final diffMins = DateTime.now().difference(parsed).inMinutes;
+                        isEditable = diffMins <= 30;
+                        remainingMins = (30 - diffMins).clamp(0, 30);
+                      } catch (_) {}
+                    }
+
                     return Container(
                       margin: const EdgeInsets.only(bottom: 6),
                       padding: const EdgeInsets.all(10),
@@ -483,15 +499,88 @@ class VendorPODetailsSheet extends StatelessWidget {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(notes, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                                if (time.isNotEmpty)
+                                  Text(time.length > 16 ? time.substring(0, 16) : time, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+                              ],
+                            ),
+                          ),
+                          Row(
                             children: [
-                              Text(notes, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
-                              if (time.isNotEmpty)
-                                Text(time.length > 16 ? time.substring(0, 16) : time, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+                              Text('PKR ${amount.toStringAsFixed(0)}', style: const TextStyle(color: AppTheme.primaryCyan, fontWeight: FontWeight.bold)),
+                              const SizedBox(width: 8),
+                              if (isEditable)
+                                InkWell(
+                                  onTap: () async {
+                                    final fb = context.read<FirebaseService>();
+                                    final confirm = await showDialog<bool>(
+                                      context: context,
+                                      builder: (c) => AlertDialog(
+                                        backgroundColor: AppTheme.surfaceDark,
+                                        title: const Text('Undo Order Delivery?'),
+                                        content: Text('Remove this order delivery of PKR ${amount.toStringAsFixed(0)}? ($remainingMins min left in grace window)'),
+                                        actions: [
+                                          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
+                                          ElevatedButton(
+                                            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.errorRed),
+                                            onPressed: () => Navigator.pop(c, true),
+                                            child: const Text('Remove'),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                    if (confirm == true) {
+                                      try {
+                                        await fb.deleteVendorOrderEntry(
+                                          poId: po.id.toString(),
+                                          entryId: entryId,
+                                        );
+                                        if (context.mounted) {
+                                          Navigator.pop(context); // close sheet
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(content: Text('Order delivery removed!'), backgroundColor: AppTheme.successGreen),
+                                          );
+                                        }
+                                      } catch (e) {
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(content: Text('Failed: $e'), backgroundColor: AppTheme.errorRed),
+                                          );
+                                        }
+                                      }
+                                    }
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(4),
+                                      border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                                    ),
+                                    child: Text(
+                                      'Undo (${remainingMins}m)',
+                                      style: const TextStyle(color: Colors.redAccent, fontSize: 10, fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                )
+                              else
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.05),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: const Text(
+                                    '🔒 Permanent',
+                                    style: TextStyle(color: Colors.white38, fontSize: 9, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
                             ],
                           ),
-                          Text('PKR ${amount.toStringAsFixed(0)}', style: const TextStyle(color: AppTheme.primaryCyan, fontWeight: FontWeight.bold)),
                         ],
                       ),
                     );
@@ -506,11 +595,26 @@ class VendorPODetailsSheet extends StatelessWidget {
                     style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
                   ),
                   const SizedBox(height: 8),
-                  ...po.payments.map((p) {
+                  ...po.payments.asMap().entries.map((payItem) {
+                    final int idx = payItem.key;
+                    final p = payItem.value;
                     final double amount = (p['amount'] is num) ? (p['amount'] as num).toDouble() : (double.tryParse(p['amount']?.toString() ?? '') ?? 0.0);
                     final String method = p['payment_method']?.toString() ?? 'Cash';
                     final String time = p['timestamp']?.toString() ?? '';
                     final String notes = p['notes']?.toString() ?? '';
+                    final dynamic paymentId = p['id'] ?? idx;
+
+                    // 30 minute grace period calculation
+                    bool isEditable = false;
+                    int remainingMins = 0;
+                    if (time.isNotEmpty) {
+                      try {
+                        final parsed = DateTime.parse(time.replaceAll(' ', 'T'));
+                        final diffMins = DateTime.now().difference(parsed).inMinutes;
+                        isEditable = diffMins <= 30;
+                        remainingMins = (30 - diffMins).clamp(0, 30);
+                      } catch (_) {}
+                    }
 
                     return Container(
                       margin: const EdgeInsets.only(bottom: 6),
@@ -523,23 +627,98 @@ class VendorPODetailsSheet extends StatelessWidget {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
+                          Expanded(
+                            child: Row(
+                              children: [
+                                const Icon(CupertinoIcons.checkmark_circle_fill, color: AppTheme.successGreen, size: 16),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text('Paid via $method', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                                      if (notes.isNotEmpty)
+                                        Text(notes, style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                                      if (time.isNotEmpty)
+                                        Text(time.length > 16 ? time.substring(0, 16) : time, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 10)),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                           Row(
                             children: [
-                              const Icon(CupertinoIcons.checkmark_circle_fill, color: AppTheme.successGreen, size: 16),
+                              Text('-PKR ${amount.toStringAsFixed(0)}', style: const TextStyle(color: AppTheme.successGreen, fontWeight: FontWeight.bold)),
                               const SizedBox(width: 8),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('Paid via $method', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
-                                  if (notes.isNotEmpty)
-                                    Text(notes, style: const TextStyle(color: Colors.white70, fontSize: 11)),
-                                  if (time.isNotEmpty)
-                                    Text(time.length > 16 ? time.substring(0, 16) : time, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 10)),
-                                ],
-                              ),
+                              if (isEditable)
+                                InkWell(
+                                  onTap: () async {
+                                    final fb = context.read<FirebaseService>();
+                                    final confirm = await showDialog<bool>(
+                                      context: context,
+                                      builder: (c) => AlertDialog(
+                                        backgroundColor: AppTheme.surfaceDark,
+                                        title: const Text('Undo Payment?'),
+                                        content: Text('Remove this payment installment of PKR ${amount.toStringAsFixed(0)}? ($remainingMins min left in grace window)'),
+                                        actions: [
+                                          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
+                                          ElevatedButton(
+                                            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.errorRed),
+                                            onPressed: () => Navigator.pop(c, true),
+                                            child: const Text('Remove'),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                    if (confirm == true) {
+                                      try {
+                                        await fb.deleteVendorPayment(
+                                          poId: po.id.toString(),
+                                          paymentId: paymentId,
+                                        );
+                                        if (context.mounted) {
+                                          Navigator.pop(context); // close sheet
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(content: Text('Payment installment removed! Balance restored.'), backgroundColor: AppTheme.successGreen),
+                                          );
+                                        }
+                                      } catch (e) {
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(content: Text('Failed: $e'), backgroundColor: AppTheme.errorRed),
+                                          );
+                                        }
+                                      }
+                                    }
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(4),
+                                      border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                                    ),
+                                    child: Text(
+                                      'Undo (${remainingMins}m)',
+                                      style: const TextStyle(color: Colors.redAccent, fontSize: 10, fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                )
+                              else
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.05),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: const Text(
+                                    '🔒 Permanent',
+                                    style: TextStyle(color: Colors.white38, fontSize: 9, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
                             ],
                           ),
-                          Text('-PKR ${amount.toStringAsFixed(0)}', style: const TextStyle(color: AppTheme.successGreen, fontWeight: FontWeight.bold)),
                         ],
                       ),
                     );

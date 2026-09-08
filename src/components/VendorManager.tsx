@@ -115,13 +115,52 @@ export const VendorManager: React.FC = () => {
     setPayAmount(remaining > 0 ? remaining.toString() : '');
     setPayMethod('Cash');
     setPayNotes('');
+    setEditingPayment(null);
     setIsPaymentModalOpen(true);
+  };
+
+  // Editing existing payment or order entry
+  const [editingPayment, setEditingPayment] = useState<VendorPayment | null>(null);
+  const [editingOrderEntry, setEditingOrderEntry] = useState<VendorOrderEntry | null>(null);
+  const [isEditOrderEntryModalOpen, setIsEditOrderEntryModalOpen] = useState(false);
+  const [editOrderAmount, setEditOrderAmount] = useState<string>('');
+  const [editOrderNotes, setEditOrderNotes] = useState<string>('');
+
+  const handleOpenEditPaymentModal = (pay: VendorPayment) => {
+    const createdTime = new Date(pay.timestamp.replace(' ', 'T')).getTime();
+    const diffMins = (Date.now() - createdTime) / (1000 * 60);
+    if (diffMins > 30) {
+      setError('This payment was recorded more than 30 minutes ago and is now permanent.');
+      return;
+    }
+    setEditingPayment(pay);
+    const po = purchaseOrders.find(p => p.id === pay.po_id) || null;
+    setSelectedPOForPayment(po);
+    setPayAmount(pay.amount.toString());
+    setPayMethod(pay.payment_method || 'Cash');
+    setPayNotes(pay.notes || '');
+    setIsPaymentModalOpen(true);
+  };
+
+  const handleDeletePayment = async (paymentId: number) => {
+    if (!window.confirm('Remove this payment installment? (Allowed within 30-minute grace period)')) return;
+    try {
+      await window.api.deleteVendorPayment(paymentId);
+      setSuccess('Payment record removed and vendor PO balance restored.');
+      await loadPurchaseOrders();
+      await loadPayments();
+      if (selectedPOForDetails) {
+        const refreshed = await window.api.getAllPurchaseOrders();
+        const updatedPO = refreshed.find(p => p.id === selectedPOForDetails.id);
+        if (updatedPO) setSelectedPOForDetails(updatedPO);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to remove payment.');
+    }
   };
 
   const handleSavePayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedPOForPayment) return;
-
     const amount = parseFloat(payAmount);
     if (isNaN(amount) || amount <= 0) {
       setError('Please enter a valid payment amount.');
@@ -129,20 +168,95 @@ export const VendorManager: React.FC = () => {
     }
 
     try {
-      await window.api.addVendorPayment({
-        poId: selectedPOForPayment.id,
-        vendorId: selectedPOForPayment.vendor_id,
-        amount,
-        paymentMethod: payMethod,
-        notes: payNotes.trim()
-      });
+      if (editingPayment) {
+        await window.api.updateVendorPayment(editingPayment.id, {
+          amount,
+          paymentMethod: payMethod,
+          notes: payNotes.trim()
+        });
+        setSuccess(`Updated payment #${editingPayment.id} to Rs. ${amount.toLocaleString()}`);
+      } else {
+        if (!selectedPOForPayment) return;
+        await window.api.addVendorPayment({
+          poId: selectedPOForPayment.id,
+          vendorId: selectedPOForPayment.vendor_id,
+          amount,
+          paymentMethod: payMethod,
+          notes: payNotes.trim()
+        });
+        setSuccess(`Recorded payment of Rs. ${amount.toLocaleString()} for PO #${selectedPOForPayment.id}`);
+      }
 
-      setSuccess(`Recorded payment of Rs. ${amount.toLocaleString()} for PO #${selectedPOForPayment.id}`);
       setIsPaymentModalOpen(false);
+      setEditingPayment(null);
       await loadPurchaseOrders();
       await loadPayments();
+      if (selectedPOForDetails) {
+        const refreshed = await window.api.getAllPurchaseOrders();
+        const updatedPO = refreshed.find(p => p.id === selectedPOForDetails.id);
+        if (updatedPO) setSelectedPOForDetails(updatedPO);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to record vendor payment.');
+    }
+  };
+
+  const handleOpenEditOrderEntryModal = (entry: VendorOrderEntry) => {
+    const createdTime = new Date(entry.timestamp.replace(' ', 'T')).getTime();
+    const diffMins = (Date.now() - createdTime) / (1000 * 60);
+    if (diffMins > 30) {
+      setError('This order delivery was recorded more than 30 minutes ago and is now permanent.');
+      return;
+    }
+    setEditingOrderEntry(entry);
+    setEditOrderAmount(entry.amount.toString());
+    setEditOrderNotes(entry.notes || '');
+    setIsEditOrderEntryModalOpen(true);
+  };
+
+  const handleSaveOrderEntry = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingOrderEntry) return;
+    const amount = parseFloat(editOrderAmount);
+    if (isNaN(amount) || amount <= 0) {
+      setError('Please enter a valid order amount.');
+      return;
+    }
+
+    try {
+      await window.api.updateVendorOrderEntry(editingOrderEntry.id, {
+        amount,
+        notes: editOrderNotes.trim()
+      });
+      setSuccess(`Updated Order Entry #${editingOrderEntry.id} to Rs. ${amount.toLocaleString()}`);
+      setIsEditOrderEntryModalOpen(false);
+      setEditingOrderEntry(null);
+      await loadPurchaseOrders();
+      await loadOrderEntries();
+      if (selectedPOForDetails) {
+        const refreshed = await window.api.getAllPurchaseOrders();
+        const updatedPO = refreshed.find(p => p.id === selectedPOForDetails.id);
+        if (updatedPO) setSelectedPOForDetails(updatedPO);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to update order entry.');
+    }
+  };
+
+  const handleDeleteOrderEntry = async (entryId: number) => {
+    if (!window.confirm('Remove this order entry? (Allowed within 30-minute grace period)')) return;
+    try {
+      await window.api.deleteVendorOrderEntry(entryId);
+      setSuccess('Order entry removed and vendor PO total cost adjusted.');
+      await loadPurchaseOrders();
+      await loadOrderEntries();
+      if (selectedPOForDetails) {
+        const refreshed = await window.api.getAllPurchaseOrders();
+        const updatedPO = refreshed.find(p => p.id === selectedPOForDetails.id);
+        if (updatedPO) setSelectedPOForDetails(updatedPO);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to remove order entry.');
     }
   };
 
@@ -816,13 +930,34 @@ export const VendorManager: React.FC = () => {
                                 {isPaid ? 'Paid' : isPartial ? 'Partial' : 'Unpaid'}
                               </span>
 
-                              <button
-                                onClick={() => handleDeletePO(po.id)}
-                                className="p-1 text-gray-500 hover:text-red-400 rounded-lg transition-colors hover:bg-white/5 ml-1"
-                                title="Delete Purchase Order"
-                              >
-                                <Trash2 size={15} />
-                              </button>
+                              {(() => {
+                                const createdTime = new Date(po.timestamp.replace(' ', 'T')).getTime();
+                                const diffMins = (Date.now() - createdTime) / (1000 * 60);
+                                const isEditable = diffMins <= 30;
+                                const remainingMins = Math.max(0, Math.ceil(30 - diffMins));
+
+                                if (isEditable) {
+                                  return (
+                                    <button
+                                      onClick={() => handleDeletePO(po.id)}
+                                      className="px-2 py-1 text-[10px] font-bold bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-lg transition-colors flex items-center gap-1 ml-1"
+                                      title={`Created ${Math.floor(diffMins)}m ago. Allowed to remove within 30 mins.`}
+                                    >
+                                      <Trash2 size={12} />
+                                      <span>Undo ({remainingMins}m left)</span>
+                                    </button>
+                                  );
+                                } else {
+                                  return (
+                                    <span 
+                                      className="px-2 py-0.5 text-[9px] font-black uppercase tracking-wider bg-white/5 text-gray-400 border border-white/10 rounded-lg ml-1"
+                                      title="Created over 30 minutes ago. This purchase order record is locked and permanent."
+                                    >
+                                      🔒 Permanent
+                                    </span>
+                                  );
+                                }
+                              })()}
                             </div>
                           </div>
 
@@ -933,36 +1068,68 @@ export const VendorManager: React.FC = () => {
                           <th className="py-4 px-4">Payment Method</th>
                           <th className="py-4 px-4">Notes</th>
                           <th className="py-4 px-5 text-right">Amount Paid</th>
+                          <th className="py-4 px-4 text-center">Action (30m Grace)</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-white/5 text-sm">
-                        {paymentHistory.map(pay => (
-                          <tr key={pay.id} className="hover:bg-white/5 transition-colors">
-                            <td className="py-4 px-5 text-xs text-gray-400 flex items-center gap-1.5">
-                              <Clock size={13} className="text-gray-500" />
-                              {new Date(pay.timestamp).toLocaleString()}
-                            </td>
-                            <td className="py-4 px-4 font-bold text-white">
-                              {pay.vendor_name}
-                            </td>
-                            <td className="py-4 px-4">
-                              <span className="px-2.5 py-1 bg-white/5 border border-white/10 rounded-lg text-xs font-mono font-bold text-cyan-300">
-                                #{pay.po_id}
-                              </span>
-                            </td>
-                            <td className="py-4 px-4">
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-white/10 rounded-full text-xs font-bold text-gray-300">
-                                <CreditCard size={12} /> {pay.payment_method}
-                              </span>
-                            </td>
-                            <td className="py-4 px-4 text-xs text-gray-400 italic">
-                              {pay.notes || '—'}
-                            </td>
-                            <td className="py-4 px-5 text-right font-extrabold text-emerald-400 text-base">
-                              Rs. {pay.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                            </td>
-                          </tr>
-                        ))}
+                        {paymentHistory.map(pay => {
+                          const createdTime = new Date(pay.timestamp.replace(' ', 'T')).getTime();
+                          const diffMins = (Date.now() - createdTime) / (1000 * 60);
+                          const isEditable = diffMins <= 30;
+                          const remainingMins = Math.max(0, Math.ceil(30 - diffMins));
+
+                          return (
+                            <tr key={pay.id} className="hover:bg-white/5 transition-colors">
+                              <td className="py-4 px-5 text-xs text-gray-400 flex items-center gap-1.5">
+                                <Clock size={13} className="text-gray-500" />
+                                {new Date(pay.timestamp).toLocaleString()}
+                              </td>
+                              <td className="py-4 px-4 font-bold text-white">
+                                {pay.vendor_name}
+                              </td>
+                              <td className="py-4 px-4">
+                                <span className="px-2.5 py-1 bg-white/5 border border-white/10 rounded-lg text-xs font-mono font-bold text-cyan-300">
+                                  #{pay.po_id}
+                                </span>
+                              </td>
+                              <td className="py-4 px-4">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-white/10 rounded-full text-xs font-bold text-gray-300">
+                                  <CreditCard size={12} /> {pay.payment_method}
+                                </span>
+                              </td>
+                              <td className="py-4 px-4 text-xs text-gray-400 italic">
+                                {pay.notes || '—'}
+                              </td>
+                              <td className="py-4 px-5 text-right font-extrabold text-emerald-400 text-base">
+                                Rs. {pay.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                              </td>
+                              <td className="py-4 px-4 text-center">
+                                {isEditable ? (
+                                  <div className="flex items-center justify-center gap-1.5">
+                                    <button
+                                      onClick={() => handleOpenEditPaymentModal(pay)}
+                                      className="p-1.5 px-2 bg-white/10 hover:bg-white/20 text-cyan-300 rounded-lg text-[10px] font-bold flex items-center gap-1 transition"
+                                      title={`Edit payment (${remainingMins}m remaining)`}
+                                    >
+                                      <Edit2 size={12} /> Edit
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeletePayment(pay.id)}
+                                      className="p-1.5 px-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-[10px] font-bold flex items-center gap-1 transition"
+                                      title={`Undo payment (${remainingMins}m remaining)`}
+                                    >
+                                      <Trash2 size={12} /> Undo
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <span className="px-2 py-0.5 text-[9px] font-black uppercase tracking-wider bg-white/5 text-gray-400 border border-white/10 rounded-lg">
+                                    🔒 Permanent
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -989,31 +1156,63 @@ export const VendorManager: React.FC = () => {
                           <th className="py-4 px-4">PO Ref</th>
                           <th className="py-4 px-4">Order Notes / Invoice Ref</th>
                           <th className="py-4 px-5 text-right">Order Amount</th>
+                          <th className="py-4 px-4 text-center">Action (30m Grace)</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-white/5 text-sm">
-                        {orderEntriesHistory.map(entry => (
-                          <tr key={entry.id} className="hover:bg-white/5 transition-colors">
-                            <td className="py-4 px-5 text-xs text-gray-400 flex items-center gap-1.5">
-                              <Calendar size={13} className="text-gray-500" />
-                              {new Date(entry.timestamp).toLocaleString()}
-                            </td>
-                            <td className="py-4 px-4 font-bold text-white">
-                              {entry.vendor_name}
-                            </td>
-                            <td className="py-4 px-4">
-                              <span className="px-2.5 py-1 bg-white/5 border border-white/10 rounded-lg text-xs font-mono font-bold text-cyan-300">
-                                #{entry.po_id}
-                              </span>
-                            </td>
-                            <td className="py-4 px-4 text-xs text-gray-300">
-                              {entry.notes || 'Lump-sum stock delivery'}
-                            </td>
-                            <td className="py-4 px-5 text-right font-extrabold text-white text-base">
-                              Rs. {entry.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                            </td>
-                          </tr>
-                        ))}
+                        {orderEntriesHistory.map(entry => {
+                          const createdTime = new Date(entry.timestamp.replace(' ', 'T')).getTime();
+                          const diffMins = (Date.now() - createdTime) / (1000 * 60);
+                          const isEditable = diffMins <= 30;
+                          const remainingMins = Math.max(0, Math.ceil(30 - diffMins));
+
+                          return (
+                            <tr key={entry.id} className="hover:bg-white/5 transition-colors">
+                              <td className="py-4 px-5 text-xs text-gray-400 flex items-center gap-1.5">
+                                <Calendar size={13} className="text-gray-500" />
+                                {new Date(entry.timestamp).toLocaleString()}
+                              </td>
+                              <td className="py-4 px-4 font-bold text-white">
+                                {entry.vendor_name}
+                              </td>
+                              <td className="py-4 px-4">
+                                <span className="px-2.5 py-1 bg-white/5 border border-white/10 rounded-lg text-xs font-mono font-bold text-cyan-300">
+                                  #{entry.po_id}
+                                </span>
+                              </td>
+                              <td className="py-4 px-4 text-xs text-gray-300">
+                                {entry.notes || 'Lump-sum stock delivery'}
+                              </td>
+                              <td className="py-4 px-5 text-right font-extrabold text-white text-base">
+                                Rs. {entry.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                              </td>
+                              <td className="py-4 px-4 text-center">
+                                {isEditable ? (
+                                  <div className="flex items-center justify-center gap-1.5">
+                                    <button
+                                      onClick={() => handleOpenEditOrderEntryModal(entry)}
+                                      className="p-1.5 px-2 bg-white/10 hover:bg-white/20 text-cyan-300 rounded-lg text-[10px] font-bold flex items-center gap-1 transition"
+                                      title={`Edit invoice amount/notes (${remainingMins}m remaining)`}
+                                    >
+                                      <Edit2 size={12} /> Edit
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteOrderEntry(entry.id)}
+                                      className="p-1.5 px-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-[10px] font-bold flex items-center gap-1 transition"
+                                      title={`Undo invoice entry (${remainingMins}m remaining)`}
+                                    >
+                                      <Trash2 size={12} /> Undo
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <span className="px-2 py-0.5 text-[9px] font-black uppercase tracking-wider bg-white/5 text-gray-400 border border-white/10 rounded-lg">
+                                    🔒 Permanent
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -1104,10 +1303,13 @@ export const VendorManager: React.FC = () => {
           <div className="glass-panel w-full max-w-md p-6 md:p-8 rounded-3xl border border-white/10 animate-in zoom-in-95 duration-300 relative shadow-2xl">
             <h3 className="text-2xl font-bold text-white mb-2 flex items-center gap-2.5">
               <CreditCard className="text-emerald-400" />
-              Pay Vendor
+              {editingPayment ? 'Edit Payment Installment' : 'Pay Vendor'}
             </h3>
             <p className="text-xs text-gray-400 mb-5">
-              Record full or partial payment for <strong className="text-white">{selectedPOForPayment.vendor_name}</strong> (PO #{selectedPOForPayment.id}).
+              {editingPayment 
+                ? `Update payment details for PO #${selectedPOForPayment.id}. (Allowed within 30-min window)`
+                : `Record full or partial payment for ${selectedPOForPayment.vendor_name} (PO #${selectedPOForPayment.id}).`
+              }
             </p>
 
             {/* Financial Status Summary */}
@@ -1178,7 +1380,10 @@ export const VendorManager: React.FC = () => {
               <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
                 <button
                   type="button"
-                  onClick={() => setIsPaymentModalOpen(false)}
+                  onClick={() => {
+                    setIsPaymentModalOpen(false);
+                    setEditingPayment(null);
+                  }}
                   className="px-5 py-2.5 glass-button rounded-xl font-bold text-xs text-gray-400 hover:text-white"
                 >
                   Cancel
@@ -1187,7 +1392,73 @@ export const VendorManager: React.FC = () => {
                   type="submit"
                   className="px-6 py-2.5 bg-gradient-to-r from-neutral-200 to-emerald-600 hover:from-white hover:to-emerald-500 text-black font-extrabold rounded-xl text-xs uppercase tracking-wider shadow-lg cursor-pointer active:scale-95"
                 >
-                  Confirm Payment
+                  {editingPayment ? 'Save Payment' : 'Confirm Payment'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Edit Order Delivery Entry */}
+      {isEditOrderEntryModalOpen && editingOrderEntry && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md animate-in fade-in duration-200 p-4">
+          <div className="glass-panel w-full max-w-md p-6 md:p-8 rounded-3xl border border-white/10 animate-in zoom-in-95 duration-300 relative shadow-2xl">
+            <h3 className="text-2xl font-bold text-white mb-2 flex items-center gap-2.5">
+              <Truck className="text-cyan-400" />
+              Edit Order Delivery #{editingOrderEntry.id}
+            </h3>
+            <p className="text-xs text-gray-400 mb-5">
+              Update delivery amount or notes within the 30-minute grace window.
+            </p>
+
+            <form onSubmit={handleSaveOrderEntry} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-cyan-400 uppercase tracking-wider block mb-1.5">
+                  Order Delivery Amount (Rs.) *
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  required
+                  value={editOrderAmount}
+                  onChange={(e) => setEditOrderAmount(e.target.value)}
+                  className="w-full px-4 py-3 glass-input rounded-xl text-cyan-400 font-bold text-base"
+                  placeholder="Enter order amount..."
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-gray-300 uppercase tracking-wider block mb-1.5">
+                  Delivery Notes / Invoice Ref (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={editOrderNotes}
+                  onChange={(e) => setEditOrderNotes(e.target.value)}
+                  className="w-full px-4 py-3 glass-input rounded-xl text-sm"
+                  placeholder="e.g. Batch #2 restock delivery"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsEditOrderEntryModalOpen(false);
+                    setEditingOrderEntry(null);
+                  }}
+                  className="px-5 py-2.5 glass-button rounded-xl font-bold text-xs text-gray-400 hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 bg-gradient-to-r from-neutral-200 to-cyan-600 hover:from-white hover:to-cyan-500 text-black font-extrabold rounded-xl text-xs uppercase tracking-wider shadow-lg cursor-pointer active:scale-95"
+                >
+                  Save Order Entry
                 </button>
               </div>
             </form>
@@ -1318,18 +1589,49 @@ export const VendorManager: React.FC = () => {
 
                 {selectedPOForDetails.order_entries && selectedPOForDetails.order_entries.length > 0 ? (
                   <div className="space-y-2">
-                    {selectedPOForDetails.order_entries.map((entry, idx) => (
-                      <div key={entry.id || idx} className="p-3 bg-white/5 rounded-xl border border-white/5 flex justify-between items-center text-xs">
-                        <div>
-                          <div className="font-bold text-white flex items-center gap-2">
-                            <span>Order Entry #{entry.id}</span>
-                            <span className="text-[10px] text-gray-400">• {new Date(entry.timestamp).toLocaleString()}</span>
+                    {selectedPOForDetails.order_entries.map((entry, idx) => {
+                      const createdTime = new Date(entry.timestamp.replace(' ', 'T')).getTime();
+                      const diffMins = (Date.now() - createdTime) / (1000 * 60);
+                      const isEditable = diffMins <= 30;
+                      const remainingMins = Math.max(0, Math.ceil(30 - diffMins));
+
+                      return (
+                        <div key={entry.id || idx} className="p-3 bg-white/5 rounded-xl border border-white/5 flex justify-between items-center text-xs">
+                          <div>
+                            <div className="font-bold text-white flex items-center gap-2">
+                              <span>Order Entry #{entry.id}</span>
+                              <span className="text-[10px] text-gray-400">• {new Date(entry.timestamp).toLocaleString()}</span>
+                            </div>
+                            <div className="text-[11px] text-gray-400 mt-0.5">{entry.notes || 'Restock Order'}</div>
                           </div>
-                          <div className="text-[11px] text-gray-400 mt-0.5">{entry.notes || 'Restock Order'}</div>
+                          <div className="flex items-center gap-3">
+                            <span className="font-extrabold text-white text-sm">Rs. {entry.amount.toLocaleString()}</span>
+                            {isEditable ? (
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => handleOpenEditOrderEntryModal(entry)}
+                                  className="p-1 px-2 bg-white/10 hover:bg-white/20 text-cyan-300 rounded-lg text-[10px] font-bold transition"
+                                  title={`Edit (${remainingMins}m left)`}
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteOrderEntry(entry.id)}
+                                  className="p-1 px-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-[10px] font-bold transition"
+                                  title={`Remove (${remainingMins}m left)`}
+                                >
+                                  Undo
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-[9px] font-bold text-gray-500 bg-black/40 px-1.5 py-0.5 rounded border border-white/5">
+                                🔒 Permanent
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <span className="font-extrabold text-white text-sm">Rs. {entry.amount.toLocaleString()}</span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="p-3.5 bg-white/5 rounded-xl border border-white/5 flex justify-between items-center text-xs">
@@ -1373,18 +1675,49 @@ export const VendorManager: React.FC = () => {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {selectedPOForDetails.payments.map((pay, idx) => (
-                      <div key={pay.id || idx} className="p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/20 flex justify-between items-center text-xs">
-                        <div>
-                          <div className="font-bold text-white flex items-center gap-2">
-                            <span className="text-emerald-400">{pay.payment_method} Payment</span>
-                            <span className="text-[10px] text-gray-400">• {new Date(pay.timestamp).toLocaleString()}</span>
+                    {selectedPOForDetails.payments.map((pay, idx) => {
+                      const createdTime = new Date(pay.timestamp.replace(' ', 'T')).getTime();
+                      const diffMins = (Date.now() - createdTime) / (1000 * 60);
+                      const isEditable = diffMins <= 30;
+                      const remainingMins = Math.max(0, Math.ceil(30 - diffMins));
+
+                      return (
+                        <div key={pay.id || idx} className="p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/20 flex justify-between items-center text-xs">
+                          <div>
+                            <div className="font-bold text-white flex items-center gap-2">
+                              <span className="text-emerald-400">{pay.payment_method} Payment</span>
+                              <span className="text-[10px] text-gray-400">• {new Date(pay.timestamp).toLocaleString()}</span>
+                            </div>
+                            <div className="text-[11px] text-gray-400 mt-0.5">{pay.notes || 'Payment installment'}</div>
                           </div>
-                          <div className="text-[11px] text-gray-400 mt-0.5">{pay.notes || 'Payment installment'}</div>
+                          <div className="flex items-center gap-3">
+                            <span className="font-extrabold text-emerald-400 text-sm">Rs. {pay.amount.toLocaleString()}</span>
+                            {isEditable ? (
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => handleOpenEditPaymentModal(pay)}
+                                  className="p-1 px-2 bg-white/10 hover:bg-white/20 text-cyan-300 rounded-lg text-[10px] font-bold transition"
+                                  title={`Edit payment (${remainingMins}m left)`}
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => handleDeletePayment(pay.id)}
+                                  className="p-1 px-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-[10px] font-bold transition"
+                                  title={`Remove payment (${remainingMins}m left)`}
+                                >
+                                  Undo
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-[9px] font-bold text-gray-400 bg-black/40 px-1.5 py-0.5 rounded border border-white/5">
+                                🔒 Permanent
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <span className="font-extrabold text-emerald-400 text-sm">Rs. {pay.amount.toLocaleString()}</span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>

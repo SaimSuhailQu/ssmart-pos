@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:ssmart_pos_admin/core/constants/firebase_constants.dart';
 import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
@@ -309,12 +310,202 @@ class _DashboardScreenState extends State<DashboardScreen> {
           // Today's metrics header
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
-            child: Text(
-              'Today\'s Performance',
-              style: AppTheme.titleLarge,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Today\'s Performance',
+                  style: AppTheme.titleLarge,
+                ),
+                Text(
+                  '${todaysMetrics.transactionCount} Orders',
+                  style: AppTheme.labelSmall.copyWith(
+                    color: AppTheme.primaryCyan,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: AppTheme.spacingM),
+
+          // Daily Sales Closing Note Card with 1-Click Copy
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
+            child: Container(
+              padding: const EdgeInsets.all(AppTheme.spacingM),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [
+                    Color(0xFF0F2E22),
+                    AppTheme.surfaceDark,
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                border: Border.all(
+                  color: AppTheme.successGreen.withValues(alpha: 0.3),
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: AppTheme.successGreen.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              CupertinoIcons.sparkles,
+                              color: AppTheme.successGreen,
+                              size: 18,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Daily Closing Note',
+                            style: AppTheme.titleMedium.copyWith(
+                              color: AppTheme.successGreen,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          final now = DateTime.now();
+                          final dateFormatted = '${now.day}/${now.month}/${now.year}';
+                          final timeFormatted = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+                          
+                          // Payment breakdown
+                          final cashRev = todaysMetrics.revenueByPaymentMethod.entries
+                              .where((e) => e.key.toLowerCase().contains('cash'))
+                              .fold<double>(0.0, (sum, e) => sum + e.value);
+                          final onlineRev = todaysMetrics.revenueByPaymentMethod.entries
+                              .where((e) => e.key.toLowerCase().contains('online') || e.key.toLowerCase().contains('bank') || e.key.toLowerCase().contains('card') || e.key.toLowerCase().contains('jazz') || e.key.toLowerCase().contains('easy'))
+                              .fold<double>(0.0, (sum, e) => sum + e.value);
+                          final khataRev = todaysMetrics.revenueByPaymentMethod.entries
+                              .where((e) => e.key.toLowerCase().contains('khata') || e.key.toLowerCase().contains('credit'))
+                              .fold<double>(0.0, (sum, e) => sum + e.value);
+
+                          final text = '🏪 *SS MART & GENERAL STORE*\n'
+                              '📅 *DAILY CLOSING SALES NOTE*\n'
+                              '──────────────────────\n'
+                              '🗓️ *Date:* $dateFormatted\n'
+                              '⏰ *Time Recorded:* $timeFormatted\n'
+                              '──────────────────────\n'
+                              '📦 *Total Orders Completed:* ${todaysMetrics.transactionCount}\n'
+                              '✨ *NET DAILY SALES:* Rs. ${todaysMetrics.totalRevenue.toStringAsFixed(2)}\n'
+                              '──────────────────────\n'
+                              '💳 *PAYMENT BREAKDOWN:*\n'
+                              '• Cash in Drawer: Rs. ${cashRev.toStringAsFixed(2)}\n'
+                              '• Online / Bank / Card: Rs. ${onlineRev.toStringAsFixed(2)}\n'
+                              '• Khata / Credit: Rs. ${khataRev.toStringAsFixed(2)}\n'
+                              '──────────────────────\n'
+                              '✅ *Generated via SSmart Admin Mobile*';
+
+                          Clipboard.setData(ClipboardData(text: text));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('✅ Daily closing note copied to clipboard!'),
+                              backgroundColor: AppTheme.successGreen,
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.successGreen,
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        icon: const Icon(CupertinoIcons.doc_on_clipboard, size: 14, color: Colors.black),
+                        label: const Text(
+                          'Copy Note',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Today\'s Total Sales',
+                            style: AppTheme.bodySmall.copyWith(color: AppTheme.textSecondary),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            AppDateUtils.formatCurrency(todaysMetrics.totalRevenue),
+                            style: AppTheme.titleLarge.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 22,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.black45,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: Colors.white12),
+                        ),
+                        child: Text(
+                          '${todaysMetrics.transactionCount} Bills Recorded',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppTheme.textSecondary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (todaysMetrics.revenueByPaymentMethod.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: todaysMetrics.revenueByPaymentMethod.entries.map((entry) {
+                        return Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Colors.black38,
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: Colors.white10),
+                          ),
+                          child: Text(
+                            '${entry.key}: Rs. ${entry.value.toInt()}',
+                            style: const TextStyle(fontSize: 10, color: AppTheme.textSecondary),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: AppTheme.spacingL),
 
           // Metrics grid
           Padding(

@@ -930,6 +930,202 @@ class FirebaseService {
     });
   }
 
+  /// Delete a recorded vendor payment (Enforces 30-minute grace period unless bypassed)
+  Future<void> deleteVendorPayment({
+    required String poId,
+    required dynamic paymentId,
+    bool bypassTimeCheck = false,
+  }) async {
+    final poRef = _database.ref('${FirebasePaths.purchaseOrders}/$poId');
+    final snapshot = await poRef.get();
+    if (!snapshot.exists || snapshot.value == null) {
+      throw Exception('Purchase Order #$poId not found');
+    }
+
+    final poData = Map<String, dynamic>.from(snapshot.value as Map);
+    List<dynamic> currentPayments = [];
+    if (poData['payments'] is List) {
+      currentPayments = List.from(poData['payments'] as List);
+    } else if (poData['payments'] is Map) {
+      (poData['payments'] as Map).forEach((_, v) {
+        if (v != null) currentPayments.add(v);
+      });
+    }
+
+    final payIndex = currentPayments.indexWhere((p) => p['id']?.toString() == paymentId.toString());
+    if (payIndex == -1) {
+      throw Exception('Payment record not found on PO #$poId');
+    }
+
+    final targetPay = currentPayments[payIndex];
+    if (!bypassTimeCheck) {
+      final String timeStr = targetPay['timestamp']?.toString() ?? '';
+      final parsedTime = DateTime.tryParse(timeStr) ?? DateTime.now();
+      final diffMins = DateTime.now().difference(parsedTime).inMinutes;
+      if (diffMins > 30) {
+        throw Exception('This payment was recorded more than 30 minutes ago and is now permanent.');
+      }
+    }
+
+    final double removedAmount = (targetPay['amount'] is num)
+        ? (targetPay['amount'] as num).toDouble()
+        : (double.tryParse(targetPay['amount']?.toString() ?? '') ?? 0.0);
+
+    currentPayments.removeAt(payIndex);
+
+    final rawCost = poData['total_cost'] ?? poData['total_amount'] ?? 0.0;
+    final double totalCost = (rawCost is num) ? rawCost.toDouble() : (double.tryParse(rawCost.toString()) ?? 0.0);
+    final rawPaid = poData['paid_amount'] ?? 0.0;
+    final double currentPaid = (rawPaid is num) ? rawPaid.toDouble() : (double.tryParse(rawPaid.toString()) ?? 0.0);
+    final double newPaidAmount = (currentPaid - removedAmount).clamp(0.0, double.infinity);
+
+    String newPaymentStatus = 'Unpaid';
+    if (newPaidAmount >= totalCost && totalCost > 0) {
+      newPaymentStatus = 'Paid';
+    } else if (newPaidAmount > 0) {
+      newPaymentStatus = 'Partially Paid';
+    }
+
+    await poRef.update({
+      'paid_amount': newPaidAmount,
+      'payment_status': newPaymentStatus,
+      'payments': currentPayments,
+    });
+  }
+
+  /// Update a recorded vendor payment (Enforces 30-minute grace period)
+  Future<void> updateVendorPayment({
+    required String poId,
+    required dynamic paymentId,
+    required double newAmount,
+    String? newMethod,
+    String? newNotes,
+    bool bypassTimeCheck = false,
+  }) async {
+    final poRef = _database.ref('${FirebasePaths.purchaseOrders}/$poId');
+    final snapshot = await poRef.get();
+    if (!snapshot.exists || snapshot.value == null) {
+      throw Exception('Purchase Order #$poId not found');
+    }
+
+    final poData = Map<String, dynamic>.from(snapshot.value as Map);
+    List<dynamic> currentPayments = [];
+    if (poData['payments'] is List) {
+      currentPayments = List.from(poData['payments'] as List);
+    } else if (poData['payments'] is Map) {
+      (poData['payments'] as Map).forEach((_, v) {
+        if (v != null) currentPayments.add(v);
+      });
+    }
+
+    final payIndex = currentPayments.indexWhere((p) => p['id']?.toString() == paymentId.toString());
+    if (payIndex == -1) {
+      throw Exception('Payment record not found on PO #$poId');
+    }
+
+    final targetPay = Map<String, dynamic>.from(currentPayments[payIndex] as Map);
+    if (!bypassTimeCheck) {
+      final String timeStr = targetPay['timestamp']?.toString() ?? '';
+      final parsedTime = DateTime.tryParse(timeStr) ?? DateTime.now();
+      final diffMins = DateTime.now().difference(parsedTime).inMinutes;
+      if (diffMins > 30) {
+        throw Exception('This payment was recorded more than 30 minutes ago and is now permanent.');
+      }
+    }
+
+    final double oldAmount = (targetPay['amount'] is num)
+        ? (targetPay['amount'] as num).toDouble()
+        : (double.tryParse(targetPay['amount']?.toString() ?? '') ?? 0.0);
+
+    targetPay['amount'] = newAmount;
+    if (newMethod != null) targetPay['payment_method'] = newMethod;
+    if (newNotes != null) targetPay['notes'] = newNotes;
+    currentPayments[payIndex] = targetPay;
+
+    final rawCost = poData['total_cost'] ?? poData['total_amount'] ?? 0.0;
+    final double totalCost = (rawCost is num) ? rawCost.toDouble() : (double.tryParse(rawCost.toString()) ?? 0.0);
+    final rawPaid = poData['paid_amount'] ?? 0.0;
+    final double currentPaid = (rawPaid is num) ? rawPaid.toDouble() : (double.tryParse(rawPaid.toString()) ?? 0.0);
+    final double newPaidAmount = (currentPaid - oldAmount + newAmount).clamp(0.0, double.infinity);
+
+    String newPaymentStatus = 'Unpaid';
+    if (newPaidAmount >= totalCost && totalCost > 0) {
+      newPaymentStatus = 'Paid';
+    } else if (newPaidAmount > 0) {
+      newPaymentStatus = 'Partially Paid';
+    }
+
+    await poRef.update({
+      'paid_amount': newPaidAmount,
+      'payment_status': newPaymentStatus,
+      'payments': currentPayments,
+    });
+  }
+
+  /// Delete a recorded order entry / invoice delivery (Enforces 30-minute grace period)
+  Future<void> deleteVendorOrderEntry({
+    required String poId,
+    required dynamic entryId,
+    bool bypassTimeCheck = false,
+  }) async {
+    final poRef = _database.ref('${FirebasePaths.purchaseOrders}/$poId');
+    final snapshot = await poRef.get();
+    if (!snapshot.exists || snapshot.value == null) {
+      throw Exception('Purchase Order #$poId not found');
+    }
+
+    final poData = Map<String, dynamic>.from(snapshot.value as Map);
+    List<dynamic> currentEntries = [];
+    if (poData['order_entries'] is List) {
+      currentEntries = List.from(poData['order_entries'] as List);
+    } else if (poData['order_entries'] is Map) {
+      (poData['order_entries'] as Map).forEach((_, v) {
+        if (v != null) currentEntries.add(v);
+      });
+    }
+
+    final entryIndex = currentEntries.indexWhere((e) => e['id']?.toString() == entryId.toString());
+    if (entryIndex == -1) {
+      throw Exception('Order entry record not found on PO #$poId');
+    }
+
+    final targetEntry = currentEntries[entryIndex];
+    if (!bypassTimeCheck) {
+      final String timeStr = targetEntry['timestamp']?.toString() ?? '';
+      final parsedTime = DateTime.tryParse(timeStr) ?? DateTime.now();
+      final diffMins = DateTime.now().difference(parsedTime).inMinutes;
+      if (diffMins > 30) {
+        throw Exception('This order entry was recorded more than 30 minutes ago and is now permanent.');
+      }
+    }
+
+    final double removedAmount = (targetEntry['amount'] is num)
+        ? (targetEntry['amount'] as num).toDouble()
+        : (double.tryParse(targetEntry['amount']?.toString() ?? '') ?? 0.0);
+
+    currentEntries.removeAt(entryIndex);
+
+    final rawCost = poData['total_cost'] ?? poData['total_amount'] ?? 0.0;
+    final double totalCost = (rawCost is num) ? rawCost.toDouble() : (double.tryParse(rawCost.toString()) ?? 0.0);
+    final rawPaid = poData['paid_amount'] ?? 0.0;
+    final double currentPaid = (rawPaid is num) ? rawPaid.toDouble() : (double.tryParse(rawPaid.toString()) ?? 0.0);
+    final double newTotalCost = (totalCost - removedAmount).clamp(0.0, double.infinity);
+
+    String newPaymentStatus = 'Unpaid';
+    if (currentPaid >= newTotalCost && newTotalCost > 0) {
+      newPaymentStatus = 'Paid';
+    } else if (currentPaid > 0) {
+      newPaymentStatus = 'Partially Paid';
+    }
+
+    await poRef.update({
+      'total_cost': newTotalCost,
+      'total_amount': newTotalCost,
+      'payment_status': newPaymentStatus,
+      'order_entries': currentEntries,
+    });
+  }
+
   /// Update Purchase Order Status (e.g. 'Pending' -> 'Received')
   Future<void> updatePurchaseOrderStatus(String poId, String newStatus) async {
     final poRef = _database.ref('${FirebasePaths.purchaseOrders}/$poId');
@@ -938,8 +1134,21 @@ class FirebaseService {
     });
   }
 
-  Future<void> deleteVendorPurchaseOrder(String id) async {
-    await _database.ref('${FirebasePaths.purchaseOrders}/$id').remove();
+  Future<void> deleteVendorPurchaseOrder(String id, {bool bypassTimeCheck = false}) async {
+    final poRef = _database.ref('${FirebasePaths.purchaseOrders}/$id');
+    if (!bypassTimeCheck) {
+      final snap = await poRef.get();
+      if (snap.exists && snap.value != null) {
+        final poData = Map<String, dynamic>.from(snap.value as Map);
+        final String timeStr = poData['timestamp']?.toString() ?? '';
+        final parsedTime = DateTime.tryParse(timeStr) ?? DateTime.now();
+        final diffMins = DateTime.now().difference(parsedTime).inMinutes;
+        if (diffMins > 30) {
+          throw Exception('This Purchase Order was created more than 30 minutes ago and is now permanent.');
+        }
+      }
+    }
+    await poRef.remove();
   }
 
   /// Request printing a receipt from the computer printer connected via USB

@@ -213,8 +213,12 @@ declare global {
       getAllPurchaseOrders: () => Promise<PurchaseOrder[]>;
       createPurchaseOrder: (vendorId: number, items: any[], customTotalCost?: number, notes?: string) => Promise<number>;
       receivePurchaseOrder: (poId: number) => Promise<boolean>;
-      deletePurchaseOrder: (poId: number) => Promise<boolean>;
+      deletePurchaseOrder: (poId: number, bypassTimeCheck?: boolean) => Promise<boolean>;
       addVendorPayment: (payment: { poId: number, vendorId: number, amount: number, paymentMethod?: string, notes?: string }) => Promise<boolean>;
+      deleteVendorPayment: (paymentId: number, bypassTimeCheck?: boolean) => Promise<boolean>;
+      updateVendorPayment: (paymentId: number, updateData: { amount: number, paymentMethod?: string, notes?: string }, bypassTimeCheck?: boolean) => Promise<boolean>;
+      deleteVendorOrderEntry: (entryId: number, bypassTimeCheck?: boolean) => Promise<boolean>;
+      updateVendorOrderEntry: (entryId: number, updateData: { amount: number, notes?: string }, bypassTimeCheck?: boolean) => Promise<boolean>;
       getVendorPayments: (vendorId?: number) => Promise<VendorPayment[]>;
       getVendorOrderEntries: (vendorId?: number) => Promise<VendorOrderEntry[]>;
 

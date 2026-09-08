@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Sale, SaleItemDetails } from '../types';
-import { Search, Receipt, Calendar, User, Undo2, CheckCircle, Ban, ArrowRightLeft, DollarSign, X, ShoppingBag, Printer } from 'lucide-react';
+import { Search, Receipt, Calendar, User, Undo2, CheckCircle, Ban, ArrowRightLeft, DollarSign, X, ShoppingBag, Printer, Copy, Sparkles, TrendingUp, Wallet } from 'lucide-react';
 
 export const SalesRecordManager: React.FC = () => {
   const [sales, setSales] = useState<Sale[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('All');
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
+  const [copiedNote, setCopiedNote] = useState(false);
   
   // Custom return quantities per product ID for the currently open modal
   const [returnQuantities, setReturnQuantities] = useState<{ [productId: number]: number }>({});
@@ -127,9 +128,122 @@ export const SalesRecordManager: React.FC = () => {
   const totalRefunds = sales.reduce((sum, s) => sum + (s.refund_amount || 0), 0);
   const netRevenue = totalGrossRevenue - totalRefunds;
 
+  // Filter Today's sales (00:00 to 23:59 local time)
+  const now = new Date();
+  const todayDateString = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const todaySales = sales.filter(s => {
+    const saleDateStr = s.timestamp ? s.timestamp.substring(0, 10) : '';
+    return saleDateStr === todayDateString;
+  });
+
+  const todayGross = todaySales.reduce((sum, s) => sum + s.total, 0);
+  const todayRefunds = todaySales.reduce((sum, s) => sum + (s.refund_amount || 0), 0);
+  const todayNet = todayGross - todayRefunds;
+  const todayOrders = todaySales.length;
+
+  const todayCash = todaySales
+    .filter(s => s.payment_method?.toLowerCase().includes('cash'))
+    .reduce((sum, s) => sum + (s.total - (s.refund_amount || 0)), 0);
+
+  const todayOnline = todaySales
+    .filter(s => {
+      const pm = (s.payment_method || '').toLowerCase();
+      return pm.includes('online') || pm.includes('bank') || pm.includes('card') || pm.includes('easypaisa') || pm.includes('jazzcash');
+    })
+    .reduce((sum, s) => sum + (s.total - (s.refund_amount || 0)), 0);
+
+  const todayKhata = todaySales
+    .filter(s => (s.payment_method || '').toLowerCase().includes('khata') || (s.payment_method || '').toLowerCase().includes('credit'))
+    .reduce((sum, s) => sum + (s.total - (s.refund_amount || 0)), 0);
+
+  const handleCopyDailyNote = () => {
+    const dateFormatted = new Date().toLocaleDateString('en-PK', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
+    const timeFormatted = new Date().toLocaleTimeString('en-PK', { hour: '2-digit', minute: '2-digit' });
+
+    const note = `🏪 *SS MART & GENERAL STORE*\n` +
+      `📅 *DAILY CLOSING SALES NOTE*\n` +
+      `──────────────────────\n` +
+      `🗓️ *Date:* ${dateFormatted}\n` +
+      `⏰ *Time Recorded:* ${timeFormatted}\n` +
+      `──────────────────────\n` +
+      `📦 *Total Orders Completed:* ${todayOrders}\n` +
+      `💵 *Gross Daily Sales:* Rs. ${todayGross.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n` +
+      `↩️ *Total Refunds/Returns:* Rs. ${todayRefunds.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n` +
+      `✨ *NET DAILY SALES:* Rs. ${todayNet.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n` +
+      `──────────────────────\n` +
+      `💳 *PAYMENT BREAKDOWN:*\n` +
+      `• Cash in Drawer: Rs. ${todayCash.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n` +
+      `• Online / Bank / Card: Rs. ${todayOnline.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n` +
+      `• Khata / Credit: Rs. ${todayKhata.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n` +
+      `──────────────────────\n` +
+      `✅ *Generated via SS Mart POS*`;
+
+    navigator.clipboard.writeText(note).then(() => {
+      setCopiedNote(true);
+      setTimeout(() => setCopiedNote(false), 3000);
+    });
+  };
+
   return (
     <div className="flex flex-col h-full bg-transparent text-gray-200 font-outfit overflow-hidden">
       
+      {/* Dedicated "Note Down Today's Sales" Banner */}
+      <div className="mb-3 p-4 rounded-2xl glass-panel border border-emerald-500/20 bg-gradient-to-r from-emerald-950/40 via-black/40 to-cyan-950/30 flex flex-col md:flex-row items-center justify-between gap-4 shadow-[0_0_30px_rgba(16,185,129,0.15)] flex-shrink-0">
+        <div className="flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+            <Sparkles size={24} />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-black uppercase tracking-widest text-emerald-400">Daily Closing Note</span>
+              <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">
+                Today ({todayOrders} {todayOrders === 1 ? 'sale' : 'sales'})
+              </span>
+            </div>
+            <div className="text-xl font-extrabold text-white mt-0.5 flex items-baseline gap-2">
+              <span>Rs. {todayNet.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              <span className="text-xs font-normal text-gray-400">Net Sales Today</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Breakdown chips */}
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <div className="px-3 py-1.5 rounded-xl bg-black/40 border border-white/5 flex items-center gap-2">
+            <span className="text-gray-400 font-bold">Cash:</span>
+            <span className="font-extrabold text-emerald-400">Rs. {todayCash.toLocaleString()}</span>
+          </div>
+          <div className="px-3 py-1.5 rounded-xl bg-black/40 border border-white/5 flex items-center gap-2">
+            <span className="text-gray-400 font-bold">Online/Card:</span>
+            <span className="font-extrabold text-cyan-400">Rs. {todayOnline.toLocaleString()}</span>
+          </div>
+          <div className="px-3 py-1.5 rounded-xl bg-black/40 border border-white/5 flex items-center gap-2">
+            <span className="text-gray-400 font-bold">Khata:</span>
+            <span className="font-extrabold text-orange-400">Rs. {todayKhata.toLocaleString()}</span>
+          </div>
+          {todayRefunds > 0 && (
+            <div className="px-3 py-1.5 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-2">
+              <span className="text-red-400 font-bold">Refunds:</span>
+              <span className="font-extrabold text-red-300">Rs. {todayRefunds.toLocaleString()}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Copy Note Button */}
+        <button
+          onClick={handleCopyDailyNote}
+          className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 shadow-lg transition cursor-pointer active:scale-95 flex-shrink-0 ${
+            copiedNote 
+              ? 'bg-emerald-500 text-black font-extrabold' 
+              : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.3)]'
+          }`}
+          title="Copies a formatted daily closing note to clipboard for WhatsApp/SMS"
+        >
+          {copiedNote ? <CheckCircle size={15} /> : <Copy size={15} />}
+          <span>{copiedNote ? 'Note Copied!' : 'Copy Daily Sales Note'}</span>
+        </button>
+      </div>
+
       {/* Top statistics banners */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3 flex-shrink-0">
         <div className="glass-panel p-3.5 rounded-2xl flex items-center gap-3 relative overflow-hidden border-white/5">
@@ -138,7 +252,7 @@ export const SalesRecordManager: React.FC = () => {
             <Receipt size={24} />
           </div>
           <div>
-            <span className="text-xs text-gray-400 font-bold uppercase tracking-wider block">Total Sales</span>
+            <span className="text-xs text-gray-400 font-bold uppercase tracking-wider block">All-Time Sales</span>
             <span className="text-2xl font-black text-white">{totalSalesCount} Orders</span>
           </div>
         </div>

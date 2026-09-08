@@ -55,8 +55,12 @@ contextBridge.exposeInMainWorld('api', {
   getAllPurchaseOrders: () => ipcRenderer.invoke('get-all-purchase-orders'),
   createPurchaseOrder: (vendorId: number, items: any[], customTotalCost?: number, notes?: string) => ipcRenderer.invoke('create-purchase-order', vendorId, items, customTotalCost, notes),
   receivePurchaseOrder: (poId: number) => ipcRenderer.invoke('receive-purchase-order', poId),
-  deletePurchaseOrder: (poId: number) => ipcRenderer.invoke('delete-purchase-order', poId),
+  deletePurchaseOrder: (poId: number, bypassTimeCheck?: boolean) => ipcRenderer.invoke('delete-purchase-order', poId, bypassTimeCheck),
   addVendorPayment: (payment: any) => ipcRenderer.invoke('add-vendor-payment', payment),
+  deleteVendorPayment: (paymentId: number, bypassTimeCheck?: boolean) => ipcRenderer.invoke('delete-vendor-payment', paymentId, bypassTimeCheck),
+  updateVendorPayment: (paymentId: number, updateData: any, bypassTimeCheck?: boolean) => ipcRenderer.invoke('update-vendor-payment', paymentId, updateData, bypassTimeCheck),
+  deleteVendorOrderEntry: (entryId: number, bypassTimeCheck?: boolean) => ipcRenderer.invoke('delete-vendor-order-entry', entryId, bypassTimeCheck),
+  updateVendorOrderEntry: (entryId: number, updateData: any, bypassTimeCheck?: boolean) => ipcRenderer.invoke('update-vendor-order-entry', entryId, updateData, bypassTimeCheck),
   getVendorPayments: (vendorId?: number) => ipcRenderer.invoke('get-vendor-payments', vendorId),
   getVendorOrderEntries: (vendorId?: number) => ipcRenderer.invoke('get-vendor-order-entries', vendorId),
 
