@@ -143,7 +143,7 @@ void main() async {
   runApp(SSMartPOSAdminApp(
     isFirebaseReady: isFirebaseReady,
     initError: initError,
-  ));
+  ),);
 }
 
 bool isFirebaseReady = false;
