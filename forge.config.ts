@@ -13,10 +13,14 @@ import { execSync } from 'child_process';
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
+    icon: path.resolve(__dirname, 'assets/icon'),
   },
   rebuildConfig: {},
   makers: [
-    new MakerSquirrel({}),
+    new MakerSquirrel({
+      setupIcon: path.resolve(__dirname, 'assets/icon.ico'),
+      iconUrl: 'https://raw.githubusercontent.com/electron/electron/master/shell/browser/resources/win/electron.ico',
+    }),
     new MakerZIP({}, ['win32', 'darwin', 'linux']),
     new MakerRpm({}),
     new MakerDeb({}),

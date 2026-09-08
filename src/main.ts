@@ -32,10 +32,17 @@ app.commandLine.appendSwitch('disable-background-timer-throttling');
 let mainWindow: BrowserWindow | null = null;
 
 const createWindow = () => {
+  const iconPath = process.platform === 'win32'
+    ? path.join(__dirname, '../../assets/icon.ico')
+    : path.join(__dirname, '../../assets/icon.png');
+  const fallbackIconPath = path.join(process.cwd(), 'assets', process.platform === 'win32' ? 'icon.ico' : 'icon.png');
+  const resolvedIcon = require('fs').existsSync(iconPath) ? iconPath : fallbackIconPath;
+
   // Create the browser window with optimized memory-efficient webPreferences
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    icon: resolvedIcon,
     backgroundColor: '#0b0c10',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
