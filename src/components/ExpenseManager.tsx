@@ -429,8 +429,18 @@ export const ExpenseManager: React.FC<ExpenseManagerProps> = ({ currentUser }) =
                 ))}
                 {filteredExpenses.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="p-12 text-center text-gray-500 font-medium">
-                      No expense logs matching filters found.
+                    <td colSpan={6} className="p-16 text-center">
+                      <div className="flex flex-col items-center justify-center text-gray-500">
+                        <div className="w-12 h-12 rounded-2xl bg-white/[0.03] border border-white/5 flex items-center justify-center mb-3 text-gray-400">
+                          <Receipt size={22} />
+                        </div>
+                        <p className="text-sm font-semibold text-gray-300">No expense records found</p>
+                        <p className="text-xs text-gray-500 mt-1 max-w-sm">
+                          {searchQuery || filterCategory !== 'All' 
+                            ? 'Try clearing the search or category filters to view more entries.' 
+                            : 'Log your first register expense using the form on the left.'}
+                        </p>
+                      </div>
                     </td>
                   </tr>
                 )}

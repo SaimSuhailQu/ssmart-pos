@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3';
 import path from 'path';
+import fs from 'fs';
 import { app } from 'electron';
 
 // Setup database in user data directory
@@ -375,7 +376,6 @@ export function initDb() {
 
   // Auto-sync products from latest CSV export spreadsheet
   try {
-    const fs = require('fs');
     const csvPaths = [
       path.join(process.cwd(), 'Untitled spreadsheet - mart_inventory_bulk_export_2026-08-20 (3).csv'),
       path.join(process.cwd(), 'Untitled spreadsheet - mart_inventory_bulk_export_2026-08-20.csv'),
@@ -1260,7 +1260,7 @@ export function receivePurchaseOrder(poId: number) {
   return true;
 }
 
-export function deletePurchaseOrder(poId: number, bypassTimeCheck: boolean = false) {
+export function deletePurchaseOrder(poId: number, bypassTimeCheck = false) {
   const selectPO = db.prepare('SELECT * FROM purchase_orders WHERE id = ?');
   const deleteItems = db.prepare('DELETE FROM purchase_order_items WHERE po_id = ?');
   const deletePayments = db.prepare('DELETE FROM vendor_payments WHERE po_id = ?');
@@ -1288,7 +1288,7 @@ export function deletePurchaseOrder(poId: number, bypassTimeCheck: boolean = fal
   return true;
 }
 
-export function deleteVendorPayment(paymentId: number, bypassTimeCheck: boolean = false) {
+export function deleteVendorPayment(paymentId: number, bypassTimeCheck = false) {
   const selectPayment = db.prepare('SELECT * FROM vendor_payments WHERE id = ?');
   const selectPO = db.prepare('SELECT * FROM purchase_orders WHERE id = ?');
   const deletePaymentStmt = db.prepare('DELETE FROM vendor_payments WHERE id = ?');
@@ -1316,7 +1316,7 @@ export function deleteVendorPayment(paymentId: number, bypassTimeCheck: boolean 
   return true;
 }
 
-export function updateVendorPayment(paymentId: number, updateData: { amount: number, paymentMethod?: string, notes?: string }, bypassTimeCheck: boolean = false) {
+export function updateVendorPayment(paymentId: number, updateData: { amount: number, paymentMethod?: string, notes?: string }, bypassTimeCheck = false) {
   const selectPayment = db.prepare('SELECT * FROM vendor_payments WHERE id = ?');
   const updatePaymentStmt = db.prepare('UPDATE vendor_payments SET amount = ?, payment_method = ?, notes = ? WHERE id = ?');
   const updatePO = db.prepare('UPDATE purchase_orders SET paid_amount = MAX(0, paid_amount + ?), payment_status = CASE WHEN MAX(0, paid_amount + ?) >= total_cost AND total_cost > 0 THEN \'Paid\' WHEN MAX(0, paid_amount + ?) > 0 THEN \'Partially Paid\' ELSE \'Unpaid\' END WHERE id = ?');
@@ -1344,7 +1344,7 @@ export function updateVendorPayment(paymentId: number, updateData: { amount: num
   return true;
 }
 
-export function deleteVendorOrderEntry(entryId: number, bypassTimeCheck: boolean = false) {
+export function deleteVendorOrderEntry(entryId: number, bypassTimeCheck = false) {
   const selectEntry = db.prepare('SELECT * FROM vendor_order_entries WHERE id = ?');
   const deleteEntryStmt = db.prepare('DELETE FROM vendor_order_entries WHERE id = ?');
   const updatePO = db.prepare('UPDATE purchase_orders SET total_cost = MAX(0, total_cost - ?), payment_status = CASE WHEN paid_amount >= MAX(0, total_cost - ?) AND MAX(0, total_cost - ?) > 0 THEN \'Paid\' WHEN paid_amount > 0 THEN \'Partially Paid\' ELSE \'Unpaid\' END WHERE id = ?');
@@ -1371,7 +1371,7 @@ export function deleteVendorOrderEntry(entryId: number, bypassTimeCheck: boolean
   return true;
 }
 
-export function updateVendorOrderEntry(entryId: number, updateData: { amount: number, notes?: string }, bypassTimeCheck: boolean = false) {
+export function updateVendorOrderEntry(entryId: number, updateData: { amount: number, notes?: string }, bypassTimeCheck = false) {
   const selectEntry = db.prepare('SELECT * FROM vendor_order_entries WHERE id = ?');
   const updateEntryStmt = db.prepare('UPDATE vendor_order_entries SET amount = ?, notes = ? WHERE id = ?');
   const updatePO = db.prepare('UPDATE purchase_orders SET total_cost = MAX(0, total_cost + ?), payment_status = CASE WHEN paid_amount >= MAX(0, total_cost + ?) AND MAX(0, total_cost + ?) > 0 THEN \'Paid\' WHEN paid_amount > 0 THEN \'Partially Paid\' ELSE \'Unpaid\' END WHERE id = ?');

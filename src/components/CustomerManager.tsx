@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Customer, CustomerKhataEntry } from '../types';
-import { Search, Edit2, Trash2, Award, UserPlus, Phone, Mail, BookOpen, CreditCard, Send, PlusCircle, CheckCircle2, History, AlertCircle, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
+import { Search, Edit2, Trash2, Award, UserPlus, Phone, Mail, BookOpen, Send, History, ArrowUpRight, ArrowDownLeft, UserCheck } from 'lucide-react';
 
 export const CustomerManager: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -355,8 +355,16 @@ export const CustomerManager: React.FC = () => {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-gray-500">
-                    No customers found matching your search.
+                  <td colSpan={5} className="py-16 text-center">
+                    <div className="flex flex-col items-center justify-center text-gray-500">
+                      <div className="w-12 h-12 rounded-2xl bg-white/[0.03] border border-white/5 flex items-center justify-center mb-3 text-gray-400">
+                        <UserCheck size={22} />
+                      </div>
+                      <p className="text-sm font-semibold text-gray-300">No customers found</p>
+                      <p className="text-xs text-gray-500 mt-1 max-w-sm">
+                        {searchQuery ? `No customer records matched "${searchQuery}".` : 'Add your first customer using the "+ New Customer" button above.'}
+                      </p>
+                    </div>
                   </td>
                 </tr>
               )}

@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Product } from '../types';
-import { Plus, Edit2, Trash2, Printer, Search, PackageOpen, Sliders, AlertTriangle, Upload } from 'lucide-react';
+import { Plus, Edit2, Trash2, Printer, Search, PackageOpen, Sliders, AlertTriangle, Upload, Layers, Package } from 'lucide-react';
 import { ProductFormModal } from './ProductFormModal';
 import { BulkProductEditorModal } from './BulkProductEditorModal';
 import { BulkAddProductModal } from './BulkAddProductModal';
-import { Layers } from 'lucide-react';
 
 interface InventoryManagerProps {
   initialLowStockOnly?: boolean;
@@ -330,8 +329,18 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
               })}
               {filteredProducts.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="p-12 text-center text-gray-500 font-medium">
-                    No products found.
+                  <td colSpan={8} className="py-16 text-center">
+                    <div className="flex flex-col items-center justify-center text-gray-500">
+                      <div className="w-12 h-12 rounded-2xl bg-white/[0.03] border border-white/5 flex items-center justify-center mb-3 text-gray-400">
+                        <Package size={22} />
+                      </div>
+                      <p className="text-sm font-semibold text-gray-300">No products found</p>
+                      <p className="text-xs text-gray-500 mt-1 max-w-sm">
+                        {searchQuery 
+                          ? `No items match "${searchQuery}". Check the barcode or title.` 
+                          : 'Your inventory list is currently empty. Click "+ Add Product" to get started.'}
+                      </p>
+                    </div>
                   </td>
                 </tr>
               )}

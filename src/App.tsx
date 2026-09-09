@@ -347,7 +347,9 @@ const App: React.FC = () => {
           setIsPaymentOpen(true);
           window.api.getNextSaleId().then(nextId => {
             setNextSaleId(nextId);
-          }).catch(() => {});
+          }).catch(err => {
+            console.warn('Failed to fetch next sale id:', err);
+          });
         }
       } 
       // F2 for Hold / Resume

@@ -1,5 +1,6 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'path';
+import fs from 'fs';
 import { initDb, getAllProducts, getProductByBarcode, saveSale, getNextSaleId, addProduct, updateProduct, deleteProduct, bulkUpdateProducts, bulkAddProducts,
   getAllCustomers, getCustomerByPhone, addCustomer, updateCustomer, deleteCustomer,
   getCustomerKhataEntries, addCustomerLoanPayment, addCustomerLoanEntry,
@@ -37,7 +38,7 @@ const createWindow = () => {
     ? path.join(__dirname, '../../assets/icon.ico')
     : path.join(__dirname, '../../assets/icon.png');
   const fallbackIconPath = path.join(process.cwd(), 'assets', process.platform === 'win32' ? 'icon.ico' : 'icon.png');
-  const resolvedIcon = require('fs').existsSync(iconPath) ? iconPath : fallbackIconPath;
+  const resolvedIcon = fs.existsSync(iconPath) ? iconPath : fallbackIconPath;
 
   // Create the browser window with optimized memory-efficient webPreferences
   mainWindow = new BrowserWindow({

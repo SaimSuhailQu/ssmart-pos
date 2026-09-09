@@ -284,18 +284,30 @@ async function printViaWindowsDriver(htmlContent: string): Promise<boolean> {
                 margins: { marginType: 'none' },
                 pageSize: { width: 80000, height: 297000 }
               }, (fallbackSuccess) => {
-                try { printWin.destroy(); } catch {}
+                try {
+                  printWin.destroy();
+                } catch {
+                  /* window already destroyed */
+                }
                 resolve(fallbackSuccess);
               });
               return;
             }
 
-            try { printWin.destroy(); } catch {}
+            try {
+              printWin.destroy();
+            } catch {
+              /* window already destroyed */
+            }
             resolve(success);
           });
         } catch (err) {
           console.warn('Silent print error:', err);
-          try { printWin.destroy(); } catch {}
+          try {
+            printWin.destroy();
+          } catch {
+            /* window already destroyed */
+          }
           resolve(false);
         }
       });

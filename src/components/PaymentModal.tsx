@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { PaymentData, PaymentEntry, CartItem, Customer } from '../types';
-import { X, DollarSign, CreditCard, Smartphone, Gift, CheckCircle, Delete, Plus, Printer, Sparkles, BookOpen, UserCheck, Search } from 'lucide-react';
+import { X, DollarSign, CreditCard, Smartphone, Gift, CheckCircle, Delete, Plus, Printer, BookOpen, UserCheck, Search } from 'lucide-react';
 
 interface PaymentModalProps {
   total: number;
@@ -23,7 +23,6 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
   const [customerSearch, setCustomerSearch] = useState<string>('');
-  const [loanNotes, setLoanNotes] = useState<string>('');
 
   useEffect(() => {
     window.api.getAllCustomers().then(setCustomers).catch(console.error);
@@ -203,14 +202,14 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax
                       <button
                         key={amount}
                         onClick={() => handleQuickAdd(amount)}
-                        className="py-2 rounded-lg font-black text-[10px] text-cyan-200 bg-cyan-950/40 border border-white/20 hover:bg-cyan-900/60 hover:border-cyan-400/50 transition-all shadow-md active:scale-95"
+                        className="py-2.5 rounded-xl font-black text-xs text-white bg-white/5 border border-white/10 hover:bg-white/15 hover:border-white/30 transition-all shadow-sm active:scale-95 cursor-pointer"
                       >
                         +Rs. {amount}
                       </button>
                     ))}
                     <button
                       onClick={() => handleQuickAdd(Math.ceil(remaining))}
-                      className="py-2 rounded-lg font-black text-[10px] text-emerald-200 bg-emerald-950/40 border border-emerald-500/20 hover:bg-emerald-900/60 hover:border-emerald-400/50 transition-all shadow-md active:scale-95"
+                      className="py-2.5 rounded-xl font-black text-xs text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 hover:bg-emerald-500/25 transition-all shadow-sm active:scale-95 cursor-pointer"
                     >
                       Exact Cash
                     </button>
@@ -239,10 +238,10 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax
                     <button 
                       onClick={handleAddPayment}
                       disabled={currentTenderedAmount <= 0}
-                      className="col-span-1 rounded-lg bg-cyan-600/20 hover:bg-white/40 border border-white/40 text-cyan-200 font-extrabold flex flex-col items-center justify-center gap-1 transition disabled:opacity-30 disabled:pointer-events-none active:scale-95"
+                      className="col-span-1 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-extrabold flex flex-col items-center justify-center gap-1 transition disabled:opacity-30 disabled:pointer-events-none active:scale-95 cursor-pointer shadow-sm"
                     >
                       <Plus size={18} />
-                      <span className="text-[9px] uppercase tracking-wider">Add Part</span>
+                      <span className="text-[10px] uppercase tracking-wider font-bold">Add Part</span>
                     </button>
                   </div>
                 </div>
@@ -333,7 +332,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax
                   <button 
                     onClick={handleAddPayment}
                     disabled={remaining <= 0}
-                    className="mt-4 px-6 py-2.5 rounded-xl bg-white/20 hover:bg-white/40 border border-white/40 text-cyan-200 font-black uppercase text-xs tracking-widest shadow-md transition disabled:opacity-20 active:scale-95"
+                    className="mt-4 px-6 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-black uppercase text-xs tracking-wider shadow-sm transition disabled:opacity-20 active:scale-95 cursor-pointer"
                   >
                     Confirm & Complete
                   </button>
