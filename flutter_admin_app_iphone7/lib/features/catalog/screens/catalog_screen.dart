@@ -97,17 +97,18 @@ class _CatalogScreenState extends State<CatalogScreen> {
         onPressed: () => _showProductDialog(context, null),
       ),
       body: StreamBuilder<List<Product>>(
+        initialData: firebaseService.cachedProducts,
         stream: firebaseService.getProductsStream(),
         builder: (context, snapshot) {
-          // Loading state
-          if (snapshot.connectionState == ConnectionState.waiting) {
+          // Loading state - only display if no cached data is present yet
+          if (snapshot.connectionState == ConnectionState.waiting && (!snapshot.hasData || snapshot.data == null)) {
             return const AppLoadingIndicator(
               message: 'Loading catalog...',
             );
           }
 
-          // Error state
-          if (snapshot.hasError) {
+          // Error state - only display if no data is present
+          if (snapshot.hasError && (!snapshot.hasData || snapshot.data == null)) {
             return AppErrorWidget(
               message: 'Failed to load products database',
               error: snapshot.error.toString(),

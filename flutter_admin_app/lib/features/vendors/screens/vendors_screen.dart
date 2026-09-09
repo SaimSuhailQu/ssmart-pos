@@ -128,10 +128,10 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
       body: TabBarView(
         controller: _tabController,
         children: [
-          _buildPurchaseOrdersTab(firebaseService),
-          _buildVendorsDirectoryTab(firebaseService),
-          _buildPaymentLedgerTab(firebaseService),
-          _buildOrderEntriesTab(firebaseService),
+          _VendorKeepAliveWrapper(child: _buildPurchaseOrdersTab(firebaseService)),
+          _VendorKeepAliveWrapper(child: _buildVendorsDirectoryTab(firebaseService)),
+          _VendorKeepAliveWrapper(child: _buildPaymentLedgerTab(firebaseService)),
+          _VendorKeepAliveWrapper(child: _buildOrderEntriesTab(firebaseService)),
         ],
       ),
     );
@@ -142,13 +142,14 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
   // ============================================================================
   Widget _buildPurchaseOrdersTab(FirebaseService firebaseService) {
     return StreamBuilder<List<PurchaseOrderModel>>(
+      initialData: firebaseService.cachedPurchaseOrders,
       stream: firebaseService.getPurchaseOrdersStream(),
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+        if (snapshot.connectionState == ConnectionState.waiting && (!snapshot.hasData || snapshot.data == null)) {
           return const AppLoadingIndicator(message: 'Loading vendor purchase orders...');
         }
 
-        if (snapshot.hasError) {
+        if (snapshot.hasError && (!snapshot.hasData || snapshot.data == null)) {
           return AppErrorWidget(
             message: 'Failed to load purchase orders: ${snapshot.error}',
             onRetry: () => setState(() {}),
@@ -559,13 +560,14 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
   // ============================================================================
   Widget _buildVendorsDirectoryTab(FirebaseService firebaseService) {
     return StreamBuilder<List<VendorModel>>(
+      initialData: firebaseService.cachedVendors,
       stream: firebaseService.getVendorsStream(),
       builder: (context, vendorSnapshot) {
-        if (vendorSnapshot.connectionState == ConnectionState.waiting) {
+        if (vendorSnapshot.connectionState == ConnectionState.waiting && (!vendorSnapshot.hasData || vendorSnapshot.data == null)) {
           return const AppLoadingIndicator(message: 'Loading vendor directory...');
         }
 
-        if (vendorSnapshot.hasError) {
+        if (vendorSnapshot.hasError && (!vendorSnapshot.hasData || vendorSnapshot.data == null)) {
           return AppErrorWidget(
             message: 'Failed to load vendors: ${vendorSnapshot.error}',
             onRetry: () => setState(() {}),
@@ -576,6 +578,7 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
 
         // Also stream POs to calculate real-time vendor balances
         return StreamBuilder<List<PurchaseOrderModel>>(
+          initialData: firebaseService.cachedPurchaseOrders,
           stream: firebaseService.getPurchaseOrdersStream(),
           builder: (context, poSnapshot) {
             final pos = poSnapshot.data ?? [];
@@ -1210,12 +1213,13 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
   // ============================================================================
   Widget _buildPaymentLedgerTab(FirebaseService firebaseService) {
     return StreamBuilder<List<PurchaseOrderModel>>(
+      initialData: firebaseService.cachedPurchaseOrders,
       stream: firebaseService.getPurchaseOrdersStream(),
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+        if (snapshot.connectionState == ConnectionState.waiting && (!snapshot.hasData || snapshot.data == null)) {
           return const AppLoadingIndicator(message: 'Loading payment ledger...');
         }
-        if (snapshot.hasError) {
+        if (snapshot.hasError && (!snapshot.hasData || snapshot.data == null)) {
           return AppErrorWidget(
             message: 'Failed to load payments: ${snapshot.error}',
             onRetry: () => setState(() {}),
@@ -1473,12 +1477,13 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
   // ============================================================================
   Widget _buildOrderEntriesTab(FirebaseService firebaseService) {
     return StreamBuilder<List<PurchaseOrderModel>>(
+      initialData: firebaseService.cachedPurchaseOrders,
       stream: firebaseService.getPurchaseOrdersStream(),
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+        if (snapshot.connectionState == ConnectionState.waiting && (!snapshot.hasData || snapshot.data == null)) {
           return const AppLoadingIndicator(message: 'Loading order deliveries...');
         }
-        if (snapshot.hasError) {
+        if (snapshot.hasError && (!snapshot.hasData || snapshot.data == null)) {
           return AppErrorWidget(
             message: 'Failed to load order deliveries: ${snapshot.error}',
             onRetry: () => setState(() {}),
@@ -1803,5 +1808,26 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
         ],
       ),
     );
+  }
+}
+
+/// Helper wrapper that preserves TabBarView tab state to eliminate re-rendering or screen blinking
+class _VendorKeepAliveWrapper extends StatefulWidget {
+  final Widget child;
+  const _VendorKeepAliveWrapper({required this.child});
+
+  @override
+  State<_VendorKeepAliveWrapper> createState() => _VendorKeepAliveWrapperState();
+}
+
+class _VendorKeepAliveWrapperState extends State<_VendorKeepAliveWrapper>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return widget.child;
   }
 }

@@ -71,13 +71,14 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
         onPressed: () => _showCustomerDialog(context, null),
       ),
       body: StreamBuilder<List<CustomerModel>>(
+        initialData: firebaseService.cachedCustomers,
         stream: firebaseService.getCustomersStream(),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+          if (snapshot.connectionState == ConnectionState.waiting && (!snapshot.hasData || snapshot.data == null)) {
             return const AppLoadingIndicator(message: 'Loading customer ledgers...');
           }
 
-          if (snapshot.hasError) {
+          if (snapshot.hasError && (!snapshot.hasData || snapshot.data == null)) {
             return AppErrorWidget(
               message: 'Failed to load customers: ${snapshot.error}',
               onRetry: () => setState(() {}),

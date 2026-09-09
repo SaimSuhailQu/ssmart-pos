@@ -513,10 +513,13 @@ class _MobileCheckoutScreenState extends State<MobileCheckoutScreen> {
       isScrollControlled: true,
       backgroundColor: AppTheme.surfaceDark,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (ctx) => StreamBuilder<List<CustomerModel>>(
-        stream: context.read<FirebaseService>().getCustomersStream(),
-        builder: (context, snap) {
-          final customers = snap.data ?? [];
+      builder: (ctx) {
+        final fService = context.read<FirebaseService>();
+        return StreamBuilder<List<CustomerModel>>(
+          initialData: fService.cachedCustomers,
+          stream: fService.getCustomersStream(),
+          builder: (context, snap) {
+            final customers = snap.data ?? [];
           return Container(
             height: MediaQuery.of(ctx).size.height * 0.7,
             padding: const EdgeInsets.all(16),
@@ -562,9 +565,10 @@ class _MobileCheckoutScreenState extends State<MobileCheckoutScreen> {
             ),
           );
         },
-      ),
-    );
-  }
+      );
+    },
+  );
+}
 
   Future<void> _finalizeSale({
     required BuildContext context,
@@ -709,13 +713,14 @@ class _MobileCheckoutScreenState extends State<MobileCheckoutScreen> {
         ),
       ),
       body: StreamBuilder<List<Product>>(
+        initialData: firebaseService.cachedProducts,
         stream: firebaseService.getProductsStream(),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+          if (snapshot.connectionState == ConnectionState.waiting && (!snapshot.hasData || snapshot.data == null)) {
             return const AppLoadingIndicator(message: 'Loading product catalog...');
           }
 
-          if (snapshot.hasError) {
+          if (snapshot.hasError && (!snapshot.hasData || snapshot.data == null)) {
             return AppErrorWidget(
               message: 'Failed to load catalog: ${snapshot.error}',
               onRetry: () => setState(() {}),

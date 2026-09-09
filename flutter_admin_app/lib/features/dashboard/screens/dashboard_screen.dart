@@ -31,7 +31,12 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   Future<void> _handleRefresh() async {
-    setState(() {});
+    try {
+      final firebaseService = context.read<FirebaseService>();
+      await firebaseService.getSalesStream().first.timeout(const Duration(seconds: 4));
+    } catch (_) {
+      // Stream timeout or network fallback, state remains stable
+    }
   }
 
   void _handleLogout() {
@@ -192,17 +197,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
       body: RefreshIndicator(
         onRefresh: _handleRefresh,
         child: StreamBuilder<List<Sale>>(
+          initialData: firebaseService.cachedSales,
           stream: firebaseService.getSalesStream(),
           builder: (context, snapshot) {
-            // Loading state
-            if (snapshot.connectionState == ConnectionState.waiting) {
+            // Loading state - only display full-screen loading spinner if there is no data at all yet
+            if (snapshot.connectionState == ConnectionState.waiting && (!snapshot.hasData || snapshot.data == null)) {
               return const AppLoadingIndicator(
                 message: 'Loading dashboard...',
               );
             }
 
-            // Error state
-            if (snapshot.hasError) {
+            // Error state - only display error if we don't already have data to show
+            if (snapshot.hasError && (!snapshot.hasData || snapshot.data == null)) {
               return AppErrorWidget(
                 message: 'Failed to load sales data',
                 error: snapshot.error.toString(),

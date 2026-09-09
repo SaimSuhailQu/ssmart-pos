@@ -160,17 +160,18 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           // Transactions list
           Expanded(
             child: StreamBuilder<List<Sale>>(
+              initialData: firebaseService.cachedSales,
               stream: firebaseService.getSalesStream(),
               builder: (context, snapshot) {
-                // Loading state
-                if (snapshot.connectionState == ConnectionState.waiting) {
+                // Loading state - only display if no cached data is available yet
+                if (snapshot.connectionState == ConnectionState.waiting && (!snapshot.hasData || snapshot.data == null)) {
                   return const AppLoadingIndicator(
                     message: 'Loading transactions...',
                   );
                 }
 
-                // Error state
-                if (snapshot.hasError) {
+                // Error state - only display if no data is present
+                if (snapshot.hasError && (!snapshot.hasData || snapshot.data == null)) {
                   return AppErrorWidget(
                     message: 'Failed to load transactions',
                     error: snapshot.error.toString(),

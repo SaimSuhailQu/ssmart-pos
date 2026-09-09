@@ -18,10 +18,23 @@ class FirebaseService {
   ConnectionStatus _currentStatus = ConnectionStatus.connecting;
   final _connectionStatusController = StreamController<ConnectionStatus>.broadcast();
 
-  // Cache for sales data to reduce redundant queries
+  // In-memory caches to prevent screen blinking and redundant queries
   List<Sale>? _cachedSales;
   DateTime? _cacheTimestamp;
   static const _cacheDuration = Duration(minutes: 5);
+
+  List<Product>? _cachedProducts;
+  List<ExpenseModel>? _cachedExpenses;
+  List<CustomerModel>? _cachedCustomers;
+  List<VendorModel>? _cachedVendors;
+  List<PurchaseOrderModel>? _cachedPurchaseOrders;
+
+  List<Sale>? get cachedSales => _cachedSales;
+  List<Product>? get cachedProducts => _cachedProducts;
+  List<ExpenseModel>? get cachedExpenses => _cachedExpenses;
+  List<CustomerModel>? get cachedCustomers => _cachedCustomers;
+  List<VendorModel>? get cachedVendors => _cachedVendors;
+  List<PurchaseOrderModel>? get cachedPurchaseOrders => _cachedPurchaseOrders;
 
   FirebaseService(this._database) {
     _initializeConnectionListener();
@@ -247,10 +260,15 @@ class FirebaseService {
     return _isCacheValid ? _cachedSales : null;
   }
 
-  /// Clear the cache
+  /// Clear all in-memory caches
   void clearCache() {
     _cachedSales = null;
     _cacheTimestamp = null;
+    _cachedProducts = null;
+    _cachedExpenses = null;
+    _cachedCustomers = null;
+    _cachedVendors = null;
+    _cachedPurchaseOrders = null;
   }
 
   /// Test connection to Firebase
@@ -273,6 +291,7 @@ class FirebaseService {
       final productsData = event.snapshot.value;
 
       if (productsData == null) {
+        _cachedProducts = [];
         return <Product>[];
       }
 
@@ -296,14 +315,15 @@ class FirebaseService {
 
         // Sort by product name
         products.sort((a, b) => a.name.compareTo(b.name));
+        _cachedProducts = products;
         return products;
       } catch (e) {
         print('Error parsing products catalog: $e');
-        return <Product>[];
+        return _cachedProducts ?? <Product>[];
       }
     }).handleError((error) {
       print('Error in products stream: $error');
-      return <Product>[];
+      return _cachedProducts ?? <Product>[];
     });
   }
 
@@ -312,7 +332,10 @@ class FirebaseService {
     final expensesRef = _database.ref(FirebasePaths.expenses);
     return expensesRef.onValue.map((event) {
       final data = event.snapshot.value;
-      if (data == null) return <ExpenseModel>[];
+      if (data == null) {
+        _cachedExpenses = [];
+        return <ExpenseModel>[];
+      }
       final List<ExpenseModel> list = [];
       if (data is Map) {
         data.forEach((k, v) {
@@ -324,10 +347,11 @@ class FirebaseService {
         }
       }
       list.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+      _cachedExpenses = list;
       return list;
     }).handleError((err) {
       print('Error in expenses stream: $err');
-      return <ExpenseModel>[];
+      return _cachedExpenses ?? <ExpenseModel>[];
     });
   }
 
@@ -338,7 +362,10 @@ class FirebaseService {
 
     return custRef.onValue.asyncMap((event) async {
       final data = event.snapshot.value;
-      if (data == null) return <CustomerModel>[];
+      if (data == null) {
+        _cachedCustomers = [];
+        return <CustomerModel>[];
+      }
 
       // Fetch latest customer_khata snapshot to ensure 100% accurate balances
       Map<String, double> liveBalances = {};
@@ -409,10 +436,11 @@ class FirebaseService {
         }
       }
       list.sort((a, b) => b.balance.compareTo(a.balance));
+      _cachedCustomers = list;
       return list;
     }).handleError((err) {
       print('Error in customers stream: $err');
-      return <CustomerModel>[];
+      return _cachedCustomers ?? <CustomerModel>[];
     });
   }
 
@@ -460,7 +488,10 @@ class FirebaseService {
     final vendorsRef = _database.ref(FirebasePaths.vendors);
     return vendorsRef.onValue.map((event) {
       final data = event.snapshot.value;
-      if (data == null) return <VendorModel>[];
+      if (data == null) {
+        _cachedVendors = [];
+        return <VendorModel>[];
+      }
       final List<VendorModel> list = [];
       if (data is Map) {
         data.forEach((k, v) {
@@ -472,10 +503,11 @@ class FirebaseService {
         }
       }
       list.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      _cachedVendors = list;
       return list;
     }).handleError((err) {
       print('Error in vendors stream: $err');
-      return <VendorModel>[];
+      return _cachedVendors ?? <VendorModel>[];
     });
   }
 
@@ -484,7 +516,10 @@ class FirebaseService {
     final poRef = _database.ref(FirebasePaths.purchaseOrders);
     return poRef.onValue.map((event) {
       final data = event.snapshot.value;
-      if (data == null) return <PurchaseOrderModel>[];
+      if (data == null) {
+        _cachedPurchaseOrders = [];
+        return <PurchaseOrderModel>[];
+      }
       final List<PurchaseOrderModel> list = [];
       if (data is Map) {
         data.forEach((k, v) {
@@ -496,10 +531,11 @@ class FirebaseService {
         }
       }
       list.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+      _cachedPurchaseOrders = list;
       return list;
     }).handleError((err) {
       print('Error in POs stream: $err');
-      return <PurchaseOrderModel>[];
+      return _cachedPurchaseOrders ?? <PurchaseOrderModel>[];
     });
   }
 

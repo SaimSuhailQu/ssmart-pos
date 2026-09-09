@@ -49,13 +49,14 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
         onPressed: () => _showAddExpenseDialog(context),
       ),
       body: StreamBuilder<List<ExpenseModel>>(
+        initialData: firebaseService.cachedExpenses,
         stream: firebaseService.getExpensesStream(),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+          if (snapshot.connectionState == ConnectionState.waiting && (!snapshot.hasData || snapshot.data == null)) {
             return const AppLoadingIndicator(message: 'Loading expenses...');
           }
 
-          if (snapshot.hasError) {
+          if (snapshot.hasError && (!snapshot.hasData || snapshot.data == null)) {
             return AppErrorWidget(
               message: 'Failed to load expenses: ${snapshot.error}',
               onRetry: () => setState(() {}),

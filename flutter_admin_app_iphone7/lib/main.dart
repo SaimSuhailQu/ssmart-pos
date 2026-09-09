@@ -218,6 +218,7 @@ class SSMartPOSAdminApp extends StatelessWidget {
         home: Consumer<AuthService>(
           builder: (context, authService, _) {
             return StreamBuilder<User?>(
+              initialData: authService.currentUser,
               stream: authService.authStateChanges,
               builder: (context, snapshot) {
                 // If stream encountered an error, fail safely to LoginScreen
@@ -225,13 +226,13 @@ class SSMartPOSAdminApp extends StatelessWidget {
                   return const LoginScreen();
                 }
 
-                // Show loading while checking auth state
-                if (snapshot.connectionState == ConnectionState.waiting) {
+                // Show loading only when initially waiting and no cached/current user is known
+                if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData && authService.currentUser == null) {
                   return const _SplashScreen();
                 }
 
                 // Navigate based on auth state
-                final user = snapshot.data;
+                final user = snapshot.data ?? authService.currentUser;
                 if (user != null) {
                   return const DashboardScreen();
                 } else {
