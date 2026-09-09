@@ -21,6 +21,7 @@ import {
   updateCustomer,
   upsertCustomer,
   addExpense,
+  upsertExpense,
   addVendor
 } from './db';
 import { Product } from './types';
@@ -361,19 +362,30 @@ async function ingestCloudDataToLocal() {
       const data = expensesSnap.val();
       const expenses = Object.values(data);
       const localExpenses = getAllExpenses() as any[];
-      const localMap = new Set(localExpenses.map(e => `${e.amount}-${e.description}-${e.timestamp?.substring(0, 16)}`));
+      const localIdSet = new Set(localExpenses.map(e => e.id));
+      const localMatchSet = new Set(localExpenses.map(e => `${e.amount}-${e.description?.trim().toLowerCase()}-${e.timestamp?.substring(0, 16)}`));
       
       for (const exp of expenses as any[]) {
         if (!exp || !exp.amount) continue;
-        const key = `${exp.amount}-${exp.description}-${exp.timestamp?.substring(0, 16)}`;
-        if (!localMap.has(key)) {
-          addExpense({
-            amount: Number(exp.amount) || 0,
-            description: exp.description || 'Mobile Expense',
-            category: exp.category || 'General',
-            loggedBy: exp.logged_by || 'Mobile Admin',
-          });
-        }
+        const expId = Number(exp.id);
+        const hasValidId = !isNaN(expId) && expId > 0;
+        const key = `${exp.amount}-${(exp.description || '').trim().toLowerCase()}-${exp.timestamp?.substring(0, 16)}`;
+        
+        // If already exists locally by id or by exact details and timestamp, skip
+        if (hasValidId && localIdSet.has(expId)) continue;
+        if (localMatchSet.has(key)) continue;
+
+        upsertExpense({
+          id: hasValidId ? expId : undefined,
+          amount: Number(exp.amount) || 0,
+          description: exp.description || 'Mobile Expense',
+          category: exp.category || 'General',
+          loggedBy: exp.logged_by || 'Mobile Admin',
+          timestamp: exp.timestamp || undefined,
+        });
+
+        if (hasValidId) localIdSet.add(expId);
+        localMatchSet.add(key);
       }
     }
 

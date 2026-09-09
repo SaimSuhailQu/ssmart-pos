@@ -89,6 +89,13 @@ const config: ForgeConfig = {
         fs.copyFileSync(path.resolve(rootDir, 'package-lock.json'), path.join(buildPath, 'package-lock.json'));
       }
 
+      // Copy assets folder (containing icon.ico, icon.png, etc.) so packaged executable can resolve window icon
+      const assetsSrc = path.resolve(rootDir, 'assets');
+      const assetsDest = path.join(buildPath, 'assets');
+      if (fs.existsSync(assetsSrc)) {
+        fs.cpSync(assetsSrc, assetsDest, { recursive: true });
+      }
+
       console.log(`[Forge Hook] Installing production dependencies in: ${buildPath}`);
       const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
       execSync(`${npmCmd} install --omit=dev --no-audit --no-fund`, {

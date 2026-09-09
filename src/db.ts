@@ -345,6 +345,20 @@ export function initDb() {
     console.error("Customer khata table creation error:", err);
   }
 
+  // Clean up any historical duplicate expenses (keep lowest id)
+  try {
+    db.exec(`
+      DELETE FROM expenses 
+      WHERE id NOT IN (
+        SELECT MIN(id) 
+        FROM expenses 
+        GROUP BY amount, description, category, logged_by, SUBSTR(timestamp, 1, 16)
+      );
+    `);
+  } catch (err) {
+    console.error("Duplicate expenses cleanup error:", err);
+  }
+
   // Detect and migrate old USD dummy products to PKR Pakistani products
   try {
     const hasOldCoke = db.prepare("SELECT * FROM products WHERE barcode = '123456789012' AND price < 10").get();
@@ -1394,10 +1408,31 @@ export function getAllExpenses() {
   return db.prepare('SELECT * FROM expenses ORDER BY timestamp DESC').all();
 }
 
-export function addExpense(expense: { amount: number, description: string, category: string, loggedBy: string }) {
+export function addExpense(expense: { id?: number, amount: number, description: string, category: string, loggedBy: string, timestamp?: string }) {
+  if (expense.id && expense.timestamp) {
+    const insert = db.prepare('INSERT OR REPLACE INTO expenses (id, amount, description, category, logged_by, timestamp) VALUES (?, ?, ?, ?, ?, ?)');
+    const info = insert.run(expense.id, expense.amount, expense.description, expense.category, expense.loggedBy, expense.timestamp);
+    return info.lastInsertRowid;
+  } else if (expense.timestamp) {
+    const insert = db.prepare('INSERT INTO expenses (amount, description, category, logged_by, timestamp) VALUES (?, ?, ?, ?, ?)');
+    const info = insert.run(expense.amount, expense.description, expense.category, expense.loggedBy, expense.timestamp);
+    return info.lastInsertRowid;
+  }
   const insert = db.prepare('INSERT INTO expenses (amount, description, category, logged_by) VALUES (?, ?, ?, ?)');
   const info = insert.run(expense.amount, expense.description, expense.category, expense.loggedBy);
   return info.lastInsertRowid;
+}
+
+export function upsertExpense(expense: { id?: number, amount: number, description: string, category: string, loggedBy: string, timestamp?: string }) {
+  if (expense.id) {
+    const existing = db.prepare('SELECT id FROM expenses WHERE id = ?').get(expense.id);
+    if (existing) {
+      const update = db.prepare('UPDATE expenses SET amount = ?, description = ?, category = ?, logged_by = ?, timestamp = COALESCE(?, timestamp) WHERE id = ?');
+      update.run(expense.amount, expense.description, expense.category, expense.loggedBy, expense.timestamp || null, expense.id);
+      return expense.id;
+    }
+  }
+  return addExpense(expense);
 }
 
 export function updateExpense(id: number, expense: { amount: number, description: string, category: string, loggedBy: string }) {

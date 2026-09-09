@@ -11,7 +11,7 @@ import { initDb, getAllProducts, getProductByBarcode, saveSale, getNextSaleId, a
   addVendorPayment, deleteVendorPayment, updateVendorPayment, deleteVendorOrderEntry, updateVendorOrderEntry,
   getVendorPayments, getVendorOrderEntries } from './db';
 import { printReceipt, printBarcode } from './printer';
-import { startSyncWorker, syncProductsToCloud, syncCustomersToCloud, syncCustomerKhataToCloud, clearAllKhataFromCloudAndLocal, syncVendorsToCloud } from './syncEngine';
+import { startSyncWorker, syncProductsToCloud, syncCustomersToCloud, syncCustomerKhataToCloud, clearAllKhataFromCloudAndLocal, syncVendorsToCloud, syncExpensesToCloud } from './syncEngine';
 import { sendWhatsAppMessage } from './whatsappService';
 import { setupAutoUpdater, checkForUpdatesManual, quitAndInstallUpdate } from './updater';
 
@@ -291,16 +291,22 @@ ipcMain.handle('get-all-expenses', () => {
   return getAllExpenses();
 });
 
-ipcMain.handle('add-expense', (event, expense) => {
-  return addExpense(expense);
+ipcMain.handle('add-expense', async (event, expense) => {
+  const res = addExpense(expense);
+  syncExpensesToCloud(true);
+  return res;
 });
 
-ipcMain.handle('update-expense', (event, id, expense) => {
-  return updateExpense(id, expense);
+ipcMain.handle('update-expense', async (event, id, expense) => {
+  const res = updateExpense(id, expense);
+  syncExpensesToCloud(true);
+  return res;
 });
 
-ipcMain.handle('delete-expense', (event, id) => {
-  return deleteExpense(id);
+ipcMain.handle('delete-expense', async (event, id) => {
+  const res = deleteExpense(id);
+  syncExpensesToCloud(true);
+  return res;
 });
 
 // --- Vendors & Purchase Orders IPC Handlers ---
