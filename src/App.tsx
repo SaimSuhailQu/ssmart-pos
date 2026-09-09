@@ -42,6 +42,7 @@ const App: React.FC = () => {
   const [discount, setDiscount] = useState<number>(0);
   const [isNetworkOnline, setIsNetworkOnline] = useState<boolean>(navigator.onLine);
   const [updateInfo, setUpdateInfo] = useState<{ status: string; version?: string } | null>(null);
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState<boolean>(false);
 
   // Enforce strict Role-Based Access Control view bounds
   useEffect(() => {
@@ -78,8 +79,14 @@ const App: React.FC = () => {
     if (window.api.onUpdaterStatus) {
       window.api.onUpdaterStatus((info) => {
         console.log('[Updater Status]:', info);
+        setIsCheckingUpdate(false);
         if (info.status === 'downloaded' || info.status === 'available') {
           setUpdateInfo(info);
+          setSuccess(`Update found: ${info.version || 'New version'}. Downloading in background...`);
+        } else if (info.status === 'up-to-date') {
+          setSuccess('MART POS is already on the latest version!');
+        } else if (info.status === 'error') {
+          setError(info.error ? `Update check error: ${info.error}` : 'Could not check for updates.');
         }
       });
     }
@@ -489,10 +496,38 @@ const App: React.FC = () => {
         <DollarSign size={15} /> Expenses
       </button>
 
+      {/* Manual Check For Updates */}
+      <button
+        onClick={async () => {
+          if (isCheckingUpdate) return;
+          setIsCheckingUpdate(true);
+          setError(null);
+          try {
+            const res = await window.api.checkForUpdates();
+            if (res.message) {
+              setSuccess(res.message);
+            }
+            if (res.error) {
+              setError(res.error);
+              setIsCheckingUpdate(false);
+            }
+          } catch (err: any) {
+            setError(err.message || 'Failed to check for updates.');
+            setIsCheckingUpdate(false);
+          }
+        }}
+        disabled={isCheckingUpdate}
+        className="px-3.5 py-1.5 rounded-xl font-bold text-xs transition flex items-center gap-1.5 text-neutral-300 hover:text-white glass-button cursor-pointer ml-auto disabled:opacity-50"
+        title="Check GitHub for newer version of MART POS"
+      >
+        <RefreshCw size={13} className={isCheckingUpdate ? 'animate-spin text-cyan-300' : ''} />
+        <span>{isCheckingUpdate ? 'Checking...' : 'Check Updates'}</span>
+      </button>
+
       {/* Direct User Logout Button */}
       <button 
         onClick={() => setCurrentUser(null)} 
-        className="px-3.5 py-1.5 rounded-xl font-bold text-xs transition flex items-center gap-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 border border-red-500/20 glass-button cursor-pointer ml-auto"
+        className="px-3.5 py-1.5 rounded-xl font-bold text-xs transition flex items-center gap-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 border border-red-500/20 glass-button cursor-pointer"
         title="Lock POS / Logout Current User"
       >
         <Shield size={15} /> Logout ({currentUser.name})
