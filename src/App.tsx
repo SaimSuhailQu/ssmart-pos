@@ -386,153 +386,166 @@ const App: React.FC = () => {
 
   // Navigation Panel JSX helper
   const renderNavbar = () => (
-    <div className="glass-panel py-1.5 px-3 rounded-2xl flex flex-wrap items-center justify-center gap-2 relative z-30 text-gray-100 shadow-xl flex-shrink-0">
-      {updateInfo?.status === 'downloaded' && (
-        <button
-          onClick={() => window.api.quitAndInstallUpdate()}
-          className="px-3 py-1.5 rounded-xl font-bold text-xs bg-emerald-500 hover:bg-emerald-400 text-black shadow-[0_0_15px_rgba(16,185,129,0.5)] flex items-center gap-1.5 animate-pulse cursor-pointer"
-          title="Click to restart and apply new version"
-        >
-          <Sparkles size={14} /> Update Ready: Restart POS ({updateInfo.version || 'New'})
-        </button>
-      )}
-
-      <button 
-        onClick={() => setViewMode('POS')} 
-        className={`px-3.5 py-1.5 rounded-xl font-bold text-xs transition flex items-center gap-1.5 cursor-pointer ${
-          viewMode === 'POS' 
-            ? 'bg-white/20 text-neutral-200 border border-white/50 shadow-[0_0_12px_rgba(255,255,255,0.2)]'
-            : 'text-gray-400 hover:text-white glass-button'
-        }`}
-      >
-        <LayoutGrid size={15} /> POS Terminal
-      </button>
-
-      <button 
-        onClick={() => setViewMode('SALES_RECORD')} 
-        className={`px-3.5 py-1.5 rounded-xl font-bold text-xs transition flex items-center gap-1.5 cursor-pointer ${
-          viewMode === 'SALES_RECORD' 
-            ? 'bg-white/20 text-neutral-200 border border-white/50 shadow-[0_0_12px_rgba(255,255,255,0.2)]'
-            : 'text-gray-400 hover:text-white glass-button'
-        }`}
-      >
-        <History size={15} /> Sales Records
-      </button>
-
-      {/* Admin and Manager exclusive tabs */}
-      {(currentUser.role === 'Admin' || currentUser.role === 'Manager') && (
-        <>
-          <button 
-            onClick={() => {
-              setLowStockOnlyView(false);
-              setViewMode('INVENTORY');
-            }} 
-            className={`px-3.5 py-1.5 rounded-xl font-bold text-xs transition flex items-center gap-1.5 relative cursor-pointer ${
-              viewMode === 'INVENTORY' 
-                ? 'bg-white/20 text-neutral-200 border border-white/50 shadow-[0_0_12px_rgba(255,255,255,0.2)]'
-                : 'text-gray-400 hover:text-white glass-button'
-            }`}
-          >
-            <PackageOpen size={15} /> Inventory
-            {lowStockCount > 0 && (
-              <span 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setLowStockOnlyView(true);
-                  setViewMode('INVENTORY');
-                }}
-                className="ml-1 px-1.5 py-0.2 rounded-full text-[9px] font-black bg-amber-500 text-black animate-pulse hover:bg-amber-400 transition-colors shadow-[0_0_8px_rgba(245,158,11,0.6)] cursor-pointer"
-                title={`${lowStockCount} items have low stock (≤ 5 units). Click to view.`}
-              >
-                {lowStockCount} LOW
-              </span>
-            )}
-          </button>
-          <button 
-            onClick={() => setViewMode('CUSTOMERS')} 
-            className={`px-3.5 py-1.5 rounded-xl font-bold text-xs transition flex items-center gap-1.5 cursor-pointer ${
-              viewMode === 'CUSTOMERS' 
-                ? 'bg-white/20 text-neutral-200 border border-white/50 shadow-[0_0_12px_rgba(255,255,255,0.2)]'
-                : 'text-gray-400 hover:text-white glass-button'
-            }`}
-          >
-            <Users size={15} /> Customers & Khata
-          </button>
-          <button 
-            onClick={() => setViewMode('VENDORS')} 
-            className={`px-3.5 py-1.5 rounded-xl font-bold text-xs transition flex items-center gap-1.5 cursor-pointer ${
-              viewMode === 'VENDORS' 
-                ? 'bg-white/20 text-neutral-200 border border-white/50 shadow-[0_0_12px_rgba(255,255,255,0.2)]'
-                : 'text-gray-400 hover:text-white glass-button'
-            }`}
-          >
-            <Truck size={15} /> Vendors & POs
-          </button>
-        </>
-      )}
-
-      {/* Admin exclusive tabs */}
-      {currentUser.role === 'Admin' && (
+    <nav className="enterprise-card py-2 px-4 rounded-xl flex flex-wrap items-center justify-between gap-3 relative z-30 text-slate-200 shadow-lg flex-shrink-0 border-slate-800">
+      {/* Left: Operational Modes */}
+      <div className="flex items-center gap-1.5">
         <button 
-          onClick={() => setViewMode('ANALYTICS')} 
-          className={`px-3.5 py-1.5 rounded-xl font-bold text-xs transition flex items-center gap-1.5 cursor-pointer ${
-            viewMode === 'ANALYTICS' 
-              ? 'bg-white/20 text-neutral-200 border border-white/50 shadow-[0_0_12px_rgba(255,255,255,0.2)]'
-              : 'text-gray-400 hover:text-white glass-button'
+          onClick={() => setViewMode('POS')} 
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
+            viewMode === 'POS' 
+              ? 'bg-indigo-600 text-white shadow-sm' 
+              : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
           }`}
         >
-          <BarChart3 size={15} /> Financials
+          <LayoutGrid size={15} /> POS Terminal
         </button>
-      )}
 
-      <button 
-        onClick={() => setViewMode('EXPENSES')} 
-        className={`px-3.5 py-1.5 rounded-xl font-bold text-xs transition flex items-center gap-1.5 cursor-pointer ${
-          viewMode === 'EXPENSES' 
-            ? 'bg-white/20 text-neutral-200 border border-white/50 shadow-[0_0_12px_rgba(255,255,255,0.2)]'
-            : 'text-gray-400 hover:text-white glass-button'
-        }`}
-      >
-        <DollarSign size={15} /> Expenses
-      </button>
+        <button 
+          onClick={() => setViewMode('SALES_RECORD')} 
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
+            viewMode === 'SALES_RECORD' 
+              ? 'bg-indigo-600 text-white shadow-sm' 
+              : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+          }`}
+        >
+          <History size={15} /> Sales Records
+        </button>
 
-      {/* Manual Check For Updates */}
-      <button
-        onClick={async () => {
-          if (isCheckingUpdate) return;
-          setIsCheckingUpdate(true);
-          setError(null);
-          try {
-            const res = await window.api.checkForUpdates();
-            if (res.message) {
-              setSuccess(res.message);
-            }
-            if (res.error) {
-              setError(res.error);
+        <div className="h-4 w-[1px] bg-slate-800 mx-1.5" />
+
+        {/* Admin and Manager exclusive tabs */}
+        {(currentUser.role === 'Admin' || currentUser.role === 'Manager') && (
+          <>
+            <button 
+              onClick={() => {
+                setLowStockOnlyView(false);
+                setViewMode('INVENTORY');
+              }} 
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 relative cursor-pointer ${
+                viewMode === 'INVENTORY' 
+                  ? 'bg-indigo-600 text-white shadow-sm' 
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+              }`}
+            >
+              <PackageOpen size={15} /> Inventory
+              {lowStockCount > 0 && (
+                <span 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setLowStockOnlyView(true);
+                    setViewMode('INVENTORY');
+                  }}
+                  className="ml-1 px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 transition-colors cursor-pointer"
+                  title={`${lowStockCount} items have low stock (≤ 5 units). Click to view.`}
+                >
+                  {lowStockCount} LOW
+                </span>
+              )}
+            </button>
+            <button 
+              onClick={() => setViewMode('CUSTOMERS')} 
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
+                viewMode === 'CUSTOMERS' 
+                  ? 'bg-indigo-600 text-white shadow-sm' 
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+              }`}
+            >
+              <Users size={15} /> Customers & Khata
+            </button>
+            <button 
+              onClick={() => setViewMode('VENDORS')} 
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
+                viewMode === 'VENDORS' 
+                  ? 'bg-indigo-600 text-white shadow-sm' 
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+              }`}
+            >
+              <Truck size={15} /> Vendors & POs
+            </button>
+          </>
+        )}
+
+        {/* Admin exclusive tabs */}
+        {currentUser.role === 'Admin' && (
+          <button 
+            onClick={() => setViewMode('ANALYTICS')} 
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
+              viewMode === 'ANALYTICS' 
+                ? 'bg-indigo-600 text-white shadow-sm' 
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+            }`}
+          >
+            <BarChart3 size={15} /> Financials
+          </button>
+        )}
+
+        <button 
+          onClick={() => setViewMode('EXPENSES')} 
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
+            viewMode === 'EXPENSES' 
+              ? 'bg-indigo-600 text-white shadow-sm' 
+              : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+          }`}
+        >
+          <DollarSign size={15} /> Expenses
+        </button>
+      </div>
+
+      {/* Right: Updater & User session */}
+      <div className="flex items-center gap-2 ml-auto">
+        {updateInfo?.status === 'downloaded' && (
+          <button
+            onClick={() => window.api.quitAndInstallUpdate()}
+            className="px-3 py-1.5 rounded-lg font-bold text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 flex items-center gap-1.5 animate-pulse cursor-pointer shadow-sm"
+            title="Click to restart and apply new version"
+          >
+            <Sparkles size={14} /> Restart POS ({updateInfo.version || 'New'})
+          </button>
+        )}
+
+        {/* Manual Check For Updates */}
+        <button
+          onClick={async () => {
+            if (isCheckingUpdate) return;
+            setIsCheckingUpdate(true);
+            setError(null);
+            try {
+              const res = await window.api.checkForUpdates();
+              if (res.message) {
+                setSuccess(res.message);
+              }
+              if (res.error) {
+                setError(res.error);
+                setIsCheckingUpdate(false);
+              }
+            } catch (err: any) {
+              setError(err.message || 'Failed to check for updates.');
               setIsCheckingUpdate(false);
             }
-          } catch (err: any) {
-            setError(err.message || 'Failed to check for updates.');
-            setIsCheckingUpdate(false);
-          }
-        }}
-        disabled={isCheckingUpdate}
-        className="px-3.5 py-1.5 rounded-xl font-bold text-xs transition flex items-center gap-1.5 text-neutral-300 hover:text-white glass-button cursor-pointer ml-auto disabled:opacity-50"
-        title="Check GitHub for newer version of MART POS"
-      >
-        <RefreshCw size={13} className={isCheckingUpdate ? 'animate-spin text-cyan-300' : ''} />
-        <span>{isCheckingUpdate ? 'Checking...' : 'Check Updates'}</span>
-      </button>
+          }}
+          disabled={isCheckingUpdate}
+          className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/60 border border-transparent hover:border-slate-700 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+          title="Check GitHub for newer version of MART POS"
+        >
+          <RefreshCw size={13} className={isCheckingUpdate ? 'animate-spin text-indigo-400' : ''} />
+          <span>{isCheckingUpdate ? 'Checking...' : 'Check Updates'}</span>
+        </button>
 
-      {/* Direct User Logout Button */}
-      <button 
-        onClick={() => setCurrentUser(null)} 
-        className="px-3.5 py-1.5 rounded-xl font-bold text-xs transition flex items-center gap-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 border border-red-500/20 glass-button cursor-pointer"
-        title="Lock POS / Logout Current User"
-      >
-        <Shield size={15} /> Logout ({currentUser.name})
-      </button>
-    </div>
+        {/* User Session & Logout */}
+        <div className="flex items-center gap-2 pl-2 border-l border-slate-800">
+          <span className="text-xs text-slate-400 font-medium hidden sm:inline">
+            <span className="text-slate-200 font-semibold">{currentUser.name}</span> ({currentUser.role})
+          </span>
+          <button 
+            onClick={() => setCurrentUser(null)} 
+            className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border border-rose-500/20 transition flex items-center gap-1.5 cursor-pointer"
+            title="Lock POS / Logout Current User"
+          >
+            <Shield size={14} /> Lock
+          </button>
+        </div>
+      </div>
+    </nav>
   );
 
   // Render Inventory View
@@ -612,16 +625,16 @@ const App: React.FC = () => {
 
   // Render POS View
   return (
-    <div className="flex flex-col h-screen font-outfit selection:bg-white/30 bg-transparent p-2.5 gap-2 overflow-hidden">
-      <div className="flex flex-1 overflow-hidden gap-4 rounded-3xl">
+    <div className="flex flex-col h-screen font-sans bg-transparent p-3 gap-2.5 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden gap-3 rounded-2xl">
         {/* Left side: Collapsible Product Catalog Panel */}
         {isCatalogOpen && (
-          <div className="w-[420px] flex flex-col glass-panel rounded-3xl overflow-hidden relative z-10 border-white/5 animate-in slide-in-from-left-4 duration-300">
-            <header className="p-5 border-b border-white/5 bg-black/20 backdrop-blur-md flex justify-between items-center">
-              <h2 className="text-sm font-bold uppercase tracking-widest text-white">{t('Product Catalog')}</h2>
+          <div className="w-[420px] flex flex-col enterprise-card rounded-xl overflow-hidden relative z-10 border-slate-800 animate-in slide-in-from-left-3 duration-200">
+            <header className="p-4 border-b border-slate-800 bg-slate-900/80 backdrop-blur-md flex justify-between items-center">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-200">{t('Product Catalog')}</h2>
               <button 
                 onClick={() => setIsCatalogOpen(false)}
-                className="text-xs text-red-400 hover:text-red-300 font-bold uppercase tracking-wider"
+                className="text-xs text-slate-400 hover:text-white font-medium"
               >
                 {t('Close')}
               </button>
@@ -631,72 +644,68 @@ const App: React.FC = () => {
         )}
 
         {/* Center: Streamlined active scanned order list (Primary Panel) */}
-        <div className="flex-1 flex flex-col glass-panel rounded-3xl overflow-hidden relative z-10 border-white/5">
-          <header className="p-6 border-b border-white/5 bg-black/20 sticky top-0 z-20 flex justify-between items-center backdrop-blur-md">
-            <div className="flex items-center gap-4">
-              <img src={logoImg} alt="SS Mart Logo" className="w-11 h-11 rounded-xl border border-white/10 shadow-[0_0_15px_rgba(255, 255, 255, 0.3)] object-cover" />
+        <div className="flex-1 flex flex-col enterprise-card rounded-xl overflow-hidden relative z-10 border-slate-800">
+          <header className="p-4 border-b border-slate-800 bg-slate-900/80 sticky top-0 z-20 flex justify-between items-center backdrop-blur-md">
+            <div className="flex items-center gap-3">
+              <img src={logoImg} alt="SS Mart Logo" className="w-10 h-10 rounded-lg border border-slate-700 object-cover shadow-sm" />
               <div>
-                <div className="flex items-center gap-2.5">
-                  <h1 className="text-2xl font-extrabold tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-neutral-200 to-neutral-500 drop-shadow-md">{t('SS MART')}</h1>
-                  {/* Glowing Cloud Status Indicator */}
-                  <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-widest border transition-all duration-500 uppercase ${
+                <div className="flex items-center gap-2">
+                  <h1 className="text-base font-bold tracking-tight text-white">{t('SS MART POS')}</h1>
+                  {/* Cloud Status Indicator */}
+                  <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold tracking-wider border uppercase ${
                     isOnline
-                      ? 'bg-white/10 text-neutral-200 border-emerald-500/30 shadow-[0_0_10px_rgba(16,185,129,0.2)]'
-                      : 'bg-red-500/10 text-red-400 border-red-500/30 shadow-[0_0_10px_rgba(239,68,68,0.2)] animate-pulse'
+                      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                      : 'bg-rose-500/10 text-rose-400 border-rose-500/30 animate-pulse'
                   }`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${
-                      isOnline ? 'bg-emerald-400' : 'bg-red-400'
+                      isOnline ? 'bg-emerald-400' : 'bg-rose-400'
                     }`} />
                     {isOnline ? 'Online' : 'Offline'}
                   </span>
                 </div>
-                <p className="text-[10px] text-neutral-200 font-bold uppercase tracking-widest mt-0.5">{t('Advanced Terminal')}</p>
+                <p className="text-[11px] text-slate-400 font-mono mt-0.5">Terminal ID: #01 • Cashier: {currentUser.name}</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               {/* Catalog toggler */}
               <button 
                 onClick={() => setIsCatalogOpen(!isCatalogOpen)}
-                className={`px-5 py-2.5 rounded-xl font-bold transition-all flex items-center gap-2 text-xs uppercase tracking-wider ${
+                className={`px-3.5 py-1.5 rounded-lg font-medium transition-all flex items-center gap-2 text-xs cursor-pointer ${
                   isCatalogOpen 
-                    ? 'bg-white/20 text-neutral-200 border border-white/50 shadow-[0_0_15px_rgba(255, 255, 255, 0.2)] font-black'
-                    : 'text-gray-400 hover:text-white glass-button'
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'text-slate-300 hover:text-white bg-slate-800/80 border border-slate-700 hover:border-slate-600'
                 }`}
               >
-                <LayoutGrid size={16} /> {isCatalogOpen ? 'Close Catalog' : 'Browse Catalog'}
+                <LayoutGrid size={15} /> {isCatalogOpen ? 'Close Catalog' : 'Catalog (F4)'}
               </button>
 
-              <form onSubmit={handleManualAdd} className="relative group w-72 overflow-hidden rounded-xl">
-                 <div className="absolute inset-0 pointer-events-none z-20">
-                   {/* Active Laser Sweep */}
-                   <div className="absolute left-0 right-0 h-[1.5px] bg-red-500/80 shadow-[0_0_8px_rgba(239,68,68,0.7)] animate-laser pointer-events-none" />
-                 </div>
-                 <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-gray-400 group-focus-within:text-neutral-200 transition-colors z-25">
-                   <PackageSearch size={18} />
+              <form onSubmit={handleManualAdd} className="relative group w-64">
+                 <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400 group-focus-within:text-indigo-400 transition-colors">
+                   <PackageSearch size={16} />
                  </div>
                  <input 
                    type="text" 
-                   placeholder="Enter Barcode..." 
+                   placeholder="Scan or enter barcode..." 
                    value={manualBarcode}
                    onChange={e => setManualBarcode(e.target.value)}
-                   className="w-full glass-input rounded-xl block pl-12 p-3 relative z-10"
+                   className="w-full glass-input rounded-lg block pl-9 py-1.5 px-3 text-xs"
                  />
               </form>
             </div>
           </header>
 
           {/* Notifications block */}
-          <div className="px-6 pt-4 flex-shrink-0 empty:hidden">
+          <div className="px-5 pt-3 flex-shrink-0 empty:hidden">
             {error && (
-              <div className="mb-2 p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-sm backdrop-blur-md flex items-start gap-2 animate-in fade-in zoom-in-95">
+              <div className="mb-2 p-3 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-lg text-xs flex items-start gap-2">
                 <div className="mt-0.5">⚠️</div>
                 <div>{error}</div>
               </div>
             )}
             {success && (
-              <div className="mb-2 p-3 bg-white/10 border border-emerald-500/20 text-neutral-200 rounded-xl text-sm backdrop-blur-md flex items-start gap-2 animate-in fade-in zoom-in-95">
-                <CheckCircle size={16} className="mt-0.5 shrink-0" />
+              <div className="mb-2 p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg text-xs flex items-start gap-2">
+                <CheckCircle size={15} className="mt-0.5 shrink-0" />
                 <div>{success}</div>
               </div>
             )}
@@ -706,10 +715,10 @@ const App: React.FC = () => {
         </div>
 
         {/* Right side: Checkout Summary Panel */}
-        <div className="w-[400px] flex flex-col glass-panel rounded-3xl overflow-hidden relative z-20 border-white/5">
-          <header className="p-5 border-b border-white/5 bg-black/20 backdrop-blur-md">
-            <h2 className="text-lg font-bold flex items-center gap-2 text-white">
-              <ShoppingCart size={20} className="text-neutral-200 drop-shadow-[0_0_8px_rgba(255, 255, 255, 0.8)]" /> Checkout Summary
+        <div className="w-[380px] flex flex-col enterprise-card rounded-xl overflow-hidden relative z-20 border-slate-800">
+          <header className="p-4 border-b border-slate-800 bg-slate-900/80 backdrop-blur-md">
+            <h2 className="text-sm font-bold flex items-center gap-2 text-white">
+              <ShoppingCart size={16} className="text-indigo-400" /> Checkout Summary
             </h2>
           </header>
 
@@ -723,9 +732,9 @@ const App: React.FC = () => {
 
           {/* Quick Discount Selector */}
           {cart.length > 0 && (
-            <div className="px-5 py-3 border-t border-white/5 bg-black/10 flex-shrink-0">
-              <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block mb-2">{t('Apply Promo / Discount')}</span>
-              <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
+            <div className="px-4 py-2.5 border-t border-slate-800 bg-slate-950/40 flex-shrink-0">
+              <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block mb-1.5">{t('Quick Promo / Discount')}</span>
+              <div className="flex gap-1.5 overflow-x-auto scrollbar-none pb-0.5">
                 {[
                   { label: '5%', type: 'pct', value: 0.05 },
                   { label: '10%', type: 'pct', value: 0.10 },
@@ -741,10 +750,10 @@ const App: React.FC = () => {
                       onClick={() => {
                         setDiscount(calculatedVal);
                       }}
-                      className={`px-3 py-1.5 rounded-lg text-[10px] font-extrabold uppercase whitespace-nowrap border transition-all ${
+                      className={`px-2.5 py-1 rounded text-[11px] font-mono font-medium whitespace-nowrap border transition-all cursor-pointer ${
                         isActive
-                          ? 'bg-white/20 text-neutral-200 border-white/50 shadow-[0_0_8px_rgba(255, 255, 255, 0.2)]'
-                          : 'bg-white/5 border-white/5 text-gray-400 hover:text-gray-200'
+                          ? 'bg-indigo-600 text-white border-indigo-500 shadow-sm'
+                          : 'bg-slate-800/80 border-slate-700 text-slate-300 hover:text-white hover:border-slate-600'
                       }`}
                     >
                       {promo.label}
@@ -754,7 +763,7 @@ const App: React.FC = () => {
                 {discount > 0 && (
                   <button
                     onClick={() => setDiscount(0)}
-                    className="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase whitespace-nowrap bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all"
+                    className="px-2 py-1 rounded text-[10px] font-bold uppercase whitespace-nowrap bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20 transition-all cursor-pointer"
                   >
                     {t('Clear')}
                   </button>
@@ -763,28 +772,29 @@ const App: React.FC = () => {
             </div>
           )}
 
-          <div className="p-6 border-t border-white/5 bg-black/30 backdrop-blur-md relative overflow-hidden flex-1 flex flex-col justify-end">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 blur-[50px] -mr-10 -mt-10 rounded-full"></div>
-            
-            <div className="space-y-3 mb-6 relative z-10">
-              <div className="flex justify-between items-center text-sm font-medium text-gray-400">
-                <span>{t('Items')}</span>
-                <span className="text-gray-200">{totalItems}</span>
+          <div className="p-5 border-t border-slate-800 bg-slate-950/70 flex-1 flex flex-col justify-end">
+            <div className="space-y-2.5 mb-5 relative z-10">
+              <div className="flex justify-between items-center text-xs text-slate-400 font-medium">
+                <span>{t('Line Items')}</span>
+                <span className="text-slate-200 font-mono">{totalItems}</span>
               </div>
-              <div className="flex justify-between items-center text-sm font-medium text-gray-400">
+              <div className="flex justify-between items-center text-xs text-slate-400 font-medium">
                 <span>{t('Subtotal')}</span>
-                <span className="text-gray-200">Rs. {subtotal.toFixed(2)}</span>
+                <span className="text-slate-200 font-mono tabular-nums">Rs. {subtotal.toFixed(2)}</span>
               </div>
               {activeDiscount > 0 && (
-                <div className="flex justify-between items-center text-sm font-medium text-neutral-200 animate-in slide-in-from-top-1">
+                <div className="flex justify-between items-center text-xs text-amber-400 font-medium">
                   <span>{t('Promo Discount')}</span>
-                  <span>-Rs. {activeDiscount.toFixed(2)}</span>
+                  <span className="font-mono tabular-nums">-Rs. {activeDiscount.toFixed(2)}</span>
                 </div>
               )}
 
-              <div className="flex justify-between items-center pt-3 mt-3 border-t border-white/10">
-                <span className="text-xl font-bold text-white">{t('Total')}</span>
-                <span className="text-3xl font-extrabold text-neutral-200 drop-shadow-[0_0_10px_rgba(255, 255, 255, 0.5)]">Rs. {totalAmount.toFixed(2)}</span>
+              <div className="flex justify-between items-baseline pt-3 mt-2 border-t border-slate-800">
+                <div>
+                  <span className="text-xs uppercase tracking-wider text-slate-400 font-bold block">{t('Amount Due')}</span>
+                  <span className="text-[10px] text-slate-500 font-mono">Tax Incl.</span>
+                </div>
+                <span className="text-2xl font-bold font-mono tabular-nums tracking-tight text-white">Rs. {totalAmount.toFixed(2)}</span>
               </div>
             </div>
             
@@ -798,25 +808,24 @@ const App: React.FC = () => {
                 });
               }}
               disabled={cart.length === 0}
-              className="w-full py-4 rounded-xl font-bold text-white shadow-[0_0_20px_rgba(255, 255, 255, 0.3)] bg-gradient-to-r from-neutral-200 to-neutral-500 hover:from-neutral-200 hover:to-neutral-500 disabled:from-white/10 disabled:to-white/5 disabled:text-white/30 disabled:shadow-none transition-all flex justify-center items-center gap-2 group relative overflow-hidden"
+              className="w-full py-3 rounded-lg font-semibold text-white bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 disabled:text-slate-500 transition-all flex justify-center items-center gap-2 cursor-pointer disabled:cursor-not-allowed shadow-sm active:scale-[0.99]"
             >
-              <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"></div>
-              <Printer size={20} className="relative z-10" />
-              <span className="relative z-10 tracking-wider">{t('PAY (F1 / Space)')}</span>
+              <Printer size={18} />
+              <span className="tracking-wide text-xs uppercase font-bold">{t('CHECKOUT (F1 / Space)')}</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Floating Cashier POS Keyboard Shortcuts Bar */}
-      <div className="flex items-center justify-center gap-6 text-[11px] font-bold text-gray-400 bg-black/40 border border-white/5 py-1.5 px-4 rounded-xl backdrop-blur-md self-center">
-        <span className="flex items-center gap-1.5"><kbd className="px-1.5 py-0.5 bg-white/10 text-white rounded font-mono border border-white/15">F1</kbd> or <kbd className="px-1.5 py-0.5 bg-white/10 text-white rounded font-mono border border-white/15">Space</kbd> Checkout</span>
-        <span className="text-white/20">•</span>
-        <span className="flex items-center gap-1.5"><kbd className="px-1.5 py-0.5 bg-white/10 text-white rounded font-mono border border-white/15">F2</kbd> Hold/Resume Order</span>
-        <span className="text-white/20">•</span>
-        <span className="flex items-center gap-1.5"><kbd className="px-1.5 py-0.5 bg-white/10 text-white rounded font-mono border border-white/15">F4</kbd> Search Catalog</span>
-        <span className="text-white/20">•</span>
-        <span className="flex items-center gap-1.5"><kbd className="px-1.5 py-0.5 bg-white/10 text-white rounded font-mono border border-white/15">Esc</kbd> Void / Close</span>
+      {/* Cashier POS Keyboard Shortcuts Bar */}
+      <div className="flex items-center justify-center gap-6 text-[11px] font-medium text-slate-400 bg-slate-900/80 border border-slate-800 py-1.5 px-4 rounded-lg self-center">
+        <span className="flex items-center gap-1.5"><kbd className="px-1.5 py-0.5 bg-slate-800 text-slate-200 rounded font-mono border border-slate-700 text-[10px]">F1</kbd> or <kbd className="px-1.5 py-0.5 bg-slate-800 text-slate-200 rounded font-mono border border-slate-700 text-[10px]">Space</kbd> Pay</span>
+        <span className="text-slate-700">•</span>
+        <span className="flex items-center gap-1.5"><kbd className="px-1.5 py-0.5 bg-slate-800 text-slate-200 rounded font-mono border border-slate-700 text-[10px]">F2</kbd> Hold/Resume</span>
+        <span className="text-slate-700">•</span>
+        <span className="flex items-center gap-1.5"><kbd className="px-1.5 py-0.5 bg-slate-800 text-slate-200 rounded font-mono border border-slate-700 text-[10px]">F4</kbd> Catalog</span>
+        <span className="text-slate-700">•</span>
+        <span className="flex items-center gap-1.5"><kbd className="px-1.5 py-0.5 bg-slate-800 text-slate-200 rounded font-mono border border-slate-700 text-[10px]">Esc</kbd> Void / Close</span>
       </div>
       
       {/* Navigation Bar at Bottom */}

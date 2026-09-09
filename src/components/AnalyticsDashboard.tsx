@@ -178,93 +178,93 @@ export const AnalyticsDashboard: React.FC = () => {
         </div>
 
         {/* Scope-based Financial Statistics Banner */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 mb-6">
           
           {/* Revenue */}
-          <div className="glass-panel p-5 rounded-2xl border-white/5 bg-white/5 relative overflow-hidden shadow-lg group hover:scale-[1.02] transition-transform duration-300">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-neutral-200 to-neutral-400"></div>
-            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-2">{scope.label} Sales Revenue</span>
-            <div className="flex items-center justify-between">
-              <h3 className="text-2xl font-black text-white font-mono drop-shadow-md">
-                Rs. {scope.revenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-              </h3>
-              <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-neutral-200">
-                <DollarSign size={16} />
+          <div className="enterprise-card p-4 rounded-xl relative overflow-hidden transition-all hover:border-slate-700">
+            <div className="flex items-center justify-between text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+              <span>{scope.label} Revenue</span>
+              <div className="w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center border border-indigo-500/20">
+                <DollarSign size={15} />
               </div>
             </div>
-            <div className="text-[10px] text-neutral-200 font-bold uppercase tracking-wider mt-3 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping"></span> Gross Sales
+            <div className="text-2xl font-bold text-slate-100 font-mono tabular-nums tracking-tight">
+              Rs. {scope.revenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            </div>
+            <div className="text-[11px] text-slate-400 mt-2 flex items-center gap-1.5 font-medium">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">GROSS</span>
+              <span>All payment methods</span>
             </div>
           </div>
 
           {/* Refunded */}
-          <div className="glass-panel p-5 rounded-2xl border-white/5 bg-white/5 relative overflow-hidden shadow-lg group hover:scale-[1.02] transition-transform duration-300">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-400 to-orange-500"></div>
-            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-2">{scope.label} Refunds</span>
-            <div className="flex items-center justify-between">
-              <h3 className="text-2xl font-black text-red-400 font-mono drop-shadow-md">
-                Rs. {scope.refunds.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-              </h3>
-              <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center text-red-400">
-                <ArrowDownRight size={16} />
+          <div className="enterprise-card p-4 rounded-xl relative overflow-hidden transition-all hover:border-slate-700">
+            <div className="flex items-center justify-between text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+              <span>{scope.label} Refunds</span>
+              <div className="w-7 h-7 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center border border-rose-500/20">
+                <ArrowDownRight size={15} />
               </div>
             </div>
-            <div className="text-[10px] text-red-400/70 font-bold uppercase tracking-wider mt-3">
-              Returned Capital
+            <div className="text-2xl font-bold text-rose-400 font-mono tabular-nums tracking-tight">
+              Rs. {scope.refunds.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            </div>
+            <div className="text-[11px] text-rose-400/80 mt-2 flex items-center gap-1.5 font-medium">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-500/15 text-rose-300 border border-rose-500/30">VOID</span>
+              <span>Returned Capital</span>
             </div>
           </div>
 
           {/* Expenses */}
-          <div className="glass-panel p-5 rounded-2xl border-white/5 bg-white/5 relative overflow-hidden shadow-lg group hover:scale-[1.02] transition-transform duration-300">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-400 to-orange-500"></div>
-            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-2">{scope.label} Expenses</span>
-            <div className="flex items-center justify-between">
-              <h3 className="text-2xl font-black text-amber-400 font-mono drop-shadow-md">
-                Rs. {scope.expenses.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-              </h3>
-              <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-400">
-                <Receipt size={16} />
+          <div className="enterprise-card p-4 rounded-xl relative overflow-hidden transition-all hover:border-slate-700">
+            <div className="flex items-center justify-between text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+              <span>{scope.label} Expenses</span>
+              <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20">
+                <Receipt size={15} />
               </div>
             </div>
-            <div className="text-[10px] text-amber-400/70 font-bold uppercase tracking-wider mt-3">
-              Mart Operational Costs
+            <div className="text-2xl font-bold text-amber-400 font-mono tabular-nums tracking-tight">
+              Rs. {scope.expenses.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            </div>
+            <div className="text-[11px] text-amber-400/80 mt-2 flex items-center gap-1.5 font-medium">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">OPEX</span>
+              <span>Store Operating Costs</span>
             </div>
           </div>
 
           {/* Profit */}
-          <div className="glass-panel p-5 rounded-2xl border-white/5 bg-white/5 relative overflow-hidden shadow-lg group hover:scale-[1.02] transition-transform duration-300">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-teal-500"></div>
-            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-2">{scope.label} Net Profit</span>
-            <div className="flex items-center justify-between">
-              <h3 className={`text-2xl font-black font-mono drop-shadow-md ${scope.profit >= 0 ? 'text-neutral-200' : 'text-red-400'}`}>
-                Rs. {scope.profit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-              </h3>
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${scope.profit >= 0 ? 'bg-white/10 text-neutral-200' : 'bg-red-500/10 text-red-400'}`}>
-                <ArrowUpRight size={16} />
+          <div className="enterprise-card p-4 rounded-xl relative overflow-hidden transition-all hover:border-slate-700">
+            <div className="flex items-center justify-between text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+              <span>{scope.label} Net Profit</span>
+              <div className={`w-7 h-7 rounded-lg flex items-center justify-center border ${scope.profit >= 0 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`}>
+                <ArrowUpRight size={15} />
               </div>
             </div>
-            <div className={`text-[10px] font-bold uppercase tracking-wider mt-3 flex items-center gap-1 ${scope.profit >= 0 ? 'text-neutral-200' : 'text-red-400'}`}>
-              Profit Margin: {scope.revenue > 0 ? ((scope.profit / scope.revenue) * 100).toFixed(1) : 0}%
+            <div className={`text-2xl font-bold font-mono tabular-nums tracking-tight ${scope.profit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+              Rs. {scope.profit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            </div>
+            <div className="text-[11px] text-slate-400 mt-2 flex items-center gap-1.5 font-medium">
+              <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold border ${scope.profit >= 0 ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' : 'bg-rose-500/15 text-rose-300 border-rose-500/30'}`}>
+                {scope.revenue > 0 ? ((scope.profit / scope.revenue) * 100).toFixed(1) : 0}% MARGIN
+              </span>
+              <span>Net After OPEX</span>
             </div>
           </div>
 
           {/* Orders Count */}
-          <div className="glass-panel p-5 rounded-2xl border-white/5 bg-white/5 relative overflow-hidden shadow-lg group hover:scale-[1.02] transition-transform duration-300">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-400 to-pink-500"></div>
-            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-2">{scope.label} Transactions</span>
-            <div className="flex items-center justify-between">
-              <h3 className="text-2xl font-black text-white font-mono drop-shadow-md">
-                {scope.orders} Orders
-              </h3>
-              <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-neutral-300">
-                <ShoppingBag size={16} />
+          <div className="enterprise-card p-4 rounded-xl relative overflow-hidden transition-all hover:border-slate-700">
+            <div className="flex items-center justify-between text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+              <span>{scope.label} Orders</span>
+              <div className="w-7 h-7 rounded-lg bg-slate-800 text-slate-300 flex items-center justify-center border border-slate-700">
+                <ShoppingBag size={15} />
               </div>
             </div>
-            <div className="text-[10px] text-neutral-300 font-bold uppercase tracking-wider mt-3">
-              Average Ticket: Rs. {scope.orders > 0 ? (scope.revenue / scope.orders).toFixed(2) : '0.00'}
+            <div className="text-2xl font-bold text-slate-100 font-mono tabular-nums tracking-tight">
+              {scope.orders} <span className="text-sm font-normal text-slate-400">Txns</span>
+            </div>
+            <div className="text-[11px] text-slate-400 mt-2 font-medium">
+              Avg Ticket: <span className="text-slate-200 font-mono font-semibold tabular-nums">Rs. {scope.orders > 0 ? (scope.revenue / scope.orders).toFixed(2) : '0.00'}</span>
             </div>
           </div>
-
         </div>
 
         {/* Charts & Trends Grid */}

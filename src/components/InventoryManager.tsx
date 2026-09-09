@@ -255,72 +255,86 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
           </div>
         </header>
 
-        <div className="flex-1 overflow-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+        <div className="flex-1 overflow-auto scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
           <table className="w-full text-left border-collapse">
-            <thead className="sticky top-0 bg-black/40 backdrop-blur-md z-10 shadow-md">
-              <tr className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-                <th className="p-5 pl-8 border-b border-white/5">Product</th>
-                <th className="p-5 border-b border-white/5">Category</th>
-                <th className="p-5 border-b border-white/5">Barcode</th>
-                <th className="p-5 text-right border-b border-white/5">Cost</th>
-                <th className="p-5 text-right border-b border-white/5">Sale Price</th>
-                <th className="p-5 text-right border-b border-white/5">Margin %</th>
-                <th className="p-5 text-right border-b border-white/5">Stock</th>
-                <th className="p-5 pr-8 text-center border-b border-white/5">Actions</th>
+            <thead className="sticky top-0 bg-slate-950/90 backdrop-blur-md z-10 border-b border-slate-800">
+              <tr className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                <th className="py-3 px-4 pl-6">Product Item</th>
+                <th className="py-3 px-4">Category</th>
+                <th className="py-3 px-4">Barcode</th>
+                <th className="py-3 px-4 text-right">Cost Price</th>
+                <th className="py-3 px-4 text-right">Selling Price</th>
+                <th className="py-3 px-4 text-right">Margin</th>
+                <th className="py-3 px-4 text-right">Inventory Stock</th>
+                <th className="py-3 px-4 pr-6 text-center">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-slate-800/60">
               {filteredProducts.map(p => {
                 const margin = p.price > 0 && p.cost_price >= 0 
                   ? ((p.price - p.cost_price) / p.price) * 100 
                   : 0;
+                const isOutOfStock = p.stock <= 0;
+                const isLowStock = p.stock > 0 && p.stock <= 5;
+                
                 return (
-                  <tr key={p.id} className="hover:bg-white/5 transition-colors group">
-                    <td className="p-5 pl-8 font-semibold text-gray-200">{p.name}</td>
-                    <td className="p-5">
-                      <span className="px-3 py-1 bg-black/40 border border-white/10 rounded-lg text-xs font-bold text-neutral-200 tracking-wider">
+                  <tr key={p.id} className="hover:bg-slate-800/30 transition-colors group">
+                    <td className="py-3 px-4 pl-6 font-semibold text-slate-100 text-sm leading-tight">{p.name}</td>
+                    <td className="py-3 px-4 text-xs">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-800/80 text-slate-300 border border-slate-700/50">
                         {p.category}
                       </span>
                     </td>
-                    <td className="p-5 font-mono text-sm text-gray-400 tracking-wider">{p.barcode}</td>
-                    <td className="p-5 text-right font-medium text-gray-400">Rs. {(p.cost_price || 0).toFixed(2)}</td>
-                    <td className="p-5 text-right font-bold text-white drop-shadow-md">Rs. {p.price.toFixed(2)}</td>
-                    <td className="p-5 text-right">
-                      <span className={`inline-block px-2.5 py-1 rounded-lg text-[10px] font-black tracking-wider border uppercase transition-all duration-300 ${
+                    <td className="py-3 px-4 font-mono text-xs text-slate-400 tabular-nums">{p.barcode}</td>
+                    <td className="py-3 px-4 text-right font-mono text-xs tabular-nums text-slate-400">Rs. {(p.cost_price || 0).toFixed(2)}</td>
+                    <td className="py-3 px-4 text-right font-mono text-sm font-bold tabular-nums text-slate-100">Rs. {p.price.toFixed(2)}</td>
+                    <td className="py-3 px-4 text-right font-mono text-xs tabular-nums">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border ${
                         margin >= 30 
-                          ? 'bg-white/10 text-neutral-200 border-emerald-500/20' 
+                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' 
                           : margin >= 15 
-                          ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' 
+                          ? 'bg-indigo-500/10 text-indigo-300 border-indigo-500/30' 
                           : margin > 0 
-                          ? 'bg-orange-500/10 text-orange-400 border-orange-500/20 animate-pulse' 
-                          : 'bg-red-500/10 text-red-400 border-red-500/20 animate-pulse'
+                          ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' 
+                          : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
                       }`}>
                         {margin.toFixed(1)}%
                       </span>
                     </td>
-                    <td className="p-5 text-right font-medium text-gray-300">{p.stock}</td>
-                    <td className="p-5 pr-8">
-                      <div className="flex items-center justify-center gap-2 opacity-30 group-hover:opacity-100 transition-opacity">
+                    <td className="py-3 px-4 text-right font-mono text-xs tabular-nums">
+                      <span className={`inline-flex items-center gap-1.5 font-bold ${
+                        isOutOfStock 
+                          ? 'text-rose-400' 
+                          : isLowStock 
+                          ? 'text-amber-400' 
+                          : 'text-slate-200'
+                      }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${isOutOfStock ? 'bg-rose-400' : isLowStock ? 'bg-amber-400' : 'bg-emerald-400'}`}></span>
+                        {p.stock} units
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 pr-6">
+                      <div className="flex items-center justify-center gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
                         <button 
                           onClick={() => handlePrintBarcode(p)}
-                          className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors border border-transparent hover:border-white/10"
+                          className="p-1.5 text-slate-400 hover:text-slate-100 hover:bg-slate-800 rounded-md transition-colors"
                           title="Print Barcode Label"
                         >
-                          <Printer size={18} />
+                          <Printer size={15} />
                         </button>
                         <button 
                           onClick={() => handleOpenEdit(p)}
-                          className="p-2 text-neutral-200 hover:text-white hover:bg-white/20 rounded-lg transition-colors border border-transparent hover:border-white/30"
+                          className="p-1.5 text-indigo-400 hover:text-indigo-200 hover:bg-indigo-500/15 rounded-md transition-colors"
                           title="Edit Product"
                         >
-                          <Edit2 size={18} />
+                          <Edit2 size={15} />
                         </button>
                         <button 
                           onClick={() => handleDelete(p.id, p.name)}
-                          className="p-2 text-red-400 hover:text-white hover:bg-red-500/20 rounded-lg transition-colors border border-transparent hover:border-red-500/30"
+                          className="p-1.5 text-rose-400 hover:text-rose-200 hover:bg-rose-500/15 rounded-md transition-colors"
                           title="Delete Product"
                         >
-                          <Trash2 size={18} />
+                          <Trash2 size={15} />
                         </button>
                       </div>
                     </td>
