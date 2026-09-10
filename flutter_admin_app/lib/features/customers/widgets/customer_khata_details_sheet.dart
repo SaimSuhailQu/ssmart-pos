@@ -379,93 +379,102 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                                         ),
                                         const SizedBox(width: 12),
                                         Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Row(
-                                                children: [
-                                                  Text(
-                                                    isPayment ? 'Wasool / Payment Recv ($paymentMethod)' : 'Udhaar Given (Loan)',
-                                                    style: TextStyle(
-                                                      color: isPayment ? AppTheme.successGreen : Colors.amber,
-                                                      fontWeight: FontWeight.bold,
-                                                      fontSize: 13,
-                                                    ),
-                                                  ),
-                                                  if (isEditable) ...[
-                                                    const SizedBox(width: 6),
-                                                    Container(
-                                                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-                                                      decoration: BoxDecoration(
-                                                        color: AppTheme.primaryCyan.withValues(alpha: 0.15),
-                                                        borderRadius: BorderRadius.circular(4),
-                                                        border: Border.all(color: AppTheme.primaryCyan.withValues(alpha: 0.3), width: 0.5),
-                                                      ),
-                                                      child: Text(
-                                                        '${minsRemaining}m edit',
-                                                        style: const TextStyle(color: AppTheme.primaryCyan, fontSize: 9, fontWeight: FontWeight.bold),
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Wrap(
+                                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                                  spacing: 6,
+                                                  runSpacing: 2,
+                                                  children: [
+                                                    Text(
+                                                      isPayment ? 'Wasool / Payment Recv ($paymentMethod)' : 'Udhaar Given (Loan)',
+                                                      style: TextStyle(
+                                                        color: isPayment ? AppTheme.successGreen : Colors.amber,
+                                                        fontWeight: FontWeight.bold,
+                                                        fontSize: 13,
                                                       ),
                                                     ),
+                                                    if (isEditable)
+                                                      Container(
+                                                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                                        decoration: BoxDecoration(
+                                                          color: AppTheme.primaryCyan.withValues(alpha: 0.15),
+                                                          borderRadius: BorderRadius.circular(4),
+                                                          border: Border.all(color: AppTheme.primaryCyan.withValues(alpha: 0.3), width: 0.5),
+                                                        ),
+                                                        child: Text(
+                                                          '${minsRemaining}m edit',
+                                                          style: const TextStyle(color: AppTheme.primaryCyan, fontSize: 9, fontWeight: FontWeight.bold),
+                                                        ),
+                                                      ),
                                                   ],
+                                                ),
+                                                if (notes.isNotEmpty) ...[
+                                                  const SizedBox(height: 2),
+                                                  Text(
+                                                    notes,
+                                                    style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                                                    maxLines: 2,
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
                                                 ],
-                                              ),
-                                              if (notes.isNotEmpty) ...[
                                                 const SizedBox(height: 2),
                                                 Text(
-                                                  notes,
-                                                  style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                                                  AppDateUtils.formatDateTime(parsedTime),
+                                                  style: const TextStyle(color: Colors.white38, fontSize: 11),
                                                 ),
                                               ],
-                                              const SizedBox(height: 2),
-                                              Text(
-                                                AppDateUtils.formatDateTime(parsedTime),
-                                                style: const TextStyle(color: Colors.white38, fontSize: 11),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Column(
+                                            crossAxisAlignment: CrossAxisAlignment.end,
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              FittedBox(
+                                                fit: BoxFit.scaleDown,
+                                                alignment: Alignment.centerRight,
+                                                child: Text(
+                                                  '${isPayment ? '-' : '+'}PKR ${amount.toStringAsFixed(0)}',
+                                                  style: TextStyle(
+                                                    color: isPayment ? AppTheme.successGreen : Colors.amber,
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.bold,
+                                                    fontFeatures: const [FontFeature.tabularFigures()],
+                                                  ),
+                                                ),
                                               ),
+                                              if (isEditable) ...[
+                                                const SizedBox(height: 4),
+                                                GestureDetector(
+                                                  onTap: () => _showEditEntryDialog(
+                                                    context,
+                                                    firebaseService: firebaseService,
+                                                    customerId: customer.id.toString(),
+                                                    entry: e,
+                                                    parsedTime: parsedTime,
+                                                  ),
+                                                  child: Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.white.withValues(alpha: 0.1),
+                                                      borderRadius: BorderRadius.circular(6),
+                                                      border: Border.all(color: Colors.white24, width: 0.5),
+                                                    ),
+                                                    child: const Row(
+                                                      mainAxisSize: MainAxisSize.min,
+                                                      children: [
+                                                        Icon(CupertinoIcons.pencil, size: 11, color: Colors.white),
+                                                        SizedBox(width: 3),
+                                                        Text('Edit', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
                                             ],
                                           ),
-                                        ),
-                                        Column(
-                                          crossAxisAlignment: CrossAxisAlignment.end,
-                                          children: [
-                                            Text(
-                                              '${isPayment ? '-' : '+'}PKR ${amount.toStringAsFixed(0)}',
-                                              style: TextStyle(
-                                                color: isPayment ? AppTheme.successGreen : Colors.amber,
-                                                fontSize: 15,
-                                                fontWeight: FontWeight.bold,
-                                                fontFeatures: const [FontFeature.tabularFigures()],
-                                              ),
-                                            ),
-                                            if (isEditable) ...[
-                                              const SizedBox(height: 4),
-                                              GestureDetector(
-                                                onTap: () => _showEditEntryDialog(
-                                                  context,
-                                                  firebaseService: firebaseService,
-                                                  customerId: customer.id.toString(),
-                                                  entry: e,
-                                                  parsedTime: parsedTime,
-                                                ),
-                                                child: Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.white.withValues(alpha: 0.1),
-                                                    borderRadius: BorderRadius.circular(6),
-                                                    border: Border.all(color: Colors.white24, width: 0.5),
-                                                  ),
-                                                  child: const Row(
-                                                    mainAxisSize: MainAxisSize.min,
-                                                    children: [
-                                                      Icon(CupertinoIcons.pencil, size: 11, color: Colors.white),
-                                                      SizedBox(width: 3),
-                                                      Text('Edit', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ],
-                                        ),
                                       ],
                                     ),
                                   ),

@@ -382,7 +382,10 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                                           child: Column(
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
-                                              Row(
+                                              Wrap(
+                                                crossAxisAlignment: WrapCrossAlignment.center,
+                                                spacing: 6,
+                                                runSpacing: 2,
                                                 children: [
                                                   Text(
                                                     isPayment ? 'Wasool / Payment Recv ($paymentMethod)' : 'Udhaar Given (Loan)',
@@ -392,8 +395,7 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                                                       fontSize: 13,
                                                     ),
                                                   ),
-                                                  if (isEditable) ...[
-                                                    const SizedBox(width: 6),
+                                                  if (isEditable)
                                                     Container(
                                                       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
                                                       decoration: BoxDecoration(
@@ -406,13 +408,14 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                                                         style: const TextStyle(color: AppTheme.primaryCyan, fontSize: 9, fontWeight: FontWeight.bold),
                                                       ),
                                                     ),
-                                                  ],
                                                 ],
                                               ),
                                               if (notes.isNotEmpty) ...[
                                                 const SizedBox(height: 2),
                                                 Text(
                                                   notes,
+                                                  maxLines: 2,
+                                                  overflow: TextOverflow.ellipsis,
                                                   style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
                                                 ),
                                               ],
@@ -424,16 +427,22 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                                             ],
                                           ),
                                         ),
+                                        const SizedBox(width: 8),
                                         Column(
                                           crossAxisAlignment: CrossAxisAlignment.end,
+                                          mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            Text(
-                                              '${isPayment ? '-' : '+'}PKR ${amount.toStringAsFixed(0)}',
-                                              style: TextStyle(
-                                                color: isPayment ? AppTheme.successGreen : Colors.amber,
-                                                fontSize: 15,
-                                                fontWeight: FontWeight.bold,
-                                                fontFeatures: const [FontFeature.tabularFigures()],
+                                            FittedBox(
+                                              fit: BoxFit.scaleDown,
+                                              alignment: Alignment.centerRight,
+                                              child: Text(
+                                                '${isPayment ? '-' : '+'}PKR ${amount.toStringAsFixed(0)}',
+                                                style: TextStyle(
+                                                  color: isPayment ? AppTheme.successGreen : Colors.amber,
+                                                  fontSize: 15,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontFeatures: const [FontFeature.tabularFigures()],
+                                                ),
                                               ),
                                             ),
                                             if (isEditable) ...[

@@ -359,10 +359,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 8,
+                    runSpacing: 8,
                     children: [
                       Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Container(
                             padding: const EdgeInsets.all(6),
@@ -373,7 +377,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             child: const Icon(
                               CupertinoIcons.sparkles,
                               color: AppTheme.successGreen,
-                              size: 18,
+                              size: 16,
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -388,26 +392,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ],
                       ),
                       Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           OutlinedButton.icon(
                             onPressed: () => ManualClosingDialog.show(context),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: AppTheme.successGreen,
                               side: const BorderSide(color: AppTheme.successGreen, width: 1),
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               minimumSize: Size.zero,
                               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
                             ),
-                            icon: const Icon(CupertinoIcons.plus, size: 13, color: AppTheme.successGreen),
+                            icon: const Icon(CupertinoIcons.plus, size: 12, color: AppTheme.successGreen),
                             label: const Text(
                               'Add Closing',
                               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 6),
                           ElevatedButton.icon(
                             onPressed: () {
                               final now = DateTime.now();
@@ -453,14 +458,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppTheme.successGreen,
                               foregroundColor: Colors.black,
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               minimumSize: Size.zero,
                               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
                             ),
-                            icon: const Icon(CupertinoIcons.doc_on_clipboard, size: 14, color: Colors.black),
+                            icon: const Icon(CupertinoIcons.doc_on_clipboard, size: 12, color: Colors.black),
                             label: const Text(
                               'Copy Note',
                               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
@@ -470,15 +475,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  const SizedBox(height: 12),
+                  Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    crossAxisAlignment: WrapCrossAlignment.end,
+                    spacing: 12,
+                    runSpacing: 8,
                     children: [
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            'Today\'s Total Sales',
+                            'Today\'s Total Closing Sales',
                             style: AppTheme.bodySmall.copyWith(color: AppTheme.textSecondary),
                           ),
                           const SizedBox(height: 2),
@@ -488,6 +497,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               color: Colors.white,
                               fontWeight: FontWeight.w900,
                               fontSize: 22,
+                              fontFeatures: const [FontFeature.tabularFigures()],
                             ),
                           ),
                         ],
@@ -546,7 +556,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               crossAxisCount: 2,
               mainAxisSpacing: AppTheme.spacingM,
               crossAxisSpacing: AppTheme.spacingM,
-              childAspectRatio: MediaQuery.of(context).size.width < 390 ? 1.2 : 1.3,
+              childAspectRatio: MediaQuery.of(context).size.width < 390 ? 1.05 : 1.15,
               children: [
                 MetricCard(
                   label: 'Total Revenue',
