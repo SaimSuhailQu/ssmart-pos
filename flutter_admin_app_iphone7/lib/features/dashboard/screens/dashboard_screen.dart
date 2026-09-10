@@ -20,6 +20,7 @@ import 'package:ssmart_pos_admin/services/auth_service.dart';
 import 'package:ssmart_pos_admin/services/firebase_service.dart';
 import 'package:ssmart_pos_admin/widgets/error_widget.dart';
 import 'package:ssmart_pos_admin/widgets/loading_indicator.dart';
+import 'package:ssmart_pos_admin/widgets/manual_closing_dialog.dart';
 
 /// Main dashboard screen showing sales metrics and recent transactions
 class DashboardScreen extends StatefulWidget {
@@ -386,63 +387,86 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                         ],
                       ),
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          final now = DateTime.now();
-                          final dateFormatted = '${now.day}/${now.month}/${now.year}';
-                          final timeFormatted = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
-                          
-                          // Payment breakdown
-                          final cashRev = todaysMetrics.revenueByPaymentMethod.entries
-                              .where((e) => e.key.toLowerCase().contains('cash'))
-                              .fold<double>(0.0, (sum, e) => sum + e.value);
-                          final onlineRev = todaysMetrics.revenueByPaymentMethod.entries
-                              .where((e) => e.key.toLowerCase().contains('online') || e.key.toLowerCase().contains('bank') || e.key.toLowerCase().contains('card') || e.key.toLowerCase().contains('jazz') || e.key.toLowerCase().contains('easy'))
-                              .fold<double>(0.0, (sum, e) => sum + e.value);
-                          final khataRev = todaysMetrics.revenueByPaymentMethod.entries
-                              .where((e) => e.key.toLowerCase().contains('khata') || e.key.toLowerCase().contains('credit'))
-                              .fold<double>(0.0, (sum, e) => sum + e.value);
-
-                          final text = '🏪 *SS MART & GENERAL STORE*\n'
-                              '📅 *DAILY CLOSING SALES NOTE*\n'
-                              '──────────────────────\n'
-                              '🗓️ *Date:* $dateFormatted\n'
-                              '⏰ *Time Recorded:* $timeFormatted\n'
-                              '──────────────────────\n'
-                              '📦 *Total Orders Completed:* ${todaysMetrics.transactionCount}\n'
-                              '✨ *NET DAILY SALES:* Rs. ${todaysMetrics.totalRevenue.toStringAsFixed(2)}\n'
-                              '──────────────────────\n'
-                              '💳 *PAYMENT BREAKDOWN:*\n'
-                              '• Cash in Drawer: Rs. ${cashRev.toStringAsFixed(2)}\n'
-                              '• Online / Bank / Card: Rs. ${onlineRev.toStringAsFixed(2)}\n'
-                              '• Khata / Credit: Rs. ${khataRev.toStringAsFixed(2)}\n'
-                              '──────────────────────\n'
-                              '✅ *Generated via SSmart Admin Mobile*';
-
-                          Clipboard.setData(ClipboardData(text: text));
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('✅ Daily closing note copied to clipboard!'),
-                              backgroundColor: AppTheme.successGreen,
-                              duration: Duration(seconds: 2),
+                      Row(
+                        children: [
+                          OutlinedButton.icon(
+                            onPressed: () => ManualClosingDialog.show(context),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppTheme.successGreen,
+                              side: const BorderSide(color: AppTheme.successGreen, width: 1),
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
                             ),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.successGreen,
-                          foregroundColor: Colors.black,
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            icon: const Icon(CupertinoIcons.plus, size: 13, color: AppTheme.successGreen),
+                            label: const Text(
+                              'Add Closing',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+                            ),
                           ),
-                        ),
-                        icon: const Icon(CupertinoIcons.doc_on_clipboard, size: 14, color: Colors.black),
-                        label: const Text(
-                          'Copy Note',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
-                        ),
+                          const SizedBox(width: 8),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              final now = DateTime.now();
+                              final dateFormatted = '${now.day}/${now.month}/${now.year}';
+                              final timeFormatted = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+                              
+                              // Payment breakdown
+                              final cashRev = todaysMetrics.revenueByPaymentMethod.entries
+                                  .where((e) => e.key.toLowerCase().contains('cash'))
+                                  .fold<double>(0.0, (sum, e) => sum + e.value);
+                              final onlineRev = todaysMetrics.revenueByPaymentMethod.entries
+                                  .where((e) => e.key.toLowerCase().contains('online') || e.key.toLowerCase().contains('bank') || e.key.toLowerCase().contains('card') || e.key.toLowerCase().contains('jazz') || e.key.toLowerCase().contains('easy'))
+                                  .fold<double>(0.0, (sum, e) => sum + e.value);
+                              final khataRev = todaysMetrics.revenueByPaymentMethod.entries
+                                  .where((e) => e.key.toLowerCase().contains('khata') || e.key.toLowerCase().contains('credit'))
+                                  .fold<double>(0.0, (sum, e) => sum + e.value);
+
+                              final text = '🏪 *SS MART & GENERAL STORE*\n'
+                                  '📅 *DAILY CLOSING SALES NOTE*\n'
+                                  '──────────────────────\n'
+                                  '🗓️ *Date:* $dateFormatted\n'
+                                  '⏰ *Time Recorded:* $timeFormatted\n'
+                                  '──────────────────────\n'
+                                  '📦 *Total Orders Completed:* ${todaysMetrics.transactionCount}\n'
+                                  '✨ *NET DAILY SALES:* Rs. ${todaysMetrics.totalRevenue.toStringAsFixed(2)}\n'
+                                  '──────────────────────\n'
+                                  '💳 *PAYMENT BREAKDOWN:*\n'
+                                  '• Cash in Drawer: Rs. ${cashRev.toStringAsFixed(2)}\n'
+                                  '• Online / Bank / Card: Rs. ${onlineRev.toStringAsFixed(2)}\n'
+                                  '• Khata / Credit: Rs. ${khataRev.toStringAsFixed(2)}\n'
+                                  '──────────────────────\n'
+                                  '✅ *Generated via SSmart Admin Mobile*';
+
+                              Clipboard.setData(ClipboardData(text: text));
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('✅ Daily closing note copied to clipboard!'),
+                                  backgroundColor: AppTheme.successGreen,
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.successGreen,
+                              foregroundColor: Colors.black,
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            icon: const Icon(CupertinoIcons.doc_on_clipboard, size: 14, color: Colors.black),
+                            label: const Text(
+                              'Copy Note',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),

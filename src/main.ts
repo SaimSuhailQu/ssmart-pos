@@ -10,9 +10,9 @@ import { initDb, getAllProducts, getProductByBarcode, saveSale, getNextSaleId, a
   getAllVendors, addVendor, updateVendor, deleteVendor,
   getAllPurchaseOrders, createPurchaseOrder, receivePurchaseOrder, deletePurchaseOrder,
   addVendorPayment, deleteVendorPayment, updateVendorPayment, deleteVendorOrderEntry, updateVendorOrderEntry,
-  getVendorPayments, getVendorOrderEntries } from './db';
+  getVendorPayments, getVendorOrderEntries, addManualDailyClosingSale } from './db';
 import { printReceipt, printBarcode } from './printer';
-import { startSyncWorker, syncProductsToCloud, syncCustomersToCloud, syncCustomerKhataToCloud, clearAllKhataFromCloudAndLocal, syncVendorsToCloud, syncExpensesToCloud } from './syncEngine';
+import { startSyncWorker, syncProductsToCloud, syncCustomersToCloud, syncCustomerKhataToCloud, clearAllKhataFromCloudAndLocal, syncVendorsToCloud, syncExpensesToCloud, syncSalesToCloud } from './syncEngine';
 import { sendWhatsAppMessage } from './whatsappService';
 import { setupAutoUpdater, checkForUpdatesManual, quitAndInstallUpdate } from './updater';
 
@@ -124,6 +124,17 @@ ipcMain.handle('checkout', async (event, data) => {
     return { success: true, saleId };
   } catch (err: any) {
     console.error('Checkout error:', err);
+    throw new Error(err.message);
+  }
+});
+
+ipcMain.handle('add-manual-closing-sale', async (event, data) => {
+  try {
+    const saleId = addManualDailyClosingSale(data);
+    syncSalesToCloud(true).catch(e => console.warn('Sync sales error on manual closing:', e));
+    return { success: true, saleId };
+  } catch (err: any) {
+    console.error('Add manual closing sale error:', err);
     throw new Error(err.message);
   }
 });

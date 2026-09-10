@@ -500,6 +500,63 @@ export function saveSale(items: any[], paymentData: { subtotal: number, tax: num
   return saleId;
 }
 
+export function addManualDailyClosingSale(data: {
+  total: number;
+  cashAmount?: number;
+  onlineAmount?: number;
+  notes?: string;
+  date?: string;
+  cashierName?: string;
+}) {
+  const insertSale = db.prepare(`
+    INSERT INTO sales (subtotal, tax, discount, total, payment_method, amount_tendered, change_given, timestamp, synced, status)
+    VALUES (?, 0, 0, ?, ?, ?, 0, ?, 0, 'Completed')
+  `);
+  const insertSaleItem = db.prepare('INSERT INTO sale_items (sale_id, product_id, qty, price) VALUES (?, ?, ?, ?)');
+  const insertPayment = db.prepare('INSERT INTO payments (sale_id, method, amount) VALUES (?, ?, ?)');
+
+  const cash = Number(data.cashAmount) || 0;
+  const online = Number(data.onlineAmount) || 0;
+  const total = Number(data.total) > 0 ? Number(data.total) : (cash + online);
+
+  // Default payment method
+  let primaryMethod = 'Cash';
+  if (online > 0 && cash > 0) {
+    primaryMethod = 'Split';
+  } else if (online > 0 && cash === 0) {
+    primaryMethod = 'Online / Bank';
+  }
+
+  // Ensure a generic item exists or get generic product id
+  let genericProd = db.prepare('SELECT id FROM products WHERE barcode = ?').get('MANUAL-CLOSING') as any;
+  if (!genericProd) {
+    const info = db.prepare('INSERT INTO products (name, barcode, price, cost_price, stock, category) VALUES (?, ?, ?, ?, ?, ?)')
+      .run('Daily Closing Sales Total', 'MANUAL-CLOSING', total, 0, 999999, 'Daily Closing');
+    genericProd = { id: info.lastInsertRowid };
+  }
+
+  const timestamp = data.date ? `${data.date.split('T')[0]} 23:59:59` : new Date().toISOString().replace('T', ' ').substring(0, 19);
+
+  let saleId = 0;
+  db.transaction(() => {
+    const info = insertSale.run(total, total, primaryMethod, total, timestamp);
+    saleId = info.lastInsertRowid as number;
+
+    insertSaleItem.run(saleId, genericProd.id, 1, total);
+
+    if (cash > 0 && online > 0) {
+      insertPayment.run(saleId, 'Cash', cash);
+      insertPayment.run(saleId, 'Online / Bank', online);
+    } else if (online > 0) {
+      insertPayment.run(saleId, 'Online / Bank', online);
+    } else {
+      insertPayment.run(saleId, 'Cash', total);
+    }
+  })();
+
+  return saleId;
+}
+
 export function getNextSaleId() {
   const row = db.prepare('SELECT MAX(id) as maxId FROM sales').get() as { maxId: number | null };
   return (row.maxId || 0) + 1;

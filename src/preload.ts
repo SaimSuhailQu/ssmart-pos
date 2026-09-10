@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('api', {
   getProduct: (barcode: string) => ipcRenderer.invoke('get-product', barcode),
   getNextSaleId: () => ipcRenderer.invoke('get-next-sale-id'),
   checkout: (data: any) => ipcRenderer.invoke('checkout', data),
+  addManualDailyClosingSale: (data: any) => ipcRenderer.invoke('add-manual-closing-sale', data),
   addProduct: (product: any) => ipcRenderer.invoke('add-product', product),
   bulkAddProducts: (productsList: any[]) => ipcRenderer.invoke('bulk-add-products', productsList),
   updateProduct: (id: number, product: any) => ipcRenderer.invoke('update-product', id, product),

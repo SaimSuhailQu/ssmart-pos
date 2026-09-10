@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Sale, SaleItemDetails } from '../types';
-import { Search, Receipt, Calendar, User, Undo2, CheckCircle, Ban, ArrowRightLeft, DollarSign, X, ShoppingBag, Printer, Copy, Sparkles, TrendingUp, Wallet } from 'lucide-react';
+import { Search, Receipt, Calendar, User, Undo2, CheckCircle, Ban, ArrowRightLeft, DollarSign, X, ShoppingBag, Printer, Copy, Sparkles, TrendingUp, Wallet, PlusCircle } from 'lucide-react';
 
 export const SalesRecordManager: React.FC = () => {
   const [sales, setSales] = useState<Sale[]>([]);
@@ -14,6 +14,15 @@ export const SalesRecordManager: React.FC = () => {
   
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // Manual Daily Closing Sale Modal state
+  const [showManualClosingModal, setShowManualClosingModal] = useState(false);
+  const [closingTotal, setClosingTotal] = useState('');
+  const [closingCash, setClosingCash] = useState('');
+  const [closingOnline, setClosingOnline] = useState('');
+  const [closingDate, setClosingDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [closingNotes, setClosingNotes] = useState('');
+  const [isSubmittingClosing, setIsSubmittingClosing] = useState(false);
 
   const loadSales = async () => {
     try {
@@ -229,19 +238,30 @@ export const SalesRecordManager: React.FC = () => {
           )}
         </div>
 
-        {/* Copy Note Button */}
-        <button
-          onClick={handleCopyDailyNote}
-          className={`px-3.5 py-2 rounded-lg font-medium text-xs flex items-center gap-2 transition cursor-pointer active:scale-95 flex-shrink-0 ${
-            copiedNote 
-              ? 'bg-emerald-500 text-slate-950 font-bold' 
-              : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm'
-          }`}
-          title="Copies a formatted daily closing note to clipboard for WhatsApp/SMS"
-        >
-          {copiedNote ? <CheckCircle size={15} /> : <Copy size={15} />}
-          <span>{copiedNote ? 'Note Copied!' : 'Copy Daily Note'}</span>
-        </button>
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button
+            onClick={() => setShowManualClosingModal(true)}
+            className="px-3.5 py-2 rounded-lg font-medium text-xs flex items-center gap-2 transition cursor-pointer active:scale-95 bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm"
+            title="Manually log daily closing sales directly into the ledger"
+          >
+            <PlusCircle size={15} />
+            <span>+ Add Daily Closing</span>
+          </button>
+
+          <button
+            onClick={handleCopyDailyNote}
+            className={`px-3.5 py-2 rounded-lg font-medium text-xs flex items-center gap-2 transition cursor-pointer active:scale-95 ${
+              copiedNote 
+                ? 'bg-emerald-500 text-slate-950 font-bold' 
+                : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm'
+            }`}
+            title="Copies a formatted daily closing note to clipboard for WhatsApp/SMS"
+          >
+            {copiedNote ? <CheckCircle size={15} /> : <Copy size={15} />}
+            <span>{copiedNote ? 'Note Copied!' : 'Copy Daily Note'}</span>
+          </button>
+        </div>
       </div>
 
       {/* Top statistics banners */}
@@ -617,6 +637,152 @@ export const SalesRecordManager: React.FC = () => {
               </div>
 
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Manual Daily Closing Sale Modal */}
+      {showManualClosingModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
+          <div className="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl flex flex-col">
+            <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950/60">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                  <Sparkles size={16} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-white text-sm">Add Daily Closing Sale</h3>
+                  <p className="text-[11px] text-slate-400">Log closing revenue manually into the sales ledger</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowManualClosingModal(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const totalNum = parseFloat(closingTotal) || (parseFloat(closingCash) || 0) + (parseFloat(closingOnline) || 0);
+                if (totalNum <= 0) {
+                  alert('Please enter a valid closing sales amount greater than 0');
+                  return;
+                }
+
+                setIsSubmittingClosing(true);
+                try {
+                  await window.api.addManualDailyClosingSale({
+                    total: totalNum,
+                    cashAmount: parseFloat(closingCash) || 0,
+                    onlineAmount: parseFloat(closingOnline) || 0,
+                    date: closingDate,
+                    notes: closingNotes.trim() || 'Manual Daily Closing Sales Note',
+                  });
+
+                  setShowManualClosingModal(false);
+                  setClosingTotal('');
+                  setClosingCash('');
+                  setClosingOnline('');
+                  setClosingNotes('');
+                  await loadSales();
+                } catch (err: any) {
+                  alert(`Failed to add closing sale: ${err.message}`);
+                } finally {
+                  setIsSubmittingClosing(false);
+                }
+              }}
+              className="p-5 space-y-4"
+            >
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                  Closing Date
+                </label>
+                <input 
+                  type="date"
+                  value={closingDate}
+                  onChange={e => setClosingDate(e.target.value)}
+                  className="w-full glass-input rounded-xl px-3 py-2 text-xs text-white"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                  Net Closing Sales Total (Rs.) *
+                </label>
+                <input 
+                  type="number"
+                  step="any"
+                  placeholder="e.g. 25000"
+                  value={closingTotal}
+                  onChange={e => setClosingTotal(e.target.value)}
+                  className="w-full glass-input rounded-xl px-3.5 py-2.5 text-sm font-bold text-emerald-400 font-mono"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-400 mb-1">
+                    Cash in Drawer (Rs.)
+                  </label>
+                  <input 
+                    type="number"
+                    step="any"
+                    placeholder="Optional"
+                    value={closingCash}
+                    onChange={e => setClosingCash(e.target.value)}
+                    className="w-full glass-input rounded-lg px-3 py-2 text-xs font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-400 mb-1">
+                    Online / Card (Rs.)
+                  </label>
+                  <input 
+                    type="number"
+                    step="any"
+                    placeholder="Optional"
+                    value={closingOnline}
+                    onChange={e => setClosingOnline(e.target.value)}
+                    className="w-full glass-input rounded-lg px-3 py-2 text-xs font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-medium text-slate-400 mb-1">
+                  Notes / Register Info (Optional)
+                </label>
+                <input 
+                  type="text"
+                  placeholder="e.g. Evening shift closing register"
+                  value={closingNotes}
+                  onChange={e => setClosingNotes(e.target.value)}
+                  className="w-full glass-input rounded-lg px-3 py-2 text-xs"
+                />
+              </div>
+
+              <div className="pt-2 flex justify-end gap-2.5 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setShowManualClosingModal(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingClosing}
+                  className="px-5 py-2 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-md transition active:scale-95 disabled:opacity-50"
+                >
+                  {isSubmittingClosing ? 'Saving...' : 'Save Closing Sale'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -162,6 +162,7 @@ declare global {
       getProduct: (barcode: string) => Promise<Product | undefined>;
       getNextSaleId: () => Promise<number>;
       checkout: (data: { items: CartItem[], paymentData: PaymentData, userId?: number, cashierName?: string }) => Promise<{ success: boolean; saleId: number }>;
+      addManualDailyClosingSale: (data: { total: number; cashAmount?: number; onlineAmount?: number; notes?: string; date?: string; cashierName?: string }) => Promise<{ success: boolean; saleId: number }>;
       addProduct: (product: Omit<Product, 'id'>) => Promise<number>;
       bulkAddProducts: (productsList: Array<Omit<Product, 'id'>>) => Promise<number>;
       updateProduct: (id: number, product: Omit<Product, 'id'>) => Promise<boolean>;

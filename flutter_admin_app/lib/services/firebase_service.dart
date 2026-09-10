@@ -681,6 +681,63 @@ class FirebaseService {
     return sale;
   }
 
+  /// Manually log a Daily Closing Sale transaction
+  Future<Sale> saveManualDailyClosingSale({
+    required double total,
+    double cashAmount = 0.0,
+    double onlineAmount = 0.0,
+    DateTime? date,
+    String? notes,
+    String cashierName = 'Admin (Manual Closing)',
+  }) async {
+    final String saleId = DateTime.now().millisecondsSinceEpoch.toString();
+    final DateTime closingDate = date ?? DateTime.now();
+    final String timestamp = closingDate.toIso8601String();
+
+    String paymentMethod = 'Cash';
+    final List<PaymentDetail> payments = [];
+
+    if (cashAmount > 0 && onlineAmount > 0) {
+      paymentMethod = 'Split';
+      payments.add(PaymentDetail(method: 'Cash', amount: cashAmount));
+      payments.add(PaymentDetail(method: 'Online / Bank', amount: onlineAmount));
+    } else if (onlineAmount > 0) {
+      paymentMethod = 'Online / Bank';
+      payments.add(PaymentDetail(method: 'Online / Bank', amount: total));
+    } else {
+      paymentMethod = 'Cash';
+      payments.add(PaymentDetail(method: 'Cash', amount: total));
+    }
+
+    final closingItem = SaleItem(
+      productId: 0,
+      productName: notes?.isNotEmpty == true ? 'Daily Closing: $notes' : 'Daily Closing Sales Note',
+      productCategory: 'Daily Closing',
+      productBarcode: 'MANUAL-CLOSING',
+      quantity: 1,
+      price: total,
+    );
+
+    final sale = Sale(
+      id: saleId,
+      subtotal: total,
+      discount: 0,
+      tax: 0,
+      total: total,
+      paymentMethod: paymentMethod,
+      amountTendered: total,
+      changeGiven: 0,
+      timestamp: timestamp,
+      storeBranch: 'Main Store Register',
+      userName: cashierName,
+      items: [closingItem],
+      payments: payments,
+    );
+
+    await _database.ref('${FirebasePaths.sales}/$saleId').set(sale.toJson());
+    return sale;
+  }
+
   /// Customer & Khata CRUD
   Future<void> saveCustomer({
     String? id,

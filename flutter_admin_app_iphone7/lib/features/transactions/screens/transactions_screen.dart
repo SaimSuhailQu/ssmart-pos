@@ -9,6 +9,7 @@ import 'package:ssmart_pos_admin/models/sale.dart';
 import 'package:ssmart_pos_admin/services/firebase_service.dart';
 import 'package:ssmart_pos_admin/widgets/error_widget.dart';
 import 'package:ssmart_pos_admin/widgets/loading_indicator.dart';
+import 'package:ssmart_pos_admin/widgets/manual_closing_dialog.dart';
 
 /// Screen displaying all transactions with filtering and search
 class TransactionsScreen extends StatefulWidget {
@@ -90,6 +91,13 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           icon: const Icon(CupertinoIcons.back),
           onPressed: () => Navigator.pop(context),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(CupertinoIcons.calendar_badge_plus),
+            tooltip: 'Add Daily Closing Sale',
+            onPressed: () => ManualClosingDialog.show(context),
+          ),
+        ],
       ),
       body: Column(
         children: [
