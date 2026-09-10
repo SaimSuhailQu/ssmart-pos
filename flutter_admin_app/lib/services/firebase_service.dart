@@ -826,6 +826,69 @@ class FirebaseService {
     }
   }
 
+  /// Update an existing Customer Khata entry (allowed within 30 minutes of creation)
+  Future<void> updateKhataTransaction({
+    required String customerId,
+    required String entryKey,
+    required double newAmount,
+    String? notes,
+    String? paymentMethod,
+  }) async {
+    final entryRef = _database.ref('customer_khata/$customerId/$entryKey');
+    final snap = await entryRef.get();
+    if (!snap.exists || snap.value == null) {
+      throw Exception('Khata transaction record not found.');
+    }
+
+    final entryData = Map<String, dynamic>.from(snap.value as Map);
+    final timestampStr = entryData['timestamp']?.toString();
+    final entryTime = AppDateUtils.parseDateTime(timestampStr);
+
+    if (entryTime != null) {
+      final diff = DateTime.now().difference(entryTime.isUtc ? entryTime.toLocal() : entryTime);
+      if (diff.inMinutes > 30) {
+        throw Exception('Khata entries can only be edited within 30 minutes of creation.');
+      }
+    }
+
+    final Map<String, dynamic> updates = {
+      'amount': newAmount,
+    };
+    if (notes != null) updates['notes'] = notes;
+    if (paymentMethod != null) updates['payment_method'] = paymentMethod;
+
+    await entryRef.update(updates);
+
+    // Recalculate customer balance from all entries
+    try {
+      final khataSnap = await _database.ref('customer_khata/$customerId').get();
+      if (khataSnap.exists && khataSnap.value != null) {
+        double calcBal = 0.0;
+        final data = khataSnap.value;
+        void processEntry(Map map) {
+          final eType = map['type']?.toString().toUpperCase() ?? 'LOAN';
+          final double eAmt = (map['amount'] is num)
+              ? (map['amount'] as num).toDouble()
+              : (double.tryParse(map['amount']?.toString() ?? '0') ?? 0.0);
+          calcBal += (eType == 'LOAN' ? eAmt : -eAmt);
+        }
+
+        if (data is Map) {
+          data.forEach((_, v) {
+            if (v is Map) processEntry(v);
+          });
+        } else if (data is List) {
+          for (final v in data) {
+            if (v is Map) processEntry(v);
+          }
+        }
+        await _database.ref('${FirebasePaths.customers}/$customerId/balance').set(calcBal);
+      }
+    } catch (e) {
+      print('Recalculate balance on edit warning: $e');
+    }
+  }
+
   Future<void> clearAllKhataRecords() async {
     // 1. Remove all audit entries
     await _database.ref('customer_khata').remove();

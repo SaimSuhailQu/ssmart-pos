@@ -252,6 +252,9 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
 
                                 final parsedTime = AppDateUtils.parseDateTime(timestamp) ?? DateTime.now();
 
+                                final bool isEditable = DateTime.now().difference(parsedTime.isUtc ? parsedTime.toLocal() : parsedTime).inMinutes <= 30;
+                                final int minsRemaining = (30 - DateTime.now().difference(parsedTime.isUtc ? parsedTime.toLocal() : parsedTime).inMinutes).clamp(0, 30);
+
                                 return Container(
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
@@ -280,13 +283,32 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                                         child: Column(
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            Text(
-                                              isPayment ? 'Wasool / Payment Recv ($paymentMethod)' : 'Udhaar Given (Loan)',
-                                              style: TextStyle(
-                                                color: isPayment ? AppTheme.successGreen : Colors.amber,
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 13,
-                                              ),
+                                            Row(
+                                              children: [
+                                                Text(
+                                                  isPayment ? 'Wasool / Payment Recv ($paymentMethod)' : 'Udhaar Given (Loan)',
+                                                  style: TextStyle(
+                                                    color: isPayment ? AppTheme.successGreen : Colors.amber,
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 13,
+                                                  ),
+                                                ),
+                                                if (isEditable) ...[
+                                                  const SizedBox(width: 6),
+                                                  Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                                    decoration: BoxDecoration(
+                                                      color: AppTheme.primaryCyan.withValues(alpha: 0.15),
+                                                      borderRadius: BorderRadius.circular(4),
+                                                      border: Border.all(color: AppTheme.primaryCyan.withValues(alpha: 0.3), width: 0.5),
+                                                    ),
+                                                    child: Text(
+                                                      '${minsRemaining}m edit',
+                                                      style: const TextStyle(color: AppTheme.primaryCyan, fontSize: 9, fontWeight: FontWeight.bold),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ],
                                             ),
                                             if (notes.isNotEmpty) ...[
                                               const SizedBox(height: 2),
@@ -303,13 +325,46 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                                           ],
                                         ),
                                       ),
-                                      Text(
-                                        '${isPayment ? '-' : '+'}PKR ${amount.toStringAsFixed(0)}',
-                                        style: TextStyle(
-                                          color: isPayment ? AppTheme.successGreen : Colors.amber,
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.bold,
-                                        ),
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                        children: [
+                                          Text(
+                                            '${isPayment ? '-' : '+'}PKR ${amount.toStringAsFixed(0)}',
+                                            style: TextStyle(
+                                              color: isPayment ? AppTheme.successGreen : Colors.amber,
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          if (isEditable) ...[
+                                            const SizedBox(height: 4),
+                                            GestureDetector(
+                                              onTap: () => _showEditEntryDialog(
+                                                context,
+                                                firebaseService: firebaseService,
+                                                customerId: customer.id.toString(),
+                                                entry: e,
+                                                parsedTime: parsedTime,
+                                              ),
+                                              child: Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.white.withValues(alpha: 0.1),
+                                                  borderRadius: BorderRadius.circular(6),
+                                                  border: Border.all(color: Colors.white24, width: 0.5),
+                                                ),
+                                                child: const Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    Icon(CupertinoIcons.pencil, size: 11, color: Colors.white),
+                                                    SizedBox(width: 3),
+                                                    Text('Edit', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ],
                                       ),
                                     ],
                                   ),
@@ -323,6 +378,196 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showEditEntryDialog(
+    BuildContext context, {
+    required FirebaseService firebaseService,
+    required String customerId,
+    required Map<String, dynamic> entry,
+    required DateTime parsedTime,
+  }) {
+    final diff = DateTime.now().difference(parsedTime.isUtc ? parsedTime.toLocal() : parsedTime);
+    if (diff.inMinutes > 30) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('This entry was recorded more than 30 minutes ago and cannot be edited.'),
+          backgroundColor: AppTheme.errorRed,
+        ),
+      );
+      return;
+    }
+
+    final entryKey = entry['key']?.toString() ?? entry['sync_id']?.toString() ?? entry['id']?.toString() ?? '';
+    final isPayment = (entry['type']?.toString().toUpperCase() ?? 'LOAN') == 'PAYMENT';
+    final double currentAmt = (entry['amount'] is num)
+        ? (entry['amount'] as num).toDouble()
+        : (double.tryParse(entry['amount']?.toString() ?? '0') ?? 0.0);
+
+    final amountCtrl = TextEditingController(text: currentAmt > 0 ? currentAmt.toStringAsFixed(0) : '');
+    final notesCtrl = TextEditingController(text: entry['notes']?.toString() ?? '');
+    String paymentMethod = entry['payment_method']?.toString() ?? 'Cash';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) => Container(
+          decoration: const BoxDecoration(
+            color: AppTheme.surfaceDark,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom + AppTheme.spacingL,
+            top: AppTheme.spacingL,
+            left: AppTheme.spacingL,
+            right: AppTheme.spacingL,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(CupertinoIcons.pencil_circle_fill, color: AppTheme.primaryCyan, size: 24),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Edit ${isPayment ? 'Wasool' : 'Udhaar'} Entry',
+                          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Colors.white),
+                        ),
+                      ],
+                    ),
+                    IconButton(
+                      icon: const Icon(CupertinoIcons.xmark_circle_fill, color: AppTheme.textSecondary),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Entries can be edited within 30 minutes to correct accidental mistakes.',
+                  style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                ),
+                const SizedBox(height: AppTheme.spacingM),
+
+                TextField(
+                  controller: amountCtrl,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  autofocus: true,
+                  style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                  decoration: InputDecoration(
+                    labelText: 'Corrected Amount (PKR) *',
+                    prefixIcon: const Icon(CupertinoIcons.money_dollar),
+                    filled: true,
+                    fillColor: AppTheme.cardBackground,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Colors.white12),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppTheme.spacingM),
+
+                if (isPayment) ...[
+                  DropdownButtonFormField<String>(
+                    value: ['Cash', 'Bank Transfer', 'JazzCash / EasyPaisa', 'Card'].contains(paymentMethod)
+                        ? paymentMethod
+                        : 'Cash',
+                    dropdownColor: AppTheme.surfaceDark,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      labelText: 'Payment Method',
+                      prefixIcon: const Icon(CupertinoIcons.creditcard),
+                      filled: true,
+                      fillColor: AppTheme.cardBackground,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Colors.white12),
+                      ),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'Cash', child: Text('Cash')),
+                      DropdownMenuItem(value: 'Bank Transfer', child: Text('Bank Transfer / Online')),
+                      DropdownMenuItem(value: 'JazzCash / EasyPaisa', child: Text('JazzCash / EasyPaisa')),
+                      DropdownMenuItem(value: 'Card', child: Text('Card')),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) setModalState(() => paymentMethod = val);
+                    },
+                  ),
+                  const SizedBox(height: AppTheme.spacingM),
+                ],
+
+                TextField(
+                  controller: notesCtrl,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    labelText: 'Description / Notes',
+                    prefixIcon: const Icon(CupertinoIcons.doc_text),
+                    filled: true,
+                    fillColor: AppTheme.cardBackground,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Colors.white12),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppTheme.spacingL),
+
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryCyan,
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  icon: const Icon(CupertinoIcons.checkmark_alt_circle),
+                  label: const Text('Save Correction', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                  onPressed: () async {
+                    final newAmt = double.tryParse(amountCtrl.text.trim()) ?? 0;
+                    if (newAmt <= 0) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Please enter an amount greater than 0'), backgroundColor: AppTheme.errorRed),
+                      );
+                      return;
+                    }
+
+                    try {
+                      await firebaseService.updateKhataTransaction(
+                        customerId: customerId,
+                        entryKey: entryKey,
+                        newAmount: newAmt,
+                        notes: notesCtrl.text.trim().isNotEmpty ? notesCtrl.text.trim() : null,
+                        paymentMethod: isPayment ? paymentMethod : null,
+                      );
+
+                      if (!ctx.mounted) return;
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('✅ Khata entry updated to PKR ${newAmt.toStringAsFixed(0)}!'),
+                          backgroundColor: AppTheme.successGreen,
+                        ),
+                      );
+                    } catch (e) {
+                      if (!ctx.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Failed to update: $e'), backgroundColor: AppTheme.errorRed),
+                      );
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

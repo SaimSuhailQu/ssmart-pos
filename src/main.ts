@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { initDb, getAllProducts, getProductByBarcode, saveSale, getNextSaleId, addProduct, updateProduct, deleteProduct, bulkUpdateProducts, bulkAddProducts,
   getAllCustomers, getCustomerByPhone, addCustomer, updateCustomer, deleteCustomer,
-  getCustomerKhataEntries, addCustomerLoanPayment, addCustomerLoanEntry,
+  getCustomerKhataEntries, addCustomerLoanPayment, addCustomerLoanEntry, updateCustomerKhataEntry,
   verifyUserPin, clockIn, clockOut, getActiveShift, getSalesAnalytics,
   getAllUsers, addUser, updateUser, deleteUser, getAllSales, returnSaleItems,
   getAllExpenses, addExpense, updateExpense, deleteExpense,
@@ -243,6 +243,13 @@ ipcMain.handle('add-customer-loan-payment', async (event, data) => {
 
 ipcMain.handle('add-customer-loan-entry', async (event, data) => {
   const res = addCustomerLoanEntry(data);
+  syncCustomerKhataToCloud(true);
+  syncCustomersToCloud(true);
+  return res;
+});
+
+ipcMain.handle('update-customer-khata-entry', async (event, data) => {
+  const res = updateCustomerKhataEntry(data);
   syncCustomerKhataToCloud(true);
   syncCustomersToCloud(true);
   return res;

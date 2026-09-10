@@ -840,6 +840,46 @@ export function addCustomerLoanEntry(data: { customerId: number, amount: number,
   return true;
 }
 
+export function updateCustomerKhataEntry(data: {
+  id: number;
+  amount: number;
+  notes?: string;
+  paymentMethod?: string;
+}) {
+  const entry = db.prepare('SELECT * FROM customer_khata_entries WHERE id = ?').get(data.id) as any;
+  if (!entry) {
+    throw new Error('Khata entry not found');
+  }
+
+  // Check 30-minute window
+  const entryTime = new Date(entry.timestamp).getTime();
+  const now = Date.now();
+  const diffMinutes = (now - entryTime) / (1000 * 60);
+
+  if (diffMinutes > 30) {
+    throw new Error('Khata entries can only be edited within 30 minutes of creation');
+  }
+
+  const newAmount = Number(data.amount);
+  if (isNaN(newAmount) || newAmount <= 0) {
+    throw new Error('Amount must be greater than 0');
+  }
+
+  const updateStmt = db.prepare(`
+    UPDATE customer_khata_entries 
+    SET amount = ?, notes = COALESCE(?, notes), payment_method = COALESCE(?, payment_method)
+    WHERE id = ?
+  `);
+
+  const transaction = db.transaction(() => {
+    updateStmt.run(newAmount, data.notes !== undefined ? data.notes : null, data.paymentMethod !== undefined ? data.paymentMethod : null, data.id);
+    recalculateCustomerBalance(entry.customer_id);
+  });
+
+  transaction();
+  return { success: true, customerId: entry.customer_id };
+}
+
 // --- User & Shift Data Access ---
 export function verifyUserPin(pin: string) {
   return db.prepare('SELECT id, name, role FROM users WHERE pin = ?').get(pin);

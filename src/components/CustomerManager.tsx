@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Customer, CustomerKhataEntry } from '../types';
-import { Search, Edit2, Trash2, Award, UserPlus, Phone, Mail, BookOpen, Send, History, ArrowUpRight, ArrowDownLeft, UserCheck } from 'lucide-react';
+import { Search, Edit2, Trash2, Award, UserPlus, Phone, Mail, BookOpen, Send, History, ArrowUpRight, ArrowDownLeft, UserCheck, Clock } from 'lucide-react';
 
 export const CustomerManager: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -16,6 +16,13 @@ export const CustomerManager: React.FC = () => {
   const [loanAmount, setLoanAmount] = useState('');
   const [loanNotes, setLoanNotes] = useState('');
   const [loanPayMethod, setLoanPayMethod] = useState('Cash');
+
+  // Khata Entry Edit (30-Minute Window)
+  const [editingKhataEntry, setEditingKhataEntry] = useState<CustomerKhataEntry | null>(null);
+  const [editKhataAmount, setEditKhataAmount] = useState('');
+  const [editKhataNotes, setEditKhataNotes] = useState('');
+  const [editKhataPaymentMethod, setEditKhataPaymentMethod] = useState('Cash');
+  const [editKhataError, setEditKhataError] = useState('');
 
   // Form Fields
   const [name, setName] = useState('');
@@ -151,6 +158,45 @@ export const CustomerManager: React.FC = () => {
       await loadCustomers();
     } catch (err) {
       console.error('Failed to add loan entry:', err);
+    }
+  };
+
+  const handleOpenEditKhata = (entry: CustomerKhataEntry) => {
+    const entryTime = new Date(entry.timestamp).getTime();
+    const diffMins = (Date.now() - entryTime) / (1000 * 60);
+    if (diffMins > 30) {
+      alert('This Khata entry was created more than 30 minutes ago and cannot be modified.');
+      return;
+    }
+    setEditingKhataEntry(entry);
+    setEditKhataAmount(entry.amount.toString());
+    setEditKhataNotes(entry.notes || '');
+    setEditKhataPaymentMethod(entry.payment_method || 'Cash');
+    setEditKhataError('');
+  };
+
+  const handleEditKhataSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingKhataEntry || !selectedCustomerForKhata) return;
+
+    const amt = parseFloat(editKhataAmount);
+    if (isNaN(amt) || amt <= 0) {
+      setEditKhataError('Please enter a valid amount greater than 0.');
+      return;
+    }
+
+    try {
+      await window.api.updateCustomerKhataEntry({
+        id: editingKhataEntry.id,
+        amount: amt,
+        notes: editKhataNotes.trim(),
+        paymentMethod: editingKhataEntry.type === 'PAYMENT' ? editKhataPaymentMethod : undefined
+      });
+      setEditingKhataEntry(null);
+      await loadCustomers();
+    } catch (err: any) {
+      console.error('Failed to update khata entry:', err);
+      setEditKhataError(err.message || 'Failed to update entry');
     }
   };
 
@@ -443,42 +489,66 @@ export const CustomerManager: React.FC = () => {
                   No Khata transactions logged yet for this customer.
                 </div>
               ) : (
-                khataEntries.map((entry) => (
-                  <div 
-                    key={entry.id}
-                    className={`p-3.5 rounded-xl border flex justify-between items-center text-xs transition ${
-                      entry.type === 'LOAN'
-                        ? 'bg-amber-500/10 border-amber-500/20'
-                        : 'bg-emerald-500/10 border-emerald-500/20'
-                    }`}
-                  >
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className={`font-black uppercase tracking-wider text-[11px] px-2 py-0.5 rounded-md ${
-                          entry.type === 'LOAN'
-                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                            : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                        }`}>
-                          {entry.type === 'LOAN' ? '🔺 Borrowed / Sale on Credit' : '🟢 Repayment / Wasool'}
-                        </span>
-                        <span className="text-gray-400 text-[10px]">
-                          {new Date(entry.timestamp).toLocaleString()}
-                        </span>
+                khataEntries.map((entry) => {
+                  const entryTime = new Date(entry.timestamp).getTime();
+                  const diffMinutes = (Date.now() - entryTime) / (1000 * 60);
+                  const isEditable = diffMinutes <= 30;
+                  const minsRemaining = Math.max(0, Math.ceil(30 - diffMinutes));
+
+                  return (
+                    <div 
+                      key={entry.id}
+                      className={`p-3.5 rounded-xl border flex justify-between items-center text-xs transition ${
+                        entry.type === 'LOAN'
+                          ? 'bg-amber-500/10 border-amber-500/20'
+                          : 'bg-emerald-500/10 border-emerald-500/20'
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className={`font-black uppercase tracking-wider text-[11px] px-2 py-0.5 rounded-md ${
+                            entry.type === 'LOAN'
+                              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                              : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                          }`}>
+                            {entry.type === 'LOAN' ? '🔺 Borrowed / Sale on Credit' : '🟢 Repayment / Wasool'}
+                          </span>
+                          <span className="text-gray-400 text-[10px]">
+                            {new Date(entry.timestamp).toLocaleString()}
+                          </span>
+                          {isEditable && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-cyan-300 bg-cyan-950/60 border border-cyan-500/30 px-1.5 py-0.5 rounded">
+                              <Clock size={10} /> Editable ({minsRemaining}m left)
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-gray-300 mt-1 font-medium">
+                          {entry.notes || (entry.type === 'LOAN' ? 'Goods taken on credit' : 'Loan repayment')}
+                          {entry.payment_method && <span className="text-gray-500 text-[11px]"> • Via {entry.payment_method}</span>}
+                        </div>
                       </div>
-                      <div className="text-gray-300 mt-1 font-medium">
-                        {entry.notes || (entry.type === 'LOAN' ? 'Goods taken on credit' : 'Loan repayment')}
-                        {entry.payment_method && <span className="text-gray-500 text-[11px]"> • Via {entry.payment_method}</span>}
+                      <div className="flex items-center gap-3">
+                        <div className="text-right">
+                          <span className={`text-base font-black font-mono ${
+                            entry.type === 'LOAN' ? 'text-amber-400' : 'text-emerald-400'
+                          }`}>
+                            {entry.type === 'LOAN' ? '+' : '-'}Rs. {entry.amount.toLocaleString()}
+                          </span>
+                        </div>
+                        {isEditable && (
+                          <button
+                            onClick={() => handleOpenEditKhata(entry)}
+                            className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white transition flex items-center gap-1 text-[11px] font-semibold"
+                            title="Edit entry (within 30m of creation)"
+                          >
+                            <Edit2 size={13} />
+                            <span>Edit</span>
+                          </button>
+                        )}
                       </div>
                     </div>
-                    <div className="text-right">
-                      <span className={`text-base font-black font-mono ${
-                        entry.type === 'LOAN' ? 'text-amber-400' : 'text-emerald-400'
-                      }`}>
-                        {entry.type === 'LOAN' ? '+' : '-'}Rs. {entry.amount.toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
 
@@ -623,6 +693,91 @@ export const CustomerManager: React.FC = () => {
                   className="px-6 py-2.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-bold text-xs shadow-lg cursor-pointer active:scale-95"
                 >
                   Add to Khata
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Khata Entry Modal (30-Minute Mistake Correction Window) */}
+      {editingKhataEntry && selectedCustomerForKhata && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md animate-in fade-in duration-200 p-4">
+          <div className="glass-panel w-full max-w-md p-6 rounded-3xl border border-cyan-500/40 shadow-2xl relative">
+            <h3 className="text-xl font-black text-cyan-400 mb-1 flex items-center gap-2">
+              <Edit2 size={20} />
+              Edit Khata Entry
+            </h3>
+            <p className="text-xs text-gray-400 mb-1">
+              Customer: <strong className="text-white">{selectedCustomerForKhata.name}</strong> • Type: <strong className={editingKhataEntry.type === 'LOAN' ? 'text-amber-400' : 'text-emerald-400'}>
+                {editingKhataEntry.type === 'LOAN' ? 'Loan / Udhaar' : 'Repayment / Wasool'}
+              </strong>
+            </p>
+            <p className="text-[11px] text-cyan-300/80 mb-4 flex items-center gap-1">
+              <Clock size={12} />
+              Allowing correction within 30 minutes of entry timestamp.
+            </p>
+
+            {editKhataError && (
+              <div className="mb-4 p-3 bg-red-500/20 border border-red-500/40 rounded-xl text-xs text-red-300">
+                {editKhataError}
+              </div>
+            )}
+
+            <form onSubmit={handleEditKhataSubmit} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-gray-300 block mb-1">Corrected Amount (Rs.) *</label>
+                <input 
+                  type="number"
+                  step="0.01"
+                  required
+                  placeholder="0.00"
+                  value={editKhataAmount}
+                  onChange={e => setEditKhataAmount(e.target.value)}
+                  className="w-full px-4 py-3 glass-input rounded-xl text-lg font-mono font-bold text-white focus:border-cyan-500"
+                />
+              </div>
+
+              {editingKhataEntry.type === 'PAYMENT' && (
+                <div>
+                  <label className="text-xs font-bold text-gray-300 block mb-1">Payment Method</label>
+                  <select
+                    value={editKhataPaymentMethod}
+                    onChange={e => setEditKhataPaymentMethod(e.target.value)}
+                    className="w-full px-4 py-2.5 glass-input rounded-xl text-xs font-bold"
+                  >
+                    <option value="Cash" className="bg-slate-900 text-white">Cash</option>
+                    <option value="Bank Transfer" className="bg-slate-900 text-white">Bank Transfer / Online</option>
+                    <option value="JazzCash / EasyPaisa" className="bg-slate-900 text-white">JazzCash / EasyPaisa</option>
+                    <option value="Card" className="bg-slate-900 text-white">Card</option>
+                  </select>
+                </div>
+              )}
+
+              <div>
+                <label className="text-xs font-bold text-gray-300 block mb-1">Description / Notes</label>
+                <input 
+                  type="text"
+                  placeholder="e.g. Corrected loan entry amount"
+                  value={editKhataNotes}
+                  onChange={e => setEditKhataNotes(e.target.value)}
+                  className="w-full px-4 py-2.5 glass-input rounded-xl text-xs"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingKhataEntry(null)}
+                  className="px-4 py-2.5 glass-button rounded-xl text-xs font-bold text-gray-400"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl font-bold text-xs shadow-lg cursor-pointer active:scale-95"
+                >
+                  Save Corrections
                 </button>
               </div>
             </form>
