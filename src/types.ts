@@ -185,6 +185,7 @@ declare global {
       addCustomerLoanPayment: (data: { customerId: number, amount: number, paymentMethod?: string, notes?: string }) => Promise<boolean>;
       addCustomerLoanEntry: (data: { customerId: number, amount: number, notes?: string }) => Promise<boolean>;
       updateCustomerKhataEntry: (data: { id: number, amount: number, notes?: string, paymentMethod?: string }) => Promise<{ success: boolean, customerId: number }>;
+      deleteCustomerKhataEntry: (id: number) => Promise<{ success: boolean, customerId: number, syncId?: string }>;
       clearAllKhata: () => Promise<{ success: boolean, message?: string, error?: string }>;
 
       // Users & Shifts

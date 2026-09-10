@@ -889,6 +889,44 @@ class FirebaseService {
     }
   }
 
+  /// Delete a Customer Khata entry and recalculate live balance in real time
+  Future<void> deleteKhataTransaction({
+    required String customerId,
+    required String entryKey,
+  }) async {
+    final entryRef = _database.ref('customer_khata/$customerId/$entryKey');
+    await entryRef.remove();
+
+    // Recalculate customer balance from all remaining entries
+    try {
+      final khataSnap = await _database.ref('customer_khata/$customerId').get();
+      double calcBal = 0.0;
+      if (khataSnap.exists && khataSnap.value != null) {
+        final data = khataSnap.value;
+        void processEntry(Map map) {
+          final eType = map['type']?.toString().toUpperCase() ?? 'LOAN';
+          final double eAmt = (map['amount'] is num)
+              ? (map['amount'] as num).toDouble()
+              : (double.tryParse(map['amount']?.toString() ?? '0') ?? 0.0);
+          calcBal += (eType == 'LOAN' ? eAmt : -eAmt);
+        }
+
+        if (data is Map) {
+          data.forEach((_, v) {
+            if (v is Map) processEntry(v);
+          });
+        } else if (data is List) {
+          for (final v in data) {
+            if (v is Map) processEntry(v);
+          }
+        }
+      }
+      await _database.ref('${FirebasePaths.customers}/$customerId/balance').set(calcBal);
+    } catch (e) {
+      print('Recalculate balance on delete warning: $e');
+    }
+  }
+
   Future<void> clearAllKhataRecords() async {
     // 1. Remove all audit entries
     await _database.ref('customer_khata').remove();

@@ -200,6 +200,20 @@ export const CustomerManager: React.FC = () => {
     }
   };
 
+  const handleDeleteKhataEntry = async (entry: CustomerKhataEntry) => {
+    const isLoan = entry.type === 'LOAN';
+    const confirmMsg = `Are you sure you want to permanently delete this ${isLoan ? 'Loan' : 'Repayment'} entry of Rs. ${entry.amount.toLocaleString()}?\n\nThis will adjust the customer's balance permanently.`;
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      await window.api.deleteCustomerKhataEntry(entry.id);
+      await loadCustomers();
+    } catch (err: any) {
+      console.error('Failed to delete khata entry:', err);
+      alert(`Failed to delete khata entry: ${err.message || err}`);
+    }
+  };
+
   // 1-Click WhatsApp Ledger / Statement sender for Customer Loan
   const sendCustomerWhatsAppStatement = (customer: Customer, entries: CustomerKhataEntry[]) => {
     let cleanPhone = (customer.phone || '').replace(/[^0-9]/g, '');
@@ -535,16 +549,26 @@ export const CustomerManager: React.FC = () => {
                             {entry.type === 'LOAN' ? '+' : '-'}Rs. {entry.amount.toLocaleString()}
                           </span>
                         </div>
-                        {isEditable && (
+                        <div className="flex items-center gap-1.5">
+                          {isEditable && (
+                            <button
+                              onClick={() => handleOpenEditKhata(entry)}
+                              className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white transition flex items-center gap-1 text-[11px] font-semibold cursor-pointer"
+                              title="Edit entry (within 30m of creation)"
+                            >
+                              <Edit2 size={13} />
+                              <span>Edit</span>
+                            </button>
+                          )}
                           <button
-                            onClick={() => handleOpenEditKhata(entry)}
-                            className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white transition flex items-center gap-1 text-[11px] font-semibold"
-                            title="Edit entry (within 30m of creation)"
+                            onClick={() => handleDeleteKhataEntry(entry)}
+                            className="p-1.5 rounded-lg bg-red-500/15 hover:bg-red-500/30 text-red-400 hover:text-red-300 transition flex items-center gap-1 text-[11px] font-semibold cursor-pointer"
+                            title="Delete this entry and recalculate balance"
                           >
-                            <Edit2 size={13} />
-                            <span>Edit</span>
+                            <Trash2 size={13} />
+                            <span>Delete</span>
                           </button>
-                        )}
+                        </div>
                       </div>
                     </div>
                   );

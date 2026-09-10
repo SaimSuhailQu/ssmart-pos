@@ -222,6 +222,17 @@ export async function syncCustomerKhataToCloud(silent = false) {
   }
 }
 
+export async function deleteCustomerKhataEntryFromCloud(customerId: number, syncId?: string) {
+  if (!dbInstance) return;
+  try {
+    if (syncId) {
+      await set(ref(dbInstance, `customer_khata/${customerId}/${syncId}`), null);
+    }
+  } catch (err) {
+    console.warn("Delete khata entry from cloud warning:", err);
+  }
+}
+
 export async function clearAllKhataFromCloudAndLocal() {
   clearAllKhataRecords();
   if (dbInstance) {

@@ -880,6 +880,21 @@ export function updateCustomerKhataEntry(data: {
   return { success: true, customerId: entry.customer_id };
 }
 
+export function deleteCustomerKhataEntry(id: number) {
+  const entry = db.prepare('SELECT * FROM customer_khata_entries WHERE id = ?').get(id) as any;
+  if (!entry) {
+    throw new Error('Khata entry not found');
+  }
+
+  const transaction = db.transaction(() => {
+    db.prepare('DELETE FROM customer_khata_entries WHERE id = ?').run(id);
+    recalculateCustomerBalance(entry.customer_id);
+  });
+
+  transaction();
+  return { success: true, customerId: entry.customer_id, syncId: entry.sync_id };
+}
+
 // --- User & Shift Data Access ---
 export function verifyUserPin(pin: string) {
   return db.prepare('SELECT id, name, role FROM users WHERE pin = ?').get(pin);

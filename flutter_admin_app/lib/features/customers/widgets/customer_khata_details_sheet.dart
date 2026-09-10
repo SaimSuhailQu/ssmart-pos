@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
 import 'package:ssmart_pos_admin/core/utils/date_utils.dart';
@@ -242,6 +243,7 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                               separatorBuilder: (_, __) => const SizedBox(height: 8),
                               itemBuilder: (context, index) {
                                 final e = entries[index];
+                                final entryKey = e['key']?.toString() ?? e['sync_id']?.toString() ?? e['id']?.toString() ?? 'entry_$index';
                                 final isPayment = (e['type']?.toString().toUpperCase() ?? 'LOAN') == 'PAYMENT';
                                 final double amount = (e['amount'] is num)
                                     ? (e['amount'] as num).toDouble()
@@ -255,118 +257,217 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                                 final bool isEditable = DateTime.now().difference(parsedTime.isUtc ? parsedTime.toLocal() : parsedTime).inMinutes <= 30;
                                 final int minsRemaining = (30 - DateTime.now().difference(parsedTime.isUtc ? parsedTime.toLocal() : parsedTime).inMinutes).clamp(0, 30);
 
-                                return Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: AppTheme.cardBackground,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: isPayment ? Colors.green.withValues(alpha: 0.2) : Colors.amber.withValues(alpha: 0.2),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: BoxDecoration(
-                                          color: isPayment ? Colors.green.withValues(alpha: 0.15) : Colors.amber.withValues(alpha: 0.15),
-                                          borderRadius: BorderRadius.circular(8),
-                                        ),
-                                        child: Icon(
-                                          isPayment ? CupertinoIcons.arrow_down_left : CupertinoIcons.arrow_up_right,
-                                          color: isPayment ? AppTheme.successGreen : Colors.amber,
-                                          size: 20,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                return Dismissible(
+                                  key: ValueKey('khata_${entryKey}_$index'),
+                                  direction: DismissDirection.endToStart,
+                                  confirmDismiss: (direction) async {
+                                    HapticFeedback.mediumImpact();
+                                    final bool? confirmed = await showDialog<bool>(
+                                      context: context,
+                                      builder: (dialogCtx) => AlertDialog(
+                                        backgroundColor: AppTheme.cardBackground,
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                        title: const Row(
                                           children: [
-                                            Row(
-                                              children: [
-                                                Text(
-                                                  isPayment ? 'Wasool / Payment Recv ($paymentMethod)' : 'Udhaar Given (Loan)',
-                                                  style: TextStyle(
-                                                    color: isPayment ? AppTheme.successGreen : Colors.amber,
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 13,
-                                                  ),
-                                                ),
-                                                if (isEditable) ...[
-                                                  const SizedBox(width: 6),
-                                                  Container(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-                                                    decoration: BoxDecoration(
-                                                      color: AppTheme.primaryCyan.withValues(alpha: 0.15),
-                                                      borderRadius: BorderRadius.circular(4),
-                                                      border: Border.all(color: AppTheme.primaryCyan.withValues(alpha: 0.3), width: 0.5),
-                                                    ),
-                                                    child: Text(
-                                                      '${minsRemaining}m edit',
-                                                      style: const TextStyle(color: AppTheme.primaryCyan, fontSize: 9, fontWeight: FontWeight.bold),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ],
-                                            ),
-                                            if (notes.isNotEmpty) ...[
-                                              const SizedBox(height: 2),
-                                              Text(
-                                                notes,
-                                                style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
-                                              ),
-                                            ],
-                                            const SizedBox(height: 2),
+                                            Icon(CupertinoIcons.trash_circle_fill, color: AppTheme.errorRed, size: 28),
+                                            SizedBox(width: 10),
                                             Text(
-                                              AppDateUtils.formatDateTime(parsedTime),
-                                              style: const TextStyle(color: Colors.white38, fontSize: 11),
+                                              'Delete Khata Entry?',
+                                              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                                             ),
                                           ],
                                         ),
-                                      ),
-                                      Column(
-                                        crossAxisAlignment: CrossAxisAlignment.end,
-                                        children: [
-                                          Text(
-                                            '${isPayment ? '-' : '+'}PKR ${amount.toStringAsFixed(0)}',
-                                            style: TextStyle(
-                                              color: isPayment ? AppTheme.successGreen : Colors.amber,
-                                              fontSize: 15,
-                                              fontWeight: FontWeight.bold,
-                                            ),
+                                        content: Text(
+                                          'Are you sure you want to delete this ${isPayment ? 'Wasool (Payment)' : 'Udhaar (Loan)'} entry of PKR ${amount.toStringAsFixed(0)}?\n\nThis will adjust the customer balance and ledger permanently.',
+                                          style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14, height: 1.4),
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(dialogCtx, false),
+                                            child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
                                           ),
-                                          if (isEditable) ...[
-                                            const SizedBox(height: 4),
-                                            GestureDetector(
-                                              onTap: () => _showEditEntryDialog(
-                                                context,
-                                                firebaseService: firebaseService,
-                                                customerId: customer.id.toString(),
-                                                entry: e,
-                                                parsedTime: parsedTime,
-                                              ),
-                                              child: Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.white.withValues(alpha: 0.1),
-                                                  borderRadius: BorderRadius.circular(6),
-                                                  border: Border.all(color: Colors.white24, width: 0.5),
-                                                ),
-                                                child: const Row(
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  children: [
-                                                    Icon(CupertinoIcons.pencil, size: 11, color: Colors.white),
-                                                    SizedBox(width: 3),
-                                                    Text('Edit', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-                                                  ],
-                                                ),
-                                              ),
+                                          ElevatedButton(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: AppTheme.errorRed,
+                                              foregroundColor: Colors.white,
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                             ),
-                                          ],
+                                            onPressed: () => Navigator.pop(dialogCtx, true),
+                                            child: const Text('Delete Entry', style: TextStyle(fontWeight: FontWeight.bold)),
+                                          ),
                                         ],
                                       ),
-                                    ],
+                                    );
+
+                                    if (confirmed == true) {
+                                      try {
+                                        await firebaseService.deleteKhataTransaction(
+                                          customerId: customer.id.toString(),
+                                          entryKey: entryKey,
+                                        );
+                                        HapticFeedback.heavyImpact();
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(
+                                              content: Text('Entry deleted. Balance recalculated.'),
+                                              backgroundColor: AppTheme.errorRed,
+                                              behavior: SnackBarBehavior.floating,
+                                              duration: Duration(seconds: 2),
+                                            ),
+                                          );
+                                        }
+                                        return true;
+                                      } catch (err) {
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text('Failed to delete entry: $err'),
+                                              backgroundColor: AppTheme.errorRed,
+                                            ),
+                                          );
+                                        }
+                                        return false;
+                                      }
+                                    }
+                                    return false;
+                                  },
+                                  background: Container(
+                                    alignment: Alignment.centerRight,
+                                    padding: const EdgeInsets.only(right: 20),
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.errorRed.withValues(alpha: 0.9),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: [
+                                        Icon(CupertinoIcons.trash_fill, color: Colors.white, size: 22),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          'Delete Entry',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.cardBackground,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: isPayment ? Colors.green.withValues(alpha: 0.2) : Colors.amber.withValues(alpha: 0.2),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
+                                            color: isPayment ? Colors.green.withValues(alpha: 0.15) : Colors.amber.withValues(alpha: 0.15),
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Icon(
+                                            isPayment ? CupertinoIcons.arrow_down_left : CupertinoIcons.arrow_up_right,
+                                            color: isPayment ? AppTheme.successGreen : Colors.amber,
+                                            size: 20,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  Text(
+                                                    isPayment ? 'Wasool / Payment Recv ($paymentMethod)' : 'Udhaar Given (Loan)',
+                                                    style: TextStyle(
+                                                      color: isPayment ? AppTheme.successGreen : Colors.amber,
+                                                      fontWeight: FontWeight.bold,
+                                                      fontSize: 13,
+                                                    ),
+                                                  ),
+                                                  if (isEditable) ...[
+                                                    const SizedBox(width: 6),
+                                                    Container(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                                      decoration: BoxDecoration(
+                                                        color: AppTheme.primaryCyan.withValues(alpha: 0.15),
+                                                        borderRadius: BorderRadius.circular(4),
+                                                        border: Border.all(color: AppTheme.primaryCyan.withValues(alpha: 0.3), width: 0.5),
+                                                      ),
+                                                      child: Text(
+                                                        '${minsRemaining}m edit',
+                                                        style: const TextStyle(color: AppTheme.primaryCyan, fontSize: 9, fontWeight: FontWeight.bold),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ],
+                                              ),
+                                              if (notes.isNotEmpty) ...[
+                                                const SizedBox(height: 2),
+                                                Text(
+                                                  notes,
+                                                  style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                                                ),
+                                              ],
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                AppDateUtils.formatDateTime(parsedTime),
+                                                style: const TextStyle(color: Colors.white38, fontSize: 11),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        Column(
+                                          crossAxisAlignment: CrossAxisAlignment.end,
+                                          children: [
+                                            Text(
+                                              '${isPayment ? '-' : '+'}PKR ${amount.toStringAsFixed(0)}',
+                                              style: TextStyle(
+                                                color: isPayment ? AppTheme.successGreen : Colors.amber,
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.bold,
+                                                fontFeatures: const [FontFeature.tabularFigures()],
+                                              ),
+                                            ),
+                                            if (isEditable) ...[
+                                              const SizedBox(height: 4),
+                                              GestureDetector(
+                                                onTap: () => _showEditEntryDialog(
+                                                  context,
+                                                  firebaseService: firebaseService,
+                                                  customerId: customer.id.toString(),
+                                                  entry: e,
+                                                  parsedTime: parsedTime,
+                                                ),
+                                                child: Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.white.withValues(alpha: 0.1),
+                                                    borderRadius: BorderRadius.circular(6),
+                                                    border: Border.all(color: Colors.white24, width: 0.5),
+                                                  ),
+                                                  child: const Row(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      Icon(CupertinoIcons.pencil, size: 11, color: Colors.white),
+                                                      SizedBox(width: 3),
+                                                      Text('Edit', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ],
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 );
                               },

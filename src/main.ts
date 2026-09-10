@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { initDb, getAllProducts, getProductByBarcode, saveSale, getNextSaleId, addProduct, updateProduct, deleteProduct, bulkUpdateProducts, bulkAddProducts,
   getAllCustomers, getCustomerByPhone, addCustomer, updateCustomer, deleteCustomer,
-  getCustomerKhataEntries, addCustomerLoanPayment, addCustomerLoanEntry, updateCustomerKhataEntry,
+  getCustomerKhataEntries, addCustomerLoanPayment, addCustomerLoanEntry, updateCustomerKhataEntry, deleteCustomerKhataEntry,
   verifyUserPin, clockIn, clockOut, getActiveShift, getSalesAnalytics,
   getAllUsers, addUser, updateUser, deleteUser, getAllSales, returnSaleItems,
   getAllExpenses, addExpense, updateExpense, deleteExpense,
@@ -12,7 +12,7 @@ import { initDb, getAllProducts, getProductByBarcode, saveSale, getNextSaleId, a
   addVendorPayment, deleteVendorPayment, updateVendorPayment, deleteVendorOrderEntry, updateVendorOrderEntry,
   getVendorPayments, getVendorOrderEntries, addManualDailyClosingSale } from './db';
 import { printReceipt, printBarcode } from './printer';
-import { startSyncWorker, syncProductsToCloud, syncCustomersToCloud, syncCustomerKhataToCloud, clearAllKhataFromCloudAndLocal, syncVendorsToCloud, syncExpensesToCloud, syncSalesToCloud } from './syncEngine';
+import { startSyncWorker, syncProductsToCloud, syncCustomersToCloud, syncCustomerKhataToCloud, deleteCustomerKhataEntryFromCloud, clearAllKhataFromCloudAndLocal, syncVendorsToCloud, syncExpensesToCloud, syncSalesToCloud } from './syncEngine';
 import { sendWhatsAppMessage } from './whatsappService';
 import { setupAutoUpdater, checkForUpdatesManual, quitAndInstallUpdate } from './updater';
 
@@ -251,6 +251,13 @@ ipcMain.handle('add-customer-loan-entry', async (event, data) => {
 ipcMain.handle('update-customer-khata-entry', async (event, data) => {
   const res = updateCustomerKhataEntry(data);
   syncCustomerKhataToCloud(true);
+  syncCustomersToCloud(true);
+  return res;
+});
+
+ipcMain.handle('delete-customer-khata-entry', async (event, id) => {
+  const res = deleteCustomerKhataEntry(id);
+  deleteCustomerKhataEntryFromCloud(res.customerId, res.syncId);
   syncCustomersToCloud(true);
   return res;
 });

@@ -25,6 +25,7 @@ contextBridge.exposeInMainWorld('api', {
   addCustomerLoanPayment: (data: any) => ipcRenderer.invoke('add-customer-loan-payment', data),
   addCustomerLoanEntry: (data: any) => ipcRenderer.invoke('add-customer-loan-entry', data),
   updateCustomerKhataEntry: (data: any) => ipcRenderer.invoke('update-customer-khata-entry', data),
+  deleteCustomerKhataEntry: (id: number) => ipcRenderer.invoke('delete-customer-khata-entry', id),
   clearAllKhata: () => ipcRenderer.invoke('clear-all-khata'),
   verifyUserPin: (pin: string) => ipcRenderer.invoke('verify-user-pin', pin),
   clockIn: (userId: number) => ipcRenderer.invoke('clock-in', userId),
