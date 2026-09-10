@@ -22,7 +22,8 @@ import {
   upsertCustomer,
   addExpense,
   upsertExpense,
-  addVendor
+  addVendor,
+  upsertCloudPurchaseOrder
 } from './db';
 import { Product } from './types';
 
@@ -414,15 +415,10 @@ async function ingestCloudDataToLocal() {
       const pos = Object.values(data);
       for (const po of pos as any[]) {
         if (!po || !po.vendor_name) continue;
-        const existingVendors = getAllVendors() as any[];
-        let vendor = existingVendors.find(v => v.name?.toLowerCase() === po.vendor_name?.toLowerCase());
-        if (!vendor) {
-          const newVId = addVendor({
-            name: po.vendor_name,
-            contact: po.phone || po.contact_person || '',
-            category: 'General',
-          });
-          vendor = { id: newVId, name: po.vendor_name };
+        try {
+          upsertCloudPurchaseOrder(po);
+        } catch (err) {
+          console.warn(`Failed to upsert cloud PO for vendor ${po.vendor_name}:`, err);
         }
       }
     }

@@ -846,11 +846,149 @@ class FirebaseService {
     List<dynamic>? payments,
     List<dynamic>? orderEntries,
   }) async {
-    final String poId = id ?? DateTime.now().millisecondsSinceEpoch.toString();
-    final int finalVendorId = vendorId ?? (int.tryParse(poId) ?? 0);
+    // If no explicit ID is provided, check if a unified PO already exists for this vendor
+    String? targetPoId = id;
+    Map<String, dynamic>? existingData;
+
+    if (targetPoId == null) {
+      // 1. Check in-memory cached POs
+      PurchaseOrderModel? existingModel;
+      if (_cachedPurchaseOrders != null && _cachedPurchaseOrders!.isNotEmpty) {
+        try {
+          existingModel = _cachedPurchaseOrders!.firstWhere(
+            (p) => (vendorId != null && vendorId != 0 && p.vendorId == vendorId) ||
+                (p.vendorName.trim().toLowerCase() == vendorName.trim().toLowerCase() && vendorName.trim().isNotEmpty),
+          );
+        } catch (_) {}
+      }
+
+      // 2. If not found in cache, check directly in RTDB
+      if (existingModel != null) {
+        targetPoId = existingModel.id.toString();
+      } else {
+        try {
+          final snap = await _database.ref(FirebasePaths.purchaseOrders).get();
+          if (snap.exists && snap.value != null) {
+            final val = snap.value;
+            if (val is Map) {
+              for (final entry in val.entries) {
+                if (entry.value is Map) {
+                  final m = Map<String, dynamic>.from(entry.value as Map);
+                  final vName = m['vendor_name']?.toString().trim().toLowerCase() ?? '';
+                  final vId = m['vendor_id'] is int ? m['vendor_id'] : int.tryParse(m['vendor_id']?.toString() ?? '');
+                  if ((vendorId != null && vendorId != 0 && vId == vendorId) ||
+                      (vName.isNotEmpty && vName == vendorName.trim().toLowerCase())) {
+                    targetPoId = entry.key.toString();
+                    existingData = m;
+                    break;
+                  }
+                }
+              }
+            }
+          }
+        } catch (e) {
+          print('Error querying existing PO for vendor: $e');
+        }
+      }
+    }
+
+    // Determine final PO ID
+    final String poId = targetPoId ?? DateTime.now().millisecondsSinceEpoch.toString();
     final poRef = _database.ref('${FirebasePaths.purchaseOrders}/$poId');
 
-    // If new payments list was provided or initial paid amount was entered
+    // Fetch existing node data if targetPoId already existed and existingData not already loaded
+    if (targetPoId != null && existingData == null) {
+      final snap = await poRef.get();
+      if (snap.exists && snap.value != null && snap.value is Map) {
+        existingData = Map<String, dynamic>.from(snap.value as Map);
+      }
+    }
+
+    final int finalVendorId = vendorId ??
+        (existingData != null && existingData['vendor_id'] is int
+            ? existingData['vendor_id'] as int
+            : int.tryParse(existingData?['vendor_id']?.toString() ?? '') ?? (int.tryParse(poId) ?? 0));
+
+    // If merging into an existing PO without explicit edit
+    if (id == null && existingData != null) {
+      final rawPrevCost = existingData['total_cost'] ?? existingData['total_amount'] ?? 0.0;
+      final double prevCost = (rawPrevCost is num) ? rawPrevCost.toDouble() : (double.tryParse(rawPrevCost.toString()) ?? 0.0);
+      final rawPrevPaid = existingData['paid_amount'] ?? 0.0;
+      final double prevPaid = (rawPrevPaid is num) ? rawPrevPaid.toDouble() : (double.tryParse(rawPrevPaid.toString()) ?? 0.0);
+
+      final double newTotalCost = prevCost + totalAmount;
+      final double newPaidAmount = prevPaid + paidAmount;
+
+      // Existing order entries
+      List<dynamic> currentEntries = [];
+      if (existingData['order_entries'] is List) {
+        currentEntries = List.from(existingData['order_entries'] as List);
+      } else if (existingData['order_entries'] is Map) {
+        (existingData['order_entries'] as Map).forEach((_, v) {
+          if (v != null) currentEntries.add(v);
+        });
+      }
+
+      currentEntries.add({
+        'id': DateTime.now().millisecondsSinceEpoch,
+        'po_id': int.tryParse(poId) ?? poId,
+        'vendor_id': finalVendorId,
+        'amount': totalAmount,
+        'notes': notes?.isNotEmpty == true ? notes : 'New order delivery / bill',
+        'timestamp': DateTime.now().toIso8601String(),
+      });
+
+      // Existing payments
+      List<dynamic> currentPayments = [];
+      if (existingData['payments'] is List) {
+        currentPayments = List.from(existingData['payments'] as List);
+      } else if (existingData['payments'] is Map) {
+        (existingData['payments'] as Map).forEach((_, v) {
+          if (v != null) currentPayments.add(v);
+        });
+      }
+
+      if (paidAmount > 0) {
+        currentPayments.add({
+          'id': DateTime.now().millisecondsSinceEpoch,
+          'amount': paidAmount,
+          'payment_method': 'Cash',
+          'notes': notes?.isNotEmpty == true ? 'Payment for $notes' : 'Payment against order bill',
+          'timestamp': DateTime.now().toIso8601String(),
+        });
+      }
+
+      String calcPaymentStatus = 'Unpaid';
+      if (newTotalCost > 0) {
+        if (newPaidAmount >= newTotalCost) {
+          calcPaymentStatus = 'Paid';
+        } else if (newPaidAmount > 0) {
+          calcPaymentStatus = 'Partially Paid';
+        }
+      }
+
+      final prevNotes = existingData['notes']?.toString() ?? '';
+      final updatedNotes = notes?.isNotEmpty == true
+          ? (prevNotes.isNotEmpty ? '$prevNotes | $notes' : notes!)
+          : prevNotes;
+
+      await poRef.update({
+        'total_cost': newTotalCost,
+        'total_amount': newTotalCost,
+        'paid_amount': newPaidAmount,
+        'payment_status': calcPaymentStatus,
+        'notes': updatedNotes,
+        'order_entries': currentEntries,
+        'payments': currentPayments,
+        if (phone != null && phone.isNotEmpty) 'phone': phone,
+        if (email != null && email.isNotEmpty) 'email': email,
+        if (contactPerson != null && contactPerson.isNotEmpty) 'contact_person': contactPerson,
+      });
+
+      return;
+    }
+
+    // Creating fresh PO or editing explicit PO by ID
     List<dynamic> poPayments = payments ?? [];
     if (poPayments.isEmpty && paidAmount > 0) {
       poPayments = [
@@ -859,6 +997,20 @@ class FirebaseService {
           'amount': paidAmount,
           'payment_method': 'Cash',
           'notes': 'Initial deposit / payment',
+          'timestamp': DateTime.now().toIso8601String(),
+        }
+      ];
+    }
+
+    List<dynamic> poEntries = orderEntries ?? [];
+    if (poEntries.isEmpty && totalAmount > 0) {
+      poEntries = [
+        {
+          'id': DateTime.now().millisecondsSinceEpoch,
+          'po_id': int.tryParse(poId) ?? poId,
+          'vendor_id': finalVendorId,
+          'amount': totalAmount,
+          'notes': notes?.isNotEmpty == true ? notes : 'Initial order delivery',
           'timestamp': DateTime.now().toIso8601String(),
         }
       ];
@@ -891,7 +1043,7 @@ class FirebaseService {
       'notes': notes ?? '',
       'items': items ?? [],
       'payments': poPayments,
-      'order_entries': orderEntries ?? [],
+      'order_entries': poEntries,
       'timestamp': DateTime.now().toIso8601String(),
     };
 
@@ -910,6 +1062,67 @@ class FirebaseService {
         });
       }
     }
+  }
+
+  /// Add a new Bill / Delivery entry onto a Vendor's Purchase Order
+  Future<void> addVendorOrderEntry({
+    required String poId,
+    required double amount,
+    String? notes,
+  }) async {
+    final poRef = _database.ref('${FirebasePaths.purchaseOrders}/$poId');
+    final snapshot = await poRef.get();
+
+    if (!snapshot.exists || snapshot.value == null) {
+      throw Exception('Purchase Order #$poId not found');
+    }
+
+    final poData = Map<String, dynamic>.from(snapshot.value as Map);
+    final rawCost = poData['total_cost'] ?? poData['total_amount'] ?? 0.0;
+    final double totalCost = (rawCost is num) ? rawCost.toDouble() : (double.tryParse(rawCost.toString()) ?? 0.0);
+    final rawPaid = poData['paid_amount'] ?? 0.0;
+    final double currentPaid = (rawPaid is num) ? rawPaid.toDouble() : (double.tryParse(rawPaid.toString()) ?? 0.0);
+
+    final double newTotalCost = totalCost + amount;
+
+    // Get current order entries list
+    List<dynamic> currentEntries = [];
+    if (poData['order_entries'] is List) {
+      currentEntries = List.from(poData['order_entries'] as List);
+    } else if (poData['order_entries'] is Map) {
+      (poData['order_entries'] as Map).forEach((_, v) {
+        if (v != null) currentEntries.add(v);
+      });
+    }
+
+    currentEntries.add({
+      'id': DateTime.now().millisecondsSinceEpoch,
+      'po_id': int.tryParse(poId) ?? poId,
+      'vendor_id': poData['vendor_id'] ?? (int.tryParse(poId) ?? 0),
+      'amount': amount,
+      'notes': notes ?? 'Purchase order delivery / bill',
+      'timestamp': DateTime.now().toIso8601String(),
+    });
+
+    String newPaymentStatus = 'Unpaid';
+    if (currentPaid >= newTotalCost && newTotalCost > 0) {
+      newPaymentStatus = 'Paid';
+    } else if (currentPaid > 0) {
+      newPaymentStatus = 'Partially Paid';
+    }
+
+    final prevNotes = poData['notes']?.toString() ?? '';
+    final updatedNotes = notes?.isNotEmpty == true
+        ? (prevNotes.isNotEmpty ? '$prevNotes | $notes' : notes!)
+        : prevNotes;
+
+    await poRef.update({
+      'total_cost': newTotalCost,
+      'total_amount': newTotalCost,
+      'payment_status': newPaymentStatus,
+      'order_entries': currentEntries,
+      'notes': updatedNotes,
+    });
   }
 
   /// Record Partial or Full Payment on a Purchase Order

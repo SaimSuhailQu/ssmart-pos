@@ -907,9 +907,21 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        isEditing ? 'Update Purchase Order #${po.id}' : 'New Purchase Order',
-                        style: AppTheme.headlineMedium.copyWith(color: Colors.purpleAccent),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            isEditing
+                                ? 'Update Purchase Order #${po.id}'
+                                : (prefillVendor != null ? 'Add to ${prefillVendor.name} PO' : 'New Purchase Order / Bill'),
+                            style: AppTheme.headlineMedium.copyWith(color: Colors.purpleAccent),
+                          ),
+                          if (!isEditing)
+                            const Text(
+                              'Orders for the same vendor automatically accumulate into one unified ledger',
+                              style: TextStyle(color: AppTheme.textSecondary, fontSize: 11),
+                            ),
+                        ],
                       ),
                       IconButton(
                         icon: const Icon(CupertinoIcons.xmark_circle, color: AppTheme.textSecondary),

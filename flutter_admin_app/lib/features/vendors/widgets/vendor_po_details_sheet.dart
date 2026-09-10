@@ -178,6 +178,137 @@ class VendorPODetailsSheet extends StatelessWidget {
     );
   }
 
+  void _showAddBillDialog(BuildContext context) {
+    final amountCtrl = TextEditingController();
+    final noteCtrl = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppTheme.surfaceDark,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) {
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+              top: 20,
+              left: 20,
+              right: 20,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Add Bill / Delivery to PO',
+                        style: AppTheme.headlineMedium.copyWith(color: Colors.purpleAccent),
+                      ),
+                      IconButton(
+                        icon: const Icon(CupertinoIcons.xmark_circle, color: AppTheme.textSecondary),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Vendor: ${po.vendorName} (PO #${po.id})',
+                    style: const TextStyle(color: Colors.white70, fontSize: 13),
+                  ),
+                  Text(
+                    'Total Billed so far: PKR ${po.totalCost.toStringAsFixed(0)} | Current Balance: PKR ${po.balanceDue.toStringAsFixed(0)}',
+                    style: const TextStyle(
+                      color: AppTheme.textSecondary,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: amountCtrl,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                    decoration: InputDecoration(
+                      labelText: 'Bill / Order Delivery Amount (PKR) *',
+                      prefixIcon: const Icon(CupertinoIcons.money_dollar),
+                      filled: true,
+                      fillColor: AppTheme.cardBackground,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: noteCtrl,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      labelText: 'Invoice / Delivery Notes (Optional)',
+                      prefixIcon: const Icon(CupertinoIcons.doc_plaintext),
+                      filled: true,
+                      fillColor: AppTheme.cardBackground,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.purpleAccent,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      icon: const Icon(CupertinoIcons.plus_circle_fill),
+                      label: const Text('Add to Ledger', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                      onPressed: () async {
+                        final amount = double.tryParse(amountCtrl.text.trim()) ?? 0;
+                        if (amount <= 0) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Please enter a valid bill amount (> 0)')),
+                          );
+                          return;
+                        }
+
+                        Navigator.pop(ctx); // Close dialog
+                        Navigator.pop(context); // Close details sheet
+
+                        try {
+                          await context.read<FirebaseService>().addVendorOrderEntry(
+                            poId: po.id.toString(),
+                            amount: amount,
+                            notes: noteCtrl.text.trim().isNotEmpty ? noteCtrl.text.trim() : null,
+                          );
+
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Bill of PKR ${amount.toStringAsFixed(0)} added to ${po.vendorName}!'),
+                              backgroundColor: AppTheme.successGreen,
+                            ),
+                          );
+                        } catch (e) {
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Adding bill failed: $e'), backgroundColor: AppTheme.errorRed),
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isCleared = po.balanceDue <= 0;
@@ -346,6 +477,19 @@ class VendorPODetailsSheet extends StatelessWidget {
             child: Row(
               children: [
                 Expanded(
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.purple.shade700,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    icon: const Icon(CupertinoIcons.plus_circle_fill, size: 16),
+                    label: const Text('+ Add Bill', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    onPressed: () => _showAddBillDialog(context),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
                   child: OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
                       foregroundColor: po.isReceived ? Colors.orangeAccent : AppTheme.successGreen,
@@ -356,7 +500,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                     ),
                     icon: Icon(po.isReceived ? CupertinoIcons.arrow_counterclockwise : CupertinoIcons.check_mark, size: 16),
                     label: Text(
-                      po.isReceived ? 'Mark as Pending' : 'Mark as Received',
+                      po.isReceived ? 'Pending' : 'Received',
                       style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                     ),
                     onPressed: () async {
@@ -370,21 +514,18 @@ class VendorPODetailsSheet extends StatelessWidget {
                     },
                   ),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.purple.shade700,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                    icon: const Icon(CupertinoIcons.pencil, size: 16),
-                    label: const Text('Edit PO', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                    onPressed: () {
-                      Navigator.pop(context);
-                      onEdit();
-                    },
+                const SizedBox(width: 6),
+                IconButton(
+                  style: IconButton.styleFrom(
+                    backgroundColor: AppTheme.cardBackground,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10), side: const BorderSide(color: Colors.white24)),
                   ),
+                  icon: const Icon(CupertinoIcons.pencil, size: 16, color: Colors.white70),
+                  tooltip: 'Edit PO Profile',
+                  onPressed: () {
+                    Navigator.pop(context);
+                    onEdit();
+                  },
                 ),
               ],
             ),

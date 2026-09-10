@@ -1697,3 +1697,79 @@ export function updateUser(id: number, user: { name: string, pin: string, role: 
 export function deleteUser(id: number) {
   return db.prepare('DELETE FROM users WHERE id = ?').run(id).changes > 0;
 }
+
+// Ingest / Upsert Purchase Order from Firebase Cloud into SQLite
+export function upsertCloudPurchaseOrder(cloudPo: any) {
+  if (!cloudPo) return false;
+
+  const vendorName = cloudPo.vendor_name || '';
+  if (!vendorName) return false;
+
+  let vendor = db.prepare('SELECT id, name FROM vendors WHERE LOWER(name) = LOWER(?)').get(vendorName) as any;
+  if (!vendor) {
+    const contact = cloudPo.phone || cloudPo.contact_person || '';
+    const info = db.prepare('INSERT INTO vendors (name, contact, category) VALUES (?, ?, ?)').run(vendorName, contact, 'General');
+    vendor = { id: info.lastInsertRowid, name: vendorName };
+  }
+
+  const vendorId = vendor.id;
+  const totalCost = Number(cloudPo.total_cost || cloudPo.total_amount) || 0;
+  const paidAmount = Number(cloudPo.paid_amount) || 0;
+  const paymentStatus = cloudPo.payment_status || (paidAmount >= totalCost && totalCost > 0 ? 'Paid' : (paidAmount > 0 ? 'Partially Paid' : 'Unpaid'));
+  const status = cloudPo.status || 'Pending';
+  const notes = cloudPo.notes || '';
+  const timestamp = cloudPo.timestamp || new Date().toISOString();
+
+  // Find existing PO for this vendor
+  const existingPO = db.prepare('SELECT * FROM purchase_orders WHERE vendor_id = ? ORDER BY id DESC LIMIT 1').get(vendorId) as any;
+
+  let poId = 0;
+  db.transaction(() => {
+    if (existingPO) {
+      poId = existingPO.id;
+      db.prepare(`
+        UPDATE purchase_orders 
+        SET total_cost = ?, paid_amount = ?, payment_status = ?, status = ?, notes = ?, timestamp = ?
+        WHERE id = ?
+      `).run(totalCost, paidAmount, paymentStatus, status, notes, timestamp, poId);
+    } else {
+      const info = db.prepare(`
+        INSERT INTO purchase_orders (vendor_id, total_cost, paid_amount, payment_status, status, notes, timestamp)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run(vendorId, totalCost, paidAmount, paymentStatus, status, notes, timestamp);
+      poId = info.lastInsertRowid as number;
+    }
+
+    // Ingest vendor_order_entries if present
+    const orderEntries = cloudPo.order_entries;
+    if (Array.isArray(orderEntries) && orderEntries.length > 0) {
+      // Clear and re-populate order entries for this PO
+      db.prepare('DELETE FROM vendor_order_entries WHERE po_id = ?').run(poId);
+      const insertEntry = db.prepare('INSERT INTO vendor_order_entries (po_id, vendor_id, amount, notes, timestamp) VALUES (?, ?, ?, ?, ?)');
+      for (const entry of orderEntries) {
+        if (!entry) continue;
+        const amt = Number(entry.amount) || 0;
+        const entryNotes = entry.notes || '';
+        const entryTime = entry.timestamp || timestamp;
+        insertEntry.run(poId, vendorId, amt, entryNotes, entryTime);
+      }
+    }
+
+    // Ingest vendor_payments if present
+    const payments = cloudPo.payments;
+    if (Array.isArray(payments) && payments.length > 0) {
+      db.prepare('DELETE FROM vendor_payments WHERE po_id = ?').run(poId);
+      const insertPayment = db.prepare('INSERT INTO vendor_payments (po_id, vendor_id, amount, payment_method, notes, timestamp) VALUES (?, ?, ?, ?, ?, ?)');
+      for (const pay of payments) {
+        if (!pay) continue;
+        const amt = Number(pay.amount) || 0;
+        const method = pay.payment_method || 'Cash';
+        const payNotes = pay.notes || '';
+        const payTime = pay.timestamp || timestamp;
+        insertPayment.run(poId, vendorId, amt, method, payNotes, payTime);
+      }
+    }
+  })();
+
+  return true;
+}
