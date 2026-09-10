@@ -477,7 +477,7 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
 
                 if (isPayment) ...[
                   DropdownButtonFormField<String>(
-                    value: ['Cash', 'Bank Transfer', 'JazzCash / EasyPaisa', 'Card'].contains(paymentMethod)
+                    initialValue: ['Cash', 'Bank Transfer', 'JazzCash / EasyPaisa', 'Card'].contains(paymentMethod)
                         ? paymentMethod
                         : 'Cash',
                     dropdownColor: AppTheme.surfaceDark,
