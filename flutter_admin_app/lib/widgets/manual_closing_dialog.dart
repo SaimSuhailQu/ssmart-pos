@@ -78,14 +78,14 @@ class _ManualClosingDialogState extends State<ManualClosingDialog> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please enter a valid total sale amount greater than 0'),
-          backgroundColor: AppTheme.dangerRed,
+          backgroundColor: AppTheme.errorRed,
         ),
       );
       return;
     }
 
-    final cash = double.tryParse(_cashController.text.trim());
-    final online = double.tryParse(_onlineController.text.trim());
+    final cash = double.tryParse(_cashController.text.trim()) ?? 0.0;
+    final online = double.tryParse(_onlineController.text.trim()) ?? 0.0;
     final notes = _notesController.text.trim();
 
     setState(() => _isLoading = true);
@@ -93,10 +93,10 @@ class _ManualClosingDialogState extends State<ManualClosingDialog> {
     try {
       final firebaseService = context.read<FirebaseService>();
       await firebaseService.saveManualDailyClosingSale(
-        date: _selectedDate,
-        totalAmount: total,
+        total: total,
         cashAmount: cash,
         onlineAmount: online,
+        date: _selectedDate,
         notes: notes.isNotEmpty ? notes : null,
       );
 
@@ -114,7 +114,7 @@ class _ManualClosingDialogState extends State<ManualClosingDialog> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to save closing sale: $e'),
-          backgroundColor: AppTheme.dangerRed,
+          backgroundColor: AppTheme.errorRed,
         ),
       );
     }
@@ -255,7 +255,7 @@ class _ManualClosingDialogState extends State<ManualClosingDialog> {
                   fillColor: AppTheme.cardBackground,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(AppTheme.radiusM),
-                    borderSide: Border.all(color: Colors.white12),
+                    borderSide: const BorderSide(color: Colors.white12),
                   ),
                 ),
                 validator: (value) {
@@ -287,7 +287,7 @@ class _ManualClosingDialogState extends State<ManualClosingDialog> {
                         fillColor: AppTheme.cardBackground,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(AppTheme.radiusM),
-                          borderSide: Border.all(color: Colors.white12),
+                          borderSide: const BorderSide(color: Colors.white12),
                         ),
                       ),
                     ),
@@ -306,7 +306,7 @@ class _ManualClosingDialogState extends State<ManualClosingDialog> {
                         fillColor: AppTheme.cardBackground,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(AppTheme.radiusM),
-                          borderSide: Border.all(color: Colors.white12),
+                          borderSide: const BorderSide(color: Colors.white12),
                         ),
                       ),
                     ),
@@ -328,7 +328,7 @@ class _ManualClosingDialogState extends State<ManualClosingDialog> {
                   fillColor: AppTheme.cardBackground,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(AppTheme.radiusM),
-                    borderSide: Border.all(color: Colors.white12),
+                    borderSide: const BorderSide(color: Colors.white12),
                   ),
                 ),
               ),
