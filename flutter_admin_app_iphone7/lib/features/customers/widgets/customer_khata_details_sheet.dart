@@ -301,9 +301,11 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
 
                                     if (confirmed == true) {
                                       try {
+                                        final String? rawKey = e['raw_key']?.toString();
                                         await firebaseService.deleteKhataTransaction(
                                           customerId: customer.id.toString(),
                                           entryKey: entryKey,
+                                          rawKey: rawKey,
                                         );
                                         HapticFeedback.heavyImpact();
                                         if (context.mounted) {

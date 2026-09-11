@@ -5,14 +5,40 @@ import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
 import 'package:ssmart_pos_admin/services/firebase_service.dart';
 
 class ManualClosingDialog extends StatefulWidget {
-  const ManualClosingDialog({super.key});
+  final DateTime? initialDate;
+  final double? initialTotal;
+  final double? initialCash;
+  final double? initialOnline;
+  final String? initialNotes;
 
-  static Future<void> show(BuildContext context) {
+  const ManualClosingDialog({
+    super.key,
+    this.initialDate,
+    this.initialTotal,
+    this.initialCash,
+    this.initialOnline,
+    this.initialNotes,
+  });
+
+  static Future<void> show(
+    BuildContext context, {
+    DateTime? initialDate,
+    double? initialTotal,
+    double? initialCash,
+    double? initialOnline,
+    String? initialNotes,
+  }) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => const ManualClosingDialog(),
+      builder: (context) => ManualClosingDialog(
+        initialDate: initialDate,
+        initialTotal: initialTotal,
+        initialCash: initialCash,
+        initialOnline: initialOnline,
+        initialNotes: initialNotes,
+      ),
     );
   }
 
@@ -23,16 +49,32 @@ class ManualClosingDialog extends StatefulWidget {
 class _ManualClosingDialogState extends State<ManualClosingDialog> {
   final _formKey = GlobalKey<FormState>();
   late DateTime _selectedDate;
-  final _totalController = TextEditingController();
-  final _cashController = TextEditingController();
-  final _onlineController = TextEditingController();
-  final _notesController = TextEditingController();
+  late final TextEditingController _totalController;
+  late final TextEditingController _cashController;
+  late final TextEditingController _onlineController;
+  late final TextEditingController _notesController;
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _selectedDate = DateTime.now();
+    _selectedDate = widget.initialDate ?? DateTime.now();
+    _totalController = TextEditingController(
+      text: widget.initialTotal != null && widget.initialTotal! > 0
+          ? widget.initialTotal!.toStringAsFixed(0)
+          : '',
+    );
+    _cashController = TextEditingController(
+      text: widget.initialCash != null && widget.initialCash! > 0
+          ? widget.initialCash!.toStringAsFixed(0)
+          : '',
+    );
+    _onlineController = TextEditingController(
+      text: widget.initialOnline != null && widget.initialOnline! > 0
+          ? widget.initialOnline!.toStringAsFixed(0)
+          : '',
+    );
+    _notesController = TextEditingController(text: widget.initialNotes ?? '');
   }
 
   @override

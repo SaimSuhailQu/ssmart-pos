@@ -895,6 +895,20 @@ export function deleteCustomerKhataEntry(id: number) {
   return { success: true, customerId: entry.customer_id, syncId: entry.sync_id };
 }
 
+export function deleteCustomerKhataBySyncId(syncId: string) {
+  if (!syncId) return false;
+  const entry = db.prepare('SELECT * FROM customer_khata_entries WHERE sync_id = ? OR id = ?').get(syncId, syncId) as any;
+  if (!entry) return false;
+
+  const transaction = db.transaction(() => {
+    db.prepare('DELETE FROM customer_khata_entries WHERE id = ?').run(entry.id);
+    recalculateCustomerBalance(entry.customer_id);
+  });
+
+  transaction();
+  return true;
+}
+
 // --- User & Shift Data Access ---
 export function verifyUserPin(pin: string) {
   return db.prepare('SELECT id, name, role FROM users WHERE pin = ?').get(pin);

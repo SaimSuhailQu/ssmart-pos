@@ -7,6 +7,7 @@ import 'package:ssmart_pos_admin/core/utils/receipt_printer_helper.dart';
 import 'package:ssmart_pos_admin/core/utils/whatsapp_helper.dart';
 import 'package:ssmart_pos_admin/models/sale.dart';
 import 'package:ssmart_pos_admin/services/firebase_service.dart';
+import 'package:ssmart_pos_admin/features/dashboard/screens/daily_closings_screen.dart';
 import 'package:ssmart_pos_admin/widgets/error_widget.dart';
 import 'package:ssmart_pos_admin/widgets/loading_indicator.dart';
 import 'package:ssmart_pos_admin/widgets/manual_closing_dialog.dart';
@@ -92,6 +93,16 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(CupertinoIcons.calendar),
+            tooltip: 'View Daily Closings',
+            onPressed: () {
+              Navigator.push(
+                context,
+                CupertinoPageRoute(builder: (_) => const DailyClosingsScreen()),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(CupertinoIcons.calendar_badge_plus),
             tooltip: 'Add Daily Closing Sale',

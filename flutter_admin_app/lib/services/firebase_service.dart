@@ -447,27 +447,55 @@ class FirebaseService {
   /// Get real-time stream of audit entries for a specific customer's khata
   Stream<List<Map<String, dynamic>>> getCustomerKhataStream(String customerId) {
     final khataRef = _database.ref('customer_khata/$customerId');
-    return khataRef.onValue.map((event) {
+    final deletedRef = _database.ref('deleted_khata_entries/$customerId');
+
+    // Combine stream with deleted keys check to prevent resurrection
+    return khataRef.onValue.asyncMap((event) async {
       final data = event.snapshot.value;
       if (data == null) return <Map<String, dynamic>>[];
-      final Map<String, Map<String, dynamic>> uniqueMap = {};
-      if (data is Map) {
-        data.forEach((k, v) {
-          if (v is Map) {
-            final entry = Map<String, dynamic>.from(v);
-            final String entryKey = entry['sync_id']?.toString() ?? entry['id']?.toString() ?? k.toString();
-            entry['key'] = entryKey;
-            uniqueMap[entryKey] = entry;
+
+      // Fetch tombstones for this customer
+      final Set<String> deletedKeys = {};
+      try {
+        final delSnap = await deletedRef.get();
+        if (delSnap.exists && delSnap.value != null) {
+          final delVal = delSnap.value;
+          if (delVal is Map) {
+            delVal.forEach((k, v) {
+              if (v == true || v != null) deletedKeys.add(k.toString());
+            });
           }
-        });
+        }
+      } catch (e) {
+        print('Error fetching deleted khata entries: $e');
+      }
+
+      final Map<String, Map<String, dynamic>> uniqueMap = {};
+      void addIfValid(String rawKey, dynamic item) {
+        if (item is! Map) return;
+        final entry = Map<String, dynamic>.from(item);
+        final String rawK = rawKey;
+        final String syncId = entry['sync_id']?.toString() ?? '';
+        final String id = entry['id']?.toString() ?? '';
+        final String entryKey = syncId.isNotEmpty ? syncId : (id.isNotEmpty ? id : rawK);
+
+        // Filter out if marked deleted in tombstone
+        if (deletedKeys.contains(rawK) || 
+            (syncId.isNotEmpty && deletedKeys.contains(syncId)) ||
+            (id.isNotEmpty && deletedKeys.contains(id))) {
+          return;
+        }
+
+        entry['key'] = entryKey;
+        entry['raw_key'] = rawK;
+        uniqueMap[entryKey] = entry;
+      }
+
+      if (data is Map) {
+        data.forEach((k, v) => addIfValid(k.toString(), v));
       } else if (data is List) {
         for (int i = 0; i < data.length; i++) {
-          if (data[i] is Map) {
-            final entry = Map<String, dynamic>.from(data[i]);
-            final String entryKey = entry['sync_id']?.toString() ?? entry['id']?.toString() ?? i.toString();
-            entry['key'] = entryKey;
-            uniqueMap[entryKey] = entry;
-          }
+          addIfValid(i.toString(), data[i]);
         }
       }
       final list = uniqueMap.values.toList();
@@ -893,17 +921,44 @@ class FirebaseService {
   Future<void> deleteKhataTransaction({
     required String customerId,
     required String entryKey,
+    String? rawKey,
   }) async {
-    final entryRef = _database.ref('customer_khata/$customerId/$entryKey');
-    await entryRef.remove();
+    // 1. Remove from customer_khata
+    await _database.ref('customer_khata/$customerId/$entryKey').remove();
+    if (rawKey != null && rawKey != entryKey) {
+      await _database.ref('customer_khata/$customerId/$rawKey').remove();
+    }
+
+    // 2. Mark immutable tombstone so Desktop Sync Engine never re-uploads it
+    try {
+      await _database.ref('deleted_khata_entries/$customerId/$entryKey').set(true);
+      if (rawKey != null && rawKey != entryKey) {
+        await _database.ref('deleted_khata_entries/$customerId/$rawKey').set(true);
+      }
+    } catch (e) {
+      print('Warning writing deleted_khata_entries tombstone: $e');
+    }
 
     // Recalculate customer balance from all remaining entries
     try {
       final khataSnap = await _database.ref('customer_khata/$customerId').get();
+      final delSnap = await _database.ref('deleted_khata_entries/$customerId').get();
+      final Set<String> deletedKeys = {};
+      if (delSnap.exists && delSnap.value is Map) {
+        (delSnap.value as Map).forEach((k, v) {
+          if (v == true || v != null) deletedKeys.add(k.toString());
+        });
+      }
+
       double calcBal = 0.0;
       if (khataSnap.exists && khataSnap.value != null) {
         final data = khataSnap.value;
-        void processEntry(Map map) {
+        void processEntry(String k, Map map) {
+          final syncId = map['sync_id']?.toString() ?? '';
+          final id = map['id']?.toString() ?? '';
+          if (deletedKeys.contains(k) || (syncId.isNotEmpty && deletedKeys.contains(syncId)) || (id.isNotEmpty && deletedKeys.contains(id))) {
+            return;
+          }
           final eType = map['type']?.toString().toUpperCase() ?? 'LOAN';
           final double eAmt = (map['amount'] is num)
               ? (map['amount'] as num).toDouble()
@@ -912,12 +967,12 @@ class FirebaseService {
         }
 
         if (data is Map) {
-          data.forEach((_, v) {
-            if (v is Map) processEntry(v);
+          data.forEach((k, v) {
+            if (v is Map) processEntry(k.toString(), v);
           });
         } else if (data is List) {
-          for (final v in data) {
-            if (v is Map) processEntry(v);
+          for (int i = 0; i < data.length; i++) {
+            if (data[i] is Map) processEntry(i.toString(), data[i]);
           }
         }
       }

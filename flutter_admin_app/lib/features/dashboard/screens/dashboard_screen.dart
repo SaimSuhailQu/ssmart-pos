@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:ssmart_pos_admin/core/constants/firebase_constants.dart';
 import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
 import 'package:ssmart_pos_admin/core/utils/date_utils.dart';
+import 'package:ssmart_pos_admin/features/dashboard/screens/daily_closings_screen.dart';
 import 'package:ssmart_pos_admin/features/dashboard/widgets/metric_card.dart';
 import 'package:ssmart_pos_admin/features/dashboard/widgets/recent_transactions.dart';
 import 'package:ssmart_pos_admin/features/dashboard/widgets/sales_chart.dart';
@@ -121,6 +122,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 context,
                 CupertinoPageRoute(
                   builder: (context) => const MobileCheckoutScreen(),
+                ),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(CupertinoIcons.calendar_badge_plus, color: AppTheme.successGreen),
+            tooltip: 'Daily Closing Sales',
+            onPressed: () {
+              Navigator.push(
+                context,
+                CupertinoPageRoute(
+                  builder: (context) => const DailyClosingsScreen(),
                 ),
               );
             },
@@ -394,6 +407,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          OutlinedButton.icon(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                CupertinoPageRoute(builder: (_) => const DailyClosingsScreen()),
+                              );
+                            },
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppTheme.primaryCyan,
+                              side: const BorderSide(color: AppTheme.primaryCyan, width: 1),
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            icon: const Icon(CupertinoIcons.calendar, size: 12, color: AppTheme.primaryCyan),
+                            label: const Text(
+                              'View All',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
                           OutlinedButton.icon(
                             onPressed: () => ManualClosingDialog.show(context),
                             style: OutlinedButton.styleFrom(

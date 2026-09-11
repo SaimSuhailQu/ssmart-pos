@@ -11,6 +11,7 @@ import {
   getAllPurchaseOrders,
   getAllCustomerKhataEntries,
   upsertCloudKhataEntry,
+  deleteCustomerKhataBySyncId,
   recalculateAllCustomerBalances,
   clearAllKhataRecords,
   getProductByBarcode,
@@ -193,10 +194,37 @@ export async function syncCustomerKhataToCloud(silent = false) {
     const entries = getAllCustomerKhataEntries();
     const updates: Record<string, any> = {};
 
+    // Fetch deleted khata keys to avoid re-uploading deleted items
+    let deletedKeys: Set<string> = new Set();
+    try {
+      const delSnap = await get(ref(dbInstance, 'deleted_khata_entries'));
+      if (delSnap.exists() && delSnap.val()) {
+        const val = delSnap.val();
+        if (typeof val === 'object' && val !== null) {
+          for (const [cId, keysObj] of Object.entries(val)) {
+            if (keysObj && typeof keysObj === 'object') {
+              for (const k of Object.keys(keysObj)) {
+                deletedKeys.add(k);
+              }
+            } else if (keysObj === true) {
+              deletedKeys.add(cId);
+            }
+          }
+        }
+      }
+    } catch (dErr) {
+      console.warn("Could not check deleted_khata_entries:", dErr);
+    }
+
     for (const e of entries) {
       if (!e || !e.customer_id) continue;
       const custKey = e.customer_id.toString();
       const syncKey = e.sync_id || (e.id ? `khata_${e.id}` : `khata_${e.type}_${e.amount}_${e.timestamp}`);
+      
+      // Never re-upload an entry that was marked deleted in cloud or local
+      if (deletedKeys.has(syncKey) || (e.sync_id && deletedKeys.has(e.sync_id))) {
+        continue;
+      }
       
       updates[`customer_khata/${custKey}/${syncKey}`] = {
         id: syncKey,
@@ -226,7 +254,9 @@ export async function deleteCustomerKhataEntryFromCloud(customerId: number, sync
   if (!dbInstance) return;
   try {
     if (syncId) {
+      // Remove from customer_khata and register tombstone in deleted_khata_entries
       await set(ref(dbInstance, `customer_khata/${customerId}/${syncId}`), null);
+      await set(ref(dbInstance, `deleted_khata_entries/${customerId}/${syncId}`), true);
     }
   } catch (err) {
     console.warn("Delete khata entry from cloud warning:", err);
@@ -462,6 +492,27 @@ async function ingestCloudDataToLocal() {
     }
 
     // 6. Ingest Customer Khata / Udhaar Entries (e.g. from Mobile POS)
+    // First, process any deleted khata entries from cloud tombstones
+    try {
+      const delKhataSnap = await get(ref(dbInstance, 'deleted_khata_entries'));
+      if (delKhataSnap.exists() && delKhataSnap.val()) {
+        const delVal = delKhataSnap.val();
+        if (typeof delVal === 'object' && delVal !== null) {
+          for (const [cId, keys] of Object.entries(delVal)) {
+            if (keys && typeof keys === 'object') {
+              for (const k of Object.keys(keys)) {
+                deleteCustomerKhataBySyncId(k);
+              }
+            } else if (keys === true) {
+              deleteCustomerKhataBySyncId(cId);
+            }
+          }
+        }
+      }
+    } catch (dErr) {
+      console.warn("Failed to process cloud deleted khata entries:", dErr);
+    }
+
     const khataSnap = await get(ref(dbInstance, 'customer_khata'));
     if (khataSnap.exists()) {
       const kData = khataSnap.val();
@@ -526,6 +577,7 @@ export function startSyncWorker(onStatusChange?: (status: string) => void) {
       onValue(ref(dbInstance, 'products'), triggerDebouncedIngest);
       onValue(ref(dbInstance, 'customers'), triggerDebouncedIngest);
       onValue(ref(dbInstance, 'customer_khata'), triggerDebouncedIngest);
+      onValue(ref(dbInstance, 'deleted_khata_entries'), triggerDebouncedIngest);
       onValue(ref(dbInstance, 'expenses'), triggerDebouncedIngest);
       onValue(ref(dbInstance, 'vendors'), triggerDebouncedIngest);
       onValue(ref(dbInstance, 'purchase_orders'), triggerDebouncedIngest);
