@@ -70,6 +70,7 @@ class VendorModel {
 }
 
 class PurchaseOrderModel {
+  final String key;
   final int id;
   final int vendorId;
   final String vendorName;
@@ -87,6 +88,7 @@ class PurchaseOrderModel {
   final List<dynamic> orderEntries;
 
   PurchaseOrderModel({
+    String? key,
     required this.id,
     required this.vendorId,
     required this.vendorName,
@@ -102,7 +104,7 @@ class PurchaseOrderModel {
     required this.items,
     required this.payments,
     required this.orderEntries,
-  });
+  }) : key = (key != null && key.isNotEmpty) ? key : id.toString();
 
   double get balanceDue => (totalCost - paidAmount).clamp(0.0, double.infinity);
   bool get isPaid => balanceDue <= 0 && totalCost > 0;
@@ -172,6 +174,7 @@ class PurchaseOrderModel {
     }
 
     return PurchaseOrderModel(
+      key: id.toString(),
       id: parsedId,
       vendorId: parsedVendorId,
       vendorName: vendorName,
@@ -218,6 +221,7 @@ class PurchaseOrderModel {
   }
 
   PurchaseOrderModel copyWith({
+    String? key,
     int? id,
     int? vendorId,
     String? vendorName,
@@ -235,6 +239,7 @@ class PurchaseOrderModel {
     List<dynamic>? orderEntries,
   }) {
     return PurchaseOrderModel(
+      key: key ?? this.key,
       id: id ?? this.id,
       vendorId: vendorId ?? this.vendorId,
       vendorName: vendorName ?? this.vendorName,

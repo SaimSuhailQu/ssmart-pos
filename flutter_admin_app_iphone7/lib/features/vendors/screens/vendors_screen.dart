@@ -904,7 +904,7 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                    Row(
+                  Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Column(
@@ -1247,6 +1247,7 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
             if (p is Map) {
               final map = Map<String, dynamic>.from(p);
               map['po_id'] = po.id;
+              map['po_key'] = po.key.isNotEmpty ? po.key : po.id.toString();
               map['vendor_name'] = po.vendorName;
               map['payment_index'] = i;
               allPayments.add(map);
@@ -1426,8 +1427,9 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                                           );
                                           if (confirm == true) {
                                             try {
+                                              final targetKey = pay['po_key']?.toString() ?? poId.toString();
                                               await firebaseService.deleteVendorPayment(
-                                                poId: poId.toString(),
+                                                poId: targetKey,
                                                 paymentId: paymentId,
                                               );
                                               if (context.mounted) {
@@ -1511,6 +1513,7 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
             if (entry is Map) {
               final map = Map<String, dynamic>.from(entry);
               map['po_id'] = po.id;
+              map['po_key'] = po.key.isNotEmpty ? po.key : po.id.toString();
               map['vendor_name'] = po.vendorName;
               map['entry_index'] = i;
               allEntries.add(map);
@@ -1689,8 +1692,9 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                                           );
                                           if (confirm == true) {
                                             try {
+                                              final targetKey = entry['po_key']?.toString() ?? poId.toString();
                                               await firebaseService.deleteVendorOrderEntry(
-                                                poId: poId.toString(),
+                                                poId: targetKey,
                                                 entryId: entryId,
                                               );
                                               if (context.mounted) {

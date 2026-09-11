@@ -146,7 +146,7 @@ class VendorPODetailsSheet extends StatelessWidget {
 
                         try {
                           await context.read<FirebaseService>().recordVendorPayment(
-                            poId: po.id.toString(),
+                            poId: po.key.isNotEmpty ? po.key : po.id.toString(),
                             vendorId: po.vendorId,
                             amount: amount,
                             paymentMethod: selectedMethod,
@@ -279,7 +279,7 @@ class VendorPODetailsSheet extends StatelessWidget {
 
                         try {
                           await context.read<FirebaseService>().addVendorOrderEntry(
-                            poId: po.id.toString(),
+                            poId: po.key.isNotEmpty ? po.key : po.id.toString(),
                             amount: amount,
                             notes: noteCtrl.text.trim().isNotEmpty ? noteCtrl.text.trim() : null,
                           );
@@ -677,7 +677,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                                     if (confirm == true) {
                                       try {
                                         await fb.deleteVendorOrderEntry(
-                                          poId: po.id.toString(),
+                                          poId: po.key.isNotEmpty ? po.key : po.id.toString(),
                                           entryId: entryId,
                                         );
                                         if (context.mounted) {
@@ -815,7 +815,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                                     if (confirm == true) {
                                       try {
                                         await fb.deleteVendorPayment(
-                                          poId: po.id.toString(),
+                                          poId: po.key.isNotEmpty ? po.key : po.id.toString(),
                                           paymentId: paymentId,
                                         );
                                         if (context.mounted) {

@@ -1097,6 +1097,20 @@ class FirebaseService {
                   }
                 }
               }
+            } else if (val is List) {
+              for (int i = 0; i < val.length; i++) {
+                if (val[i] is Map) {
+                  final m = Map<String, dynamic>.from(val[i] as Map);
+                  final vName = m['vendor_name']?.toString().trim().toLowerCase() ?? '';
+                  final vId = m['vendor_id'] is int ? m['vendor_id'] : int.tryParse(m['vendor_id']?.toString() ?? '');
+                  if ((vendorId != null && vendorId != 0 && vId == vendorId) ||
+                      (vName.isNotEmpty && vName == vendorName.trim().toLowerCase())) {
+                    targetPoId = m['id']?.toString() ?? i.toString();
+                    existingData = m;
+                    break;
+                  }
+                }
+              }
             }
           }
         } catch (e) {
@@ -1112,8 +1126,8 @@ class FirebaseService {
     // Fetch existing node data if targetPoId already existed and existingData not already loaded
     if (targetPoId != null && existingData == null) {
       final snap = await poRef.get();
-      if (snap.exists && snap.value != null && snap.value is Map) {
-        existingData = Map<String, dynamic>.from(snap.value as Map);
+      if (snap.exists && snap.value != null) {
+        existingData = _safeExtractPO(snap.value, poId: targetPoId, vendorId: vendorId);
       }
     }
 
@@ -1286,11 +1300,26 @@ class FirebaseService {
     final poRef = _database.ref('${FirebasePaths.purchaseOrders}/$poId');
     final snapshot = await poRef.get();
 
-    if (!snapshot.exists || snapshot.value == null) {
-      throw Exception('Purchase Order #$poId not found');
+    dynamic rawValue = snapshot.value;
+    DatabaseReference targetRef = poRef;
+
+    if (!snapshot.exists || rawValue == null) {
+      final allSnap = await _database.ref(FirebasePaths.purchaseOrders).get();
+      if (allSnap.exists && allSnap.value != null) {
+        final extracted = _safeExtractPO(allSnap.value, poId: poId);
+        if (extracted != null) {
+          rawValue = extracted;
+          final String resolvedKey = extracted['id']?.toString() ?? poId;
+          targetRef = _database.ref('${FirebasePaths.purchaseOrders}/$resolvedKey');
+        }
+      }
     }
 
-    final poData = Map<String, dynamic>.from(snapshot.value as Map);
+    final poData = _safeExtractPO(rawValue, poId: poId);
+    if (poData == null) {
+      throw Exception('Purchase Order #$poId not found or could not be loaded');
+    }
+
     final rawCost = poData['total_cost'] ?? poData['total_amount'] ?? 0.0;
     final double totalCost = (rawCost is num) ? rawCost.toDouble() : (double.tryParse(rawCost.toString()) ?? 0.0);
     final rawPaid = poData['paid_amount'] ?? 0.0;
@@ -1329,7 +1358,7 @@ class FirebaseService {
         ? (prevNotes.isNotEmpty ? '$prevNotes | $notes' : notes!)
         : prevNotes;
 
-    await poRef.update({
+    await targetRef.update({
       'total_cost': newTotalCost,
       'total_amount': newTotalCost,
       'payment_status': newPaymentStatus,
@@ -1349,11 +1378,26 @@ class FirebaseService {
     final poRef = _database.ref('${FirebasePaths.purchaseOrders}/$poId');
     final snapshot = await poRef.get();
 
-    if (!snapshot.exists || snapshot.value == null) {
-      throw Exception('Purchase Order #$poId not found');
+    dynamic rawValue = snapshot.value;
+    DatabaseReference targetRef = poRef;
+
+    if (!snapshot.exists || rawValue == null) {
+      final allSnap = await _database.ref(FirebasePaths.purchaseOrders).get();
+      if (allSnap.exists && allSnap.value != null) {
+        final extracted = _safeExtractPO(allSnap.value, poId: poId, vendorId: vendorId);
+        if (extracted != null) {
+          rawValue = extracted;
+          final String resolvedKey = extracted['id']?.toString() ?? poId;
+          targetRef = _database.ref('${FirebasePaths.purchaseOrders}/$resolvedKey');
+        }
+      }
     }
 
-    final poData = Map<String, dynamic>.from(snapshot.value as Map);
+    final poData = _safeExtractPO(rawValue, poId: poId, vendorId: vendorId);
+    if (poData == null) {
+      throw Exception('Purchase Order #$poId not found or could not be loaded');
+    }
+
     final rawCost = poData['total_cost'] ?? poData['total_amount'] ?? 0.0;
     final double totalCost = (rawCost is num) ? rawCost.toDouble() : (double.tryParse(rawCost.toString()) ?? 0.0);
     final rawPaid = poData['paid_amount'] ?? 0.0;
@@ -1385,7 +1429,7 @@ class FirebaseService {
       'timestamp': DateTime.now().toIso8601String(),
     });
 
-    await poRef.update({
+    await targetRef.update({
       'paid_amount': newPaidAmount,
       'payment_status': newPaymentStatus,
       'payments': currentPayments,
@@ -1400,11 +1444,27 @@ class FirebaseService {
   }) async {
     final poRef = _database.ref('${FirebasePaths.purchaseOrders}/$poId');
     final snapshot = await poRef.get();
-    if (!snapshot.exists || snapshot.value == null) {
+
+    dynamic rawValue = snapshot.value;
+    DatabaseReference targetRef = poRef;
+
+    if (!snapshot.exists || rawValue == null) {
+      final allSnap = await _database.ref(FirebasePaths.purchaseOrders).get();
+      if (allSnap.exists && allSnap.value != null) {
+        final extracted = _safeExtractPO(allSnap.value, poId: poId);
+        if (extracted != null) {
+          rawValue = extracted;
+          final String resolvedKey = extracted['id']?.toString() ?? poId;
+          targetRef = _database.ref('${FirebasePaths.purchaseOrders}/$resolvedKey');
+        }
+      }
+    }
+
+    final poData = _safeExtractPO(rawValue, poId: poId);
+    if (poData == null) {
       throw Exception('Purchase Order #$poId not found');
     }
 
-    final poData = Map<String, dynamic>.from(snapshot.value as Map);
     List<dynamic> currentPayments = [];
     if (poData['payments'] is List) {
       currentPayments = List.from(poData['payments'] as List);
@@ -1414,12 +1474,12 @@ class FirebaseService {
       });
     }
 
-    final payIndex = currentPayments.indexWhere((p) => p['id']?.toString() == paymentId.toString());
+    final payIndex = currentPayments.indexWhere((p) => p is Map && p['id']?.toString() == paymentId.toString());
     if (payIndex == -1) {
       throw Exception('Payment record not found on PO #$poId');
     }
 
-    final targetPay = currentPayments[payIndex];
+    final targetPay = currentPayments[payIndex] is Map ? Map<String, dynamic>.from(currentPayments[payIndex] as Map) : <String, dynamic>{};
     if (!bypassTimeCheck) {
       final String timeStr = targetPay['timestamp']?.toString() ?? '';
       final parsedTime = DateTime.tryParse(timeStr) ?? DateTime.now();
@@ -1448,7 +1508,7 @@ class FirebaseService {
       newPaymentStatus = 'Partially Paid';
     }
 
-    await poRef.update({
+    await targetRef.update({
       'paid_amount': newPaidAmount,
       'payment_status': newPaymentStatus,
       'payments': currentPayments,
@@ -1466,11 +1526,27 @@ class FirebaseService {
   }) async {
     final poRef = _database.ref('${FirebasePaths.purchaseOrders}/$poId');
     final snapshot = await poRef.get();
-    if (!snapshot.exists || snapshot.value == null) {
+
+    dynamic rawValue = snapshot.value;
+    DatabaseReference targetRef = poRef;
+
+    if (!snapshot.exists || rawValue == null) {
+      final allSnap = await _database.ref(FirebasePaths.purchaseOrders).get();
+      if (allSnap.exists && allSnap.value != null) {
+        final extracted = _safeExtractPO(allSnap.value, poId: poId);
+        if (extracted != null) {
+          rawValue = extracted;
+          final String resolvedKey = extracted['id']?.toString() ?? poId;
+          targetRef = _database.ref('${FirebasePaths.purchaseOrders}/$resolvedKey');
+        }
+      }
+    }
+
+    final poData = _safeExtractPO(rawValue, poId: poId);
+    if (poData == null) {
       throw Exception('Purchase Order #$poId not found');
     }
 
-    final poData = Map<String, dynamic>.from(snapshot.value as Map);
     List<dynamic> currentPayments = [];
     if (poData['payments'] is List) {
       currentPayments = List.from(poData['payments'] as List);
@@ -1480,12 +1556,12 @@ class FirebaseService {
       });
     }
 
-    final payIndex = currentPayments.indexWhere((p) => p['id']?.toString() == paymentId.toString());
+    final payIndex = currentPayments.indexWhere((p) => p is Map && p['id']?.toString() == paymentId.toString());
     if (payIndex == -1) {
       throw Exception('Payment record not found on PO #$poId');
     }
 
-    final targetPay = Map<String, dynamic>.from(currentPayments[payIndex] as Map);
+    final targetPay = currentPayments[payIndex] is Map ? Map<String, dynamic>.from(currentPayments[payIndex] as Map) : <String, dynamic>{};
     if (!bypassTimeCheck) {
       final String timeStr = targetPay['timestamp']?.toString() ?? '';
       final parsedTime = DateTime.tryParse(timeStr) ?? DateTime.now();
@@ -1517,7 +1593,7 @@ class FirebaseService {
       newPaymentStatus = 'Partially Paid';
     }
 
-    await poRef.update({
+    await targetRef.update({
       'paid_amount': newPaidAmount,
       'payment_status': newPaymentStatus,
       'payments': currentPayments,
@@ -1532,11 +1608,27 @@ class FirebaseService {
   }) async {
     final poRef = _database.ref('${FirebasePaths.purchaseOrders}/$poId');
     final snapshot = await poRef.get();
-    if (!snapshot.exists || snapshot.value == null) {
+
+    dynamic rawValue = snapshot.value;
+    DatabaseReference targetRef = poRef;
+
+    if (!snapshot.exists || rawValue == null) {
+      final allSnap = await _database.ref(FirebasePaths.purchaseOrders).get();
+      if (allSnap.exists && allSnap.value != null) {
+        final extracted = _safeExtractPO(allSnap.value, poId: poId);
+        if (extracted != null) {
+          rawValue = extracted;
+          final String resolvedKey = extracted['id']?.toString() ?? poId;
+          targetRef = _database.ref('${FirebasePaths.purchaseOrders}/$resolvedKey');
+        }
+      }
+    }
+
+    final poData = _safeExtractPO(rawValue, poId: poId);
+    if (poData == null) {
       throw Exception('Purchase Order #$poId not found');
     }
 
-    final poData = Map<String, dynamic>.from(snapshot.value as Map);
     List<dynamic> currentEntries = [];
     if (poData['order_entries'] is List) {
       currentEntries = List.from(poData['order_entries'] as List);
@@ -1546,12 +1638,12 @@ class FirebaseService {
       });
     }
 
-    final entryIndex = currentEntries.indexWhere((e) => e['id']?.toString() == entryId.toString());
+    final entryIndex = currentEntries.indexWhere((e) => e is Map && e['id']?.toString() == entryId.toString());
     if (entryIndex == -1) {
       throw Exception('Order entry record not found on PO #$poId');
     }
 
-    final targetEntry = currentEntries[entryIndex];
+    final targetEntry = currentEntries[entryIndex] is Map ? Map<String, dynamic>.from(currentEntries[entryIndex] as Map) : <String, dynamic>{};
     if (!bypassTimeCheck) {
       final String timeStr = targetEntry['timestamp']?.toString() ?? '';
       final parsedTime = DateTime.tryParse(timeStr) ?? DateTime.now();
@@ -1580,7 +1672,7 @@ class FirebaseService {
       newPaymentStatus = 'Partially Paid';
     }
 
-    await poRef.update({
+    await targetRef.update({
       'total_cost': newTotalCost,
       'total_amount': newTotalCost,
       'payment_status': newPaymentStatus,
@@ -1601,12 +1693,14 @@ class FirebaseService {
     if (!bypassTimeCheck) {
       final snap = await poRef.get();
       if (snap.exists && snap.value != null) {
-        final poData = Map<String, dynamic>.from(snap.value as Map);
-        final String timeStr = poData['timestamp']?.toString() ?? '';
-        final parsedTime = DateTime.tryParse(timeStr) ?? DateTime.now();
-        final diffMins = DateTime.now().difference(parsedTime).inMinutes;
-        if (diffMins > 30) {
-          throw Exception('This Purchase Order was created more than 30 minutes ago and is now permanent.');
+        final poData = _safeExtractPO(snap.value, poId: id);
+        if (poData != null) {
+          final String timeStr = poData['timestamp']?.toString() ?? '';
+          final parsedTime = DateTime.tryParse(timeStr) ?? DateTime.now();
+          final diffMins = DateTime.now().difference(parsedTime).inMinutes;
+          if (diffMins > 30) {
+            throw Exception('This Purchase Order was created more than 30 minutes ago and is now permanent.');
+          }
         }
       }
     }
@@ -1647,6 +1741,50 @@ class FirebaseService {
         ],
       },
     });
+  }
+
+  /// Safely extracts a Purchase Order Map whether Firebase RTDB returns a Map, List, or nested structure
+  Map<String, dynamic>? _safeExtractPO(dynamic rawValue, {String? poId, int? vendorId}) {
+    if (rawValue == null) return null;
+    if (rawValue is Map) {
+      return Map<String, dynamic>.from(rawValue);
+    }
+    if (rawValue is List) {
+      // 1. Try matching integer index if poId is an integer
+      final int? index = poId != null ? int.tryParse(poId) : null;
+      if (index != null && index >= 0 && index < rawValue.length && rawValue[index] is Map) {
+        return Map<String, dynamic>.from(rawValue[index] as Map);
+      }
+      // 2. Search items for matching id
+      for (final item in rawValue) {
+        if (item is Map) {
+          final itemId = item['id']?.toString();
+          if (poId != null && itemId == poId) {
+            return Map<String, dynamic>.from(item);
+          }
+        }
+      }
+      // 3. Search items for matching vendorId
+      if (vendorId != null && vendorId != 0) {
+        for (final item in rawValue) {
+          if (item is Map) {
+            final vId = item['vendor_id'] is int
+                ? item['vendor_id']
+                : int.tryParse(item['vendor_id']?.toString() ?? '');
+            if (vId == vendorId) {
+              return Map<String, dynamic>.from(item);
+            }
+          }
+        }
+      }
+      // 4. Return first non-null map as fallback
+      for (final item in rawValue) {
+        if (item is Map) {
+          return Map<String, dynamic>.from(item);
+        }
+      }
+    }
+    return null;
   }
 
   /// Dispose resources
