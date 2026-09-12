@@ -2,6 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
 import 'package:ssmart_pos_admin/core/utils/date_utils.dart';
+import 'package:ssmart_pos_admin/core/widgets/glass_card.dart';
 import 'package:ssmart_pos_admin/models/dashboard_metrics.dart';
 
 /// Line chart showing sales trend over the last 7 days
@@ -19,7 +20,7 @@ class SalesChart extends StatelessWidget {
       return _buildEmptyState();
     }
 
-    return Card(
+    return GlassCard(
       child: Padding(
         padding: const EdgeInsets.all(AppTheme.spacingM),
         child: Column(

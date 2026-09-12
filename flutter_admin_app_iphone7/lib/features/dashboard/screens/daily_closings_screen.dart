@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
 import 'package:ssmart_pos_admin/core/utils/date_utils.dart';
+import 'package:ssmart_pos_admin/core/widgets/glass_card.dart';
 import 'package:ssmart_pos_admin/models/daily_closing.dart';
 import 'package:ssmart_pos_admin/services/firebase_service.dart';
 import 'package:ssmart_pos_admin/widgets/error_widget.dart';
@@ -345,28 +346,19 @@ class _DailyClosingsScreenState extends State<DailyClosingsScreen> {
 
     return Padding(
       padding: const EdgeInsets.all(AppTheme.spacingM),
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF0D281E), AppTheme.surfaceDark],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTheme.successGreen.withValues(alpha: 0.4)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.3),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
+      child: GlassCard(
+        padding: const EdgeInsets.all(16),
+        borderColor: AppTheme.successGreen.withValues(alpha: 0.4),
+        enableGlow: true,
+        glowColor: AppTheme.successGreen,
+        gradient: const LinearGradient(
+          colors: [Color(0xDD0D281E), Color(0xEE141722)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -752,16 +744,13 @@ class _DailyClosingsScreenState extends State<DailyClosingsScreen> {
 
             final isCurrentSelected = parsedDt != null && _isSameDay(parsedDt, _selectedDate);
 
-            return Container(
+            return GlassCard(
               margin: const EdgeInsets.only(bottom: 8),
-              decoration: BoxDecoration(
-                color: isCurrentSelected ? AppTheme.surfaceDark : AppTheme.cardBackground,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isCurrentSelected ? AppTheme.primaryCyan : Colors.white10,
-                  width: isCurrentSelected ? 1.5 : 1,
-                ),
-              ),
+              borderRadius: BorderRadius.circular(12),
+              padding: EdgeInsets.zero,
+              borderColor: isCurrentSelected ? AppTheme.primaryCyan : Colors.white12,
+              borderWidth: isCurrentSelected ? 1.5 : 1,
+              backgroundColor: isCurrentSelected ? AppTheme.surfaceDark : null,
               child: ListTile(
                 onTap: () {
                   if (parsedDt != null) {

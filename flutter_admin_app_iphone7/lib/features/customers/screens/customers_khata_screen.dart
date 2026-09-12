@@ -5,6 +5,7 @@ import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
 import 'package:ssmart_pos_admin/core/utils/whatsapp_helper.dart';
 import 'package:ssmart_pos_admin/core/widgets/app_error_widget.dart';
 import 'package:ssmart_pos_admin/core/widgets/app_loading_indicator.dart';
+import 'package:ssmart_pos_admin/core/widgets/glass_card.dart';
 import 'package:ssmart_pos_admin/features/customers/widgets/customer_khata_details_sheet.dart';
 import 'package:ssmart_pos_admin/models/customer.dart';
 import 'package:ssmart_pos_admin/services/firebase_service.dart';
@@ -103,42 +104,50 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
 
           return Column(
             children: [
-              // Metric Card
-              Container(
+              // Metric Card with Frosted Glass & Overflow Protection
+              GlassCard(
                 margin: const EdgeInsets.all(AppTheme.spacingM),
                 padding: const EdgeInsets.all(AppTheme.spacingL),
-                decoration: BoxDecoration(
-                  color: AppTheme.cardBackground,
-                  borderRadius: BorderRadius.circular(AppTheme.radiusL),
-                  border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
-                ),
+                borderColor: Colors.amber.withValues(alpha: 0.35),
+                enableGlow: true,
+                glowColor: Colors.amber,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Total Customer Udhaar (Loan)',
-                          style: AppTheme.labelMedium.copyWith(color: AppTheme.textSecondary),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'PKR ${totalKhata.toStringAsFixed(0)}',
-                          style: AppTheme.headlineLarge.copyWith(
-                            color: Colors.amber.shade700,
-                            fontWeight: FontWeight.bold,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Total Customer Udhaar (Loan)',
+                            style: AppTheme.labelMedium.copyWith(color: AppTheme.textSecondary),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 4),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'PKR ${totalKhata.toStringAsFixed(0)}',
+                              style: AppTheme.headlineLarge.copyWith(
+                                color: Colors.amber.shade700,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
+                    const SizedBox(width: 12),
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.amber.withValues(alpha: 0.1),
+                        color: Colors.amber.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                        border: Border.all(color: Colors.amber.withValues(alpha: 0.2)),
                       ),
-                      child: const Icon(CupertinoIcons.book_fill, color: Colors.amber, size: 32),
+                      child: const Icon(CupertinoIcons.book_fill, color: Colors.amber, size: 28),
                     ),
                   ],
                 ),

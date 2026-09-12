@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
 import 'package:ssmart_pos_admin/core/utils/date_utils.dart';
+import 'package:ssmart_pos_admin/core/widgets/glass_card.dart';
 import 'package:ssmart_pos_admin/models/expense.dart';
 import 'package:ssmart_pos_admin/services/firebase_service.dart';
 import 'package:ssmart_pos_admin/widgets/error_widget.dart';
@@ -88,42 +89,50 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
 
           return Column(
             children: [
-              // Summary Header Card
-              Container(
+              // Summary Header              // Metric Card with Frosted Glass & Overflow Protection
+              GlassCard(
                 margin: const EdgeInsets.all(AppTheme.spacingM),
                 padding: const EdgeInsets.all(AppTheme.spacingL),
-                decoration: BoxDecoration(
-                  color: AppTheme.cardBackground,
-                  borderRadius: BorderRadius.circular(AppTheme.radiusL),
-                  border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
-                ),
+                borderColor: Colors.redAccent.withValues(alpha: 0.35),
+                enableGlow: true,
+                glowColor: Colors.redAccent,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _searchQuery.isNotEmpty || _selectedCategory != 'ALL' ? 'Filtered Expenses' : 'Total Expenses',
-                          style: AppTheme.labelMedium.copyWith(color: AppTheme.textSecondary),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'PKR ${(_searchQuery.isNotEmpty || _selectedCategory != 'ALL' ? filteredTotal : totalExpenses).toStringAsFixed(0)}',
-                          style: AppTheme.headlineLarge.copyWith(
-                            color: Colors.redAccent,
-                            fontWeight: FontWeight.bold,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _searchQuery.isNotEmpty || _selectedCategory != 'ALL' ? 'Filtered Expenses' : 'Total Expenses',
+                            style: AppTheme.labelMedium.copyWith(color: AppTheme.textSecondary),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 4),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'PKR ${(_searchQuery.isNotEmpty || _selectedCategory != 'ALL' ? filteredTotal : totalExpenses).toStringAsFixed(0)}',
+                              style: AppTheme.headlineLarge.copyWith(
+                                color: Colors.redAccent,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
+                    const SizedBox(width: 12),
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.red.withValues(alpha: 0.1),
+                        color: Colors.red.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                        border: Border.all(color: Colors.redAccent.withValues(alpha: 0.2)),
                       ),
-                      child: const Icon(CupertinoIcons.money_dollar_circle_fill, color: Colors.redAccent, size: 32),
+                      child: const Icon(CupertinoIcons.money_dollar_circle_fill, color: Colors.redAccent, size: 28),
                     ),
                   ],
                 ),

@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:ssmart_pos_admin/core/constants/firebase_constants.dart';
 import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
 import 'package:ssmart_pos_admin/core/utils/date_utils.dart';
+import 'package:ssmart_pos_admin/core/widgets/glass_card.dart';
 import 'package:ssmart_pos_admin/features/dashboard/screens/daily_closings_screen.dart';
 import 'package:ssmart_pos_admin/features/dashboard/widgets/metric_card.dart';
 import 'package:ssmart_pos_admin/features/dashboard/widgets/recent_transactions.dart';
@@ -349,25 +350,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           const SizedBox(height: AppTheme.spacingM),
 
-          // Daily Sales Closing Note Card with 1-Click Copy
+          // Daily Sales Closing Note Card with Frosted Glass & 1-Click Copy
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
-            child: Container(
+            child: GlassCard(
               padding: const EdgeInsets.all(AppTheme.spacingM),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [
-                    Color(0xFF0F2E22),
-                    AppTheme.surfaceDark,
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(AppTheme.radiusM),
-                border: Border.all(
-                  color: AppTheme.successGreen.withValues(alpha: 0.3),
-                  width: 1,
-                ),
+              borderColor: AppTheme.successGreen.withValues(alpha: 0.35),
+              enableGlow: true,
+              glowColor: AppTheme.successGreen,
+              gradient: const LinearGradient(
+                colors: [
+                  Color(0xCC0F2E22),
+                  Color(0xEE141722),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -404,8 +401,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                         ],
                       ),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
                         children: [
                           OutlinedButton.icon(
                             onPressed: () {
@@ -430,7 +428,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
                             ),
                           ),
-                          const SizedBox(width: 6),
                           OutlinedButton.icon(
                             onPressed: () => ManualClosingDialog.show(context),
                             style: OutlinedButton.styleFrom(
@@ -449,7 +446,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
                             ),
                           ),
-                          const SizedBox(width: 6),
                           ElevatedButton.icon(
                             onPressed: () {
                               final now = DateTime.now();
@@ -528,13 +524,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             style: AppTheme.bodySmall.copyWith(color: AppTheme.textSecondary),
                           ),
                           const SizedBox(height: 2),
-                          Text(
-                            AppDateUtils.formatCurrency(todaysMetrics.totalRevenue),
-                            style: AppTheme.titleLarge.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w900,
-                              fontSize: 22,
-                              fontFeatures: const [FontFeature.tabularFigures()],
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              AppDateUtils.formatCurrency(todaysMetrics.totalRevenue),
+                              style: AppTheme.titleLarge.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 22,
+                                fontFeatures: const [FontFeature.tabularFigures()],
+                              ),
                             ),
                           ),
                         ],
@@ -584,50 +584,60 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           const SizedBox(height: AppTheme.spacingL),
 
-          // Metrics grid
+          // Metrics grid with defensive aspect ratio
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
-            child: GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              mainAxisSpacing: AppTheme.spacingM,
-              crossAxisSpacing: AppTheme.spacingM,
-              childAspectRatio: MediaQuery.of(context).size.width < 390 ? 1.05 : 1.15,
-              children: [
-                MetricCard(
-                  label: 'Total Revenue',
-                  value: AppDateUtils.formatCurrency(todaysMetrics.totalRevenue),
-                  icon: CupertinoIcons.money_dollar_circle_fill,
-                  color: AppTheme.successGreen,
-                  subtitle: 'Today',
-                ),
-                MetricCard(
-                  label: 'Transactions',
-                  value: AppDateUtils.formatNumber(
-                    todaysMetrics.transactionCount,
-                  ),
-                  icon: CupertinoIcons.doc_text_fill,
-                  color: AppTheme.primaryBlue,
-                  subtitle: 'Completed',
-                ),
-                MetricCard(
-                  label: 'Average Sale',
-                  value: AppDateUtils.formatCurrency(
-                    todaysMetrics.averageTransactionValue,
-                  ),
-                  icon: CupertinoIcons.chart_bar_fill,
-                  color: AppTheme.secondaryBlue,
-                  subtitle: 'Per transaction',
-                ),
-                MetricCard(
-                  label: 'Top Method',
-                  value: todaysMetrics.mostPopularPaymentMethod,
-                  icon: CupertinoIcons.creditcard_fill,
-                  color: AppTheme.warningOrange,
-                  subtitle: 'Payment method',
-                ),
-              ],
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                // Ensure small devices (like iPhone 7 with 375px) have plenty of height to avoid overflow
+                final ratio = constraints.maxWidth < 360
+                    ? 1.30
+                    : constraints.maxWidth < 400
+                        ? 1.35
+                        : 1.45;
+                return GridView.count(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisCount: 2,
+                  mainAxisSpacing: AppTheme.spacingM,
+                  crossAxisSpacing: AppTheme.spacingM,
+                  childAspectRatio: ratio,
+                  children: [
+                    MetricCard(
+                      label: 'Total Revenue',
+                      value: AppDateUtils.formatCurrency(todaysMetrics.totalRevenue),
+                      icon: CupertinoIcons.money_dollar_circle_fill,
+                      color: AppTheme.successGreen,
+                      subtitle: 'Today',
+                    ),
+                    MetricCard(
+                      label: 'Transactions',
+                      value: AppDateUtils.formatNumber(
+                        todaysMetrics.transactionCount,
+                      ),
+                      icon: CupertinoIcons.doc_text_fill,
+                      color: AppTheme.primaryBlue,
+                      subtitle: 'Completed',
+                    ),
+                    MetricCard(
+                      label: 'Average Sale',
+                      value: AppDateUtils.formatCurrency(
+                        todaysMetrics.averageTransactionValue,
+                      ),
+                      icon: CupertinoIcons.chart_bar_fill,
+                      color: AppTheme.secondaryBlue,
+                      subtitle: 'Per transaction',
+                    ),
+                    MetricCard(
+                      label: 'Top Method',
+                      value: todaysMetrics.mostPopularPaymentMethod,
+                      icon: CupertinoIcons.creditcard_fill,
+                      color: AppTheme.warningOrange,
+                      subtitle: 'Payment method',
+                    ),
+                  ],
+                );
+              },
             ),
           ),
 
@@ -704,27 +714,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required Color color,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
+    return GlassCard(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-        decoration: BoxDecoration(
-          color: AppTheme.cardBackground,
-          borderRadius: BorderRadius.circular(AppTheme.radiusM),
-          border: Border.all(color: color.withValues(alpha: 0.2)),
-        ),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(7),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: color, size: 18),
+      borderRadius: AppTheme.radiusM,
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+      borderColor: color.withValues(alpha: 0.28),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(7),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
             ),
-            const SizedBox(height: 6),
-            Text(
+            child: Icon(icon, color: color, size: 18),
+          ),
+          const SizedBox(height: 6),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
               title,
               style: const TextStyle(
                 fontSize: 11,
@@ -732,22 +741,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 color: AppTheme.textPrimary,
               ),
               maxLines: 1,
-              overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 2),
-            Text(
+          ),
+          const SizedBox(height: 2),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
               subtitle,
               style: const TextStyle(
                 fontSize: 9,
                 color: AppTheme.textSecondary,
               ),
               maxLines: 1,
-              overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

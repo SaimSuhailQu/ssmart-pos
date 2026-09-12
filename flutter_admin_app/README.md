@@ -2,6 +2,19 @@
 
 A professional Flutter iOS admin application for monitoring sales, transactions, and analytics in real-time from the SSmart POS system.
 
+## 📲 Install & Auto-Update via LiveContainer / AltStore
+
+You can install and automatically update **SSmart POS Admin** without a Mac or PC using **LiveContainer**, **SideStore**, or **AltStore**:
+
+1. Open **LiveContainer** (or AltStore/SideStore) on your iOS device.
+2. Go to **Sources** → Tap **+** (Add Source).
+3. Paste the following URL:
+   ```
+   https://raw.githubusercontent.com/SaimSuhailQu/ssmart-pos/main/livecontainer_source.json
+   ```
+4. Tap **Add**. You will now see **SSmart POS Admin** in your source list.
+5. Tap **GET / Install**. Whenever a new version is released on GitHub, LiveContainer will automatically notify you and update it with 1 tap!
+
 ## Quick Start
 
 ### Got GoogleService-Info.plist? (Fastest Setup - 30 seconds!)

@@ -21,10 +21,13 @@ class AppTheme {
   static const Color errorRed = Color(0xFFEF4444);
 
   static const Color backgroundLight = Color(0xFF0B0C10); // Deep Radial Obsidian
-  static const Color cardBackground = Color(0xFF141722); // Frosted Glassmorphic Panel
+  static const Color cardBackground = Color(0xFF141722); // Base Glassmorphic Panel
+  static const Color glassSurface = Color(0x99141722); // 60% Frosted Panel
+  static const Color glassSurfaceLight = Color(0x1FFFFFFF); // 12% White Frost
   static const Color surfaceDark = Color(0xFF1A1E2B); // Modal & Dialog Surface
   static const Color borderColor = Color(0x1AFFFFFF); // 10% White Border
   static const Color borderHighlight = Color(0x33FFFFFF); // 20% White Top Highlight
+  static const Color glassBorder = Color(0x2EFFFFFF); // 18% Frosted White Border
 
   static const Color textPrimary = Color(0xFFF8FAFC); // Crisp Off-White
   static const Color textSecondary = Color(0xFF94A3B8); // Slate 400

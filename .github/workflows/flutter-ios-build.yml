@@ -433,6 +433,11 @@ jobs:
               --build-number="$BUILD_NUMBER" \
               DEVELOPMENT_TEAM="$FASTLANE_TEAM_ID"
               
+            # Ensure ssmartpos.ipa exists in build/ios/ipa for consistent LiveContainer / AltStore asset naming
+            if [ -f "build/ios/ipa/"*.ipa ]; then
+              cp build/ios/ipa/*.ipa build/ios/ipa/ssmartpos.ipa 2>/dev/null || true
+            fi
+
             # Verify build output
             ls -lh build/ios/ipa/
           else
@@ -524,13 +529,18 @@ jobs:
 
             ### Installation Instructions
 
-            1. **TestFlight (Recommended)**
+            1. **LiveContainer / AltStore (Recommended - 1-Click Auto-Updates)**
+               - Add this source URL in LiveContainer or AltStore:
+                 `https://raw.githubusercontent.com/SaimSuhailQu/ssmart-pos/main/livecontainer_source.json`
+               - Tap **Install** or **Update** directly from the App Sources list.
+
+            2. **TestFlight**
                - If deployed to TestFlight, install via TestFlight app
                - Join the beta: [TestFlight Link]
 
-            2. **Manual Sideloading (Unsigned builds)**
-               - Download the unsigned IPA file
-               - Sideload using AltStore or Sideloadly
+            3. **Manual Sideloading (Unsigned builds)**
+               - Download `ssmartpos.ipa` below
+               - Sideload using LiveContainer, AltStore, SideStore, or Sideloadly
 
             ### Changes
             ${{ github.event.head_commit.message }}

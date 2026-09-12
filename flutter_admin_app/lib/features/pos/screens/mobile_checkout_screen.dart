@@ -6,6 +6,7 @@ import 'package:ssmart_pos_admin/core/utils/receipt_printer_helper.dart';
 import 'package:ssmart_pos_admin/core/widgets/app_error_widget.dart';
 import 'package:ssmart_pos_admin/core/widgets/app_loading_indicator.dart';
 import 'package:ssmart_pos_admin/core/widgets/barcode_scanner_sheet.dart';
+import 'package:ssmart_pos_admin/core/widgets/glass_card.dart';
 import 'package:ssmart_pos_admin/models/customer.dart';
 import 'package:ssmart_pos_admin/models/product.dart';
 import 'package:ssmart_pos_admin/models/sale.dart';
@@ -870,73 +871,71 @@ class _MobileCheckoutScreenState extends State<MobileCheckoutScreen> {
                             orElse: () => CartItemModel(productId: null, name: '', barcode: '', price: 0, quantity: 0),
                           );
 
-                          return InkWell(
-                            borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                          return GlassCard(
+                            padding: const EdgeInsets.all(12),
                             onTap: () => _addToCart(product),
-                            child: Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: AppTheme.cardBackground,
-                                borderRadius: BorderRadius.circular(AppTheme.radiusM),
-                                border: Border.all(
-                                  color: cartItem.quantity > 0 ? AppTheme.primaryCyan : AppTheme.borderColor,
-                                  width: cartItem.quantity > 0 ? 1.5 : 1,
-                                ),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Expanded(
+                            borderRadius: AppTheme.radiusM,
+                            borderColor: cartItem.quantity > 0 ? AppTheme.primaryCyan : AppTheme.borderColor,
+                            borderWidth: cartItem.quantity > 0 ? 1.5 : 1,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        product.name,
+                                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    if (cartItem.quantity > 0) ...[
+                                      const SizedBox(width: 4),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: AppTheme.primaryCyan,
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
                                         child: Text(
-                                          product.name,
-                                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
+                                          '${cartItem.quantity}x',
+                                          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 11),
                                         ),
                                       ),
-                                      if (cartItem.quantity > 0)
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            color: AppTheme.primaryCyan,
-                                            borderRadius: BorderRadius.circular(10),
-                                          ),
-                                          child: Text(
-                                            '${cartItem.quantity}x',
-                                            style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 11),
-                                          ),
-                                        ),
                                     ],
-                                  ),
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
+                                  ],
+                                ),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      alignment: Alignment.centerLeft,
+                                      child: Text(
                                         'PKR ${product.price.toStringAsFixed(0)}',
                                         style: const TextStyle(color: AppTheme.primaryCyan, fontWeight: FontWeight.w900, fontSize: 15),
                                       ),
-                                      const SizedBox(height: 2),
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                            'Stock: ${product.stock}',
-                                            style: TextStyle(
-                                              color: product.stock > 5 ? AppTheme.textSecondary : Colors.redAccent,
-                                              fontSize: 11,
-                                            ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          'Stock: ${product.stock}',
+                                          style: TextStyle(
+                                            color: product.stock > 5 ? AppTheme.textSecondary : Colors.redAccent,
+                                            fontSize: 11,
                                           ),
-                                          const Icon(CupertinoIcons.plus_circle_fill, color: AppTheme.primaryCyan, size: 20),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
+                                        ),
+                                        const Icon(CupertinoIcons.plus_circle_fill, color: AppTheme.primaryCyan, size: 20),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
                           );
                         },
