@@ -151,9 +151,11 @@ class _ManualClosingDialogState extends State<ManualClosingDialog> {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(widget.closingId != null
-              ? '✅ Daily closing of Rs. ${total.toStringAsFixed(2)} updated successfully!'
-              : '✅ Daily closing of Rs. ${total.toStringAsFixed(2)} added successfully!'),
+          content: Text(
+            widget.closingId != null
+                ? '✅ Daily closing of Rs. ${total.toStringAsFixed(2)} updated successfully!'
+                : '✅ Daily closing of Rs. ${total.toStringAsFixed(2)} added successfully!',
+          ),
           backgroundColor: AppTheme.successGreen,
         ),
       );

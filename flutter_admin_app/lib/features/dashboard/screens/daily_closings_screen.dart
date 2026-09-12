@@ -418,7 +418,7 @@ class _DailyClosingsScreenState extends State<DailyClosingsScreen> {
                             context,
                             closingId: primaryClosing?.id,
                             initialDate: _selectedDate,
-                            initialTotal: primaryClosing != null ? primaryClosing.total : null,
+                            initialTotal: primaryClosing?.total,
                             initialCash: primaryClosing != null && primaryClosing.cashAmount > 0 ? primaryClosing.cashAmount : null,
                             initialOnline: primaryClosing != null && primaryClosing.onlineAmount > 0 ? primaryClosing.onlineAmount : null,
                             initialNotes: primaryClosing?.notes,
