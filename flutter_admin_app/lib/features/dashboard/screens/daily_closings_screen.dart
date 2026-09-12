@@ -559,9 +559,8 @@ class _DailyClosingsScreenState extends State<DailyClosingsScreen> {
             ],
           ),
         ),
-      ),
-    );
-  }
+      );
+    }
 
   Widget _buildBreakdownCol(String label, String value, IconData icon, Color color) {
     return Column(
@@ -746,7 +745,7 @@ class _DailyClosingsScreenState extends State<DailyClosingsScreen> {
 
             return GlassCard(
               margin: const EdgeInsets.only(bottom: 8),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: 12,
               padding: EdgeInsets.zero,
               borderColor: isCurrentSelected ? AppTheme.primaryCyan : Colors.white12,
               borderWidth: isCurrentSelected ? 1.5 : 1,
