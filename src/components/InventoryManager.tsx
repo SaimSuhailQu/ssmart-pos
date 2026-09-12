@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Product } from '../types';
-import { Plus, Edit2, Trash2, Printer, Search, PackageOpen, Sliders, AlertTriangle, Upload, Layers, Package } from 'lucide-react';
+import { Plus, Edit2, Trash2, Printer, Search, PackageOpen, Sliders, AlertTriangle, Upload, Layers, Package, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ProductFormModal } from './ProductFormModal';
 import { BulkProductEditorModal } from './BulkProductEditorModal';
 import { BulkAddProductModal } from './BulkAddProductModal';
@@ -17,6 +17,8 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [lowStockOnly, setLowStockOnly] = useState(initialLowStockOnly);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 50;
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isBulkAddOpen, setIsBulkAddOpen] = useState(false);
@@ -30,7 +32,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
       if (onProductsUpdated) {
         onProductsUpdated();
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error(err);
     }
   };
@@ -44,6 +46,10 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
       setLowStockOnly(true);
     }
   }, [initialLowStockOnly]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, lowStockOnly]);
 
   const handleOpenAdd = () => {
     setEditingProduct(null);
@@ -79,14 +85,22 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
     }
   };
 
-  const filteredProducts = products.filter(p => {
-    if (lowStockOnly && p.stock > 5) return false;
-    return (
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      p.barcode.includes(searchQuery) ||
-      p.category.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  });
+  const filteredProducts = useMemo(() => {
+    return products.filter(p => {
+      if (lowStockOnly && p.stock > 5) return false;
+      return (
+        p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        p.barcode.includes(searchQuery) ||
+        p.category.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    });
+  }, [products, lowStockOnly, searchQuery]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / itemsPerPage));
+  const paginatedProducts = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredProducts.slice(start, start + itemsPerPage);
+  }, [filteredProducts, currentPage, itemsPerPage]);
 
   return (
     <div className="glass-panel p-5 rounded-3xl border border-white/10 shadow-[0_0_50px_rgba(255, 255, 255, 0.05)] h-full flex flex-col relative overflow-hidden animate-in fade-in duration-300">
@@ -162,8 +176,8 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                         return;
                       }
 
-                      const updates: any[] = [];
-                      const newProducts: any[] = [];
+                      const updates: { id: number; cost_price: number; price: number; stock: number; category: string }[] = [];
+                      const newProducts: Omit<Product, 'id'>[] = [];
                       for (let i = 1; i < lines.length; i++) {
                         const rawLine = lines[i];
                         const cols: string[] = [];
@@ -222,8 +236,9 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
 
                       await loadProducts();
                       alert(`Successfully imported and updated products from CSV!`);
-                    } catch (err: any) {
-                      alert(`Error importing CSV: ${err.message || err}`);
+                    } catch (err: unknown) {
+                      const msg = err instanceof Error ? err.message : String(err);
+                      alert(`Error importing CSV: ${msg}`);
                     }
                   };
                   reader.readAsText(file);
@@ -270,7 +285,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
-              {filteredProducts.map(p => {
+              {paginatedProducts.map(p => {
                 const margin = p.price > 0 && p.cost_price >= 0 
                   ? ((p.price - p.cost_price) / p.price) * 100 
                   : 0;
@@ -341,7 +356,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                   </tr>
                 );
               })}
-              {filteredProducts.length === 0 && (
+              {paginatedProducts.length === 0 && (
                 <tr>
                   <td colSpan={8} className="py-16 text-center">
                     <div className="flex flex-col items-center justify-center text-gray-500">
@@ -361,6 +376,34 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls */}
+        {filteredProducts.length > itemsPerPage && (
+          <div className="p-4 border-t border-white/5 bg-black/20 backdrop-blur-md flex items-center justify-between">
+            <span className="text-xs text-slate-400 font-mono">
+              Showing <strong className="text-white">{(currentPage - 1) * itemsPerPage + 1}</strong> to <strong className="text-white">{Math.min(currentPage * itemsPerPage, filteredProducts.length)}</strong> of <strong className="text-white">{filteredProducts.length}</strong> products
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1.5 rounded-lg border border-white/10 text-xs font-semibold text-gray-300 hover:text-white hover:bg-white/10 disabled:opacity-40 disabled:hover:bg-transparent transition-all flex items-center gap-1"
+              >
+                <ChevronLeft size={14} /> Previous
+              </button>
+              <span className="text-xs text-gray-400 px-2 font-mono">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1.5 rounded-lg border border-white/10 text-xs font-semibold text-gray-300 hover:text-white hover:bg-white/10 disabled:opacity-40 disabled:hover:bg-transparent transition-all flex items-center gap-1"
+              >
+                Next <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {isModalOpen && (

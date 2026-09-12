@@ -107,8 +107,9 @@ export const ExpenseManager: React.FC<ExpenseManagerProps> = ({ currentUser }) =
           await loadExpenses();
         }
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to record expense.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to record expense.';
+      setError(msg);
     }
   };
 
@@ -131,8 +132,9 @@ export const ExpenseManager: React.FC<ExpenseManagerProps> = ({ currentUser }) =
         setSuccess('Expense entry successfully deleted from register ledger.');
         await loadExpenses();
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to delete expense.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to delete expense.';
+      setError(msg);
     }
   };
 

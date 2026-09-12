@@ -12,7 +12,7 @@ export const ShiftManager: React.FC<ShiftManagerProps> = ({ currentUser, onLogou
   const [shiftDuration, setShiftDuration] = useState<string>('00:00:00');
   
   // User Management state
-  const [usersList, setUsersList] = useState<any[]>([]);
+  const [usersList, setUsersList] = useState<User[]>([]);
   const [isAddingUser, setIsAddingUser] = useState(false);
   const [newUserName, setNewUserName] = useState('');
   const [newUserPin, setNewUserPin] = useState('');
@@ -54,11 +54,11 @@ export const ShiftManager: React.FC<ShiftManagerProps> = ({ currentUser, onLogou
         setActiveShift(shift);
       } else {
         // Clock-in automatically if no active shift exists
-        const newShiftId = await window.api.clockIn(currentUser.id);
+        await window.api.clockIn(currentUser.id);
         const newShift = await window.api.getActiveShift(currentUser.id);
         if (newShift) setActiveShift(newShift);
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Failed to manage shift:', err);
     }
   };
@@ -67,7 +67,7 @@ export const ShiftManager: React.FC<ShiftManagerProps> = ({ currentUser, onLogou
     try {
       const res = await window.api.getAllUsers();
       setUsersList(res);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Failed to load users list:', err);
     }
   };
@@ -95,17 +95,17 @@ export const ShiftManager: React.FC<ShiftManagerProps> = ({ currentUser, onLogou
       setNewUserRole('Cashier');
       setIsAddingUser(false);
       loadUsers();
-    } catch (err) {
+    } catch (err: unknown) {
       alert('Error creating user profile');
     }
   };
 
   // Update User
-  const handleStartEdit = (user: any) => {
+  const handleStartEdit = (user: User) => {
     setEditingUserId(user.id);
     setEditName(user.name);
     setEditPin(user.pin);
-    setEditRole(user.role);
+    setEditRole(user.role as 'Cashier' | 'Manager' | 'Admin');
   };
 
   const handleSaveEdit = async (id: number) => {
@@ -284,7 +284,7 @@ export const ShiftManager: React.FC<ShiftManagerProps> = ({ currentUser, onLogou
                     <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Assigned Role</label>
                     <select
                       value={newUserRole}
-                      onChange={e => setNewUserRole(e.target.value as any)}
+                      onChange={e => setNewUserRole(e.target.value as 'Cashier' | 'Manager' | 'Admin')}
                       className="w-full glass-input rounded-xl p-2.5 text-sm"
                     >
                       <option value="Cashier">Cashier</option>
@@ -343,7 +343,7 @@ export const ShiftManager: React.FC<ShiftManagerProps> = ({ currentUser, onLogou
                           {isEditing ? (
                             <select
                               value={editRole}
-                              onChange={e => setEditRole(e.target.value as any)}
+                              onChange={e => setEditRole(e.target.value as 'Cashier' | 'Manager' | 'Admin')}
                               className="glass-input rounded-lg p-1.5 text-sm"
                             >
                               <option value="Cashier">Cashier</option>

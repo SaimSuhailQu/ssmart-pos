@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Product } from '../types';
 import { X, Plus, Trash2, Save, Wand2, FileSpreadsheet, CheckCircle, AlertTriangle, Layers } from 'lucide-react';
 
 interface BulkAddProductModalProps {
@@ -84,7 +83,7 @@ export const BulkAddProductModal: React.FC<BulkAddProductModalProps> = ({
     setRows(prev => prev.filter(r => r.id !== id));
   };
 
-  const handleRowChange = (id: string, field: keyof NewProductRow, value: any) => {
+  const handleRowChange = (id: string, field: keyof NewProductRow, value: string | number) => {
     setRows(prev => prev.map(r => {
       if (r.id === id) {
         return { ...r, [field]: value };
@@ -216,8 +215,9 @@ export const BulkAddProductModal: React.FC<BulkAddProductModalProps> = ({
       setTimeout(() => {
         onClose();
       }, 1200);
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Failed to bulk add products.' });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to bulk add products.';
+      setMessage({ type: 'error', text: msg });
     } finally {
       setSaving(false);
     }

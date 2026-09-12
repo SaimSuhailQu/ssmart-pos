@@ -1,5 +1,5 @@
 import { initializeApp, getApps } from 'firebase/app';
-import { getDatabase, ref, set, update, get, onValue } from 'firebase/database';
+import { getDatabase, ref, set, update, get, onValue, Database } from 'firebase/database';
 import { 
   getUnsyncedSales, 
   markSaleAsSynced, 
@@ -17,16 +17,12 @@ import {
   getProductByBarcode,
   addProduct,
   updateProduct,
-  getCustomerByPhone,
-  addCustomer,
-  updateCustomer,
   upsertCustomer,
-  addExpense,
   upsertExpense,
   addVendor,
   upsertCloudPurchaseOrder
 } from './db';
-import { Product } from './types';
+import { Product, Expense, Customer, Vendor, PurchaseOrder, CustomerKhataEntry } from './types';
 
 // Firebase configuration injected at build-time by Vite
 const firebaseConfig = {
@@ -40,7 +36,8 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
-let dbInstance: any = null;
+let dbInstance: Database | null = null;
+let isIngesting = false;
 
 try {
   // Only initialize if configuration credentials are provided and not already initialized
@@ -71,7 +68,7 @@ export async function syncSalesToCloud(silent = false) {
       return { success: true, syncedCount: 0, status: "ONLINE" };
     }
 
-    console.log(`Syncing ${unsynced.length} transaction(s) to Firebase...`);
+    if (!silent) console.log(`Syncing ${unsynced.length} transaction(s) to Firebase...`);
     let count = 0;
 
     for (const sale of unsynced) {
@@ -98,11 +95,20 @@ export async function syncSalesToCloud(silent = false) {
       count++;
     }
 
-    console.log(`Successfully synced ${count} transactions.`);
+    if (!silent) console.log(`Successfully synced ${count} transactions.`);
     return { success: true, syncedCount: count, status: "ONLINE" };
   } catch (err) {
     console.error("Sync transaction failed:", err);
     return { success: false, syncedCount: 0, status: "OFFLINE" };
+  }
+}
+
+export async function deleteSaleFromCloud(saleId: number) {
+  if (!dbInstance) return;
+  try {
+    await set(ref(dbInstance, `sales/${saleId}`), null);
+  } catch (err) {
+    console.warn(`Failed to delete sale #${saleId} from cloud:`, err);
   }
 }
 
@@ -117,7 +123,7 @@ export async function syncProductsToCloud(silent = false) {
     const productsRef = ref(dbInstance, 'products');
     
     // Update individual products rather than wiping/overwriting the entire root node
-    const updates: Record<string, any> = {};
+    const updates: Record<string, unknown> = {};
     for (const p of products) {
       updates[p.id] = {
         id: p.id,
@@ -139,12 +145,15 @@ export async function syncProductsToCloud(silent = false) {
 }
 
 export async function syncExpensesToCloud(silent = false) {
-  if (!dbInstance) return { success: false, status: "OFFLINE" };
+  if (!dbInstance) {
+    if (!silent) console.log("Sync skipped: Firebase DB offline (No .env credentials).");
+    return { success: false, status: "OFFLINE" };
+  }
   try {
-    const expenses = getAllExpenses();
+    const expenses = getAllExpenses() as Expense[];
     const expensesRef = ref(dbInstance, 'expenses');
-    const expensesMap: Record<string, any> = {};
-    for (const e of expenses as any[]) {
+    const expensesMap: Record<string, unknown> = {};
+    for (const e of expenses) {
       expensesMap[e.id] = {
         id: e.id,
         amount: e.amount,
@@ -163,12 +172,15 @@ export async function syncExpensesToCloud(silent = false) {
 }
 
 export async function syncCustomersToCloud(silent = false) {
-  if (!dbInstance) return { success: false, status: "OFFLINE" };
+  if (!dbInstance) {
+    if (!silent) console.log("Sync skipped: Firebase DB offline (No .env credentials).");
+    return { success: false, status: "OFFLINE" };
+  }
   try {
     recalculateAllCustomerBalances();
-    const customers = getAllCustomers();
-    const updates: Record<string, any> = {};
-    for (const c of customers as any[]) {
+    const customers = getAllCustomers() as Customer[];
+    const updates: Record<string, unknown> = {};
+    for (const c of customers) {
       updates[`customers/${c.id}`] = {
         id: c.id,
         name: c.name,
@@ -189,13 +201,16 @@ export async function syncCustomersToCloud(silent = false) {
 }
 
 export async function syncCustomerKhataToCloud(silent = false) {
-  if (!dbInstance) return { success: false, status: "OFFLINE" };
+  if (!dbInstance) {
+    if (!silent) console.log("Sync skipped: Firebase DB offline (No .env credentials).");
+    return { success: false, status: "OFFLINE" };
+  }
   try {
-    const entries = getAllCustomerKhataEntries();
-    const updates: Record<string, any> = {};
+    const entries = getAllCustomerKhataEntries() as (CustomerKhataEntry & { sync_id?: string })[];
+    const updates: Record<string, unknown> = {};
 
     // Fetch deleted khata keys to avoid re-uploading deleted items
-    let deletedKeys: Set<string> = new Set();
+    const deletedKeys: Set<string> = new Set();
     try {
       const delSnap = await get(ref(dbInstance, 'deleted_khata_entries'));
       if (delSnap.exists() && delSnap.val()) {
@@ -287,15 +302,18 @@ export async function clearAllKhataFromCloudAndLocal() {
 }
 
 export async function syncVendorsToCloud(silent = false) {
-  if (!dbInstance) return { success: false, status: "OFFLINE" };
+  if (!dbInstance) {
+    if (!silent) console.log("Sync skipped: Firebase DB offline (No .env credentials).");
+    return { success: false, status: "OFFLINE" };
+  }
   try {
-    const vendors = getAllVendors();
-    const pos = getAllPurchaseOrders();
+    const vendors = getAllVendors() as Vendor[];
+    const pos = getAllPurchaseOrders() as PurchaseOrder[];
     const vendorsRef = ref(dbInstance, 'vendors');
     const posRef = ref(dbInstance, 'purchase_orders');
 
-    const vMap: Record<string, any> = {};
-    for (const v of vendors as any[]) {
+    const vMap: Record<string, unknown> = {};
+    for (const v of vendors) {
       vMap[v.id] = {
         id: v.id,
         name: v.name,
@@ -305,14 +323,14 @@ export async function syncVendorsToCloud(silent = false) {
     }
     await set(vendorsRef, vMap);
 
-    const poMap: Record<string, any> = {};
-    for (const po of pos as any[]) {
+    const poMap: Record<string, unknown> = {};
+    for (const po of pos) {
       poMap[po.id] = {
         id: po.id,
         vendor_id: po.vendor_id,
         vendor_name: po.vendor_name,
         contact_person: po.vendor_name || '',
-        phone: po.vendor_contact || '',
+        phone: '',
         status: po.status,
         total_cost: po.total_cost,
         total_amount: po.total_cost,
@@ -337,34 +355,44 @@ export async function syncVendorsToCloud(silent = false) {
 // Ingest changes from Firebase Cloud into POS local SQLite database
 async function ingestCloudDataToLocal() {
   if (!dbInstance) return;
+  if (isIngesting) {
+    return;
+  }
+  isIngesting = true;
 
   try {
     // 1. Ingest Products
     const productsSnap = await get(ref(dbInstance, 'products'));
     if (productsSnap.exists()) {
       const data = productsSnap.val();
-      const products = Object.values(data);
-      for (const p of products as any[]) {
-        if (!p || !p.barcode || !p.name) continue;
-        const existing = getProductByBarcode(p.barcode) as any;
-        if (existing) {
-          updateProduct(existing.id, {
-            name: p.name,
-            barcode: p.barcode,
-            price: Number(p.price) || 0,
-            stock: Number(p.stock) || 0,
-            category: p.category || 'General',
-            cost_price: Number(p.cost_price) || 0,
-          });
-        } else {
-          addProduct({
-            name: p.name,
-            barcode: p.barcode,
-            price: Number(p.price) || 0,
-            stock: Number(p.stock) || 0,
-            category: p.category || 'General',
-            cost_price: Number(p.cost_price) || 0,
-          });
+      if (typeof data === 'object' && data !== null) {
+        const products = Object.values(data);
+        for (const p of products as Record<string, unknown>[]) {
+          if (!p || typeof p !== 'object') continue;
+          const barcode = typeof p.barcode === 'string' ? p.barcode : '';
+          const name = typeof p.name === 'string' ? p.name : '';
+          if (!barcode || !name) continue;
+
+          const existing = getProductByBarcode(barcode) as Product | undefined;
+          if (existing) {
+            updateProduct(existing.id, {
+              name,
+              barcode,
+              price: Number(p.price) || 0,
+              stock: Number(p.stock) || 0,
+              category: typeof p.category === 'string' ? p.category : 'General',
+              cost_price: Number(p.cost_price) || 0,
+            });
+          } else {
+            addProduct({
+              name,
+              barcode,
+              price: Number(p.price) || 0,
+              stock: Number(p.stock) || 0,
+              category: typeof p.category === 'string' ? p.category : 'General',
+              cost_price: Number(p.cost_price) || 0,
+            });
+          }
         }
       }
     }
@@ -373,11 +401,13 @@ async function ingestCloudDataToLocal() {
     const customersSnap = await get(ref(dbInstance, 'customers'));
     if (customersSnap.exists()) {
       const data = customersSnap.val();
-      const cloudCustomers = Array.isArray(data)
+      const cloudCustomers: Record<string, unknown>[] = Array.isArray(data)
         ? data.filter(Boolean)
-        : Object.entries(data).map(([k, v]: [string, any]) => ({ id: k, ...v }));
+        : (typeof data === 'object' && data !== null)
+          ? Object.entries(data).map(([k, v]) => ({ id: k, ...(typeof v === 'object' && v !== null ? v : {}) }))
+          : [];
 
-      for (const c of cloudCustomers as any[]) {
+      for (const c of cloudCustomers) {
         if (!c || (!c.phone && !c.name)) continue;
         const custId = Number(c.id);
         const validId = !isNaN(custId) && custId > 0 ? custId : undefined;
@@ -386,9 +416,9 @@ async function ingestCloudDataToLocal() {
         try {
           upsertCustomer({
             id: validId,
-            name: c.name || `Customer #${c.id}`,
+            name: typeof c.name === 'string' ? c.name : `Customer #${c.id}`,
             phone: cleanPhone,
-            email: c.email || '',
+            email: typeof c.email === 'string' ? c.email : '',
             points: Number(c.points) || 0,
             balance: Number(c.balance) || 0
           });
@@ -402,32 +432,36 @@ async function ingestCloudDataToLocal() {
     const expensesSnap = await get(ref(dbInstance, 'expenses'));
     if (expensesSnap.exists()) {
       const data = expensesSnap.val();
-      const expenses = Object.values(data);
-      const localExpenses = getAllExpenses() as any[];
-      const localIdSet = new Set(localExpenses.map(e => e.id));
-      const localMatchSet = new Set(localExpenses.map(e => `${e.amount}-${e.description?.trim().toLowerCase()}-${e.timestamp?.substring(0, 16)}`));
-      
-      for (const exp of expenses as any[]) {
-        if (!exp || !exp.amount) continue;
-        const expId = Number(exp.id);
-        const hasValidId = !isNaN(expId) && expId > 0;
-        const key = `${exp.amount}-${(exp.description || '').trim().toLowerCase()}-${exp.timestamp?.substring(0, 16)}`;
+      if (typeof data === 'object' && data !== null) {
+        const expenses = Object.values(data);
+        const localExpenses = getAllExpenses() as Expense[];
+        const localIdSet = new Set(localExpenses.map(e => e.id));
+        const localMatchSet = new Set(localExpenses.map(e => `${e.amount}-${e.description?.trim().toLowerCase()}-${e.timestamp?.substring(0, 16)}`));
         
-        // If already exists locally by id or by exact details and timestamp, skip
-        if (hasValidId && localIdSet.has(expId)) continue;
-        if (localMatchSet.has(key)) continue;
+        for (const exp of expenses as Record<string, unknown>[]) {
+          if (!exp || !exp.amount) continue;
+          const expId = Number(exp.id);
+          const hasValidId = !isNaN(expId) && expId > 0;
+          const desc = typeof exp.description === 'string' ? exp.description : '';
+          const timestamp = typeof exp.timestamp === 'string' ? exp.timestamp : '';
+          const key = `${exp.amount}-${desc.trim().toLowerCase()}-${timestamp.substring(0, 16)}`;
+          
+          // If already exists locally by id or by exact details and timestamp, skip
+          if (hasValidId && localIdSet.has(expId)) continue;
+          if (localMatchSet.has(key)) continue;
 
-        upsertExpense({
-          id: hasValidId ? expId : undefined,
-          amount: Number(exp.amount) || 0,
-          description: exp.description || 'Mobile Expense',
-          category: exp.category || 'General',
-          loggedBy: exp.logged_by || 'Mobile Admin',
-          timestamp: exp.timestamp || undefined,
-        });
+          upsertExpense({
+            id: hasValidId ? expId : undefined,
+            amount: Number(exp.amount) || 0,
+            description: desc || 'Mobile Expense',
+            category: typeof exp.category === 'string' ? exp.category : 'General',
+            loggedBy: typeof exp.logged_by === 'string' ? exp.logged_by : 'Mobile Admin',
+            timestamp: timestamp || undefined,
+          });
 
-        if (hasValidId) localIdSet.add(expId);
-        localMatchSet.add(key);
+          if (hasValidId) localIdSet.add(expId);
+          localMatchSet.add(key);
+        }
       }
     }
 
@@ -435,17 +469,20 @@ async function ingestCloudDataToLocal() {
     const vendorsCloudSnap = await get(ref(dbInstance, 'vendors'));
     if (vendorsCloudSnap.exists()) {
       const vData = vendorsCloudSnap.val();
-      const cloudVendors = Object.values(vData);
-      const localVendors = getAllVendors() as any[];
-      for (const cv of cloudVendors as any[]) {
-        if (!cv || !cv.name) continue;
-        const existing = localVendors.find(v => v.name?.toLowerCase() === cv.name?.toLowerCase());
-        if (!existing) {
-          addVendor({
-            name: cv.name,
-            contact: cv.contact || '',
-            category: cv.category || 'General',
-          });
+      if (typeof vData === 'object' && vData !== null) {
+        const cloudVendors = Object.values(vData);
+        const localVendors = getAllVendors() as Vendor[];
+        for (const cv of cloudVendors as Record<string, unknown>[]) {
+          if (!cv || !cv.name) continue;
+          const vName = String(cv.name);
+          const existing = localVendors.find(v => v.name?.toLowerCase() === vName.toLowerCase());
+          if (!existing) {
+            addVendor({
+              name: vName,
+              contact: typeof cv.contact === 'string' ? cv.contact : '',
+              category: typeof cv.category === 'string' ? cv.category : 'General',
+            });
+          }
         }
       }
     }
@@ -453,13 +490,15 @@ async function ingestCloudDataToLocal() {
     const posSnap = await get(ref(dbInstance, 'purchase_orders'));
     if (posSnap.exists()) {
       const data = posSnap.val();
-      const pos = Object.values(data);
-      for (const po of pos as any[]) {
-        if (!po || !po.vendor_name) continue;
-        try {
-          upsertCloudPurchaseOrder(po);
-        } catch (err) {
-          console.warn(`Failed to upsert cloud PO for vendor ${po.vendor_name}:`, err);
+      if (typeof data === 'object' && data !== null) {
+        const pos = Object.values(data);
+        for (const po of pos as Record<string, unknown>[]) {
+          if (!po || !po.vendor_name) continue;
+          try {
+            upsertCloudPurchaseOrder(po);
+          } catch (err) {
+            console.warn(`Failed to upsert cloud PO for vendor ${po.vendor_name}:`, err);
+          }
         }
       }
     }
@@ -468,7 +507,7 @@ async function ingestCloudDataToLocal() {
     const salesSnap = await get(ref(dbInstance, 'sales'));
     if (salesSnap.exists()) {
       const sData = salesSnap.val();
-      const cloudSales: any[] = [];
+      const cloudSales: Record<string, unknown>[] = [];
       if (Array.isArray(sData)) {
         for (let i = 0; i < sData.length; i++) {
           if (sData[i]) cloudSales.push({ id: i, ...sData[i] });
@@ -476,7 +515,7 @@ async function ingestCloudDataToLocal() {
       } else if (typeof sData === 'object' && sData !== null) {
         for (const [k, v] of Object.entries(sData)) {
           if (v && typeof v === 'object') {
-            cloudSales.push({ id: (v as any).id || k, ...(v as any) });
+            cloudSales.push({ id: (v as Record<string, unknown>).id || k, ...(v as Record<string, unknown>) });
           }
         }
       }
@@ -523,7 +562,7 @@ async function ingestCloudDataToLocal() {
           for (const e of entriesList) {
             if (!e || typeof e !== 'object') continue;
             try {
-              upsertCloudKhataEntry({ customer_id: custId, ...e });
+              upsertCloudKhataEntry({ customer_id: Number(custId) || custId, ...e });
             } catch (err) {
               console.warn(`Failed to upsert cloud khata entry for customer #${custId}:`, err);
             }
@@ -534,6 +573,8 @@ async function ingestCloudDataToLocal() {
     }
   } catch (err) {
     console.warn("Ingest cloud data to local error:", err);
+  } finally {
+    isIngesting = false;
   }
 }
 
@@ -565,11 +606,11 @@ export function startSyncWorker(onStatusChange?: (status: string) => void) {
     // Realtime listeners for immediate updates from mobile
     try {
       // Debounced cloud ingestion to prevent continuous memory allocations
-      let debounceTimer: any = null;
+      let debounceTimer: ReturnType<typeof setTimeout> | null = null;
       const triggerDebouncedIngest = () => {
         if (debounceTimer) clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => {
-          ingestCloudDataToLocal();
+          ingestCloudDataToLocal().catch(err => console.warn("Debounced ingest error:", err));
         }, 1200);
       };
 
@@ -589,12 +630,12 @@ export function startSyncWorker(onStatusChange?: (status: string) => void) {
         if (typeof requests !== 'object') return;
 
         for (const [key, req] of Object.entries(requests)) {
-          const printJob = req as any;
+          const printJob = req as { status?: string; items?: { name?: string; qty?: number; price?: number }[]; payment?: { cashierName?: string }; sale_id?: number };
           if (printJob && printJob.status === 'PENDING') {
             try {
               // Import printer dynamically to avoid circular dependencies
               const { printReceipt } = await import('./printer');
-              const items = printJob.items || [];
+              const items = Array.isArray(printJob.items) ? printJob.items : [];
               const payment = printJob.payment || {};
               const saleId = printJob.sale_id;
               const cashierName = payment.cashierName || 'Mobile Cashier';
@@ -603,10 +644,14 @@ export function startSyncWorker(onStatusChange?: (status: string) => void) {
               await printReceipt(items, payment, saleId, cashierName);
 
               // Mark print job as COMPLETED and remove from queue
-              await set(ref(dbInstance, `print_requests/${key}`), null);
+              if (dbInstance) {
+                await set(ref(dbInstance, `print_requests/${key}`), null);
+              }
             } catch (pErr) {
               console.error(`[Remote Print] Failed to print receipt for job ${key}:`, pErr);
-              await set(ref(dbInstance, `print_requests/${key}/status`), 'FAILED');
+              if (dbInstance) {
+                await set(ref(dbInstance, `print_requests/${key}/status`), 'FAILED');
+              }
             }
           }
         }

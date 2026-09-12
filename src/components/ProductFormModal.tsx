@@ -115,8 +115,9 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
         ...formData,
         category: formData.category.trim() || 'General'
       });
-    } catch (err: any) {
-      setError(err.message || 'Failed to save product');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to save product';
+      setError(msg);
       setIsProcessing(false);
     }
   };

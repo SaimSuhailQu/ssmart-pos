@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Vendor, PurchaseOrder, Product, VendorPayment, VendorOrderEntry } from '../types';
-import { Search, Plus, Edit2, Trash2, Truck, FileText, CheckCircle, Calendar, DollarSign, Package, ArrowLeft, PlusCircle, CreditCard, History, Clock, FileSpreadsheet, Eye, ChevronRight, Send } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Truck, FileText, CheckCircle, Calendar, Package, ArrowLeft, PlusCircle, CreditCard, History, Clock, FileSpreadsheet, Eye, Send } from 'lucide-react';
 
 export const VendorManager: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'VENDORS' | 'POS' | 'PAYMENTS' | 'ORDERS'>('VENDORS');
@@ -154,8 +154,9 @@ export const VendorManager: React.FC = () => {
         const updatedPO = refreshed.find(p => p.id === selectedPOForDetails.id);
         if (updatedPO) setSelectedPOForDetails(updatedPO);
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to remove payment.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to remove payment.';
+      setError(msg);
     }
   };
 
@@ -196,8 +197,9 @@ export const VendorManager: React.FC = () => {
         const updatedPO = refreshed.find(p => p.id === selectedPOForDetails.id);
         if (updatedPO) setSelectedPOForDetails(updatedPO);
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to record vendor payment.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to record vendor payment.';
+      setError(msg);
     }
   };
 
@@ -238,8 +240,9 @@ export const VendorManager: React.FC = () => {
         const updatedPO = refreshed.find(p => p.id === selectedPOForDetails.id);
         if (updatedPO) setSelectedPOForDetails(updatedPO);
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to update order entry.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to update order entry.';
+      setError(msg);
     }
   };
 
@@ -255,8 +258,9 @@ export const VendorManager: React.FC = () => {
         const updatedPO = refreshed.find(p => p.id === selectedPOForDetails.id);
         if (updatedPO) setSelectedPOForDetails(updatedPO);
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to remove order entry.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to remove order entry.';
+      setError(msg);
     }
   };
 
@@ -400,8 +404,9 @@ export const VendorManager: React.FC = () => {
       setIsCreatingPO(false);
       await loadPurchaseOrders();
       await loadCatalogProducts();
-    } catch (err: any) {
-      setError(err.message || 'Failed to create purchase order.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to create purchase order.';
+      setError(msg);
       console.error(err);
     }
   };
@@ -413,8 +418,9 @@ export const VendorManager: React.FC = () => {
         setSuccess('Purchase order marked as RECEIVED. Inventory stock levels updated!');
         loadPurchaseOrders();
         loadCatalogProducts();
-      } catch (err: any) {
-        setError(err.message || 'Failed to receive purchase order.');
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Failed to receive purchase order.';
+        setError(msg);
       }
     }
   };
@@ -427,8 +433,9 @@ export const VendorManager: React.FC = () => {
         await loadPurchaseOrders();
         await loadPayments();
         await loadOrderEntries();
-      } catch (err: any) {
-        setError(err.message || 'Failed to delete purchase order.');
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Failed to delete purchase order.';
+        setError(msg);
       }
     }
   };
@@ -442,10 +449,6 @@ export const VendorManager: React.FC = () => {
     p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
     p.barcode.includes(productSearch)
   );
-
-  const calculateTotalCost = () => {
-    return poItems.reduce((sum, item) => sum + (item.qty * item.costPrice), 0);
-  };
 
   return (
     <div className="glass-panel p-5 rounded-3xl border border-white/10 shadow-[0_0_50px_rgba(255, 255, 255, 0.05)] h-full flex flex-col relative overflow-hidden animate-in fade-in duration-300">

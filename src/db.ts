@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 import { app } from 'electron';
+import { Product, CartItem, PaymentEntry, Payment, Sale, SaleItem, Customer, CustomerKhataEntry, PurchaseOrder, VendorPayment, VendorOrderEntry } from './types';
 
 // Setup database in user data directory
 const userDataPath = app.getPath('userData');
@@ -374,25 +375,20 @@ export function initDb() {
     console.error("Failed to execute USD to PKR migration:", err);
   }
 
-  // Auto-sync products from latest CSV export spreadsheet
+  // Auto-seed initial products from latest CSV export spreadsheet if products table is empty
   try {
+    const prodCountRow = db.prepare('SELECT COUNT(*) as count FROM products').get() as { count: number };
     const csvPaths = [
       path.join(process.cwd(), 'Untitled spreadsheet - mart_inventory_bulk_export_2026-08-20 (3).csv'),
       path.join(process.cwd(), 'Untitled spreadsheet - mart_inventory_bulk_export_2026-08-20.csv'),
       path.join(process.cwd(), 'mart_inventory_bulk_export_2026-08-20.csv')
     ];
     const targetCsv = csvPaths.find(p => fs.existsSync(p));
-    if (targetCsv) {
+    if (targetCsv && prodCountRow.count === 0) {
       const lines = fs.readFileSync(targetCsv, 'utf-8').split(/\r?\n/).filter((l: string) => l.trim().length > 0);
       if (lines.length > 1) {
-        const updateByBarcode = db.prepare(`
-          UPDATE products 
-          SET name = @name, category = @category, cost_price = @cost_price, price = @price, stock = @stock
-          WHERE barcode = @barcode
-        `);
-
         const insertProduct = db.prepare(`
-          INSERT INTO products (barcode, name, category, cost_price, price, stock)
+          INSERT OR IGNORE INTO products (barcode, name, category, cost_price, price, stock)
           VALUES (@barcode, @name, @category, @cost_price, @price, @stock)
         `);
 
@@ -424,16 +420,11 @@ export function initDb() {
 
             if (!barcode || !name) continue;
 
-            const existing = db.prepare('SELECT id FROM products WHERE barcode = ?').get(barcode);
-            if (existing) {
-              updateByBarcode.run({ barcode, name, category, cost_price, price, stock });
-            } else {
-              insertProduct.run({ barcode, name, category, cost_price, price, stock });
-            }
+            insertProduct.run({ barcode, name, category, cost_price, price, stock });
           }
         });
         syncTx();
-        console.log(`Successfully synchronized ${lines.length - 1} products from ${path.basename(targetCsv)}.`);
+        console.log(`Successfully seeded ${lines.length - 1} initial products from ${path.basename(targetCsv)}.`);
       }
     }
   } catch (err) {
@@ -461,12 +452,12 @@ export function getAllProducts() {
   return db.prepare('SELECT * FROM products').all();
 }
 
-export function saveSale(items: any[], paymentData: { subtotal: number, tax: number, discount: number, total: number, payments: any[], change: number, userId?: number, customerId?: number }) {
+export function saveSale(items: CartItem[], paymentData: { subtotal: number; tax: number; discount: number; total: number; payments: PaymentEntry[]; change: number; userId?: number; customerId?: number }) {
   const insertSale = db.prepare('INSERT INTO sales (subtotal, tax, discount, total, payment_method, amount_tendered, change_given, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
   const insertSaleItem = db.prepare('INSERT INTO sale_items (sale_id, product_id, qty, price) VALUES (?, ?, ?, ?)');
   const insertPayment = db.prepare('INSERT INTO payments (sale_id, method, amount) VALUES (?, ?, ?)');
   const updateStock = db.prepare('UPDATE products SET stock = stock - ? WHERE id = ?');
-  const insertKhata = db.prepare('INSERT INTO customer_khata_entries (customer_id, sale_id, type, amount, notes, payment_method) VALUES (?, ?, ?, ?, ?, ?)');
+  const insertKhata = db.prepare('INSERT INTO customer_khata_entries (customer_id, sale_id, type, amount, notes, payment_method, sync_id) VALUES (?, ?, ?, ?, ?, ?, ?)');
   const updateCustomerBalance = db.prepare('UPDATE customers SET balance = balance + ? WHERE id = ?');
 
   let saleId = 0;
@@ -489,8 +480,7 @@ export function saveSale(items: any[], paymentData: { subtotal: number, tax: num
       // If sale has loan / credit (Udhaar) for a selected customer, log to customer's running loan ledger
       if ((p.method === 'Credit / Loan' || p.method === 'Loan' || p.method === 'Udhaar') && paymentData.customerId) {
         const syncId = `khata_sale_${saleId}_${Date.now()}`;
-        db.prepare('INSERT INTO customer_khata_entries (customer_id, sale_id, type, amount, notes, payment_method, sync_id) VALUES (?, ?, ?, ?, ?, ?, ?)')
-          .run(paymentData.customerId, saleId, 'LOAN', p.amount, `Store POS Order #${saleId}`, 'Credit / Loan', syncId);
+        insertKhata.run(paymentData.customerId, saleId, 'LOAN', p.amount, `Store POS Order #${saleId}`, 'Credit / Loan', syncId);
         updateCustomerBalance.run(p.amount, paymentData.customerId);
       }
     }
@@ -528,7 +518,7 @@ export function addManualDailyClosingSale(data: {
   }
 
   // Ensure a generic item exists or get generic product id
-  let genericProd = db.prepare('SELECT id FROM products WHERE barcode = ?').get('MANUAL-CLOSING') as any;
+  let genericProd = db.prepare('SELECT id FROM products WHERE barcode = ?').get('MANUAL-CLOSING') as { id: number | bigint } | undefined;
   if (!genericProd) {
     const info = db.prepare('INSERT INTO products (name, barcode, price, cost_price, stock, category) VALUES (?, ?, ?, ?, ?, ?)')
       .run('Daily Closing Sales Total', 'MANUAL-CLOSING', total, 0, 999999, 'Daily Closing');
@@ -562,13 +552,13 @@ export function getNextSaleId() {
   return (row.maxId || 0) + 1;
 }
 
-export function addProduct(product: Omit<any, 'id'>) {
+export function addProduct(product: Omit<Product, 'id'>) {
   const insert = db.prepare('INSERT INTO products (name, barcode, price, stock, category, cost_price) VALUES (?, ?, ?, ?, ?, ?)');
   const info = insert.run(product.name, product.barcode, product.price, product.stock, product.category, product.cost_price || 0);
   return info.lastInsertRowid;
 }
 
-export function bulkAddProducts(productsList: Array<Omit<any, 'id'>>) {
+export function bulkAddProducts(productsList: Array<Omit<Product, 'id'>>) {
   const insert = db.prepare(`
     INSERT INTO products (barcode, name, category, cost_price, price, stock)
     VALUES (@barcode, @name, @category, @cost_price, @price, @stock)
@@ -600,7 +590,7 @@ export function bulkAddProducts(productsList: Array<Omit<any, 'id'>>) {
   return transaction(productsList);
 }
 
-export function updateProduct(id: number, product: Omit<any, 'id'>) {
+export function updateProduct(id: number, product: Omit<Product, 'id'>) {
   const update = db.prepare('UPDATE products SET name = ?, barcode = ?, price = ?, stock = ?, category = ?, cost_price = ? WHERE id = ?');
   const info = update.run(product.name, product.barcode, product.price, product.stock, product.category, product.cost_price || 0, id);
   return info.changes > 0;
@@ -653,12 +643,12 @@ export function upsertCustomer(c: { id?: number, name: string, phone?: string, e
   const points = Number(c.points) || 0;
   const balance = Number(c.balance) || 0;
 
-  let existing: any = null;
+  let existing: Customer | undefined = undefined;
   if (c.id && c.id > 0) {
-    existing = db.prepare('SELECT * FROM customers WHERE id = ?').get(c.id);
+    existing = db.prepare('SELECT * FROM customers WHERE id = ?').get(c.id) as Customer | undefined;
   }
   if (!existing && cleanPhone) {
-    existing = db.prepare('SELECT * FROM customers WHERE phone = ?').get(cleanPhone);
+    existing = db.prepare('SELECT * FROM customers WHERE phone = ?').get(cleanPhone) as Customer | undefined;
   }
 
   if (existing) {
@@ -728,7 +718,7 @@ export function getAllCustomerKhataEntries() {
     FROM customer_khata_entries cke
     LEFT JOIN sales s ON cke.sale_id = s.id
     ORDER BY cke.timestamp DESC
-  `).all() as any[];
+  `).all() as CustomerKhataEntry[];
 }
 
 export function recalculateCustomerBalance(customerId: number) {
@@ -751,7 +741,7 @@ export function recalculateAllCustomerBalances() {
   }
 }
 
-export function upsertCloudKhataEntry(entry: any) {
+export function upsertCloudKhataEntry(entry: Record<string, unknown>) {
   if (!entry || entry.amount === undefined || !entry.customer_id) return false;
   const custId = Number(entry.customer_id) || 0;
   if (custId <= 0) return false;
@@ -771,7 +761,7 @@ export function upsertCloudKhataEntry(entry: any) {
   const type = (entry.type || 'LOAN').toString().toUpperCase();
   const paymentMethod = entry.payment_method || entry.paymentMethod || (type === 'LOAN' ? 'Credit / Loan' : 'Cash');
   const notes = entry.notes || '';
-  const timestamp = entry.timestamp || new Date().toISOString();
+  const timestamp = String(entry.timestamp || new Date().toISOString());
   const syncId = entry.sync_id || (entry.id ? String(entry.id) : `khata_${custId}_${type}_${amount}_${timestamp}`);
   
   // Verify saleId exists in local sales table to prevent FOREIGN KEY violation
@@ -798,7 +788,7 @@ export function upsertCloudKhataEntry(entry: any) {
 
   if (existing) {
     if (syncId) {
-      db.prepare('UPDATE customer_khata_entries SET sync_id = ? WHERE id = ? AND (sync_id IS NULL OR sync_id = ?)').run(syncId, (existing as any).id, syncId);
+      db.prepare('UPDATE customer_khata_entries SET sync_id = ? WHERE id = ? AND (sync_id IS NULL OR sync_id = ?)').run(syncId, (existing as { id: number }).id, syncId);
     }
     return false;
   }
@@ -846,7 +836,7 @@ export function updateCustomerKhataEntry(data: {
   notes?: string;
   paymentMethod?: string;
 }) {
-  const entry = db.prepare('SELECT * FROM customer_khata_entries WHERE id = ?').get(data.id) as any;
+  const entry = db.prepare('SELECT * FROM customer_khata_entries WHERE id = ?').get(data.id) as (CustomerKhataEntry & { sync_id?: string }) | undefined;
   if (!entry) {
     throw new Error('Khata entry not found');
   }
@@ -881,7 +871,7 @@ export function updateCustomerKhataEntry(data: {
 }
 
 export function deleteCustomerKhataEntry(id: number) {
-  const entry = db.prepare('SELECT * FROM customer_khata_entries WHERE id = ?').get(id) as any;
+  const entry = db.prepare('SELECT * FROM customer_khata_entries WHERE id = ?').get(id) as (CustomerKhataEntry & { sync_id?: string }) | undefined;
   if (!entry) {
     throw new Error('Khata entry not found');
   }
@@ -897,7 +887,7 @@ export function deleteCustomerKhataEntry(id: number) {
 
 export function deleteCustomerKhataBySyncId(syncId: string) {
   if (!syncId) return false;
-  const entry = db.prepare('SELECT * FROM customer_khata_entries WHERE sync_id = ? OR id = ?').get(syncId, syncId) as any;
+  const entry = db.prepare('SELECT * FROM customer_khata_entries WHERE sync_id = ? OR id = ?').get(syncId, syncId) as (CustomerKhataEntry & { sync_id?: string }) | undefined;
   if (!entry) return false;
 
   const transaction = db.transaction(() => {
@@ -936,7 +926,7 @@ export function getUnsyncedSales() {
     FROM sales s
     LEFT JOIN users u ON s.user_id = u.id
     WHERE s.synced = 0
-  `).all() as any[];
+  `).all() as (Sale & { user_name?: string })[];
   return sales.map(sale => {
     const items = db.prepare('SELECT * FROM sale_items WHERE sale_id = ?').all(sale.id);
     const payments = db.prepare('SELECT * FROM payments WHERE sale_id = ?').all(sale.id);
@@ -949,13 +939,13 @@ export function markSaleAsSynced(saleId: number) {
 }
 
 // Ingest / Upsert Sale from Firebase Cloud into SQLite
-export function upsertCloudSale(cloudSale: any) {
+export function upsertCloudSale(cloudSale: Record<string, unknown>) {
   if (!cloudSale || cloudSale.id === undefined || cloudSale.id === null) return false;
 
   const numericId = Number(cloudSale.id);
   if (isNaN(numericId) || numericId <= 0) return false;
 
-  const existing = db.prepare('SELECT id, status, refund_amount FROM sales WHERE id = ?').get(numericId) as any;
+  const existing = db.prepare('SELECT id, status, refund_amount FROM sales WHERE id = ?').get(numericId) as { id: number; status: string; refund_amount: number } | undefined;
 
   const subtotal = Number(cloudSale.subtotal) || 0;
   const tax = Number(cloudSale.tax) || 0;
@@ -995,9 +985,11 @@ export function upsertCloudSale(cloudSale: any) {
     `).run(numericId, subtotal, tax, discount, total, paymentMethod, amountTendered, changeGiven, timestamp, validUserId, status, refundAmount);
 
     // Items
-    let itemsList = cloudSale.items || [];
-    if (itemsList && typeof itemsList === 'object' && !Array.isArray(itemsList)) {
-      itemsList = Object.values(itemsList);
+    let itemsList: Record<string, unknown>[] = [];
+    if (Array.isArray(cloudSale.items)) {
+      itemsList = cloudSale.items as Record<string, unknown>[];
+    } else if (cloudSale.items && typeof cloudSale.items === 'object') {
+      itemsList = Object.values(cloudSale.items as Record<string, unknown>) as Record<string, unknown>[];
     }
 
     const insertSaleItem = db.prepare('INSERT INTO sale_items (sale_id, product_id, qty, price) VALUES (?, ?, ?, ?)');
@@ -1008,7 +1000,7 @@ export function upsertCloudSale(cloudSale: any) {
 
       // 1. Try finding by product id
       if (rawProdId > 0) {
-        const prodById = db.prepare('SELECT id FROM products WHERE id = ?').get(rawProdId) as any;
+        const prodById = db.prepare('SELECT id FROM products WHERE id = ?').get(rawProdId) as { id: number } | undefined;
         if (prodById) {
           actualProdId = prodById.id;
         }
@@ -1018,7 +1010,7 @@ export function upsertCloudSale(cloudSale: any) {
       const rawBarcode = item.product_barcode || item.productBarcode || item.barcode;
       if (!actualProdId && rawBarcode && String(rawBarcode).trim().length > 0) {
         const cleanBarcode = String(rawBarcode).trim();
-        const prodByBc = db.prepare('SELECT id FROM products WHERE barcode = ?').get(cleanBarcode) as any;
+        const prodByBc = db.prepare('SELECT id FROM products WHERE barcode = ?').get(cleanBarcode) as { id: number } | undefined;
         if (prodByBc) {
           actualProdId = prodByBc.id;
         }
@@ -1026,15 +1018,15 @@ export function upsertCloudSale(cloudSale: any) {
 
       // 3. If still not found, create the product safely
       if (!actualProdId) {
-        const name = item.product_name || item.productName || item.name || (rawProdId > 0 ? `Product #${rawProdId}` : 'Custom Item');
-        const category = item.product_category || item.productCategory || item.category || 'General';
+        const name = (item.product_name as string) || (item.productName as string) || (item.name as string) || (rawProdId > 0 ? `Product #${rawProdId}` : 'Custom Item');
+        const category = (item.product_category as string) || (item.productCategory as string) || (item.category as string) || 'General';
         const price = Number(item.price) || 0;
         const barcode = (rawBarcode && String(rawBarcode).trim().length > 0)
           ? String(rawBarcode).trim()
           : (rawProdId > 0 ? `AUTO-${rawProdId}` : `GEN-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`);
 
         // Check if barcode already exists under another id
-        const existingWithBc = db.prepare('SELECT id FROM products WHERE barcode = ?').get(barcode) as any;
+        const existingWithBc = db.prepare('SELECT id FROM products WHERE barcode = ?').get(barcode) as { id: number } | undefined;
         if (existingWithBc) {
           actualProdId = existingWithBc.id;
         } else if (rawProdId > 0) {
@@ -1062,16 +1054,18 @@ export function upsertCloudSale(cloudSale: any) {
     }
 
     // Payments
-    let paymentsList = cloudSale.payments || [];
-    if (paymentsList && typeof paymentsList === 'object' && !Array.isArray(paymentsList)) {
-      paymentsList = Object.values(paymentsList);
+    let paymentsList: Record<string, unknown>[] = [];
+    if (Array.isArray(cloudSale.payments)) {
+      paymentsList = cloudSale.payments as Record<string, unknown>[];
+    } else if (cloudSale.payments && typeof cloudSale.payments === 'object') {
+      paymentsList = Object.values(cloudSale.payments as Record<string, unknown>) as Record<string, unknown>[];
     }
 
     const insertPayment = db.prepare('INSERT INTO payments (sale_id, method, amount) VALUES (?, ?, ?)');
     if (paymentsList.length > 0) {
       for (const p of paymentsList) {
         if (!p) continue;
-        const method = p.method || p.payment_method || paymentMethod;
+        const method = (p.method as string) || (p.payment_method as string) || paymentMethod;
         const amount = Number(p.amount) || total;
         insertPayment.run(numericId, method, amount);
       }
@@ -1091,7 +1085,7 @@ export function getAllSales() {
     FROM sales s
     LEFT JOIN users u ON s.user_id = u.id
     ORDER BY s.timestamp DESC
-  `).all() as any[];
+  `).all() as (Sale & { cashier_name?: string })[];
 
   if (sales.length === 0) return [];
 
@@ -1103,11 +1097,11 @@ export function getAllSales() {
            COALESCE(p.category, 'General') as product_category
     FROM sale_items si
     LEFT JOIN products p ON si.product_id = p.id
-  `).all() as any[];
+  `).all() as (SaleItem & { product_name: string; product_barcode: string; product_category: string })[];
 
-  const allPayments = db.prepare('SELECT * FROM payments').all() as any[];
+  const allPayments = db.prepare('SELECT * FROM payments').all() as Payment[];
 
-  const itemsMap = new Map<number, any[]>();
+  const itemsMap = new Map<number, (SaleItem & { product_name: string; product_barcode: string; product_category: string })[]>();
   for (const item of allItems) {
     let list = itemsMap.get(item.sale_id);
     if (!list) {
@@ -1117,7 +1111,7 @@ export function getAllSales() {
     list.push(item);
   }
 
-  const paymentsMap = new Map<number, any[]>();
+  const paymentsMap = new Map<number, Payment[]>();
   for (const payment of allPayments) {
     let list = paymentsMap.get(payment.sale_id);
     if (!list) {
@@ -1134,6 +1128,16 @@ export function getAllSales() {
   }));
 }
 
+export function deleteSale(saleId: number) {
+  const transaction = db.transaction(() => {
+    db.prepare('DELETE FROM sale_items WHERE sale_id = ?').run(saleId);
+    db.prepare('DELETE FROM payments WHERE sale_id = ?').run(saleId);
+    db.prepare('DELETE FROM sales WHERE id = ?').run(saleId);
+  });
+  transaction();
+  return true;
+}
+
 export function returnSaleItems(saleId: number, returnsList: { productId: number, qtyToReturn: number }[]) {
   const selectSale = db.prepare('SELECT * FROM sales WHERE id = ?');
   const selectSaleItems = db.prepare('SELECT * FROM sale_items WHERE sale_id = ?');
@@ -1142,10 +1146,10 @@ export function returnSaleItems(saleId: number, returnsList: { productId: number
   const updateSaleRefund = db.prepare('UPDATE sales SET refund_amount = refund_amount + ?, status = ? WHERE id = ?');
 
   const transaction = db.transaction(() => {
-    const sale = selectSale.get(saleId) as any;
+    const sale = selectSale.get(saleId) as Sale | undefined;
     if (!sale) throw new Error('Sale not found');
 
-    const saleItems = selectSaleItems.all(saleId) as any[];
+    const saleItems = selectSaleItems.all(saleId) as SaleItem[];
     let totalRefundForThisReturn = 0;
 
     for (const ret of returnsList) {
@@ -1169,7 +1173,7 @@ export function returnSaleItems(saleId: number, returnsList: { productId: number
     }
 
     // Recalculate status
-    const updatedSaleItems = selectSaleItems.all(saleId) as any[];
+    const updatedSaleItems = selectSaleItems.all(saleId) as SaleItem[];
     const allFullyReturned = updatedSaleItems.every(i => i.returned_qty === i.qty);
     const anyReturned = updatedSaleItems.some(i => i.returned_qty > 0);
 
@@ -1214,7 +1218,7 @@ export function getAllPurchaseOrders() {
     FROM purchase_orders po
     JOIN vendors v ON po.vendor_id = v.id
     ORDER BY po.timestamp DESC
-  `).all() as any[];
+  `).all() as (PurchaseOrder & { vendor_name: string; vendor_contact: string; vendor_category: string })[];
 
   return pos.map(po => {
     const items = db.prepare(`
@@ -1253,7 +1257,7 @@ export function addVendorPayment(payment: { poId: number, vendorId: number, amou
   const updatePOPayment = db.prepare('UPDATE purchase_orders SET paid_amount = ?, payment_status = ? WHERE id = ?');
 
   const transaction = db.transaction(() => {
-    const po = selectPO.get(payment.poId) as any;
+    const po = selectPO.get(payment.poId) as PurchaseOrder | undefined;
     if (!po) throw new Error('Purchase Order not found');
 
     insertPayment.run(
@@ -1338,7 +1342,7 @@ export function createPurchaseOrder(
     const finalTotal = typeof customTotalCost === 'number' && customTotalCost > 0 ? customTotalCost : calculatedTotal;
 
     // Check if vendor already has a purchase order
-    const existing = findExistingPO.get(vendorId) as any;
+    const existing = findExistingPO.get(vendorId) as PurchaseOrder | undefined;
 
     if (existing) {
       // Sum the new order amount into the vendor's existing PO
@@ -1370,11 +1374,11 @@ export function receivePurchaseOrder(poId: number) {
   const updateProductStock = db.prepare('UPDATE products SET stock = stock + ? WHERE id = ?');
 
   const transaction = db.transaction(() => {
-    const po = selectPO.get(poId) as any;
+    const po = selectPO.get(poId) as PurchaseOrder | undefined;
     if (!po) throw new Error('Purchase Order not found');
     if (po.status === 'Received') throw new Error('Purchase Order is already received');
 
-    const items = selectItems.all(poId) as any[];
+    const items = selectItems.all(poId) as { product_id: number; qty: number }[];
     for (const item of items) {
       updateProductStock.run(item.qty, item.product_id);
     }
@@ -1394,7 +1398,7 @@ export function deletePurchaseOrder(poId: number, bypassTimeCheck = false) {
   const deletePO = db.prepare('DELETE FROM purchase_orders WHERE id = ?');
 
   const transaction = db.transaction(() => {
-    const po = selectPO.get(poId) as any;
+    const po = selectPO.get(poId) as PurchaseOrder | undefined;
     if (!po) throw new Error('Purchase Order not found');
 
     if (!bypassTimeCheck) {
@@ -1416,12 +1420,11 @@ export function deletePurchaseOrder(poId: number, bypassTimeCheck = false) {
 
 export function deleteVendorPayment(paymentId: number, bypassTimeCheck = false) {
   const selectPayment = db.prepare('SELECT * FROM vendor_payments WHERE id = ?');
-  const selectPO = db.prepare('SELECT * FROM purchase_orders WHERE id = ?');
   const deletePaymentStmt = db.prepare('DELETE FROM vendor_payments WHERE id = ?');
   const updatePO = db.prepare('UPDATE purchase_orders SET paid_amount = MAX(0, paid_amount - ?), payment_status = CASE WHEN MAX(0, paid_amount - ?) >= total_cost AND total_cost > 0 THEN \'Paid\' WHEN MAX(0, paid_amount - ?) > 0 THEN \'Partially Paid\' ELSE \'Unpaid\' END WHERE id = ?');
 
   const transaction = db.transaction(() => {
-    const payment = selectPayment.get(paymentId) as any;
+    const payment = selectPayment.get(paymentId) as VendorPayment | undefined;
     if (!payment) throw new Error('Payment record not found');
 
     if (!bypassTimeCheck) {
@@ -1448,7 +1451,7 @@ export function updateVendorPayment(paymentId: number, updateData: { amount: num
   const updatePO = db.prepare('UPDATE purchase_orders SET paid_amount = MAX(0, paid_amount + ?), payment_status = CASE WHEN MAX(0, paid_amount + ?) >= total_cost AND total_cost > 0 THEN \'Paid\' WHEN MAX(0, paid_amount + ?) > 0 THEN \'Partially Paid\' ELSE \'Unpaid\' END WHERE id = ?');
 
   const transaction = db.transaction(() => {
-    const payment = selectPayment.get(paymentId) as any;
+    const payment = selectPayment.get(paymentId) as VendorPayment | undefined;
     if (!payment) throw new Error('Payment record not found');
 
     if (!bypassTimeCheck) {
@@ -1476,7 +1479,7 @@ export function deleteVendorOrderEntry(entryId: number, bypassTimeCheck = false)
   const updatePO = db.prepare('UPDATE purchase_orders SET total_cost = MAX(0, total_cost - ?), payment_status = CASE WHEN paid_amount >= MAX(0, total_cost - ?) AND MAX(0, total_cost - ?) > 0 THEN \'Paid\' WHEN paid_amount > 0 THEN \'Partially Paid\' ELSE \'Unpaid\' END WHERE id = ?');
 
   const transaction = db.transaction(() => {
-    const entry = selectEntry.get(entryId) as any;
+    const entry = selectEntry.get(entryId) as VendorOrderEntry | undefined;
     if (!entry) throw new Error('Order entry record not found');
 
     if (!bypassTimeCheck) {
@@ -1503,7 +1506,7 @@ export function updateVendorOrderEntry(entryId: number, updateData: { amount: nu
   const updatePO = db.prepare('UPDATE purchase_orders SET total_cost = MAX(0, total_cost + ?), payment_status = CASE WHEN paid_amount >= MAX(0, total_cost + ?) AND MAX(0, total_cost + ?) > 0 THEN \'Paid\' WHEN paid_amount > 0 THEN \'Partially Paid\' ELSE \'Unpaid\' END WHERE id = ?');
 
   const transaction = db.transaction(() => {
-    const entry = selectEntry.get(entryId) as any;
+    const entry = selectEntry.get(entryId) as VendorOrderEntry | undefined;
     if (!entry) throw new Error('Order entry record not found');
 
     if (!bypassTimeCheck) {
@@ -1825,29 +1828,29 @@ export function deleteUser(id: number) {
 }
 
 // Ingest / Upsert Purchase Order from Firebase Cloud into SQLite
-export function upsertCloudPurchaseOrder(cloudPo: any) {
+export function upsertCloudPurchaseOrder(cloudPo: Record<string, unknown>) {
   if (!cloudPo) return false;
 
-  const vendorName = cloudPo.vendor_name || '';
+  const vendorName = (cloudPo.vendor_name as string) || '';
   if (!vendorName) return false;
 
-  let vendor = db.prepare('SELECT id, name FROM vendors WHERE LOWER(name) = LOWER(?)').get(vendorName) as any;
+  let vendor = db.prepare('SELECT id, name FROM vendors WHERE LOWER(name) = LOWER(?)').get(vendorName) as { id: number; name: string } | undefined;
   if (!vendor) {
-    const contact = cloudPo.phone || cloudPo.contact_person || '';
+    const contact = (cloudPo.phone as string) || (cloudPo.contact_person as string) || '';
     const info = db.prepare('INSERT INTO vendors (name, contact, category) VALUES (?, ?, ?)').run(vendorName, contact, 'General');
-    vendor = { id: info.lastInsertRowid, name: vendorName };
+    vendor = { id: info.lastInsertRowid as number, name: vendorName };
   }
 
   const vendorId = vendor.id;
   const totalCost = Number(cloudPo.total_cost || cloudPo.total_amount) || 0;
   const paidAmount = Number(cloudPo.paid_amount) || 0;
-  const paymentStatus = cloudPo.payment_status || (paidAmount >= totalCost && totalCost > 0 ? 'Paid' : (paidAmount > 0 ? 'Partially Paid' : 'Unpaid'));
-  const status = cloudPo.status || 'Pending';
-  const notes = cloudPo.notes || '';
-  const timestamp = cloudPo.timestamp || new Date().toISOString();
+  const paymentStatus = (cloudPo.payment_status as 'Unpaid' | 'Partially Paid' | 'Paid') || (paidAmount >= totalCost && totalCost > 0 ? 'Paid' : (paidAmount > 0 ? 'Partially Paid' : 'Unpaid'));
+  const status = (cloudPo.status as 'Pending' | 'Received' | 'Cancelled') || 'Pending';
+  const notes = (cloudPo.notes as string) || '';
+  const timestamp = (cloudPo.timestamp as string) || new Date().toISOString();
 
   // Find existing PO for this vendor
-  const existingPO = db.prepare('SELECT * FROM purchase_orders WHERE vendor_id = ? ORDER BY id DESC LIMIT 1').get(vendorId) as any;
+  const existingPO = db.prepare('SELECT * FROM purchase_orders WHERE vendor_id = ? ORDER BY id DESC LIMIT 1').get(vendorId) as PurchaseOrder | undefined;
 
   let poId = 0;
   db.transaction(() => {

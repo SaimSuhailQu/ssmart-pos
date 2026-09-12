@@ -53,6 +53,7 @@ const ProductCard = React.memo<{
 
 export const ProductGrid: React.FC<ProductGridProps> = ({ products, onAddToCart }) => {
   const [activeCategory, setActiveCategory] = useState<string>('All');
+  const [displayLimit, setDisplayLimit] = useState<number>(48);
 
   const categories = useMemo(() => {
     const cats = Array.from(new Set(products.map(p => p.category)));
@@ -64,6 +65,15 @@ export const ProductGrid: React.FC<ProductGridProps> = ({ products, onAddToCart 
     return products.filter(p => p.category === activeCategory);
   }, [products, activeCategory]);
 
+  const visibleProducts = useMemo(() => {
+    return filteredProducts.slice(0, displayLimit);
+  }, [filteredProducts, displayLimit]);
+
+  const handleCategoryChange = (cat: string) => {
+    setActiveCategory(cat);
+    setDisplayLimit(48);
+  };
+
   return (
     <div className="flex flex-col h-full relative">
       {/* Categories Tabs */}
@@ -73,7 +83,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({ products, onAddToCart 
           return (
             <button
               key={cat}
-              onClick={() => setActiveCategory(cat)}
+              onClick={() => handleCategoryChange(cat)}
               className={`px-5 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-colors duration-100 flex items-center gap-2 ${
                 activeCategory === cat 
                   ? 'bg-white/20 text-white border border-white/40 shadow-sm' 
@@ -90,9 +100,19 @@ export const ProductGrid: React.FC<ProductGridProps> = ({ products, onAddToCart 
       {/* Grid */}
       <div className="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent relative z-0">
         <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-          {filteredProducts.map(p => (
+          {visibleProducts.map(p => (
             <ProductCard key={p.id} product={p} onAddToCart={onAddToCart} />
           ))}
+          {filteredProducts.length > displayLimit && (
+            <div className="col-span-full flex justify-center py-4">
+              <button
+                onClick={() => setDisplayLimit(prev => prev + 48)}
+                className="px-6 py-2.5 rounded-xl text-sm font-semibold glass-button text-gray-200 hover:text-white border border-white/20 hover:border-white/40 transition-all shadow-md active:scale-95"
+              >
+                Show More Products ({filteredProducts.length - displayLimit} remaining)
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

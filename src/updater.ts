@@ -55,7 +55,7 @@ export function setupAutoUpdater(mainWindow: BrowserWindow | null) {
       }
     });
 
-    autoUpdater.on('update-downloaded', (event, releaseNotes, releaseName, releaseDate, updateUrl) => {
+    autoUpdater.on('update-downloaded', (_event, releaseNotes, releaseName) => {
       console.log('[AutoUpdater] Update downloaded:', releaseName);
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('updater-status', { 
@@ -112,8 +112,9 @@ export function checkForUpdatesManual() {
   try {
     autoUpdater.checkForUpdates();
     return { success: true, message: 'Checking for updates...' };
-  } catch (error: any) {
-    return { success: false, error: error?.message || 'Failed to check for updates.' };
+  } catch (error: unknown) {
+    const errMessage = error instanceof Error ? error.message : String(error);
+    return { success: false, error: errMessage || 'Failed to check for updates.' };
   }
 }
 

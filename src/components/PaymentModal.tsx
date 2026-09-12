@@ -106,7 +106,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax
   };
 
   const handlePay = async () => {
-    if (!isEnough) return;
+    if (!isEnough || isProcessing) return;
     setIsProcessing(true);
     try {
       const finalPayments = [...payments];

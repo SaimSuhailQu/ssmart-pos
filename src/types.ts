@@ -27,6 +27,22 @@ export interface PaymentEntry {
   amount: number;
 }
 
+export interface Payment {
+  id?: number;
+  sale_id: number;
+  method: string;
+  amount: number;
+}
+
+export interface SaleItem {
+  id?: number;
+  sale_id: number;
+  product_id: number;
+  qty: number;
+  price: number;
+  returned_qty: number;
+}
+
 export interface PaymentData {
   subtotal: number;
   tax: number;
@@ -155,13 +171,70 @@ export interface Sale {
   items?: SaleItemDetails[];
 }
 
+export interface AnalyticsFinancials {
+  revenue: number;
+  refunds: number;
+  cost: number;
+  profit: number;
+  orders: number;
+  expenses: number;
+}
+
+export interface AnalyticsTrendItem {
+  date?: string;
+  month?: string;
+  year?: string;
+  revenue: number;
+  refunds: number;
+  cost: number;
+  expenses?: number;
+}
+
+export interface AnalyticsData {
+  summary: {
+    totalRevenue: number;
+    totalOrders: number;
+    avgTicket: number;
+  };
+  salesByMethod: Array<{ method: string; value: number }>;
+  topProducts: Array<{ name: string; qty: number; revenue: number }>;
+  dailyTrend: Array<{ date: string; revenue: number; refunds: number; cost: number; expenses?: number }>;
+  monthlyTrend: Array<{ month: string; revenue: number; refunds: number; cost: number; expenses?: number }>;
+  yearlyTrend: Array<{ year: string; revenue: number; refunds: number; cost: number; expenses?: number }>;
+  financials: {
+    today: AnalyticsFinancials;
+    month: AnalyticsFinancials;
+    year: AnalyticsFinancials;
+  };
+}
+
+export interface WhatsAppConfig {
+  phoneNumberId?: string;
+  accessToken?: string;
+}
+
+export interface POItemInput {
+  productId: number;
+  qty: number;
+  costPrice: number;
+  name?: string;
+  barcode?: string;
+}
+
+export interface UpdaterStatusData {
+  status: 'checking' | 'available' | 'up-to-date' | 'downloaded' | 'error';
+  version?: string;
+  releaseNotes?: string;
+  error?: string;
+}
+
 declare global {
   interface Window {
     api: {
       getAllProducts: () => Promise<Product[]>;
       getProduct: (barcode: string) => Promise<Product | undefined>;
       getNextSaleId: () => Promise<number>;
-      checkout: (data: { items: CartItem[], paymentData: PaymentData, userId?: number, cashierName?: string }) => Promise<{ success: boolean; saleId: number }>;
+      checkout: (data: { items: CartItem[]; paymentData: PaymentData; userId?: number; cashierName?: string }) => Promise<{ success: boolean; saleId: number }>;
       addManualDailyClosingSale: (data: { total: number; cashAmount?: number; onlineAmount?: number; notes?: string; date?: string; cashierName?: string }) => Promise<{ success: boolean; saleId: number }>;
       addProduct: (product: Omit<Product, 'id'>) => Promise<number>;
       bulkAddProducts: (productsList: Array<Omit<Product, 'id'>>) => Promise<number>;
@@ -173,33 +246,34 @@ declare global {
       
       // Sales History & Returns
       getAllSales: () => Promise<Sale[]>;
-      returnSaleItems: (saleId: number, returnsList: { productId: number, qtyToReturn: number }[]) => Promise<boolean>;
+      returnSaleItems: (saleId: number, returnsList: { productId: number; qtyToReturn: number }[]) => Promise<boolean>;
+      deleteSale: (saleId: number) => Promise<boolean>;
       
       // CRM & Customer Khata / Loan
       getAllCustomers: () => Promise<Customer[]>;
       getCustomerByPhone: (phone: string) => Promise<Customer | undefined>;
-      addCustomer: (customer: Omit<Customer, 'id' | 'points' | 'balance'> & { points?: number, balance?: number }) => Promise<number>;
+      addCustomer: (customer: Omit<Customer, 'id' | 'points' | 'balance'> & { points?: number; balance?: number }) => Promise<number>;
       updateCustomer: (id: number, customer: Omit<Customer, 'id'>) => Promise<boolean>;
       deleteCustomer: (id: number) => Promise<boolean>;
       getCustomerKhata: (customerId: number) => Promise<CustomerKhataEntry[]>;
-      addCustomerLoanPayment: (data: { customerId: number, amount: number, paymentMethod?: string, notes?: string }) => Promise<boolean>;
-      addCustomerLoanEntry: (data: { customerId: number, amount: number, notes?: string }) => Promise<boolean>;
-      updateCustomerKhataEntry: (data: { id: number, amount: number, notes?: string, paymentMethod?: string }) => Promise<{ success: boolean, customerId: number }>;
-      deleteCustomerKhataEntry: (id: number) => Promise<{ success: boolean, customerId: number, syncId?: string }>;
-      clearAllKhata: () => Promise<{ success: boolean, message?: string, error?: string }>;
+      addCustomerLoanPayment: (data: { customerId: number; amount: number; paymentMethod?: string; notes?: string }) => Promise<boolean>;
+      addCustomerLoanEntry: (data: { customerId: number; amount: number; notes?: string }) => Promise<boolean>;
+      updateCustomerKhataEntry: (data: { id: number; amount: number; notes?: string; paymentMethod?: string }) => Promise<{ success: boolean; customerId: number }>;
+      deleteCustomerKhataEntry: (id: number) => Promise<{ success: boolean; customerId: number; syncId?: string }>;
+      clearAllKhata: () => Promise<{ success: boolean; message?: string; error?: string }>;
 
       // Users & Shifts
-      verifyUserPin: (pin: string) => Promise<{ id: number, name: string, role: string } | undefined>;
+      verifyUserPin: (pin: string) => Promise<{ id: number; name: string; role: string } | undefined>;
       clockIn: (userId: number) => Promise<number>;
       clockOut: (shiftId: number) => Promise<boolean>;
       getActiveShift: (userId: number) => Promise<Shift | undefined>;
-      onSyncStatusChanged: (callback: (status: string) => void) => void;
-      getSalesAnalytics: () => Promise<any>;
+      onSyncStatusChanged: (callback: (status: string) => void) => () => void;
+      getSalesAnalytics: () => Promise<AnalyticsData>;
 
       // Expense Tracking
       getAllExpenses: () => Promise<Expense[]>;
-      addExpense: (expense: { amount: number, description: string, category: string, loggedBy: string }) => Promise<number>;
-      updateExpense: (id: number, expense: { amount: number, description: string, category: string, loggedBy: string }) => Promise<boolean>;
+      addExpense: (expense: { amount: number; description: string; category: string; loggedBy: string }) => Promise<number>;
+      updateExpense: (id: number, expense: { amount: number; description: string; category: string; loggedBy: string }) => Promise<boolean>;
       deleteExpense: (id: number) => Promise<boolean>;
       
       // User Management
@@ -214,24 +288,24 @@ declare global {
       updateVendor: (id: number, vendor: Omit<Vendor, 'id'>) => Promise<boolean>;
       deleteVendor: (id: number) => Promise<boolean>;
       getAllPurchaseOrders: () => Promise<PurchaseOrder[]>;
-      createPurchaseOrder: (vendorId: number, items: any[], customTotalCost?: number, notes?: string) => Promise<number>;
+      createPurchaseOrder: (vendorId: number, items: POItemInput[], customTotalCost?: number, notes?: string) => Promise<number>;
       receivePurchaseOrder: (poId: number) => Promise<boolean>;
       deletePurchaseOrder: (poId: number, bypassTimeCheck?: boolean) => Promise<boolean>;
-      addVendorPayment: (payment: { poId: number, vendorId: number, amount: number, paymentMethod?: string, notes?: string }) => Promise<boolean>;
+      addVendorPayment: (payment: { poId: number; vendorId: number; amount: number; paymentMethod?: string; notes?: string }) => Promise<boolean>;
       deleteVendorPayment: (paymentId: number, bypassTimeCheck?: boolean) => Promise<boolean>;
-      updateVendorPayment: (paymentId: number, updateData: { amount: number, paymentMethod?: string, notes?: string }, bypassTimeCheck?: boolean) => Promise<boolean>;
+      updateVendorPayment: (paymentId: number, updateData: { amount: number; paymentMethod?: string; notes?: string }, bypassTimeCheck?: boolean) => Promise<boolean>;
       deleteVendorOrderEntry: (entryId: number, bypassTimeCheck?: boolean) => Promise<boolean>;
-      updateVendorOrderEntry: (entryId: number, updateData: { amount: number, notes?: string }, bypassTimeCheck?: boolean) => Promise<boolean>;
+      updateVendorOrderEntry: (entryId: number, updateData: { amount: number; notes?: string }, bypassTimeCheck?: boolean) => Promise<boolean>;
       getVendorPayments: (vendorId?: number) => Promise<VendorPayment[]>;
       getVendorOrderEntries: (vendorId?: number) => Promise<VendorOrderEntry[]>;
 
       // WhatsApp Background Automation
-      sendWhatsAppMessage: (toPhone: string, messageText: string, config?: { phoneNumberId?: string, accessToken?: string }) => Promise<{ success: boolean; error?: string }>;
+      sendWhatsAppMessage: (toPhone: string, messageText: string, config?: WhatsAppConfig) => Promise<{ success: boolean; error?: string }>;
 
       // Auto-Updater
       checkForUpdates: () => Promise<{ success: boolean; message?: string; error?: string }>;
       quitAndInstallUpdate: () => Promise<void>;
-      onUpdaterStatus: (callback: (data: { status: 'checking' | 'available' | 'up-to-date' | 'downloaded' | 'error'; version?: string; releaseNotes?: string; error?: string }) => void) => void;
-    }
+      onUpdaterStatus: (callback: (data: UpdaterStatusData) => void) => () => void;
+    };
   }
 }

@@ -194,9 +194,10 @@ export const CustomerManager: React.FC = () => {
       });
       setEditingKhataEntry(null);
       await loadCustomers();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to update khata entry:', err);
-      setEditKhataError(err.message || 'Failed to update entry');
+      const msg = err instanceof Error ? err.message : 'Failed to update entry';
+      setEditKhataError(msg);
     }
   };
 
@@ -208,9 +209,10 @@ export const CustomerManager: React.FC = () => {
     try {
       await window.api.deleteCustomerKhataEntry(entry.id);
       await loadCustomers();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to delete khata entry:', err);
-      alert(`Failed to delete khata entry: ${err.message || err}`);
+      const msg = err instanceof Error ? err.message : String(err);
+      alert(`Failed to delete khata entry: ${msg}`);
     }
   };
 
@@ -238,7 +240,7 @@ export const CustomerManager: React.FC = () => {
     if (entries.length > 0) {
       message += `📜 *Recent Transaction History:*\n`;
       const recent = entries.slice(0, 8);
-      recent.forEach((item, idx) => {
+      recent.forEach((item) => {
         const itemDate = new Date(item.timestamp).toLocaleDateString();
         if (item.type === 'LOAN') {
           message += `🔺 *[CREDIT / LOAN]* ${itemDate}: +Rs. ${item.amount.toLocaleString()} (${item.notes || 'Purchased on Credit'})\n`;

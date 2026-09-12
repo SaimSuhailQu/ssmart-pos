@@ -75,7 +75,7 @@ const config: ForgeConfig = {
     }),
   ],
   hooks: {
-    packageAfterCopy: async (forgeConfig, buildPath, _electronVersion, _platform, _arch) => {
+    packageAfterCopy: async (_forgeConfig, buildPath) => {
 
       console.log(`[Forge Hook] Preparing buildPath for npm install: ${buildPath}`);
 

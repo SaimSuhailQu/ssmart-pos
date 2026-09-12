@@ -27,12 +27,12 @@ export const BulkProductEditorModal: React.FC<BulkProductEditorModalProps> = ({ 
 
   const categories = Array.from(new Set(products.map(p => p.category))).sort();
 
-  const handleFieldChange = (id: number, field: keyof Product, value: any) => {
+  const handleFieldChange = (id: number, field: keyof Product, value: string | number) => {
     setEditedProducts(prev => ({
       ...prev,
       [id]: {
         ...prev[id],
-        [field]: field === 'name' || field === 'barcode' || field === 'category' ? value : (parseFloat(value) || 0)
+        [field]: field === 'name' || field === 'barcode' || field === 'category' ? value : (parseFloat(String(value)) || 0)
       }
     }));
   };
@@ -70,8 +70,9 @@ export const BulkProductEditorModal: React.FC<BulkProductEditorModalProps> = ({ 
         onRefresh();
         onClose();
       }, 1200);
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Failed to save bulk product updates.' });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to save bulk product updates.';
+      setMessage({ type: 'error', text: msg });
     } finally {
       setSaving(false);
     }
@@ -140,7 +141,7 @@ export const BulkProductEditorModal: React.FC<BulkProductEditorModalProps> = ({ 
 
         setEditedProducts(newEdited);
         setMessage({ type: 'success', text: `Imported changes for ${updatedCount} products from CSV! Click "Save All Changes" to persist.` });
-      } catch (err: any) {
+      } catch (err: unknown) {
         setMessage({ type: 'error', text: 'Error parsing CSV file.' });
       }
     };

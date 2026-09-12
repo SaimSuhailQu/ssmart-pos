@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShieldCheck, ShieldAlert } from 'lucide-react';
+import { ShieldAlert } from 'lucide-react';
 import logoImg from '../assets/ss_mart_logo.png';
 
 interface PinLoginProps {

@@ -70,14 +70,16 @@ const App: React.FC = () => {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
+    let unsubSync: (() => void) | undefined;
     if (window.api.onSyncStatusChanged) {
-      window.api.onSyncStatusChanged((status) => {
+      unsubSync = window.api.onSyncStatusChanged((status) => {
         setSyncStatus(status);
       });
     }
 
+    let unsubUpdater: (() => void) | undefined;
     if (window.api.onUpdaterStatus) {
-      window.api.onUpdaterStatus((info) => {
+      unsubUpdater = window.api.onUpdaterStatus((info) => {
         console.log('[Updater Status]:', info);
         setIsCheckingUpdate(false);
         if (info.status === 'downloaded' || info.status === 'available') {
@@ -94,6 +96,8 @@ const App: React.FC = () => {
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      if (unsubSync) unsubSync();
+      if (unsubUpdater) unsubUpdater();
     };
   }, []);
 
@@ -183,23 +187,24 @@ const App: React.FC = () => {
         });
         setIsQuickAddOpen(true);
       }
-    } catch (err: any) {
-      setError(err.message || 'Error scanning product');
+    } catch (err: unknown) {
+      const errMessage = err instanceof Error ? err.message : String(err);
+      setError(errMessage || 'Error scanning product');
     }
   }, [viewMode, isPaymentOpen, currentUser, productMap, products]);
 
-  // List of all valid barcodes for 0ms instant matching during scan
+  // Set of all valid barcodes for 0ms instant matching during scan
   const validBarcodes = useMemo(() => {
-    const list: string[] = [];
+    const set = new Set<string>();
     for (const p of products) {
       if (p.barcode) {
         const b = p.barcode.trim();
-        list.push(b);
+        set.add(b);
         const bNoZeros = b.replace(/^0+/, '');
-        if (bNoZeros && bNoZeros !== b) list.push(bNoZeros);
+        if (bNoZeros && bNoZeros !== b) set.add(bNoZeros);
       }
     }
-    return list;
+    return set;
   }, [products]);
 
   useScanner(handleScan, validBarcodes, viewMode);
@@ -281,8 +286,9 @@ const App: React.FC = () => {
       setSuccess(`Product "${createdProduct.name}" registered and added to cart!`);
       setIsQuickAddOpen(false);
       setScannedNewProduct(null);
-    } catch (err: any) {
-      setError(err.message || 'Failed to add scanned product.');
+    } catch (err: unknown) {
+      const errMessage = err instanceof Error ? err.message : String(err);
+      setError(errMessage || 'Failed to add scanned product.');
     }
   };
 
@@ -302,8 +308,9 @@ const App: React.FC = () => {
         setIsPaymentOpen(false);
         loadProducts(); 
       }
-    } catch (err: any) {
-      setError(err.message || 'Checkout failed');
+    } catch (err: unknown) {
+      const errMessage = err instanceof Error ? err.message : String(err);
+      setError(errMessage || 'Checkout failed');
     }
   };
 
@@ -518,8 +525,9 @@ const App: React.FC = () => {
                 setError(res.error);
                 setIsCheckingUpdate(false);
               }
-            } catch (err: any) {
-              setError(err.message || 'Failed to check for updates.');
+            } catch (err: unknown) {
+              const errMessage = err instanceof Error ? err.message : String(err);
+              setError(errMessage || 'Failed to check for updates.');
               setIsCheckingUpdate(false);
             }
           }}

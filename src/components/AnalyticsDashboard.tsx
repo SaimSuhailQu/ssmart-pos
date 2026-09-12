@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, DollarSign, ShoppingBag, Receipt, RefreshCw, Star, Calendar, ArrowUpRight, ArrowDownRight, Activity } from 'lucide-react';
+import { TrendingUp, DollarSign, ShoppingBag, Receipt, RefreshCw, Star, ArrowUpRight, ArrowDownRight, Activity } from 'lucide-react';
 
 interface AnalyticsData {
   summary: {

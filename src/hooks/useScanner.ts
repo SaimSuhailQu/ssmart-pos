@@ -1,6 +1,10 @@
 import { useEffect, useRef } from 'react';
 
-export function useScanner(onScan: (barcode: string) => void, validBarcodes: string[] = [], activeView = 'POS') {
+export function useScanner(
+  onScan: (barcode: string) => void,
+  validBarcodes: Set<string> | string[] = new Set(),
+  activeView = 'POS'
+) {
   const onScanRef = useRef(onScan);
   onScanRef.current = onScan;
   const validBarcodesRef = useRef(validBarcodes);
@@ -9,7 +13,7 @@ export function useScanner(onScan: (barcode: string) => void, validBarcodes: str
   activeViewRef.current = activeView;
 
   const buffer = useRef('');
-  const timeoutId = useRef<any>(null);
+  const timeoutId = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastKeyTime = useRef(Date.now());
 
   useEffect(() => {
@@ -59,8 +63,11 @@ export function useScanner(onScan: (barcode: string) => void, validBarcodes: str
         buffer.current += e.key;
         const currentBuffer = buffer.current.trim();
 
-        // Check if the current buffer exactly matches an existing product barcode
-        if (currentBuffer.length >= 3 && validBarcodesRef.current.includes(currentBuffer)) {
+        // Check if the current buffer exactly matches an existing product barcode (O(1) set lookup or array check)
+        const vb = validBarcodesRef.current;
+        const hasMatch = vb instanceof Set ? vb.has(currentBuffer) : vb.includes(currentBuffer);
+
+        if (currentBuffer.length >= 3 && hasMatch) {
           const matchedCode = currentBuffer;
           buffer.current = '';
           if (timeoutId.current) clearTimeout(timeoutId.current);

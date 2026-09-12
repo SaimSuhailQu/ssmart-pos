@@ -5,14 +5,14 @@ import { initDb, getAllProducts, getProductByBarcode, saveSale, getNextSaleId, a
   getAllCustomers, getCustomerByPhone, addCustomer, updateCustomer, deleteCustomer,
   getCustomerKhataEntries, addCustomerLoanPayment, addCustomerLoanEntry, updateCustomerKhataEntry, deleteCustomerKhataEntry,
   verifyUserPin, clockIn, clockOut, getActiveShift, getSalesAnalytics,
-  getAllUsers, addUser, updateUser, deleteUser, getAllSales, returnSaleItems,
+  getAllUsers, addUser, updateUser, deleteUser, getAllSales, deleteSale, returnSaleItems,
   getAllExpenses, addExpense, updateExpense, deleteExpense,
   getAllVendors, addVendor, updateVendor, deleteVendor,
   getAllPurchaseOrders, createPurchaseOrder, receivePurchaseOrder, deletePurchaseOrder,
   addVendorPayment, deleteVendorPayment, updateVendorPayment, deleteVendorOrderEntry, updateVendorOrderEntry,
   getVendorPayments, getVendorOrderEntries, addManualDailyClosingSale } from './db';
 import { printReceipt, printBarcode } from './printer';
-import { startSyncWorker, syncProductsToCloud, syncCustomersToCloud, syncCustomerKhataToCloud, deleteCustomerKhataEntryFromCloud, clearAllKhataFromCloudAndLocal, syncVendorsToCloud, syncExpensesToCloud, syncSalesToCloud } from './syncEngine';
+import { startSyncWorker, syncProductsToCloud, syncCustomersToCloud, syncCustomerKhataToCloud, deleteCustomerKhataEntryFromCloud, clearAllKhataFromCloudAndLocal, syncVendorsToCloud, syncExpensesToCloud, syncSalesToCloud, deleteSaleFromCloud } from './syncEngine';
 import { sendWhatsAppMessage } from './whatsappService';
 import { setupAutoUpdater, checkForUpdatesManual, quitAndInstallUpdate } from './updater';
 
@@ -99,7 +99,7 @@ ipcMain.handle('get-all-products', () => {
   return getAllProducts();
 });
 
-ipcMain.handle('get-product', (event, barcode) => {
+ipcMain.handle('get-product', (_event, barcode: string) => {
   return getProductByBarcode(barcode);
 });
 
@@ -107,7 +107,7 @@ ipcMain.handle('get-next-sale-id', () => {
   return getNextSaleId();
 });
 
-ipcMain.handle('checkout', async (event, data) => {
+ipcMain.handle('checkout', async (_event, data) => {
   try {
     const saleId = saveSale(data.items, { ...data.paymentData, userId: data.userId });
     
@@ -122,68 +122,72 @@ ipcMain.handle('checkout', async (event, data) => {
     }
 
     return { success: true, saleId };
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Checkout error:', err);
-    throw new Error(err.message);
+    const errMessage = err instanceof Error ? err.message : String(err);
+    throw new Error(errMessage);
   }
 });
 
-ipcMain.handle('add-manual-closing-sale', async (event, data) => {
+ipcMain.handle('add-manual-closing-sale', async (_event, data) => {
   try {
     const saleId = addManualDailyClosingSale(data);
     syncSalesToCloud(true).catch(e => console.warn('Sync sales error on manual closing:', e));
     return { success: true, saleId };
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Add manual closing sale error:', err);
-    throw new Error(err.message);
+    const errMessage = err instanceof Error ? err.message : String(err);
+    throw new Error(errMessage);
   }
 });
 
-ipcMain.handle('add-product', async (event, product) => {
+ipcMain.handle('add-product', async (_event, product) => {
   try {
     const result = addProduct(product);
     syncProductsToCloud().catch(err => console.warn("Cloud product sync failed on add:", err));
     return result;
-  } catch (err: any) {
-    if (err.code === 'SQLITE_CONSTRAINT_UNIQUE' || err.message?.includes('UNIQUE constraint failed: products.barcode')) {
+  } catch (err: unknown) {
+    const errorObj = err as { code?: string; message?: string };
+    if (errorObj.code === 'SQLITE_CONSTRAINT_UNIQUE' || errorObj.message?.includes('UNIQUE constraint failed: products.barcode')) {
       throw new Error(`A product with barcode "${product.barcode}" already exists! Please use a unique barcode.`);
     }
-    throw new Error(err.message || 'Failed to add product');
+    throw new Error(errorObj.message || 'Failed to add product');
   }
 });
 
-ipcMain.handle('update-product', async (event, id, product) => {
+ipcMain.handle('update-product', async (_event, id: number, product) => {
   try {
     const result = updateProduct(id, product);
     syncProductsToCloud().catch(err => console.warn("Cloud product sync failed on update:", err));
     return result;
-  } catch (err: any) {
-    if (err.code === 'SQLITE_CONSTRAINT_UNIQUE' || err.message?.includes('UNIQUE constraint failed: products.barcode')) {
+  } catch (err: unknown) {
+    const errorObj = err as { code?: string; message?: string };
+    if (errorObj.code === 'SQLITE_CONSTRAINT_UNIQUE' || errorObj.message?.includes('UNIQUE constraint failed: products.barcode')) {
       throw new Error(`A product with barcode "${product.barcode}" already exists! Please use a unique barcode.`);
     }
-    throw new Error(err.message || 'Failed to update product');
+    throw new Error(errorObj.message || 'Failed to update product');
   }
 });
 
-ipcMain.handle('bulk-update-products', async (event, updates) => {
+ipcMain.handle('bulk-update-products', async (_event, updates) => {
   const result = bulkUpdateProducts(updates);
   syncProductsToCloud().catch(err => console.warn("Cloud product sync failed on bulk update:", err));
   return result;
 });
 
-ipcMain.handle('bulk-add-products', async (event, productsList) => {
+ipcMain.handle('bulk-add-products', async (_event, productsList) => {
   const result = bulkAddProducts(productsList);
   syncProductsToCloud().catch(err => console.warn("Cloud product sync failed on bulk add:", err));
   return result;
 });
 
-ipcMain.handle('delete-product', async (event, id) => {
+ipcMain.handle('delete-product', async (_event, id: number) => {
   const result = deleteProduct(id);
   syncProductsToCloud().catch(err => console.warn("Cloud product sync failed on delete:", err));
   return result;
 });
 
-ipcMain.handle('print-barcode', async (event, product) => {
+ipcMain.handle('print-barcode', async (_event, product) => {
   try {
     await printBarcode(product);
     return true;
@@ -193,7 +197,7 @@ ipcMain.handle('print-barcode', async (event, product) => {
   }
 });
 
-ipcMain.handle('print-receipt', async (event, data) => {
+ipcMain.handle('print-receipt', async (_event, data) => {
   try {
     await printReceipt(data.items, data.paymentData, data.saleId, data.cashierName);
     return true;
@@ -208,57 +212,57 @@ ipcMain.handle('get-all-customers', () => {
   return getAllCustomers();
 });
 
-ipcMain.handle('get-customer-by-phone', (event, phone) => {
+ipcMain.handle('get-customer-by-phone', (_event, phone: string) => {
   return getCustomerByPhone(phone);
 });
 
-ipcMain.handle('add-customer', async (event, customer) => {
+ipcMain.handle('add-customer', async (_event, customer) => {
   const res = addCustomer(customer);
-  syncCustomersToCloud(true);
+  syncCustomersToCloud(true).catch(err => console.warn('Sync customer failed:', err));
   return res;
 });
 
-ipcMain.handle('update-customer', async (event, id, customer) => {
+ipcMain.handle('update-customer', async (_event, id: number, customer) => {
   const res = updateCustomer(id, customer);
-  syncCustomersToCloud(true);
+  syncCustomersToCloud(true).catch(err => console.warn('Sync customer failed:', err));
   return res;
 });
 
-ipcMain.handle('delete-customer', async (event, id) => {
+ipcMain.handle('delete-customer', async (_event, id: number) => {
   const res = deleteCustomer(id);
-  syncCustomersToCloud(true);
+  syncCustomersToCloud(true).catch(err => console.warn('Sync customer failed:', err));
   return res;
 });
 
-ipcMain.handle('get-customer-khata', (event, customerId) => {
+ipcMain.handle('get-customer-khata', (_event, customerId: number) => {
   return getCustomerKhataEntries(customerId);
 });
 
-ipcMain.handle('add-customer-loan-payment', async (event, data) => {
+ipcMain.handle('add-customer-loan-payment', async (_event, data) => {
   const res = addCustomerLoanPayment(data);
-  syncCustomerKhataToCloud(true);
-  syncCustomersToCloud(true);
+  syncCustomerKhataToCloud(true).catch(err => console.warn('Sync khata failed:', err));
+  syncCustomersToCloud(true).catch(err => console.warn('Sync customer failed:', err));
   return res;
 });
 
-ipcMain.handle('add-customer-loan-entry', async (event, data) => {
+ipcMain.handle('add-customer-loan-entry', async (_event, data) => {
   const res = addCustomerLoanEntry(data);
-  syncCustomerKhataToCloud(true);
-  syncCustomersToCloud(true);
+  syncCustomerKhataToCloud(true).catch(err => console.warn('Sync khata failed:', err));
+  syncCustomersToCloud(true).catch(err => console.warn('Sync customer failed:', err));
   return res;
 });
 
-ipcMain.handle('update-customer-khata-entry', async (event, data) => {
+ipcMain.handle('update-customer-khata-entry', async (_event, data) => {
   const res = updateCustomerKhataEntry(data);
-  syncCustomerKhataToCloud(true);
-  syncCustomersToCloud(true);
+  syncCustomerKhataToCloud(true).catch(err => console.warn('Sync khata failed:', err));
+  syncCustomersToCloud(true).catch(err => console.warn('Sync customer failed:', err));
   return res;
 });
 
-ipcMain.handle('delete-customer-khata-entry', async (event, id) => {
+ipcMain.handle('delete-customer-khata-entry', async (_event, id: number) => {
   const res = deleteCustomerKhataEntry(id);
-  deleteCustomerKhataEntryFromCloud(res.customerId, res.syncId);
-  syncCustomersToCloud(true);
+  deleteCustomerKhataEntryFromCloud(res.customerId, res.syncId).catch(err => console.warn('Delete khata cloud failed:', err));
+  syncCustomersToCloud(true).catch(err => console.warn('Sync customer failed:', err));
   return res;
 });
 
@@ -267,19 +271,19 @@ ipcMain.handle('clear-all-khata', async () => {
 });
 
 // Users & Shifts IPC Handlers
-ipcMain.handle('verify-user-pin', (event, pin) => {
+ipcMain.handle('verify-user-pin', (_event, pin: string) => {
   return verifyUserPin(pin);
 });
 
-ipcMain.handle('clock-in', (event, userId) => {
+ipcMain.handle('clock-in', (_event, userId: number) => {
   return clockIn(userId);
 });
 
-ipcMain.handle('clock-out', (event, shiftId) => {
+ipcMain.handle('clock-out', (_event, shiftId: number) => {
   return clockOut(shiftId);
 });
 
-ipcMain.handle('get-active-shift', (event, userId) => {
+ipcMain.handle('get-active-shift', (_event, userId: number) => {
   return getActiveShift(userId);
 });
 
@@ -291,8 +295,14 @@ ipcMain.handle('get-all-sales', () => {
   return getAllSales();
 });
 
-ipcMain.handle('return-sale-items', (event, saleId, returnsList) => {
+ipcMain.handle('return-sale-items', (_event, saleId: number, returnsList) => {
   return returnSaleItems(saleId, returnsList);
+});
+
+ipcMain.handle('delete-sale', async (_event, saleId: number) => {
+  const res = deleteSale(saleId);
+  deleteSaleFromCloud(saleId).catch(err => console.warn('Delete sale from cloud failed:', err));
+  return res;
 });
 
 // User Management IPC Handlers
@@ -300,15 +310,15 @@ ipcMain.handle('get-all-users', () => {
   return getAllUsers();
 });
 
-ipcMain.handle('add-user', (event, user) => {
+ipcMain.handle('add-user', (_event, user) => {
   return addUser(user);
 });
 
-ipcMain.handle('update-user', (event, id, user) => {
+ipcMain.handle('update-user', (_event, id: number, user) => {
   return updateUser(id, user);
 });
 
-ipcMain.handle('delete-user', (event, id) => {
+ipcMain.handle('delete-user', (_event, id: number) => {
   return deleteUser(id);
 });
 
@@ -317,21 +327,21 @@ ipcMain.handle('get-all-expenses', () => {
   return getAllExpenses();
 });
 
-ipcMain.handle('add-expense', async (event, expense) => {
+ipcMain.handle('add-expense', async (_event, expense) => {
   const res = addExpense(expense);
-  syncExpensesToCloud(true);
+  syncExpensesToCloud(true).catch(err => console.warn('Sync expenses failed:', err));
   return res;
 });
 
-ipcMain.handle('update-expense', async (event, id, expense) => {
+ipcMain.handle('update-expense', async (_event, id: number, expense) => {
   const res = updateExpense(id, expense);
-  syncExpensesToCloud(true);
+  syncExpensesToCloud(true).catch(err => console.warn('Sync expenses failed:', err));
   return res;
 });
 
-ipcMain.handle('delete-expense', async (event, id) => {
+ipcMain.handle('delete-expense', async (_event, id: number) => {
   const res = deleteExpense(id);
-  syncExpensesToCloud(true);
+  syncExpensesToCloud(true).catch(err => console.warn('Sync expenses failed:', err));
   return res;
 });
 
@@ -340,21 +350,21 @@ ipcMain.handle('get-all-vendors', () => {
   return getAllVendors();
 });
 
-ipcMain.handle('add-vendor', async (event, vendor) => {
+ipcMain.handle('add-vendor', async (_event, vendor) => {
   const res = addVendor(vendor);
-  syncVendorsToCloud(true);
+  syncVendorsToCloud(true).catch(err => console.warn('Sync vendors failed:', err));
   return res;
 });
 
-ipcMain.handle('update-vendor', async (event, id, vendor) => {
+ipcMain.handle('update-vendor', async (_event, id: number, vendor) => {
   const res = updateVendor(id, vendor);
-  syncVendorsToCloud(true);
+  syncVendorsToCloud(true).catch(err => console.warn('Sync vendors failed:', err));
   return res;
 });
 
-ipcMain.handle('delete-vendor', async (event, id) => {
+ipcMain.handle('delete-vendor', async (_event, id: number) => {
   const res = deleteVendor(id);
-  syncVendorsToCloud(true);
+  syncVendorsToCloud(true).catch(err => console.warn('Sync vendors failed:', err));
   return res;
 });
 
@@ -362,65 +372,65 @@ ipcMain.handle('get-all-purchase-orders', () => {
   return getAllPurchaseOrders();
 });
 
-ipcMain.handle('create-purchase-order', async (event, vendorId, items, customTotalCost, notes) => {
+ipcMain.handle('create-purchase-order', async (_event, vendorId: number, items, customTotalCost?: number, notes?: string) => {
   const res = createPurchaseOrder(vendorId, items, customTotalCost, notes);
-  syncVendorsToCloud(true);
+  syncVendorsToCloud(true).catch(err => console.warn('Sync vendors failed:', err));
   return res;
 });
 
-ipcMain.handle('receive-purchase-order', async (event, poId) => {
+ipcMain.handle('receive-purchase-order', async (_event, poId: number) => {
   const res = receivePurchaseOrder(poId);
-  syncVendorsToCloud(true);
-  syncProductsToCloud();
+  syncVendorsToCloud(true).catch(err => console.warn('Sync vendors failed:', err));
+  syncProductsToCloud().catch(err => console.warn('Sync products failed:', err));
   return res;
 });
 
-ipcMain.handle('delete-purchase-order', async (event, poId, bypassTimeCheck) => {
+ipcMain.handle('delete-purchase-order', async (_event, poId: number, bypassTimeCheck?: boolean) => {
   const res = deletePurchaseOrder(poId, bypassTimeCheck);
-  syncVendorsToCloud(true);
+  syncVendorsToCloud(true).catch(err => console.warn('Sync vendors failed:', err));
   return res;
 });
 
-ipcMain.handle('add-vendor-payment', async (event, payment) => {
+ipcMain.handle('add-vendor-payment', async (_event, payment) => {
   const res = addVendorPayment(payment);
-  syncVendorsToCloud(true);
+  syncVendorsToCloud(true).catch(err => console.warn('Sync vendors failed:', err));
   return res;
 });
 
-ipcMain.handle('delete-vendor-payment', async (event, paymentId, bypassTimeCheck) => {
+ipcMain.handle('delete-vendor-payment', async (_event, paymentId: number, bypassTimeCheck?: boolean) => {
   const res = deleteVendorPayment(paymentId, bypassTimeCheck);
-  syncVendorsToCloud(true);
+  syncVendorsToCloud(true).catch(err => console.warn('Sync vendors failed:', err));
   return res;
 });
 
-ipcMain.handle('update-vendor-payment', async (event, paymentId, updateData, bypassTimeCheck) => {
+ipcMain.handle('update-vendor-payment', async (_event, paymentId: number, updateData, bypassTimeCheck?: boolean) => {
   const res = updateVendorPayment(paymentId, updateData, bypassTimeCheck);
-  syncVendorsToCloud(true);
+  syncVendorsToCloud(true).catch(err => console.warn('Sync vendors failed:', err));
   return res;
 });
 
-ipcMain.handle('delete-vendor-order-entry', async (event, entryId, bypassTimeCheck) => {
+ipcMain.handle('delete-vendor-order-entry', async (_event, entryId: number, bypassTimeCheck?: boolean) => {
   const res = deleteVendorOrderEntry(entryId, bypassTimeCheck);
-  syncVendorsToCloud(true);
+  syncVendorsToCloud(true).catch(err => console.warn('Sync vendors failed:', err));
   return res;
 });
 
-ipcMain.handle('update-vendor-order-entry', async (event, entryId, updateData, bypassTimeCheck) => {
+ipcMain.handle('update-vendor-order-entry', async (_event, entryId: number, updateData, bypassTimeCheck?: boolean) => {
   const res = updateVendorOrderEntry(entryId, updateData, bypassTimeCheck);
-  syncVendorsToCloud(true);
+  syncVendorsToCloud(true).catch(err => console.warn('Sync vendors failed:', err));
   return res;
 });
 
-ipcMain.handle('get-vendor-payments', (event, vendorId) => {
+ipcMain.handle('get-vendor-payments', (_event, vendorId?: number) => {
   return getVendorPayments(vendorId);
 });
 
-ipcMain.handle('get-vendor-order-entries', (event, vendorId) => {
+ipcMain.handle('get-vendor-order-entries', (_event, vendorId?: number) => {
   return getVendorOrderEntries(vendorId);
 });
 
 // --- WhatsApp Background Automation IPC ---
-ipcMain.handle('send-whatsapp-message', async (event, toPhone, messageText, config) => {
+ipcMain.handle('send-whatsapp-message', async (_event, toPhone: string, messageText: string, config) => {
   return await sendWhatsAppMessage(toPhone, messageText, config);
 });
 

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Sale, SaleItemDetails } from '../types';
-import { Search, Receipt, Calendar, User, Undo2, CheckCircle, Ban, ArrowRightLeft, DollarSign, X, ShoppingBag, Printer, Copy, Sparkles, TrendingUp, Wallet, PlusCircle } from 'lucide-react';
+import { Search, Receipt, Calendar, User, Undo2, CheckCircle, ArrowRightLeft, DollarSign, X, ShoppingBag, Printer, Copy, Sparkles, PlusCircle, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export const SalesRecordManager: React.FC = () => {
   const [sales, setSales] = useState<Sale[]>([]);
@@ -28,14 +28,9 @@ export const SalesRecordManager: React.FC = () => {
     try {
       const data = await window.api.getAllSales();
       setSales(data);
-      
-      // Update currently selected sale in modal if it's open to refresh details
-      if (selectedSale) {
-        const updated = data.find(s => s.id === selectedSale.id);
-        if (updated) setSelectedSale(updated);
-      }
-    } catch (err) {
-      console.error(err);
+    } catch (err: unknown) {
+      const errMessage = err instanceof Error ? err.message : String(err);
+      setError(errMessage || 'Failed to load sales.');
     }
   };
 
@@ -81,89 +76,148 @@ export const SalesRecordManager: React.FC = () => {
         setSuccess(`Successfully returned ${qty} unit(s) of product.`);
         await loadSales();
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to process return.');
+    } catch (err: unknown) {
+      const errMessage = err instanceof Error ? err.message : String(err);
+      setError(errMessage || 'Failed to process return.');
     }
   };
 
   const handleReturnAll = async () => {
     if (!selectedSale || !selectedSale.items) return;
-    if (!window.confirm('Are you sure you want to return the remaining items on this order?')) return;
-    
     setError(null);
     setSuccess(null);
 
     const returnsList = selectedSale.items
-      .map(item => ({
-        productId: item.product_id,
-        qtyToReturn: item.qty - item.returned_qty
-      }))
+      .map(item => {
+        const maxReturn = item.qty - item.returned_qty;
+        return { productId: item.product_id, qtyToReturn: maxReturn };
+      })
       .filter(item => item.qtyToReturn > 0);
 
     if (returnsList.length === 0) {
-      setError('No items remaining to return.');
+      setError('All items have already been fully returned.');
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to process a full return for Order #${selectedSale.id}? This will restock all remaining items.`)) {
       return;
     }
 
     try {
       const res = await window.api.returnSaleItems(selectedSale.id, returnsList);
       if (res) {
-        setSuccess('Successfully returned entire remaining order.');
+        setSuccess('Full order returned and inventory restocked successfully.');
         await loadSales();
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to process return.');
+    } catch (err: unknown) {
+      const errMessage = err instanceof Error ? err.message : String(err);
+      setError(errMessage || 'Failed to process full return.');
     }
   };
 
-  // Filter sales
-  const filteredSales = sales.filter(s => {
-    const query = searchQuery.trim().toLowerCase();
-    const matchesSearch = 
-      s.id.toString().includes(query) ||
-      (s.cashier_name && s.cashier_name.toLowerCase().includes(query)) ||
-      s.payment_method.toLowerCase().includes(query);
+  const handleDeleteSale = async (saleId: number) => {
+    if (window.confirm(`Are you sure you want to delete Sale #${saleId}? This will remove it from history.`)) {
+      try {
+        await window.api.deleteSale(saleId);
+        if (selectedSale && selectedSale.id === saleId) {
+          setSelectedSale(null);
+        }
+        await loadSales();
+      } catch (err: unknown) {
+        const errMessage = err instanceof Error ? err.message : String(err);
+        setError(errMessage || 'Failed to delete sale.');
+      }
+    }
+  };
 
-    const matchesStatus = 
-      statusFilter === 'All' || 
-      s.status === statusFilter;
+  // Filter sales with memoization
+  const filteredSales = useMemo(() => {
+    return sales.filter(s => {
+      const idMatch = s.id.toString().includes(searchQuery);
+      const cashierMatch = s.cashier_name?.toLowerCase().includes(searchQuery.toLowerCase());
+      const itemMatch = s.items?.some(i => 
+        i.product_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        i.product_barcode.includes(searchQuery)
+      );
+      const matchesSearch = idMatch || cashierMatch || itemMatch;
 
-    return matchesSearch && matchesStatus;
-  });
+      const matchesStatus = statusFilter === 'All' 
+        ? true 
+        : statusFilter === 'Returned' 
+        ? (s.status === 'Returned' || s.status === 'Partially Returned')
+        : s.status === statusFilter;
 
-  // Calculate statistics
-  const totalSalesCount = sales.length;
-  const totalGrossRevenue = sales.reduce((sum, s) => sum + s.total, 0);
-  const totalRefunds = sales.reduce((sum, s) => sum + (s.refund_amount || 0), 0);
-  const netRevenue = totalGrossRevenue - totalRefunds;
+      return matchesSearch && matchesStatus;
+    });
+  }, [sales, searchQuery, statusFilter]);
 
-  // Filter Today's sales (00:00 to 23:59 local time)
-  const now = new Date();
-  const todayDateString = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  const todaySales = sales.filter(s => {
-    const saleDateStr = s.timestamp ? s.timestamp.substring(0, 10) : '';
-    return saleDateStr === todayDateString;
-  });
+  // Pagination states for high-density rendering performance
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 50;
+  const totalPages = Math.max(1, Math.ceil(filteredSales.length / pageSize));
 
-  const todayGross = todaySales.reduce((sum, s) => sum + s.total, 0);
-  const todayRefunds = todaySales.reduce((sum, s) => sum + (s.refund_amount || 0), 0);
-  const todayNet = todayGross - todayRefunds;
-  const todayOrders = todaySales.length;
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter]);
 
-  const todayCash = todaySales
-    .filter(s => s.payment_method?.toLowerCase().includes('cash'))
-    .reduce((sum, s) => sum + (s.total - (s.refund_amount || 0)), 0);
+  const paginatedSales = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredSales.slice(start, start + pageSize);
+  }, [filteredSales, currentPage, pageSize]);
 
-  const todayOnline = todaySales
-    .filter(s => {
-      const pm = (s.payment_method || '').toLowerCase();
-      return pm.includes('online') || pm.includes('bank') || pm.includes('card') || pm.includes('easypaisa') || pm.includes('jazzcash');
-    })
-    .reduce((sum, s) => sum + (s.total - (s.refund_amount || 0)), 0);
+  // Memoize statistics
+  const {
+    totalSalesCount,
+    totalGrossRevenue,
+    totalRefunds,
+    netRevenue,
+    todayGross,
+    todayRefunds,
+    todayNet,
+    todayOrders,
+    todayCash,
+    todayOnline,
+    todayKhata
+  } = useMemo(() => {
+    const totalSalesCount = sales.length;
+    const totalGrossRevenue = sales.reduce((sum, s) => sum + s.total, 0);
+    const totalRefunds = sales.reduce((sum, s) => sum + (s.refund_amount || 0), 0);
+    const netRevenue = totalGrossRevenue - totalRefunds;
 
-  const todayKhata = todaySales
-    .filter(s => (s.payment_method || '').toLowerCase().includes('khata') || (s.payment_method || '').toLowerCase().includes('credit'))
-    .reduce((sum, s) => sum + (s.total - (s.refund_amount || 0)), 0);
+    const now = new Date();
+    const todayDateString = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const todaySales = sales.filter(s => (s.timestamp ? s.timestamp.substring(0, 10) : '') === todayDateString);
+    const gross = todaySales.reduce((sum, s) => sum + s.total, 0);
+    const refunds = todaySales.reduce((sum, s) => sum + (s.refund_amount || 0), 0);
+    const net = gross - refunds;
+    const orders = todaySales.length;
+    const cash = todaySales
+      .filter(s => s.payment_method?.toLowerCase().includes('cash'))
+      .reduce((sum, s) => sum + (s.total - (s.refund_amount || 0)), 0);
+    const online = todaySales
+      .filter(s => {
+        const pm = (s.payment_method || '').toLowerCase();
+        return pm.includes('online') || pm.includes('bank') || pm.includes('card') || pm.includes('easypaisa') || pm.includes('jazzcash');
+      })
+      .reduce((sum, s) => sum + (s.total - (s.refund_amount || 0)), 0);
+    const khata = todaySales
+      .filter(s => (s.payment_method || '').toLowerCase().includes('khata') || (s.payment_method || '').toLowerCase().includes('credit'))
+      .reduce((sum, s) => sum + (s.total - (s.refund_amount || 0)), 0);
+
+    return {
+      totalSalesCount,
+      totalGrossRevenue,
+      totalRefunds,
+      netRevenue,
+      todayGross: gross,
+      todayRefunds: refunds,
+      todayNet: net,
+      todayOrders: orders,
+      todayCash: cash,
+      todayOnline: online,
+      todayKhata: khata
+    };
+  }, [sales]);
 
   const handleCopyDailyNote = () => {
     const dateFormatted = new Date().toLocaleDateString('en-PK', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
@@ -366,7 +420,7 @@ export const SalesRecordManager: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
-              {filteredSales.map(s => (
+              {paginatedSales.map(s => (
                 <tr 
                   key={s.id} 
                   onClick={() => handleOpenSaleDetails(s)}
@@ -406,23 +460,70 @@ export const SalesRecordManager: React.FC = () => {
                     </span>
                   </td>
                   <td className="py-2.5 px-4 pr-6 text-center">
-                    <button 
-                      className="px-3 py-1 bg-slate-800/80 border border-slate-700 hover:border-slate-500 hover:bg-slate-700 text-[10px] font-bold tracking-wider uppercase rounded transition-all text-slate-200"
-                    >
-                      View
-                    </button>
+                    <div className="flex items-center justify-center gap-1.5">
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenSaleDetails(s);
+                        }}
+                        className="px-3 py-1 bg-slate-800/80 border border-slate-700 hover:border-slate-500 hover:bg-slate-700 text-[10px] font-bold tracking-wider uppercase rounded transition-all text-slate-200 cursor-pointer"
+                      >
+                        View
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteSale(s.id);
+                        }}
+                        className="p-1 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded transition-colors cursor-pointer"
+                        title="Delete Sale"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
               {filteredSales.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="p-10 text-center text-slate-500 font-medium">
-                    No transactions found.
+                  <td colSpan={8} className="py-12 text-center text-slate-500 font-medium">
+                    No transactions found matching the filter criteria.
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="p-3 border-t border-slate-800/80 bg-slate-950/60 flex items-center justify-between text-xs text-slate-400">
+              <div>
+                Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, filteredSales.length)} of {filteredSales.length} orders
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                  title="Previous Page"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <span className="font-mono font-medium text-slate-200">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                  title="Next Page"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -471,14 +572,23 @@ export const SalesRecordManager: React.FC = () => {
                         cashierName: selectedSale.cashier_name
                       });
                       setSuccess(`Receipt for Sale #${selectedSale.id} sent to thermal printer!`);
-                    } catch (err: any) {
-                      setError(err.message || 'Failed to print receipt.');
+                    } catch (err: unknown) {
+                      const errMessage = err instanceof Error ? err.message : String(err);
+                      setError(errMessage || 'Failed to print receipt.');
                     }
                   }}
                   className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer active:scale-95 transition-all shadow-sm"
                   title="Print Thermal Receipt from Desktop Printer"
                 >
                   <Printer size={14} /> Reprint Bill
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteSale(selectedSale.id)}
+                  className="px-3.5 py-1.5 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/40 font-semibold rounded-lg text-xs uppercase tracking-wider flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all shadow-sm"
+                  title="Permanently Delete Transaction"
+                >
+                  <Trash2 size={14} /> Delete Sale
                 </button>
                 <button 
                   onClick={() => setSelectedSale(null)} 
@@ -688,8 +798,9 @@ export const SalesRecordManager: React.FC = () => {
                   setClosingOnline('');
                   setClosingNotes('');
                   await loadSales();
-                } catch (err: any) {
-                  alert(`Failed to add closing sale: ${err.message}`);
+                } catch (err: unknown) {
+                  const errMessage = err instanceof Error ? err.message : String(err);
+                  alert(`Failed to add closing sale: ${errMessage}`);
                 } finally {
                   setIsSubmittingClosing(false);
                 }
