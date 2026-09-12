@@ -5,6 +5,7 @@ import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
 import 'package:ssmart_pos_admin/services/firebase_service.dart';
 
 class ManualClosingDialog extends StatefulWidget {
+  final String? closingId;
   final DateTime? initialDate;
   final double? initialTotal;
   final double? initialCash;
@@ -13,6 +14,7 @@ class ManualClosingDialog extends StatefulWidget {
 
   const ManualClosingDialog({
     super.key,
+    this.closingId,
     this.initialDate,
     this.initialTotal,
     this.initialCash,
@@ -22,6 +24,7 @@ class ManualClosingDialog extends StatefulWidget {
 
   static Future<void> show(
     BuildContext context, {
+    String? closingId,
     DateTime? initialDate,
     double? initialTotal,
     double? initialCash,
@@ -33,6 +36,7 @@ class ManualClosingDialog extends StatefulWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => ManualClosingDialog(
+        closingId: closingId,
         initialDate: initialDate,
         initialTotal: initialTotal,
         initialCash: initialCash,
@@ -134,11 +138,12 @@ class _ManualClosingDialogState extends State<ManualClosingDialog> {
 
     try {
       final firebaseService = context.read<FirebaseService>();
-      await firebaseService.saveManualDailyClosingSale(
+      await firebaseService.saveDailyClosing(
+        id: widget.closingId,
+        date: _selectedDate,
         total: total,
         cashAmount: cash,
         onlineAmount: online,
-        date: _selectedDate,
         notes: notes.isNotEmpty ? notes : null,
       );
 
@@ -146,7 +151,9 @@ class _ManualClosingDialogState extends State<ManualClosingDialog> {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('✅ Daily closing of Rs. ${total.toStringAsFixed(2)} added successfully!'),
+          content: Text(widget.closingId != null
+              ? '✅ Daily closing of Rs. ${total.toStringAsFixed(2)} updated successfully!'
+              : '✅ Daily closing of Rs. ${total.toStringAsFixed(2)} added successfully!'),
           backgroundColor: AppTheme.successGreen,
         ),
       );
@@ -156,6 +163,59 @@ class _ManualClosingDialogState extends State<ManualClosingDialog> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to save closing sale: $e'),
+          backgroundColor: AppTheme.errorRed,
+        ),
+      );
+    }
+  }
+
+  Future<void> _deleteClosing() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.surfaceDark,
+        title: const Text('Delete Daily Closing?'),
+        content: const Text(
+          'Are you sure you want to permanently delete this daily closing record? This action cannot be undone.',
+          style: TextStyle(color: AppTheme.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.errorRed,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete Permanently'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final firebaseService = context.read<FirebaseService>();
+      await firebaseService.deleteDailyClosing(widget.closingId!);
+      if (!mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('🗑️ Daily closing entry deleted successfully.'),
+          backgroundColor: AppTheme.warningOrange,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to delete closing: $e'),
           backgroundColor: AppTheme.errorRed,
         ),
       );
@@ -395,10 +455,32 @@ class _ManualClosingDialogState extends State<ManualClosingDialog> {
                       )
                     : const Icon(CupertinoIcons.check_mark_circled_solid, size: 20),
                 label: Text(
-                  _isLoading ? 'Saving Closing...' : 'Save Daily Closing Sale',
+                  _isLoading
+                      ? 'Saving Closing...'
+                      : (widget.closingId != null ? 'Update Daily Closing Sale' : 'Save Daily Closing Sale'),
                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                 ),
               ),
+
+              if (widget.closingId != null) ...[
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  onPressed: _isLoading ? null : _deleteClosing,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppTheme.errorRed,
+                    side: const BorderSide(color: AppTheme.errorRed),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                    ),
+                  ),
+                  icon: const Icon(CupertinoIcons.trash, size: 16, color: AppTheme.errorRed),
+                  label: const Text(
+                    'Delete This Daily Closing',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.errorRed),
+                  ),
+                ),
+              ],
             ],
           ),
         ),

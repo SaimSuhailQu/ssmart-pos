@@ -8,6 +8,7 @@ import 'package:ssmart_pos_admin/models/product.dart';
 import 'package:ssmart_pos_admin/models/expense.dart';
 import 'package:ssmart_pos_admin/models/customer.dart';
 import 'package:ssmart_pos_admin/models/vendor.dart';
+import 'package:ssmart_pos_admin/models/daily_closing.dart';
 
 /// Service class for Firebase Realtime Database operations
 /// Handles all interactions with Firebase including real-time streams and data queries
@@ -50,6 +51,7 @@ class FirebaseService {
       _database.ref(FirebasePaths.customers).keepSynced(true);
       _database.ref(FirebasePaths.vendors).keepSynced(true);
       _database.ref(FirebasePaths.purchaseOrders).keepSynced(true);
+      _database.ref(FirebasePaths.dailyClosings).keepSynced(true);
       _database.ref('customer_khata').keepSynced(true);
     } catch (e) {
       print('keepSynced error: $e');
@@ -707,6 +709,78 @@ class FirebaseService {
     }
 
     return sale;
+  }
+
+  /// Delete a transaction/sale from Firebase Realtime Database
+  Future<void> deleteSale(String saleId) async {
+    await _database.ref('${FirebasePaths.sales}/$saleId').remove();
+    _cachedSales?.removeWhere((s) => s.id == saleId);
+  }
+
+  /// Get real-time stream of dedicated Daily Closings
+  Stream<List<DailyClosingModel>> getDailyClosingsStream() {
+    return _database.ref(FirebasePaths.dailyClosings).onValue.map((event) {
+      final data = event.snapshot.value;
+      if (data == null) return <DailyClosingModel>[];
+
+      final List<DailyClosingModel> closings = [];
+
+      void addClosing(String key, dynamic val) {
+        if (val != null && val is Map) {
+          try {
+            closings.add(DailyClosingModel.fromJson(key, val));
+          } catch (e) {
+            print('Error parsing DailyClosing $key: $e');
+          }
+        }
+      }
+
+      if (data is Map) {
+        data.forEach((k, v) => addClosing(k.toString(), v));
+      } else if (data is List) {
+        for (int i = 0; i < data.length; i++) {
+          if (data[i] != null) addClosing(i.toString(), data[i]);
+        }
+      }
+
+      // Sort newest date and timestamp first
+      closings.sort((a, b) => b.date.compareTo(a.date));
+      return closings;
+    });
+  }
+
+  /// Save or update a dedicated Daily Closing record
+  Future<DailyClosingModel> saveDailyClosing({
+    String? id,
+    required DateTime date,
+    required double total,
+    double cashAmount = 0.0,
+    double onlineAmount = 0.0,
+    String? notes,
+    String loggedBy = 'Admin',
+  }) async {
+    final String closingId = id ?? DateTime.now().millisecondsSinceEpoch.toString();
+    final String dateKey = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    final String timestamp = date.toIso8601String();
+
+    final model = DailyClosingModel(
+      id: closingId,
+      date: dateKey,
+      total: total,
+      cashAmount: cashAmount,
+      onlineAmount: onlineAmount,
+      notes: notes?.trim() ?? '',
+      loggedBy: loggedBy,
+      timestamp: timestamp,
+    );
+
+    await _database.ref('${FirebasePaths.dailyClosings}/$closingId').set(model.toJson());
+    return model;
+  }
+
+  /// Delete a Daily Closing record from Firebase Realtime Database
+  Future<void> deleteDailyClosing(String closingId) async {
+    await _database.ref('${FirebasePaths.dailyClosings}/$closingId').remove();
   }
 
   /// Manually log a Daily Closing Sale transaction

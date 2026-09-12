@@ -4,13 +4,13 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
 import 'package:ssmart_pos_admin/core/utils/date_utils.dart';
-import 'package:ssmart_pos_admin/models/sale.dart';
+import 'package:ssmart_pos_admin/models/daily_closing.dart';
 import 'package:ssmart_pos_admin/services/firebase_service.dart';
 import 'package:ssmart_pos_admin/widgets/error_widget.dart';
 import 'package:ssmart_pos_admin/widgets/loading_indicator.dart';
 import 'package:ssmart_pos_admin/widgets/manual_closing_dialog.dart';
 
-/// Dedicated screen to view and record Daily Closing Sales for any date
+/// Dedicated screen displaying only Daily Closing records for any date
 class DailyClosingsScreen extends StatefulWidget {
   const DailyClosingsScreen({super.key});
 
@@ -61,17 +61,61 @@ class _DailyClosingsScreenState extends State<DailyClosingsScreen> {
     }
   }
 
-  /// Groups sales by date string (YYYY-MM-DD)
-  Map<String, List<Sale>> _groupSalesByDate(List<Sale> sales) {
-    final Map<String, List<Sale>> groups = {};
-    for (final s in sales) {
-      final dt = AppDateUtils.parseDateTime(s.timestamp);
-      if (dt == null) continue;
-      final localDt = dt.isUtc ? dt.toLocal() : dt;
-      final key = '${localDt.year}-${localDt.month.toString().padLeft(2, '0')}-${localDt.day.toString().padLeft(2, '0')}';
-      groups.putIfAbsent(key, () => []).add(s);
+  /// Groups closings by date string (YYYY-MM-DD)
+  Map<String, List<DailyClosingModel>> _groupClosingsByDate(List<DailyClosingModel> closings) {
+    final Map<String, List<DailyClosingModel>> groups = {};
+    for (final c in closings) {
+      groups.putIfAbsent(c.date, () => []).add(c);
     }
     return groups;
+  }
+
+  Future<void> _confirmDeleteClosing(BuildContext context, FirebaseService firebaseService, DailyClosingModel closing) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.surfaceDark,
+        title: const Text('Delete Daily Closing?'),
+        content: Text(
+          'Are you sure you want to delete the daily closing for ${closing.date} (Rs. ${closing.total.toStringAsFixed(2)})? This will remove it permanently.',
+          style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.errorRed,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete Permanently'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      try {
+        await firebaseService.deleteDailyClosing(closing.id);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('🗑️ Daily closing deleted successfully.'),
+              backgroundColor: AppTheme.warningOrange,
+            ),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to delete closing: $e'), backgroundColor: AppTheme.errorRed),
+          );
+        }
+      }
+    }
   }
 
   @override
@@ -115,9 +159,8 @@ class _DailyClosingsScreenState extends State<DailyClosingsScreen> {
           initialDate: _selectedDate,
         ),
       ),
-      body: StreamBuilder<List<Sale>>(
-        initialData: firebaseService.cachedSales,
-        stream: firebaseService.getSalesStream(),
+      body: StreamBuilder<List<DailyClosingModel>>(
+        stream: firebaseService.getDailyClosingsStream(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting && (!snapshot.hasData || snapshot.data == null)) {
             return const AppLoadingIndicator(message: 'Loading closing records...');
@@ -125,17 +168,17 @@ class _DailyClosingsScreenState extends State<DailyClosingsScreen> {
 
           if (snapshot.hasError && (!snapshot.hasData || snapshot.data == null)) {
             return AppErrorWidget(
-              message: 'Failed to load sales data',
+              message: 'Failed to load daily closing records',
               error: snapshot.error.toString(),
             );
           }
 
-          final allSales = snapshot.data ?? [];
-          final grouped = _groupSalesByDate(allSales);
+          final allClosings = snapshot.data ?? [];
+          final grouped = _groupClosingsByDate(allClosings);
 
-          // Find sales for currently selected date
+          // Find closings for currently selected date
           final selectedDateKey = '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}';
-          final selectedDaySales = grouped[selectedDateKey] ?? [];
+          final selectedDayClosings = grouped[selectedDateKey] ?? [];
 
           return CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -147,7 +190,7 @@ class _DailyClosingsScreenState extends State<DailyClosingsScreen> {
 
               // Summary Card for Selected Date
               SliverToBoxAdapter(
-                child: _buildSelectedDateSummaryCard(selectedDaySales, selectedDateKey),
+                child: _buildSelectedDateSummaryCard(context, firebaseService, selectedDayClosings, selectedDateKey),
               ),
 
               // Filter Tabs & Search
@@ -156,7 +199,7 @@ class _DailyClosingsScreenState extends State<DailyClosingsScreen> {
               ),
 
               // Historical Closing Days List
-              _buildHistorySection(grouped),
+              _buildHistorySection(firebaseService, grouped),
 
               const SliverToBoxAdapter(
                 child: SizedBox(height: 80),
@@ -280,46 +323,23 @@ class _DailyClosingsScreenState extends State<DailyClosingsScreen> {
     );
   }
 
-  Widget _buildSelectedDateSummaryCard(List<Sale> sales, String dateKey) {
+  Widget _buildSelectedDateSummaryCard(
+    BuildContext context,
+    FirebaseService firebaseService,
+    List<DailyClosingModel> closings,
+    String dateKey,
+  ) {
     double totalRevenue = 0.0;
     double cashAmount = 0.0;
     double onlineAmount = 0.0;
-    double khataAmount = 0.0;
-    Sale? manualClosingSale;
+    DailyClosingModel? primaryClosing;
 
-    for (final s in sales) {
-      totalRevenue += s.total;
-      final pMethod = s.paymentMethod.toLowerCase();
-
-      // Check if manual closing entry
-      final isManual = s.items?.any((i) => i.productBarcode == 'MANUAL-CLOSING') == true;
-      if (isManual) {
-        manualClosingSale = s;
-      }
-
-      if (s.payments != null && s.payments!.isNotEmpty) {
-        for (final p in s.payments!) {
-          final m = p.method.toLowerCase();
-          if (m.contains('cash')) {
-            cashAmount += p.amount;
-          } else if (m.contains('online') || m.contains('bank') || m.contains('card') || m.contains('jazz') || m.contains('easy')) {
-            onlineAmount += p.amount;
-          } else if (m.contains('khata') || m.contains('credit')) {
-            khataAmount += p.amount;
-          } else {
-            cashAmount += p.amount;
-          }
-        }
-      } else {
-        if (pMethod.contains('cash')) {
-          cashAmount += s.total;
-        } else if (pMethod.contains('online') || pMethod.contains('bank') || pMethod.contains('card') || pMethod.contains('jazz') || pMethod.contains('easy')) {
-          onlineAmount += s.total;
-        } else if (pMethod.contains('khata') || pMethod.contains('credit')) {
-          khataAmount += s.total;
-        } else {
-          cashAmount += s.total;
-        }
+    if (closings.isNotEmpty) {
+      primaryClosing = closings.first;
+      for (final c in closings) {
+        totalRevenue += c.total;
+        cashAmount += c.cashAmount;
+        onlineAmount += c.onlineAmount;
       }
     }
 
@@ -373,34 +393,49 @@ class _DailyClosingsScreenState extends State<DailyClosingsScreen> {
                             ),
                           ),
                           Text(
-                            '${sales.length} Total Record(s)',
+                            closings.isEmpty
+                                ? 'No Closing Logged Yet'
+                                : '${closings.length} Closing Entry Recorded',
                             style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11),
                           ),
                         ],
                       ),
                     ],
                   ),
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      ManualClosingDialog.show(
-                        context,
-                        initialDate: _selectedDate,
-                        initialTotal: manualClosingSale != null ? manualClosingSale.total : (totalRevenue > 0 ? totalRevenue : null),
-                        initialCash: cashAmount > 0 ? cashAmount : null,
-                        initialOnline: onlineAmount > 0 ? onlineAmount : null,
-                        initialNotes: manualClosingSale?.items?.first.productName.replaceAll('Daily Closing: ', ''),
-                      );
-                    },
-                    icon: const Icon(CupertinoIcons.pencil, size: 13, color: AppTheme.successGreen),
-                    label: Text(
-                      manualClosingSale != null ? 'Edit Closing' : 'Add / Set',
-                      style: const TextStyle(color: AppTheme.successGreen, fontSize: 12, fontWeight: FontWeight.bold),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: AppTheme.successGreen),
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
+                  Row(
+                    children: [
+                      if (primaryClosing != null) ...[
+                        IconButton(
+                          icon: const Icon(CupertinoIcons.trash, color: AppTheme.errorRed, size: 18),
+                          tooltip: 'Delete Closing Record',
+                          onPressed: () => _confirmDeleteClosing(context, firebaseService, primaryClosing!),
+                        ),
+                        const SizedBox(width: 4),
+                      ],
+                      OutlinedButton.icon(
+                        onPressed: () {
+                          ManualClosingDialog.show(
+                            context,
+                            closingId: primaryClosing?.id,
+                            initialDate: _selectedDate,
+                            initialTotal: primaryClosing != null ? primaryClosing.total : null,
+                            initialCash: primaryClosing != null && primaryClosing.cashAmount > 0 ? primaryClosing.cashAmount : null,
+                            initialOnline: primaryClosing != null && primaryClosing.onlineAmount > 0 ? primaryClosing.onlineAmount : null,
+                            initialNotes: primaryClosing?.notes,
+                          );
+                        },
+                        icon: Icon(primaryClosing != null ? CupertinoIcons.pencil : CupertinoIcons.plus, size: 13, color: AppTheme.successGreen),
+                        label: Text(
+                          primaryClosing != null ? 'Edit' : 'Add Closing',
+                          style: const TextStyle(color: AppTheme.successGreen, fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: AppTheme.successGreen),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -408,7 +443,7 @@ class _DailyClosingsScreenState extends State<DailyClosingsScreen> {
 
               // Total Net Sale Display
               Text(
-                'NET CLOSING SALE',
+                'NET DAILY CLOSING SALE',
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
@@ -456,22 +491,11 @@ class _DailyClosingsScreenState extends State<DailyClosingsScreen> {
                         Colors.cyanAccent,
                       ),
                     ),
-                    if (khataAmount > 0) ...[
-                      Container(height: 30, width: 1, color: Colors.white12),
-                      Expanded(
-                        child: _buildBreakdownCol(
-                          'Khata / Udhaar',
-                          AppDateUtils.formatCurrency(khataAmount),
-                          CupertinoIcons.book_fill,
-                          Colors.amberAccent,
-                        ),
-                      ),
-                    ],
                   ],
                 ),
               ),
 
-              if (manualClosingSale != null) ...[
+              if (primaryClosing != null && primaryClosing.notes.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -486,9 +510,9 @@ class _DailyClosingsScreenState extends State<DailyClosingsScreen> {
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
-                          manualClosingSale.items?.first.productName ?? 'Manual Closing Logged',
+                          primaryClosing.notes,
                           style: const TextStyle(fontSize: 11, color: AppTheme.primaryCyan),
-                          maxLines: 1,
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -498,47 +522,48 @@ class _DailyClosingsScreenState extends State<DailyClosingsScreen> {
               ],
 
               const SizedBox(height: 12),
-              // Copy Closing Report Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    final dateStr = '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}';
-                    final text = '🏪 *SS MART & GENERAL STORE*\n'
-                        '📅 *DAILY CLOSING SUMMARY*\n'
-                        '──────────────────────\n'
-                        '🗓️ *Date:* $dateStr\n'
-                        '📦 *Total Orders / Bills:* ${sales.length}\n'
-                        '✨ *TOTAL CLOSING SALE:* Rs. ${totalRevenue.toStringAsFixed(2)}\n'
-                        '──────────────────────\n'
-                        '💵 *Cash in Drawer:* Rs. ${cashAmount.toStringAsFixed(2)}\n'
-                        '💳 *Online / Bank:* Rs. ${onlineAmount.toStringAsFixed(2)}\n'
-                        '📖 *Khata (Credit):* Rs. ${khataAmount.toStringAsFixed(2)}\n'
-                        '──────────────────────\n'
-                        '✅ *Verified & Logged via SSmart Admin*';
 
-                    Clipboard.setData(ClipboardData(text: text));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('✅ Closing report copied to clipboard!'),
-                        backgroundColor: AppTheme.successGreen,
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
-                  },
-                  icon: const Icon(CupertinoIcons.doc_on_clipboard_fill, size: 15, color: Colors.black),
-                  label: const Text(
-                    'Copy Daily Closing Summary',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.successGreen,
-                    foregroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              // Copy Closing Report Button
+              if (closings.isNotEmpty)
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      final dateStr = '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}';
+                      final text = '🏪 *SS MART & GENERAL STORE*\n'
+                          '📅 *DAILY CLOSING SUMMARY*\n'
+                          '──────────────────────\n'
+                          '🗓️ *Date:* $dateStr\n'
+                          '✨ *TOTAL CLOSING SALE:* Rs. ${totalRevenue.toStringAsFixed(2)}\n'
+                          '──────────────────────\n'
+                          '💵 *Cash in Drawer:* Rs. ${cashAmount.toStringAsFixed(2)}\n'
+                          '💳 *Online / Bank:* Rs. ${onlineAmount.toStringAsFixed(2)}\n'
+                          '${primaryClosing?.notes.isNotEmpty == true ? '📝 *Notes:* ${primaryClosing!.notes}\n' : ''}'
+                          '──────────────────────\n'
+                          '✅ *Recorded via SSmart Admin*';
+
+                      Clipboard.setData(ClipboardData(text: text));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('✅ Closing report copied to clipboard!'),
+                          backgroundColor: AppTheme.successGreen,
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                    icon: const Icon(CupertinoIcons.doc_on_clipboard_fill, size: 15, color: Colors.black),
+                    label: const Text(
+                      'Copy Daily Closing Summary',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.successGreen,
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
         ),
@@ -608,7 +633,7 @@ class _DailyClosingsScreenState extends State<DailyClosingsScreen> {
           TextField(
             controller: _searchController,
             decoration: InputDecoration(
-              hintText: 'Search date (e.g. 2026-09, 2026-09-11)...',
+              hintText: 'Search date (e.g. 2026-09, 2026-09-12)...',
               prefixIcon: const Icon(CupertinoIcons.search, size: 18),
               suffixIcon: _searchQuery.isNotEmpty
                   ? IconButton(
@@ -653,7 +678,7 @@ class _DailyClosingsScreenState extends State<DailyClosingsScreen> {
     );
   }
 
-  Widget _buildHistorySection(Map<String, List<Sale>> grouped) {
+  Widget _buildHistorySection(FirebaseService firebaseService, Map<String, List<DailyClosingModel>> grouped) {
     // Filter keys
     List<String> keys = grouped.keys.toList();
     keys.sort((a, b) => b.compareTo(a)); // Newest date first
@@ -682,12 +707,12 @@ class _DailyClosingsScreenState extends State<DailyClosingsScreen> {
                 const Icon(CupertinoIcons.calendar_badge_minus, size: 48, color: AppTheme.textSecondary),
                 const SizedBox(height: 12),
                 const Text(
-                  'No Closing Records Found',
+                  'No Daily Closing Logged',
                   style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 6),
                 const Text(
-                  'Tap the button below to record daily sales for this date.',
+                  'Tap the button below to add a closing sale record for this date.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
                 ),
@@ -695,7 +720,7 @@ class _DailyClosingsScreenState extends State<DailyClosingsScreen> {
                 ElevatedButton.icon(
                   onPressed: () => ManualClosingDialog.show(context, initialDate: _selectedDate),
                   icon: const Icon(CupertinoIcons.plus, size: 14),
-                  label: const Text('Add Closing Sale Now'),
+                  label: const Text('Add Daily Closing Sale'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryCyan,
                     foregroundColor: Colors.black,
@@ -714,9 +739,9 @@ class _DailyClosingsScreenState extends State<DailyClosingsScreen> {
         delegate: SliverChildBuilderDelegate(
           (context, index) {
             final dateStr = keys[index];
-            final daySales = grouped[dateStr] ?? [];
-            final total = daySales.fold<double>(0.0, (sum, s) => sum + s.total);
-            final bool hasManual = daySales.any((s) => s.items?.any((i) => i.productBarcode == 'MANUAL-CLOSING') == true);
+            final dayClosings = grouped[dateStr] ?? [];
+            final total = dayClosings.fold<double>(0.0, (sum, c) => sum + c.total);
+            final firstClosing = dayClosings.isNotEmpty ? dayClosings.first : null;
 
             // Parse date for title
             DateTime? parsedDt;
@@ -750,14 +775,12 @@ class _DailyClosingsScreenState extends State<DailyClosingsScreen> {
                 leading: Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: hasManual
-                        ? AppTheme.primaryCyan.withValues(alpha: 0.15)
-                        : AppTheme.successGreen.withValues(alpha: 0.15),
+                    color: AppTheme.successGreen.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(
-                    hasManual ? CupertinoIcons.square_list_fill : CupertinoIcons.cart_fill,
-                    color: hasManual ? AppTheme.primaryCyan : AppTheme.successGreen,
+                  child: const Icon(
+                    CupertinoIcons.calendar_badge_plus,
+                    color: AppTheme.successGreen,
                     size: 20,
                   ),
                 ),
@@ -772,49 +795,65 @@ class _DailyClosingsScreenState extends State<DailyClosingsScreen> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    if (hasManual)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: AppTheme.primaryCyan.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: const Text(
-                          'Manual Closing',
-                          style: TextStyle(fontSize: 9, color: AppTheme.primaryCyan, fontWeight: FontWeight.bold),
-                        ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppTheme.successGreen.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(4),
                       ),
+                      child: const Text(
+                        'Daily Closing',
+                        style: TextStyle(fontSize: 9, color: AppTheme.successGreen, fontWeight: FontWeight.bold),
+                      ),
+                    ),
                   ],
                 ),
                 subtitle: Padding(
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(
-                    '${daySales.length} Transactions / Entries Recorded',
+                    firstClosing?.notes.isNotEmpty == true
+                        ? firstClosing!.notes
+                        : 'Cash: Rs. ${firstClosing?.cashAmount.toStringAsFixed(0) ?? '0'} • Online: Rs. ${firstClosing?.onlineAmount.toStringAsFixed(0) ?? '0'}',
                     style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                trailing: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      AppDateUtils.formatCurrency(total),
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                        color: Colors.white,
-                        fontFeatures: [FontFeature.tabularFigures()],
-                      ),
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          AppDateUtils.formatCurrency(total),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                            color: Colors.white,
+                            fontFeatures: [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          isCurrentSelected ? 'Selected' : 'View / Edit',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: isCurrentSelected ? AppTheme.primaryCyan : AppTheme.textSecondary,
+                            fontWeight: isCurrentSelected ? FontWeight.bold : FontWeight.normal,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      isCurrentSelected ? 'Selected' : 'View Breakdown',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: isCurrentSelected ? AppTheme.primaryCyan : AppTheme.textSecondary,
-                        fontWeight: isCurrentSelected ? FontWeight.bold : FontWeight.normal,
+                    if (firstClosing != null) ...[
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: const Icon(CupertinoIcons.trash, size: 16, color: AppTheme.errorRed),
+                        tooltip: 'Delete Closing',
+                        onPressed: () => _confirmDeleteClosing(context, firebaseService, firstClosing),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),

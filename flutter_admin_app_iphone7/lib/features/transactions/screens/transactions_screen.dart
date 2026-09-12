@@ -605,6 +605,29 @@ class _TransactionDetailsSheet extends StatelessWidget {
                           .toList(),
                     ),
                   ],
+
+                  const SizedBox(height: AppTheme.spacingXL),
+
+                  // Delete Transaction Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () => _confirmDeleteTransaction(context),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.errorRed,
+                        side: const BorderSide(color: AppTheme.errorRed),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                        ),
+                      ),
+                      icon: const Icon(CupertinoIcons.trash, size: 16, color: AppTheme.errorRed),
+                      label: const Text(
+                        'Delete This Transaction',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.errorRed),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -612,6 +635,56 @@ class _TransactionDetailsSheet extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _confirmDeleteTransaction(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.surfaceDark,
+        title: const Text('Delete Transaction?'),
+        content: Text(
+          'Are you sure you want to delete Sale #${sale.id} (${AppDateUtils.formatCurrency(sale.total)})? This will remove the transaction from the records.',
+          style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.errorRed,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      try {
+        final firebaseService = context.read<FirebaseService>();
+        await firebaseService.deleteSale(sale.id);
+        if (context.mounted) {
+          Navigator.pop(context); // Close bottom sheet
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('🗑️ Transaction deleted successfully.'),
+              backgroundColor: AppTheme.warningOrange,
+            ),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to delete transaction: $e'), backgroundColor: AppTheme.errorRed),
+          );
+        }
+      }
+    }
   }
 
   void _promptWhatsAppReceipt(BuildContext context) {
