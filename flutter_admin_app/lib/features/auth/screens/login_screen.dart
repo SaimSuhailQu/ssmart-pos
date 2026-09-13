@@ -2,6 +2,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
+import 'package:ssmart_pos_admin/core/widgets/glass_card.dart';
+import 'package:ssmart_pos_admin/core/widgets/liquid_scaffold.dart';
 import 'package:ssmart_pos_admin/services/auth_service.dart';
 
 /// Login screen with email and password authentication
@@ -68,36 +70,38 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
+    return LiquidScaffold(
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(AppTheme.spacingL),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Logo or App Icon
-                  Center(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(AppTheme.radiusL),
-                      child: Image.asset(
-                        'assets/images/ss_mart_logo.png',
-                        height: 90,
-                        width: 90,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => const Icon(
-                          CupertinoIcons.chart_bar_square_fill,
-                          size: 80,
-                          color: AppTheme.primaryBlue,
+            child: GlassCard(
+              material: LiquidMaterial.thick,
+              padding: const EdgeInsets.all(AppTheme.spacingL),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Logo or App Icon
+                    Center(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(AppTheme.radiusL),
+                        child: Image.asset(
+                          'assets/images/ss_mart_logo.png',
+                          height: 90,
+                          width: 90,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => const Icon(
+                            CupertinoIcons.chart_bar_square_fill,
+                            size: 80,
+                            color: AppTheme.primaryBlue,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: AppTheme.spacingL),
+                    const SizedBox(height: AppTheme.spacingL),
 
                   // Title
                   Text(
@@ -243,6 +247,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ],
               ),
+            ),
             ),
           ),
         ),

@@ -15,10 +15,13 @@
 
   body {
     @apply text-slate-100 font-sans antialiased overflow-hidden select-none;
-    background-color: #090d16;
+    background-color: #07090e;
     background-image: 
-      radial-gradient(at 0% 0%, rgba(30, 41, 59, 0.45) 0px, transparent 50%),
-      radial-gradient(at 100% 100%, rgba(15, 23, 42, 0.7) 0px, transparent 50%);
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(120, 119, 198, 0.28), transparent),
+      radial-gradient(ellipse 60% 40% at 10% 20%, rgba(56, 189, 248, 0.16), transparent),
+      radial-gradient(ellipse 50% 50% at 90% 80%, rgba(99, 102, 241, 0.22), transparent),
+      radial-gradient(ellipse 60% 60% at 30% 90%, rgba(16, 185, 129, 0.12), transparent);
+    background-attachment: fixed;
     min-height: 100vh;
   }
 
@@ -53,26 +56,26 @@
 
   /* QuickLiquid Clear - Hero items, docks, floating controls */
   .liquid-glass-clear {
-    background: rgba(255, 255, 255, 0.03);
-    backdrop-filter: blur(8px) saturate(170%) brightness(1.04);
-    -webkit-backdrop-filter: blur(8px) saturate(170%) brightness(1.04);
-    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(16px) saturate(190%) brightness(1.08);
+    -webkit-backdrop-filter: blur(16px) saturate(190%) brightness(1.08);
+    border: 1px solid rgba(255, 255, 255, 0.25);
     box-shadow: 
-      inset 0 1px 1px 0 rgba(255, 255, 255, 0.35),
-      inset 0 -1px 1px 0 rgba(0, 0, 0, 0.25),
-      0 8px 32px 0 rgba(0, 0, 0, 0.35);
+      inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.5),
+      inset 0 -1px 1px 0 rgba(0, 0, 0, 0.3),
+      0 12px 36px 0 rgba(0, 0, 0, 0.45);
   }
 
   /* QuickLiquid Thin - Buttons, chips, searchbars, toolbars */
   .liquid-glass-thin {
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(12px) saturate(160%) brightness(1.03);
-    -webkit-backdrop-filter: blur(12px) saturate(160%) brightness(1.03);
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(16px) saturate(180%) brightness(1.06);
+    -webkit-backdrop-filter: blur(16px) saturate(180%) brightness(1.06);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     box-shadow: 
-      inset 0 1px 0.5px 0 rgba(255, 255, 255, 0.3),
-      inset 0 -1px 0.5px 0 rgba(0, 0, 0, 0.2),
-      0 4px 16px 0 rgba(0, 0, 0, 0.25);
+      inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.45),
+      inset 0 -1px 1px 0 rgba(0, 0, 0, 0.25),
+      0 6px 20px 0 rgba(0, 0, 0, 0.3);
   }
 
   /* QuickLiquid Regular - Primary Cards, Panes, Drawers */
@@ -81,17 +84,19 @@
   .glass-panel {
     background: linear-gradient(
       135deg,
-      rgba(255, 255, 255, 0.06) 0%,
-      rgba(15, 23, 42, 0.72) 45%,
-      rgba(9, 13, 22, 0.88) 100%
+      rgba(255, 255, 255, 0.12) 0%,
+      rgba(255, 255, 255, 0.03) 30%,
+      rgba(15, 23, 42, 0.65) 60%,
+      rgba(9, 13, 22, 0.82) 100%
     );
-    backdrop-filter: blur(18px) saturate(160%) brightness(1.02);
-    -webkit-backdrop-filter: blur(18px) saturate(160%) brightness(1.02);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(24px) saturate(190%) brightness(1.06);
+    -webkit-backdrop-filter: blur(24px) saturate(190%) brightness(1.06);
+    border: 1px solid rgba(255, 255, 255, 0.18);
     box-shadow: 
-      inset 0 1px 1px 0 rgba(255, 255, 255, 0.28),
-      inset 0 -1px 1px 0 rgba(0, 0, 0, 0.3),
-      0 12px 40px -4px rgba(0, 0, 0, 0.5);
+      inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.45),
+      inset 0 -1px 1px 0 rgba(0, 0, 0, 0.35),
+      0 16px 48px -6px rgba(0, 0, 0, 0.55),
+      0 0 0 1px rgba(255, 255, 255, 0.05);
   }
 
   /* QuickLiquid Thick / Ultra - Modals, Dialogs, Sticky Overlays */
@@ -99,17 +104,19 @@
   .enterprise-surface-elevated {
     background: linear-gradient(
       135deg,
-      rgba(255, 255, 255, 0.08) 0%,
-      rgba(18, 24, 38, 0.85) 50%,
-      rgba(11, 15, 25, 0.95) 100%
+      rgba(255, 255, 255, 0.16) 0%,
+      rgba(255, 255, 255, 0.04) 35%,
+      rgba(18, 24, 38, 0.78) 65%,
+      rgba(11, 15, 25, 0.9) 100%
     );
-    backdrop-filter: blur(28px) saturate(180%) brightness(1.05);
-    -webkit-backdrop-filter: blur(28px) saturate(180%) brightness(1.05);
-    border: 1px solid rgba(255, 255, 255, 0.16);
+    backdrop-filter: blur(36px) saturate(210%) brightness(1.08);
+    -webkit-backdrop-filter: blur(36px) saturate(210%) brightness(1.08);
+    border: 1px solid rgba(255, 255, 255, 0.24);
     box-shadow: 
-      inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.35),
-      inset 0 -1.5px 1px 0 rgba(0, 0, 0, 0.4),
-      0 24px 64px -8px rgba(0, 0, 0, 0.65);
+      inset 0 2px 1.5px 0 rgba(255, 255, 255, 0.55),
+      inset 0 -2px 1.5px 0 rgba(0, 0, 0, 0.45),
+      0 28px 72px -8px rgba(0, 0, 0, 0.7),
+      0 0 0 1px rgba(255, 255, 255, 0.08);
   }
 
   /* QuickLiquid Spring Press Physics */

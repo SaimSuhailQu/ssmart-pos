@@ -6,6 +6,7 @@ import 'package:ssmart_pos_admin/core/constants/firebase_constants.dart';
 import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
 import 'package:ssmart_pos_admin/core/utils/date_utils.dart';
 import 'package:ssmart_pos_admin/core/widgets/glass_card.dart';
+import 'package:ssmart_pos_admin/core/widgets/liquid_scaffold.dart';
 import 'package:ssmart_pos_admin/features/dashboard/screens/daily_closings_screen.dart';
 import 'package:ssmart_pos_admin/features/dashboard/widgets/metric_card.dart';
 import 'package:ssmart_pos_admin/features/dashboard/widgets/recent_transactions.dart';
@@ -71,9 +72,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final authService = context.read<AuthService>();
     final firebaseService = context.read<FirebaseService>();
 
-    return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
+    return LiquidScaffold(
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         title: Row(
           children: [
             ClipRRect(

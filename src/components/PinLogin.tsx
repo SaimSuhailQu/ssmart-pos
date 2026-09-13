@@ -64,12 +64,18 @@ export const PinLogin: React.FC<PinLoginProps> = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-2xl">
-      <div className="glass-panel w-full max-w-md p-8 rounded-3xl border border-white/10 shadow-[0_0_50px_rgba(255, 255, 255, 0.15)] text-center animate-in zoom-in-95 duration-300">
-        
-        {/* Animated SS Mart Brand Logo */}
-        <div className="w-24 h-24 mx-auto mb-6 rounded-2xl overflow-hidden border border-white/10 shadow-[0_0_30px_rgba(255, 255, 255, 0.2)] animate-pulse">
-          <img src={logoImg} alt="SS Mart Logo" className="w-full h-full object-cover" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-2xl">
+      {/* Liquid Glass Background Orbs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/3 -translate-x-1/2 w-96 h-96 bg-indigo-600/25 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/3 translate-x-1/2 w-80 h-80 bg-cyan-500/20 rounded-full blur-3xl" />
+        <div className="absolute top-2/3 left-1/2 w-72 h-72 bg-emerald-500/15 rounded-full blur-3xl" />
+      </div>
+
+      <div className="liquid-glass-thick w-full max-w-md p-8 rounded-3xl text-center animate-in zoom-in-95 duration-300 relative z-10">
+        {/* Animated SS Mart Brand Logo with specular bezel */}
+        <div className="w-24 h-24 mx-auto mb-6 rounded-2xl overflow-hidden liquid-glass-clear p-1.5 shadow-[0_0_30px_rgba(255,255,255,0.2)] animate-pulse">
+          <img src={logoImg} alt="SS Mart Logo" className="w-full h-full object-cover rounded-xl" />
         </div>
 
         <h2 className="text-2xl font-black text-white tracking-wider mb-2">POS SYSTEM SECURED</h2>
