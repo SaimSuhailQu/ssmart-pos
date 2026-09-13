@@ -44,22 +44,119 @@
     font-family: 'Outfit', 'Inter', sans-serif;
   }
 
-  /* Enterprise Card Panel with subtle 1px border */
-  .enterprise-card {
-    background: #0f172a;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px -1px rgba(0, 0, 0, 0.3);
+  /* quickLiquid Apple Liquid Glass Design System */
+  :root {
+    --liquid-light-angle: -35deg;
+    --liquid-specular-color: rgba(255, 255, 255, 0.45);
+    --liquid-rim-color: rgba(255, 255, 255, 0.12);
   }
 
-  /* Elevated Surface */
-  .enterprise-surface-elevated {
-    background: #1e293b;
+  /* QuickLiquid Clear - Hero items, docks, floating controls */
+  .liquid-glass-clear {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(8px) saturate(170%) brightness(1.04);
+    -webkit-backdrop-filter: blur(8px) saturate(170%) brightness(1.04);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 
+      inset 0 1px 1px 0 rgba(255, 255, 255, 0.35),
+      inset 0 -1px 1px 0 rgba(0, 0, 0, 0.25),
+      0 8px 32px 0 rgba(0, 0, 0, 0.35);
+  }
+
+  /* QuickLiquid Thin - Buttons, chips, searchbars, toolbars */
+  .liquid-glass-thin {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px) saturate(160%) brightness(1.03);
+    -webkit-backdrop-filter: blur(12px) saturate(160%) brightness(1.03);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: 
+      inset 0 1px 0.5px 0 rgba(255, 255, 255, 0.3),
+      inset 0 -1px 0.5px 0 rgba(0, 0, 0, 0.2),
+      0 4px 16px 0 rgba(0, 0, 0, 0.25);
+  }
+
+  /* QuickLiquid Regular - Primary Cards, Panes, Drawers */
+  .liquid-glass-regular,
+  .enterprise-card,
+  .glass-panel {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.06) 0%,
+      rgba(15, 23, 42, 0.72) 45%,
+      rgba(9, 13, 22, 0.88) 100%
+    );
+    backdrop-filter: blur(18px) saturate(160%) brightness(1.02);
+    -webkit-backdrop-filter: blur(18px) saturate(160%) brightness(1.02);
     border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 
+      inset 0 1px 1px 0 rgba(255, 255, 255, 0.28),
+      inset 0 -1px 1px 0 rgba(0, 0, 0, 0.3),
+      0 12px 40px -4px rgba(0, 0, 0, 0.5);
   }
 
-  /* Enterprise Scannable Table Header */
+  /* QuickLiquid Thick / Ultra - Modals, Dialogs, Sticky Overlays */
+  .liquid-glass-thick,
+  .enterprise-surface-elevated {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.08) 0%,
+      rgba(18, 24, 38, 0.85) 50%,
+      rgba(11, 15, 25, 0.95) 100%
+    );
+    backdrop-filter: blur(28px) saturate(180%) brightness(1.05);
+    -webkit-backdrop-filter: blur(28px) saturate(180%) brightness(1.05);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    box-shadow: 
+      inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.35),
+      inset 0 -1.5px 1px 0 rgba(0, 0, 0, 0.4),
+      0 24px 64px -8px rgba(0, 0, 0, 0.65);
+  }
+
+  /* QuickLiquid Spring Press Physics */
+  .liquid-press,
+  .glass-button {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.09) 0%,
+      rgba(30, 41, 59, 0.7) 100%
+    );
+    backdrop-filter: blur(10px) saturate(150%);
+    -webkit-backdrop-filter: blur(10px) saturate(150%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #f1f5f9;
+    box-shadow: 
+      inset 0 1px 0.5px 0 rgba(255, 255, 255, 0.25),
+      0 2px 8px 0 rgba(0, 0, 0, 0.2);
+    transition: all 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+    cursor: pointer;
+  }
+
+  .liquid-press:hover,
+  .glass-button:hover {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.15) 0%,
+      rgba(39, 53, 79, 0.8) 100%
+    );
+    border-color: rgba(255, 255, 255, 0.25);
+    box-shadow: 
+      inset 0 1px 1px 0 rgba(255, 255, 255, 0.4),
+      0 4px 20px 0 rgba(255, 255, 255, 0.08);
+    transform: translateY(-1px);
+  }
+
+  .liquid-press:active,
+  .glass-button:active {
+    transform: scale(0.96) translateY(0);
+    box-shadow: inset 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+    transition-duration: 0.08s;
+  }
+
+  /* Enterprise Scannable Table Header with liquid sheen */
   .enterprise-table-header {
-    background: #0b1120;
+    background: rgba(11, 17, 32, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     color: #94a3b8;
     text-transform: uppercase;
@@ -68,39 +165,23 @@
     letter-spacing: 0.05em;
   }
 
-  /* Backward compatible glass-panel mapping to clean enterprise surface */
-  .glass-panel {
-    background: #0f172a;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.45);
-  }
-  
-  /* Refined Interactive Button with subtle border */
-  .glass-button {
-    background: #1e293b;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    color: #e2e8f0;
-    transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
-    cursor: pointer;
-  }
-
-  .glass-button:hover {
-    background: #27354f;
-    border-color: rgba(255, 255, 255, 0.18);
-    color: #ffffff;
-  }
-
-  /* Enterprise Input Fields */
+  /* QuickLiquid Specular Bezel Input Fields */
   .glass-input {
-    background: #090d16;
+    background: rgba(9, 13, 22, 0.7);
+    backdrop-filter: blur(12px) saturate(140%);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
     border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: inset 0 1px 2px 0 rgba(0, 0, 0, 0.4);
     color: #f8fafc;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .glass-input:focus {
-    border-color: #6366f1;
-    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25);
+    border-color: rgba(255, 255, 255, 0.35);
+    box-shadow: 
+      inset 0 1px 1px 0 rgba(0, 0, 0, 0.3),
+      0 0 0 2px rgba(255, 255, 255, 0.12),
+      0 0 16px 0 rgba(255, 255, 255, 0.08);
     outline: none;
   }
 

@@ -1,7 +1,7 @@
 name: ssmart_pos_admin
 description: iOS Admin Dashboard for SSmart POS - Real-time sales monitoring and analytics
 publish_to: 'none'
-version: 1.0.11+11
+version: 1.0.12+12
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
