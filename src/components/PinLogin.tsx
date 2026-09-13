@@ -111,26 +111,26 @@ export const PinLogin: React.FC<PinLoginProps> = ({ onLoginSuccess }) => {
             <button
               key={num}
               onClick={() => handleKey(num)}
-              className="w-16 h-16 rounded-2xl glass-button text-2xl font-extrabold text-white hover:text-neutral-200 transition-all flex items-center justify-center mx-auto"
+              className="w-16 h-16 rounded-2xl liquid-press text-2xl font-extrabold text-white transition-all flex items-center justify-center mx-auto shadow-md active:shadow-[0_0_20px_rgba(255,255,255,0.4)]"
             >
               {num}
             </button>
           ))}
           <button
             onClick={handleClear}
-            className="w-16 h-16 rounded-2xl glass-button text-sm font-black text-red-400 hover:text-red-300 transition-all flex items-center justify-center mx-auto"
+            className="w-16 h-16 rounded-2xl liquid-press text-sm font-black text-rose-400 hover:text-rose-300 transition-all flex items-center justify-center mx-auto"
           >
             CLEAR
           </button>
           <button
             onClick={() => handleKey('0')}
-            className="w-16 h-16 rounded-2xl glass-button text-2xl font-extrabold text-white hover:text-neutral-200 transition-all flex items-center justify-center mx-auto"
+            className="w-16 h-16 rounded-2xl liquid-press text-2xl font-extrabold text-white transition-all flex items-center justify-center mx-auto shadow-md active:shadow-[0_0_20px_rgba(255,255,255,0.4)]"
           >
             0
           </button>
           <button
             onClick={handleBackspace}
-            className="w-16 h-16 rounded-2xl glass-button text-sm font-black text-orange-400 hover:text-orange-300 transition-all flex items-center justify-center mx-auto"
+            className="w-16 h-16 rounded-2xl liquid-press text-sm font-black text-amber-400 hover:text-amber-300 transition-all flex items-center justify-center mx-auto"
           >
             DEL
           </button>

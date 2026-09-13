@@ -16,8 +16,8 @@ enum LiquidMaterial {
 
 /// A high-performance Apple Liquid Glass container conforming to `quickLiquid` specifications:
 /// - Directional specular edge highlight (-35° angle / top-left to bottom-right sheen)
+/// - Liquid Sheen flash & spring scale animation on tap
 /// - Inner bezel sheen and ambient refraction simulation
-/// - Spring physics interactive feedback on tap (scale down to 0.96 with bounce)
 /// - Multi-layer backdrop blur with configurable material presets
 class GlassCard extends StatefulWidget {
   final Widget child;
@@ -58,20 +58,40 @@ class GlassCard extends StatefulWidget {
 class _GlassCardState extends State<GlassCard> with SingleTickerProviderStateMixin {
   late AnimationController _pressController;
   late Animation<double> _scaleAnimation;
+  late Animation<double> _flashAnimation;
+  late Animation<double> _borderGlowAnimation;
 
   @override
   void initState() {
     super.initState();
     _pressController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 140),
-      reverseDuration: const Duration(milliseconds: 220),
+      duration: const Duration(milliseconds: 120),
+      reverseDuration: const Duration(milliseconds: 320),
     );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.965).animate(
+
+    // Spring scale down & rebound
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
       CurvedAnimation(
         parent: _pressController,
-        curve: Curves.easeOutCubic,
+        curve: Curves.easeInOutCubic,
         reverseCurve: Curves.elasticOut,
+      ),
+    );
+
+    // Liquid flash / shine ripple across surface
+    _flashAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _pressController,
+        curve: Curves.easeOutQuad,
+      ),
+    );
+
+    // Dynamic border highlight glow flare on press
+    _borderGlowAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _pressController,
+        curve: Curves.easeOut,
       ),
     );
   }
@@ -100,13 +120,13 @@ class _GlassCardState extends State<GlassCard> with SingleTickerProviderStateMix
     if (widget.backgroundColor != null) return widget.backgroundColor!;
     switch (widget.material) {
       case LiquidMaterial.clear:
-        return const Color(0x0AFFFFFF); // 4% white
+        return const Color(0x0EFFFFFF); // 5% white
       case LiquidMaterial.thin:
-        return const Color(0x14FFFFFF); // 8% white
+        return const Color(0x1AFFFFFF); // 10% white
       case LiquidMaterial.regular:
-        return const Color(0x99121726); // 60% deep obsidian glass
+        return const Color(0xB2121726); // 70% deep obsidian glass
       case LiquidMaterial.thick:
-        return const Color(0xD90F1422); // 85% modal glass
+        return const Color(0xE60F1422); // 90% modal glass
     }
   }
 
@@ -116,102 +136,132 @@ class _GlassCardState extends State<GlassCard> with SingleTickerProviderStateMix
     final surfaceColor = _resolveSurfaceColor();
     final glow = widget.glowColor ?? AppTheme.primaryCyan;
 
-    // quickLiquid directional specular gradient: -35 deg (top-left highlight to subtle bottom-right)
-    final specularGradient = LinearGradient(
-      begin: const Alignment(-0.8, -1.0),
-      end: const Alignment(0.8, 1.0),
-      colors: [
-        Colors.white.withValues(alpha: widget.material == LiquidMaterial.thick ? 0.35 : 0.22),
-        Colors.white.withValues(alpha: 0.08),
-        Colors.white.withValues(alpha: 0.02),
-        Colors.black.withValues(alpha: 0.3),
-      ],
-      stops: const [0.0, 0.35, 0.7, 1.0],
-    );
+    return AnimatedBuilder(
+      animation: _pressController,
+      builder: (context, child) {
+        final flashOpacity = _flashAnimation.value;
+        final borderGlow = _borderGlowAnimation.value;
 
-    // Inner liquid glass content
-    Widget content = Container(
-      padding: widget.padding ?? const EdgeInsets.all(AppTheme.spacingM),
-      decoration: BoxDecoration(
-        color: widget.gradient == null ? surfaceColor : null,
-        gradient: widget.gradient,
-        borderRadius: BorderRadius.circular(widget.borderRadius),
-        boxShadow: widget.enableGlow
-            ? [
-                BoxShadow(
-                  color: glow.withValues(alpha: 0.25),
-                  blurRadius: 20,
-                  spreadRadius: 1,
-                  offset: const Offset(0, 4),
-                ),
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.4),
-                  blurRadius: 16,
-                  offset: const Offset(0, 8),
-                ),
-              ]
-            : [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.35),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6),
-                ),
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.2),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-      ),
-      child: widget.child,
-    );
+        // Directional specular gradient with dynamic flare when pressed
+        final specularGradient = LinearGradient(
+          begin: Alignment(-0.8 - (0.3 * borderGlow), -1.0),
+          end: const Alignment(0.8, 1.0),
+          colors: [
+            Colors.white.withValues(
+              alpha: (widget.material == LiquidMaterial.thick ? 0.45 : 0.3) + (0.45 * borderGlow),
+            ),
+            Colors.white.withValues(alpha: 0.12 + (0.2 * borderGlow)),
+            Colors.white.withValues(alpha: 0.03),
+            Colors.black.withValues(alpha: 0.35),
+          ],
+          stops: const [0.0, 0.35, 0.7, 1.0],
+        );
 
-    // Filter + Specular Bevel Border Frame
-    Widget glassBezel = Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(widget.borderRadius),
-        gradient: specularGradient,
-      ),
-      padding: EdgeInsets.all(widget.borderWidth),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(
-          (widget.borderRadius - widget.borderWidth).clamp(0.0, double.infinity),
-        ),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: effectiveBlur, sigmaY: effectiveBlur),
-          child: content,
-        ),
-      ),
-    );
-
-    // If interactive, apply spring physics gesture detectors
-    if (widget.onTap != null) {
-      glassBezel = GestureDetector(
-        onTapDown: (_) => _pressController.forward(),
-        onTapUp: (_) {
-          _pressController.reverse();
-          widget.onTap!();
-        },
-        onTapCancel: () => _pressController.reverse(),
-        behavior: HitTestBehavior.opaque,
-        child: AnimatedBuilder(
-          animation: _scaleAnimation,
-          builder: (context, child) => Transform.scale(
-            scale: _scaleAnimation.value,
-            child: child,
+        // Inner liquid glass content
+        Widget content = Container(
+          padding: widget.padding ?? const EdgeInsets.all(AppTheme.spacingM),
+          decoration: BoxDecoration(
+            color: widget.gradient == null ? surfaceColor : null,
+            gradient: widget.gradient,
+            borderRadius: BorderRadius.circular(widget.borderRadius),
+            boxShadow: widget.enableGlow
+                ? [
+                    BoxShadow(
+                      color: glow.withValues(alpha: 0.25 + (0.3 * borderGlow)),
+                      blurRadius: 20 + (10 * borderGlow),
+                      spreadRadius: 1 + (2 * borderGlow),
+                      offset: const Offset(0, 4),
+                    ),
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.4),
+                      blurRadius: 16,
+                      offset: const Offset(0, 8),
+                    ),
+                  ]
+                : [
+                    BoxShadow(
+                      color: Colors.white.withValues(alpha: 0.15 * borderGlow),
+                      blurRadius: 16 * borderGlow,
+                      spreadRadius: 1 * borderGlow,
+                    ),
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.35),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
           ),
-          child: glassBezel,
-        ),
-      );
-    }
+          child: Stack(
+            children: [
+              widget.child,
+              // Liquid glass click flash sheen wave
+              if (widget.onTap != null && flashOpacity > 0.01)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(widget.borderRadius),
+                        gradient: RadialGradient(
+                          center: Alignment.center,
+                          radius: 1.2,
+                          colors: [
+                            Colors.white.withValues(alpha: 0.25 * flashOpacity),
+                            Colors.white.withValues(alpha: 0.08 * flashOpacity),
+                            Colors.transparent,
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
 
-    if (widget.margin != null) {
-      return Padding(
-        padding: widget.margin!,
-        child: glassBezel,
-      );
-    }
+        // Filter + Specular Bevel Border Frame
+        Widget glassBezel = Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(widget.borderRadius),
+            gradient: specularGradient,
+          ),
+          padding: EdgeInsets.all(widget.borderWidth),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(
+              (widget.borderRadius - widget.borderWidth).clamp(0.0, double.infinity),
+            ),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: effectiveBlur, sigmaY: effectiveBlur),
+              child: content,
+            ),
+          ),
+        );
 
-    return glassBezel;
+        // If interactive, apply spring physics gesture detectors
+        if (widget.onTap != null) {
+          glassBezel = GestureDetector(
+            onTapDown: (_) => _pressController.forward(),
+            onTapUp: (_) {
+              _pressController.reverse();
+              widget.onTap!();
+            },
+            onTapCancel: () => _pressController.reverse(),
+            behavior: HitTestBehavior.opaque,
+            child: Transform.scale(
+              scale: _scaleAnimation.value,
+              child: glassBezel,
+            ),
+          );
+        }
+
+        if (widget.margin != null) {
+          return Padding(
+            padding: widget.margin!,
+            child: glassBezel,
+          );
+        }
+
+        return glassBezel;
+      },
+    );
   }
 }

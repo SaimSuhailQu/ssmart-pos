@@ -195,21 +195,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: AppTheme.primaryCyan,
-        icon: const Icon(CupertinoIcons.cart_fill, color: Colors.black),
-        label: const Text(
-          'Make Bill / POS',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 15),
-        ),
-        onPressed: () {
+      floatingActionButton: GlassCard(
+        onTap: () {
           Navigator.push(
-            context,
-            CupertinoPageRoute(
-              builder: (context) => const MobileCheckoutScreen(),
-            ),
-          );
+             context,
+             CupertinoPageRoute(
+               builder: (context) => const MobileCheckoutScreen(),
+             ),
+           );
         },
+        material: LiquidMaterial.clear,
+        borderRadius: 24,
+        enableGlow: true,
+        glowColor: AppTheme.primaryCyan,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFFFFFFFF),
+            Color(0xFFE2E8F0),
+          ],
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(CupertinoIcons.cart_fill, color: Colors.black, size: 20),
+            SizedBox(width: 8),
+            Text(
+              'Make Bill / POS',
+              style: TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.w800,
+                fontSize: 15,
+                letterSpacing: 0.2,
+              ),
+            ),
+          ],
+        ),
       ),
       body: RefreshIndicator(
         onRefresh: _handleRefresh,

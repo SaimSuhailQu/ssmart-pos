@@ -213,26 +213,37 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: AppTheme.spacingXL),
 
-                  // Login button
-                  SizedBox(
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : _handleLogin,
+                  // Frosted Liquid Glass Sign In Button
+                  GlassCard(
+                    onTap: _isLoading ? null : _handleLogin,
+                    material: LiquidMaterial.thin,
+                    borderRadius: AppTheme.radiusM,
+                    enableGlow: true,
+                    glowColor: AppTheme.primaryCyan,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    gradient: const LinearGradient(
+                      colors: [
+                        Color(0xFFFFFFFF),
+                        Color(0xFFE2E8F0),
+                      ],
+                    ),
+                    child: Center(
                       child: _isLoading
                           ? const SizedBox(
-                              width: 20,
-                              height: 20,
+                              width: 22,
+                              height: 22,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white,
-                                ),
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
                               ),
                             )
-                          : Text(
+                          : const Text(
                               'Sign In',
-                              style: AppTheme.labelLarge.copyWith(
+                              style: TextStyle(
                                 color: Colors.black,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                letterSpacing: 0.3,
                               ),
                             ),
                     ),
