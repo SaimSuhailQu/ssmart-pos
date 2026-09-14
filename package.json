@@ -8,10 +8,12 @@
   "scripts": {
     "start": "electron-forge start",
     "dev": "electron-forge start",
+    "build": "electron-forge package",
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
     "rebuild": "electron-rebuild",
+    "typecheck": "tsc --noEmit",
     "lint": "eslint --ext .ts,.tsx ."
   },
   "keywords": [],

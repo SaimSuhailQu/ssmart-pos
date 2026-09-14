@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Customer, CustomerKhataEntry } from '../types';
 import { Search, Edit2, Trash2, Award, UserPlus, Phone, Mail, BookOpen, Send, History, ArrowUpRight, ArrowDownLeft, UserCheck, Clock } from 'lucide-react';
 
@@ -277,12 +277,17 @@ export const CustomerManager: React.FC = () => {
     });
   };
 
-  const totalOutstandingUdhaar = customers.reduce((sum, c) => sum + (c.balance || 0), 0);
+  const totalOutstandingUdhaar = useMemo(() => {
+    return customers.reduce((sum, c) => sum + (c.balance || 0), 0);
+  }, [customers]);
 
-  const filtered = customers.filter(c => 
-    c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    (c.phone && c.phone.includes(searchQuery))
-  );
+  const filtered = useMemo(() => {
+    const q = searchQuery.toLowerCase();
+    return customers.filter(c => 
+      c.name.toLowerCase().includes(q) || 
+      (c.phone && c.phone.includes(searchQuery))
+    );
+  }, [customers, searchQuery]);
 
   return (
     <div className="glass-panel p-5 rounded-3xl border border-white/10 shadow-[0_0_50px_rgba(255, 255, 255, 0.05)] h-full flex flex-col relative overflow-hidden animate-in fade-in duration-300">

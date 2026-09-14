@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Expense } from '../types';
 import { DollarSign, Receipt, Calendar, User, PlusCircle, Trash2, Edit2, Search, Filter, Sparkles, AlertCircle, CheckCircle2 } from 'lucide-react';
 
@@ -139,29 +139,44 @@ export const ExpenseManager: React.FC<ExpenseManagerProps> = ({ currentUser }) =
   };
 
   // Filter Logic
-  const filteredExpenses = expenses.filter(exp => {
-    const matchesSearch = 
-      exp.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      exp.logged_by.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      exp.category.toLowerCase().includes(searchQuery.toLowerCase());
-      
-    const matchesCategory = filterCategory === 'All' || exp.category === filterCategory;
-    return matchesSearch && matchesCategory;
-  });
+  const filteredExpenses = useMemo(() => {
+    const q = searchQuery.toLowerCase();
+    return expenses.filter(exp => {
+      const matchesSearch = 
+        exp.description.toLowerCase().includes(q) ||
+        exp.logged_by.toLowerCase().includes(q) ||
+        exp.category.toLowerCase().includes(q);
+        
+      const matchesCategory = filterCategory === 'All' || exp.category === filterCategory;
+      return matchesSearch && matchesCategory;
+    });
+  }, [expenses, searchQuery, filterCategory]);
 
   // Calculate Metrics
-  const todayStr = new Date().toISOString().split('T')[0];
-  const thisMonthStr = new Date().toISOString().substring(0, 7); // 'YYYY-MM'
+  const { todayExpensesSum, monthExpensesSum, totalExpensesSum } = useMemo(() => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const thisMonthStr = new Date().toISOString().substring(0, 7); // 'YYYY-MM'
 
-  const todayExpensesSum = expenses
-    .filter(exp => exp.timestamp.startsWith(todayStr))
-    .reduce((sum, exp) => sum + exp.amount, 0);
+    let todaySum = 0;
+    let monthSum = 0;
+    let totalSum = 0;
 
-  const monthExpensesSum = expenses
-    .filter(exp => exp.timestamp.substring(0, 7) === thisMonthStr)
-    .reduce((sum, exp) => sum + exp.amount, 0);
+    for (const exp of expenses) {
+      totalSum += exp.amount;
+      if (exp.timestamp.startsWith(todayStr)) {
+        todaySum += exp.amount;
+      }
+      if (exp.timestamp.substring(0, 7) === thisMonthStr) {
+        monthSum += exp.amount;
+      }
+    }
 
-  const totalExpensesSum = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+    return {
+      todayExpensesSum: todaySum,
+      monthExpensesSum: monthSum,
+      totalExpensesSum: totalSum
+    };
+  }, [expenses]);
 
   // Helper for Category neon pills styling
   const getCategoryColor = (cat: string) => {

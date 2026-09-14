@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Vendor, PurchaseOrder, Product, VendorPayment, VendorOrderEntry } from '../types';
 import { Search, Plus, Edit2, Trash2, Truck, FileText, CheckCircle, Calendar, Package, ArrowLeft, PlusCircle, CreditCard, History, Clock, FileSpreadsheet, Eye, Send } from 'lucide-react';
 
@@ -440,15 +440,21 @@ export const VendorManager: React.FC = () => {
     }
   };
 
-  const filteredVendors = vendors.filter(v =>
-    v.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (v.category && v.category.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const filteredVendors = useMemo(() => {
+    const q = searchQuery.toLowerCase();
+    return vendors.filter(v =>
+      v.name.toLowerCase().includes(q) ||
+      (v.category && v.category.toLowerCase().includes(q))
+    );
+  }, [vendors, searchQuery]);
 
-  const filteredCatalog = catalogProducts.filter(p =>
-    p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
-    p.barcode.includes(productSearch)
-  );
+  const filteredCatalog = useMemo(() => {
+    const q = productSearch.toLowerCase();
+    return catalogProducts.filter(p =>
+      p.name.toLowerCase().includes(q) ||
+      p.barcode.includes(productSearch)
+    );
+  }, [catalogProducts, productSearch]);
 
   return (
     <div className="glass-panel p-5 rounded-3xl border border-white/10 shadow-[0_0_50px_rgba(255, 255, 255, 0.05)] h-full flex flex-col relative overflow-hidden animate-in fade-in duration-300">
