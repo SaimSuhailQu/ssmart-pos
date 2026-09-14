@@ -68,10 +68,10 @@ function generateReceiptHtml(
 
     return `
       <div style="margin-bottom: 3px; padding-bottom: 1px;">
-        <div style="font-weight: 600; font-size: 11.5px; text-transform: uppercase; word-break: break-word;">${item.name || 'Item'}</div>
+        <div style="font-weight: 700; font-size: 11.5px; text-transform: uppercase; word-break: break-word;">${item.name || 'Item'}</div>
         <div style="display: flex; justify-content: space-between; font-size: 10.5px; font-weight: 500; margin-top: 1px;">
           <span>${origPrice.toFixed(2)} x ${qty}</span>
-          <span style="font-weight: 600;">${itemDiscPercent > 0 ? `(-${itemDiscPercent.toFixed(0)}%) ` : ''}${lineFinalTotal.toFixed(2)}</span>
+          <span style="font-weight: 700;">${itemDiscPercent > 0 ? `(-${itemDiscPercent.toFixed(0)}%) ` : ''}${lineFinalTotal.toFixed(2)}</span>
         </div>
       </div>
     `;
@@ -118,42 +118,22 @@ function generateReceiptHtml(
           font-weight: 500;
           -webkit-font-smoothing: antialiased;
         }
-        .brand-header {
-          text-align: center;
-          margin-bottom: 2px;
-          padding-top: 0px;
-        }
-        .brand-title {
-          font-size: 17px;
-          font-weight: 900;
-          letter-spacing: 0.8px;
-          text-transform: uppercase;
-        }
-        .brand-sub {
-          font-size: 9.5px;
-          font-weight: 600;
-          letter-spacing: 0.3px;
-        }
-        .divider {
-          border-top: 1px dashed #000;
-          margin: 3px 0;
-        }
-        .double-divider {
-          border-top: 2px solid #000;
-          margin: 4px 0;
-        }
-        .flex-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-        .bold {
-          font-weight: 700;
-        }
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .bold { font-weight: 700; }
+        .header { margin-bottom: 4px; border-bottom: 1px dashed #000; padding-top: 0; padding-bottom: 4px; }
+        .logo-container { width: 100%; text-align: center; margin: 0 auto 1px auto; padding-top: 0; }
+        .store-name { font-size: 18px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; margin: 1px 0 2px 0; }
+        .header-sub { font-size: 10px; font-weight: 500; line-height: 1.25; }
+        .divider { border-top: 1px dashed #000; margin: 4px 0; }
+        .double-divider { border-top: 2px solid #000; margin: 4px 0; }
+        .row { display: flex; justify-content: space-between; align-items: center; margin: 2px 0; font-weight: 500; }
+        .total-row { font-size: 14px; font-weight: 900; margin: 4px 0; }
+        .footer { margin-top: 8px; border-top: 1px dashed #000; padding-top: 5px; text-align: center; }
         .footer-note {
           text-align: center;
           font-size: 9px;
-          margin-top: 5px;
+          margin-top: 4px;
           line-height: 1.2;
           font-weight: 600;
         }
@@ -161,38 +141,37 @@ function generateReceiptHtml(
     </head>
     <body>
       <div class="receipt-wrapper">
-        <div class="brand-header">
-          <div class="brand-title">SS MART</div>
-          <div class="brand-sub">Retail & Wholesale General Store</div>
-          <div style="font-size: 9px; margin-top: 1px;">Main Mall Branch - Ph: 0300-1234567</div>
+        <div class="header text-center">
+          <div class="logo-container">
+            <svg viewBox="0 0 200 150" width="85" height="55" style="display: block; margin: 0 auto;">
+              <path d="M 75 25 L 35 25 L 35 75 L 105 75 L 105 110 L 65 110" fill="none" stroke="#000" stroke-width="12" stroke-linecap="square" stroke-linejoin="miter" />
+              <path d="M 125 125 L 165 125 L 165 75 L 95 75 L 95 40 L 135 40" fill="none" stroke="#000" stroke-width="12" stroke-linecap="square" stroke-linejoin="miter" />
+              <path d="M 55 10 L 20 10 L 20 90 L 120 90 L 120 125 L 50 125" fill="none" stroke="#000" stroke-width="6" stroke-linecap="square" stroke-linejoin="miter" />
+              <path d="M 145 140 L 180 140 L 180 60 L 80 60 L 80 25 L 150 25" fill="none" stroke="#000" stroke-width="6" stroke-linecap="square" stroke-linejoin="miter" />
+            </svg>
+          </div>
+          <div class="store-name">SS MART</div>
+          <div class="header-sub">Old Lakar Mandi</div>
+          <div class="header-sub">Opposite Railway Station, Havelian</div>
+          <div class="header-sub">Ph: 0316-5915787</div>
+          <div class="divider"></div>
+          <div class="row" style="font-size: 9.5px;"><span>Inv #: <strong>${saleId ? String(saleId).padStart(5, '0') : 'WALK-IN'}</strong></span><span>Date: ${dateStr}</span></div>
+          <div class="row" style="font-size: 9.5px;"><span>Cashier: <strong>${cashier}</strong></span><span>Time: ${timeStr}</span></div>
         </div>
 
-        <div class="divider"></div>
-
-        <div class="flex-row" style="font-size: 9.5px;">
-          <span>Order #: <strong>${saleId ? String(saleId).padStart(5, '0') : 'WALK-IN'}</strong></span>
-          <span>Cashier: <strong>${cashier}</strong></span>
-        </div>
-        <div class="flex-row" style="font-size: 9.5px; margin-top: 1px;">
-          <span>Date: ${dateStr}</span>
-          <span>Time: ${timeStr}</span>
-        </div>
-
-        <div class="divider"></div>
-
-        <div style="margin: 2px 0;">
+        <div style="margin: 3px 0;">
           ${itemRows}
         </div>
 
         <div class="divider"></div>
 
-        <div class="flex-row" style="font-size: 10.5px; margin-bottom: 2px;">
+        <div class="row" style="font-size: 10.5px; margin-bottom: 2px;">
           <span>Subtotal:</span>
           <span>Rs. ${subtotal.toFixed(2)}</span>
         </div>
 
         ${actualDiscount > 0 ? `
-          <div class="flex-row" style="font-size: 10.5px; margin-bottom: 2px; font-weight: 600;">
+          <div class="row" style="font-size: 10.5px; margin-bottom: 2px; font-weight: 600;">
             <span>Discount:</span>
             <span>- Rs. ${actualDiscount.toFixed(2)}</span>
           </div>
@@ -200,7 +179,7 @@ function generateReceiptHtml(
 
         <div class="double-divider"></div>
 
-        <div class="flex-row" style="font-size: 14px; font-weight: 900; margin: 3px 0;">
+        <div class="row total-row">
           <span>TOTAL PAYABLE:</span>
           <span>Rs. ${total.toFixed(2)}</span>
         </div>
@@ -209,30 +188,28 @@ function generateReceiptHtml(
 
         <div style="margin-top: 3px;">
           ${payments.map(p => `
-            <div class="flex-row" style="font-size: 10px; margin-bottom: 1px;">
+            <div class="row" style="font-size: 10px; margin-bottom: 1px;">
               <span>Paid via ${p.method}:</span>
               <span class="bold">Rs. ${p.amount.toFixed(2)}</span>
             </div>
           `).join('')}
 
-          <div class="flex-row" style="font-size: 10px; margin-top: 2px;">
+          <div class="row" style="font-size: 10px; margin-top: 2px;">
             <span>Tendered Amount:</span>
             <span>Rs. ${totalPaid.toFixed(2)}</span>
           </div>
 
           ${change > 0 ? `
-            <div class="flex-row" style="font-size: 11px; font-weight: 700; margin-top: 2px;">
+            <div class="row" style="font-size: 11px; font-weight: 700; margin-top: 2px;">
               <span>Change Returned:</span>
               <span>Rs. ${change.toFixed(2)}</span>
             </div>
           ` : ''}
         </div>
 
-        <div class="divider"></div>
-
-        <div class="footer-note">
-          *** THANK YOU FOR SHOPPING WITH US! ***<br>
-          Software: SSmart POS Cloud-Offline Hybrid
+        <div class="footer">
+          <div class="bold" style="font-size: 11px; letter-spacing: 0.5px;">THANKS FOR YOUR VISIT</div>
+          <div style="font-size: 8.5px; margin-top: 3px; color: #333;">Software Developed By: SSQ</div>
         </div>
       </div>
     </body>
