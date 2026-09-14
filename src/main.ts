@@ -111,10 +111,12 @@ ipcMain.handle('checkout', async (_event, data) => {
   try {
     const saleId = saveSale(data.items, { ...data.paymentData, userId: data.userId });
     
-    // Trigger physical print in background without blocking the instant UI checkout
-    printReceipt(data.items, data.paymentData, saleId, data.cashierName).catch(printErr => {
-      console.warn('Background receipt print warning:', printErr);
-    });
+    // Trigger physical print in background if not explicitly skipped
+    if (!data.paymentData?.skipReceipt) {
+      printReceipt(data.items, data.paymentData, saleId, data.cashierName).catch(printErr => {
+        console.warn('Background receipt print warning:', printErr);
+      });
+    }
 
     if (data.paymentData?.customerId || data.paymentData?.paymentMethod === 'Credit / Loan') {
       syncCustomerKhataToCloud(true).catch(e => console.warn('Khata sync err on checkout:', e));

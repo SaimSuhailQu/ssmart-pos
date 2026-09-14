@@ -51,6 +51,7 @@ export interface PaymentData {
   payments: PaymentEntry[];
   change: number;
   customerId?: number;
+  skipReceipt?: boolean;
 }
 
 export interface CustomerKhataEntry {

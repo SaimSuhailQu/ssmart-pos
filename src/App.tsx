@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useScanner } from './hooks/useScanner';
 import { CartItem, Product, PaymentData } from './types';
-import { ShoppingCart, PackageSearch, Printer, CheckCircle, LayoutGrid, PackageOpen, Users, Shield, BarChart3, History, DollarSign, Truck, RefreshCw, Sparkles } from 'lucide-react';
+import { ShoppingCart, PackageSearch, Printer, CheckCircle, LayoutGrid, PackageOpen, Users, Shield, BarChart3, History, DollarSign, Truck, RefreshCw, Sparkles, PlusCircle } from 'lucide-react';
 import { ProductGrid } from './components/ProductGrid';
 import { Cart } from './components/Cart';
 import { OrderControls } from './components/OrderControls';
 import { PaymentModal } from './components/PaymentModal';
 import { InventoryManager } from './components/InventoryManager';
 import { ProductFormModal } from './components/ProductFormModal';
+import { CustomItemModal } from './components/CustomItemModal';
 import { PinLogin } from './components/PinLogin';
 import { CustomerManager } from './components/CustomerManager';
 import { VendorManager } from './components/VendorManager';
@@ -35,6 +36,11 @@ const App: React.FC = () => {
   
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
+  const [isCustomItemOpen, setIsCustomItemOpen] = useState(false);
+  const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false);
+  const [searchSelectedIndex, setSearchSelectedIndex] = useState(0);
+  const searchWrapperRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [scannedNewProduct, setScannedNewProduct] = useState<Product | null>(null);
   const [nextSaleId, setNextSaleId] = useState<number>(1);
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
@@ -209,21 +215,21 @@ const App: React.FC = () => {
 
   useScanner(handleScan, validBarcodes, viewMode);
 
-  const addToCart = (product: Product) => {
+  const addToCart = (product: Product, qtyToAdd = 1) => {
     setCart(prev => {
       const existing = prev.find(p => p.id === product.id);
       if (existing) {
-        if (existing.qty >= product.stock) {
-          setError(`Cannot add more "${product.name}". Only ${product.stock} items are in stock!`);
+        if (existing.qty + qtyToAdd > product.stock) {
+          setError(`Cannot add ${qtyToAdd} more "${product.name}". Only ${product.stock} items are in stock!`);
           return prev;
         }
-        return prev.map(p => p.id === product.id ? { ...p, qty: p.qty + 1 } : p);
+        return prev.map(p => p.id === product.id ? { ...p, qty: p.qty + qtyToAdd } : p);
       }
-      if (product.stock <= 0) {
-        setError(`"${product.name}" is out of stock!`);
+      if (product.stock < qtyToAdd) {
+        setError(`"${product.name}" has only ${product.stock} in stock!`);
         return prev;
       }
-      return [...prev, { ...product, qty: 1 }];
+      return [...prev, { ...product, qty: qtyToAdd }];
     });
   };
 
@@ -247,11 +253,84 @@ const App: React.FC = () => {
 
   const handleManualAdd = (e: React.FormEvent) => {
     e.preventDefault();
-    if (manualBarcode.trim()) {
-      handleScan(manualBarcode.trim());
-      setManualBarcode('');
+    const query = manualBarcode.trim();
+    if (!query) return;
+
+    // If dropdown is open and an item is selected from filtered list
+    if (isSearchDropdownOpen && matchingProducts.length > 0) {
+      const selected = matchingProducts[Math.min(searchSelectedIndex, matchingProducts.length - 1)];
+      if (selected) {
+        addToCart(selected);
+        setSuccess(`Added "${selected.name}" to cart`);
+        setManualBarcode('');
+        setIsSearchDropdownOpen(false);
+        return;
+      }
+    }
+
+    handleScan(query);
+    setManualBarcode('');
+    setIsSearchDropdownOpen(false);
+  };
+
+  const handleAddCustomItem = async (item: { name: string; price: number; qty: number; category: string }) => {
+    try {
+      const customBarcode = `CUSTOM-${Date.now()}`;
+      const newId = await window.api.addProduct({
+        name: item.name,
+        barcode: customBarcode,
+        price: item.price,
+        cost_price: item.price,
+        stock: 9999,
+        category: item.category || 'General'
+      });
+
+      const newProduct: Product = {
+        id: newId,
+        name: item.name,
+        barcode: customBarcode,
+        price: item.price,
+        cost_price: item.price,
+        stock: 9999,
+        category: item.category || 'General'
+      };
+
+      await loadProducts();
+      addToCart(newProduct, item.qty);
+      setSuccess(`Added custom item "${item.name}" (x${item.qty}) to cart!`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg || 'Failed to add custom item.');
     }
   };
+
+  // Search and filter catalog live products for interactive search dropdown
+  const matchingProducts = useMemo(() => {
+    const query = manualBarcode.trim().toLowerCase();
+    if (!query || query.length < 1) return [];
+    return products.filter(p => 
+      p.name.toLowerCase().includes(query) ||
+      (p.barcode && p.barcode.toLowerCase().includes(query)) ||
+      (p.category && p.category.toLowerCase().includes(query)) ||
+      String(p.id) === query
+    ).slice(0, 12);
+  }, [products, manualBarcode]);
+
+  // Keep search selection index in bounds
+  useEffect(() => {
+    setSearchSelectedIndex(0);
+  }, [manualBarcode]);
+
+  // Close search dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchWrapperRef.current && !searchWrapperRef.current.contains(e.target as Node)) {
+        setIsSearchDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleHold = () => {
     setHeldCart(cart);
@@ -342,7 +421,11 @@ const App: React.FC = () => {
       const isInputFocused = targetTag === 'input' || targetTag === 'textarea' || targetTag === 'select';
 
       if (e.key === 'Escape') {
-        if (isPaymentOpenRef.current) {
+        if (isSearchDropdownOpen) {
+          setIsSearchDropdownOpen(false);
+        } else if (isCustomItemOpen) {
+          setIsCustomItemOpen(false);
+        } else if (isPaymentOpenRef.current) {
           setIsPaymentOpen(false);
         } else if (isCatalogOpenRef.current) {
           setIsCatalogOpen(false);
@@ -374,6 +457,11 @@ const App: React.FC = () => {
         } else if (cartRef.current.length > 0) {
           handleHold();
         }
+      }
+      // F3 for Custom Item Add
+      else if (e.key === 'F3') {
+        e.preventDefault();
+        setIsCustomItemOpen(prev => !prev);
       }
       // F4 for Product Search / Catalog Toggle
       else if (e.key === 'F4') {
@@ -676,6 +764,15 @@ const App: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-3">
+              {/* Custom Item Button (Mobile Parity) */}
+              <button
+                onClick={() => setIsCustomItemOpen(true)}
+                className="px-3.5 py-1.5 rounded-lg font-semibold transition-all flex items-center gap-1.5 text-xs cursor-pointer bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-200 border border-indigo-500/40 hover:border-indigo-500/60 shadow-sm"
+                title="Add ad-hoc or custom item to current order (F3)"
+              >
+                <PlusCircle size={15} /> Custom Item (F3)
+              </button>
+
               {/* Catalog toggler */}
               <button 
                 onClick={() => setIsCatalogOpen(!isCatalogOpen)}
@@ -688,18 +785,83 @@ const App: React.FC = () => {
                 <LayoutGrid size={15} /> {isCatalogOpen ? 'Close Catalog' : 'Catalog (F4)'}
               </button>
 
-              <form onSubmit={handleManualAdd} className="relative group w-64">
-                 <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400 group-focus-within:text-indigo-400 transition-colors">
-                   <PackageSearch size={16} />
-                 </div>
-                 <input 
-                   type="text" 
-                   placeholder="Scan or enter barcode..." 
-                   value={manualBarcode}
-                   onChange={e => setManualBarcode(e.target.value)}
-                   className="w-full glass-input rounded-lg block pl-9 py-1.5 px-3 text-xs"
-                 />
-              </form>
+              {/* Live Interactive Catalog Search & Barcode Scan Bar */}
+              <div ref={searchWrapperRef} className="relative group w-72">
+                <form onSubmit={handleManualAdd}>
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400 group-focus-within:text-indigo-400 transition-colors">
+                    <PackageSearch size={16} />
+                  </div>
+                  <input 
+                    ref={searchInputRef}
+                    type="text" 
+                    placeholder="Search product or scan barcode..." 
+                    value={manualBarcode}
+                    onFocus={() => {
+                      if (manualBarcode.trim().length > 0) setIsSearchDropdownOpen(true);
+                    }}
+                    onChange={e => {
+                      setManualBarcode(e.target.value);
+                      setIsSearchDropdownOpen(e.target.value.trim().length > 0);
+                    }}
+                    onKeyDown={e => {
+                      if (!isSearchDropdownOpen || matchingProducts.length === 0) return;
+                      if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        setSearchSelectedIndex(prev => (prev + 1) % matchingProducts.length);
+                      } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        setSearchSelectedIndex(prev => (prev - 1 + matchingProducts.length) % matchingProducts.length);
+                      } else if (e.key === 'Escape') {
+                        e.preventDefault();
+                        setIsSearchDropdownOpen(false);
+                      }
+                    }}
+                    className="w-full glass-input rounded-lg block pl-9 py-1.5 px-3 text-xs text-white"
+                  />
+                </form>
+
+                {/* Live Catalog Search Dropdown Menu */}
+                {isSearchDropdownOpen && matchingProducts.length > 0 && (
+                  <div className="absolute left-0 right-0 top-full mt-1.5 bg-slate-900/95 backdrop-blur-md border border-slate-700/80 rounded-xl shadow-2xl z-50 overflow-hidden max-h-72 overflow-y-auto divide-y divide-slate-800/60 animate-in fade-in zoom-in-95 duration-100">
+                    <div className="px-3 py-1.5 bg-slate-950/60 text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex justify-between items-center">
+                      <span>Catalog Matches ({matchingProducts.length})</span>
+                      <span className="text-[9px] font-mono text-slate-500">↑↓ select • Enter adds</span>
+                    </div>
+                    {matchingProducts.map((p, idx) => (
+                      <div
+                        key={p.id}
+                        onMouseDown={e => {
+                          e.preventDefault(); // prevent blur before click registers
+                          addToCart(p);
+                          setSuccess(`Added "${p.name}" to cart`);
+                          setManualBarcode('');
+                          setIsSearchDropdownOpen(false);
+                        }}
+                        onMouseEnter={() => setSearchSelectedIndex(idx)}
+                        className={`p-2.5 flex items-center justify-between cursor-pointer transition-colors ${
+                          searchSelectedIndex === idx 
+                            ? 'bg-indigo-600/25 border-l-2 border-indigo-500 text-white' 
+                            : 'hover:bg-slate-800/50 text-slate-200'
+                        }`}
+                      >
+                        <div className="flex-1 min-w-0 pr-2">
+                          <div className="text-xs font-semibold truncate leading-snug">{p.name}</div>
+                          <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-slate-400 font-mono">
+                            <span className="px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 border border-slate-700/60 text-[9px]">{p.category}</span>
+                            <span>{p.barcode || `#${p.id}`}</span>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div className="text-xs font-bold font-mono text-indigo-300">Rs. {p.price.toFixed(2)}</div>
+                          <div className={`text-[10px] font-medium font-mono ${p.stock <= 5 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                            {p.stock <= 0 ? 'Out of stock' : `${p.stock} in stock`}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </header>
 
@@ -831,6 +993,8 @@ const App: React.FC = () => {
         <span className="text-slate-700">•</span>
         <span className="flex items-center gap-1.5"><kbd className="px-1.5 py-0.5 bg-slate-800 text-slate-200 rounded font-mono border border-slate-700 text-[10px]">F2</kbd> Hold/Resume</span>
         <span className="text-slate-700">•</span>
+        <span className="flex items-center gap-1.5"><kbd className="px-1.5 py-0.5 bg-slate-800 text-slate-200 rounded font-mono border border-slate-700 text-[10px]">F3</kbd> Custom Item</span>
+        <span className="text-slate-700">•</span>
         <span className="flex items-center gap-1.5"><kbd className="px-1.5 py-0.5 bg-slate-800 text-slate-200 rounded font-mono border border-slate-700 text-[10px]">F4</kbd> Catalog</span>
         <span className="text-slate-700">•</span>
         <span className="flex items-center gap-1.5"><kbd className="px-1.5 py-0.5 bg-slate-800 text-slate-200 rounded font-mono border border-slate-700 text-[10px]">Esc</kbd> Void / Close</span>
@@ -852,6 +1016,14 @@ const App: React.FC = () => {
           nextSaleId={nextSaleId}
         />
       )}
+
+      {/* Custom Item Modal */}
+      <CustomItemModal
+        isOpen={isCustomItemOpen}
+        onClose={() => setIsCustomItemOpen(false)}
+        onAdd={handleAddCustomItem}
+        existingCategories={Array.from(new Set(products.map(p => p.category))).filter(Boolean)}
+      />
 
       {/* Quick Add Modal on Scanning Unregistered Barcode */}
       {isQuickAddOpen && (

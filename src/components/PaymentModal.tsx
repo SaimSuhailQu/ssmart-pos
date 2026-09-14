@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { PaymentData, PaymentEntry, CartItem, Customer } from '../types';
-import { X, DollarSign, CreditCard, Smartphone, Gift, CheckCircle, Delete, Plus, Printer, BookOpen, UserCheck, Search } from 'lucide-react';
+import { X, DollarSign, CreditCard, Smartphone, Gift, Delete, Plus, Printer, BookOpen, UserCheck, Search, Save } from 'lucide-react';
 
 interface PaymentModalProps {
   total: number;
@@ -105,7 +105,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax
     setPayments(newPayments);
   };
 
-  const handlePay = async () => {
+  const handlePay = async (skipReceipt = false) => {
     if (!isEnough || isProcessing) return;
     setIsProcessing(true);
     try {
@@ -121,7 +121,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax
         total,
         payments: finalPayments,
         change,
-        customerId: selectedCustomerId || undefined
+        customerId: selectedCustomerId || undefined,
+        skipReceipt
       });
     } finally {
       setIsProcessing(false);
@@ -374,26 +375,39 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax
             </div>
 
             {/* Main Action buttons row */}
-            <div className="grid grid-cols-3 gap-2 mt-1">
+            <div className="flex flex-col gap-2 mt-1">
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => handlePay(false)}
+                  disabled={isProcessing || !isEnough}
+                  className="py-2.5 rounded-lg font-bold text-xs text-white bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 disabled:text-slate-500 transition-all flex justify-center items-center gap-2 cursor-pointer disabled:cursor-not-allowed shadow-sm"
+                  title="Save bill and send receipt to thermal printer"
+                >
+                  {isProcessing ? (
+                    <span className="tracking-widest animate-pulse uppercase">PROCESSING...</span>
+                  ) : (
+                    <span className="tracking-wider uppercase flex items-center gap-1.5">
+                      <Printer size={15} /> {isEnough ? 'SAVE & PRINT (Enter)' : `NEED Rs. ${remaining.toFixed(2)}`}
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => handlePay(true)}
+                  disabled={isProcessing || !isEnough}
+                  className="py-2.5 rounded-lg font-bold text-xs text-emerald-300 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 disabled:border-slate-800 disabled:bg-slate-800/40 disabled:text-slate-500 transition-all flex justify-center items-center gap-2 cursor-pointer disabled:cursor-not-allowed shadow-sm"
+                  title="Save bill to database and ledger without printing paper receipt"
+                >
+                  <Save size={15} />
+                  <span className="tracking-wider uppercase">SAVE (NO PRINT)</span>
+                </button>
+              </div>
+
               <button 
                 onClick={onClose}
-                className="col-span-1 py-2.5 rounded-lg font-medium text-xs text-slate-400 hover:text-white bg-slate-800/80 border border-slate-700 hover:bg-slate-700 transition cursor-pointer"
+                className="w-full py-2 rounded-lg font-medium text-xs text-slate-400 hover:text-white bg-slate-800/80 border border-slate-700 hover:bg-slate-700 transition cursor-pointer"
               >
                 CANCEL (Esc)
-              </button>
-              
-              <button
-                onClick={handlePay}
-                disabled={isProcessing || !isEnough}
-                className="col-span-2 py-2.5 rounded-lg font-bold text-xs text-white bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 disabled:text-slate-500 transition-all flex justify-center items-center gap-2 cursor-pointer disabled:cursor-not-allowed shadow-sm"
-              >
-                {isProcessing ? (
-                  <span className="tracking-widest animate-pulse uppercase">PROCESSING...</span>
-                ) : (
-                  <span className="tracking-wider uppercase flex items-center gap-1.5">
-                    <CheckCircle size={15} /> {isEnough ? 'COMPLETE TRANSACTION (Enter)' : `NEED Rs. ${remaining.toFixed(2)}`}
-                  </span>
-                )}
               </button>
             </div>
           </div>
