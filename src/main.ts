@@ -24,6 +24,7 @@ if (require('electron-squirrel-startup')) {
 // Memory and GPU optimization switches for low RAM consumption
 app.commandLine.appendSwitch('js-flags', '--max-old-space-size=256 --expose-gc');
 app.commandLine.appendSwitch('disable-http-cache');
+app.commandLine.appendSwitch('disable-gpu-shader-disk-cache');
 app.commandLine.appendSwitch('disable-speech-api');
 app.commandLine.appendSwitch('enable-gpu-rasterization');
 app.commandLine.appendSwitch('enable-zero-copy');
@@ -51,6 +52,8 @@ const createWindow = () => {
       backgroundThrottling: false,
       devTools: process.env.NODE_ENV === 'development',
       spellcheck: false,
+      sandbox: false,
+      contextIsolation: true,
     },
   });
 
@@ -61,8 +64,10 @@ const createWindow = () => {
     mainWindow.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`));
   }
 
-  // Open the DevTools.
-  // mainWindow.webContents.openDevTools();
+  // Open the DevTools in development if needed manually with Ctrl+Shift+I
+  // if (process.env.NODE_ENV === 'development') {
+  //   mainWindow.webContents.openDevTools();
+  // }
 };
 
 app.on('ready', () => {

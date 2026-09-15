@@ -162,6 +162,8 @@ const App: React.FC = () => {
     setSuccess(null);
     const clean = barcode.trim();
     if (!clean) return;
+
+    console.log('[POS Scanner] Scanned raw barcode:', barcode, 'Cleaned:', clean);
     
     // Instant 0ms memory lookup (exact barcode, without leading zeroes, or product ID)
     const cleanNoZeros = clean.replace(/^0+/, '');
@@ -170,6 +172,7 @@ const App: React.FC = () => {
       products.find(p => p.barcode?.trim() === clean || p.barcode?.trim() === cleanNoZeros || String(p.id) === clean);
 
     if (cachedProduct) {
+      console.log('[POS Scanner] Found in memory cache:', cachedProduct.name);
       addToCart(cachedProduct);
       setSuccess(`Added "${cachedProduct.name}" to cart`);
       return;
@@ -178,9 +181,11 @@ const App: React.FC = () => {
     try {
       const product = await window.api.getProduct(clean);
       if (product) {
+        console.log('[POS Scanner] Found via SQLite getProduct:', product.name);
         addToCart(product);
         setSuccess(`Added "${product.name}" to cart`);
       } else {
+        console.warn('[POS Scanner] Barcode not found, opening quick-add modal:', clean);
         // Automatically open Add Product modal immediately with scanned barcode!
         setScannedNewProduct({
           id: 0,
@@ -195,6 +200,7 @@ const App: React.FC = () => {
       }
     } catch (err: unknown) {
       const errMessage = err instanceof Error ? err.message : String(err);
+      console.error('[POS Scanner] Error fetching product:', err);
       setError(errMessage || 'Error scanning product');
     }
   }, [viewMode, isPaymentOpen, currentUser, productMap, products]);
@@ -255,6 +261,19 @@ const App: React.FC = () => {
     e.preventDefault();
     const query = manualBarcode.trim();
     if (!query) return;
+
+    // Check if query is an exact barcode match first
+    const exactMatch = productMap.get(query) || 
+      productMap.get(query.replace(/^0+/, '')) ||
+      products.find(p => p.barcode?.trim() === query || String(p.id) === query);
+
+    if (exactMatch) {
+      addToCart(exactMatch);
+      setSuccess(`Added "${exactMatch.name}" to cart`);
+      setManualBarcode('');
+      setIsSearchDropdownOpen(false);
+      return;
+    }
 
     // If dropdown is open and an item is selected from filtered list
     if (isSearchDropdownOpen && matchingProducts.length > 0) {

@@ -796,6 +796,12 @@ export function upsertCloudKhataEntry(entry: Record<string, unknown>) {
   db.prepare(`
     INSERT INTO customer_khata_entries (customer_id, sale_id, type, amount, notes, payment_method, timestamp, sync_id)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(sync_id) DO UPDATE SET
+      customer_id = excluded.customer_id,
+      amount = excluded.amount,
+      type = excluded.type,
+      notes = excluded.notes,
+      payment_method = excluded.payment_method
   `).run(custId, saleId, type, amount, notes, paymentMethod, timestamp, syncId);
 
   recalculateCustomerBalance(custId);
