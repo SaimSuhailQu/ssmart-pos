@@ -354,14 +354,54 @@ const CODE128_PATTERNS = [
 ];
 
 function generateCode128Svg(text: string): string {
-  const codes: number[] = [104]; // Start Code B
-  let checkSum = 104;
+  const clean = text.trim();
+  const isAllDigits = /^\d+$/.test(clean) && clean.length >= 2;
+  const isEvenDigits = isAllDigits && clean.length % 2 === 0;
 
-  for (let i = 0; i < text.length; i++) {
-    const charCode = text.charCodeAt(i) - 32;
-    const validCode = charCode >= 0 && charCode <= 95 ? charCode : 0;
-    codes.push(validCode);
-    checkSum += validCode * (i + 1);
+  const codes: number[] = [];
+  let checkSum = 0;
+
+  if (isEvenDigits) {
+    // Mode C: pairs 2 digits into 1 symbol (50% less width, very thick scannable bars!)
+    codes.push(105); // Start Code C
+    checkSum = 105;
+
+    for (let i = 0; i < clean.length; i += 2) {
+      const val = parseInt(clean.substring(i, i + 2), 10);
+      codes.push(val);
+      checkSum += val * (codes.length - 1);
+    }
+  } else if (isAllDigits && clean.length % 2 !== 0 && clean.length > 3) {
+    // Odd digits: start in Code C for pairs, then switch to Code B for last digit
+    codes.push(105); // Start Code C
+    checkSum = 105;
+
+    const pairCount = clean.length - 1;
+    for (let i = 0; i < pairCount; i += 2) {
+      const val = parseInt(clean.substring(i, i + 2), 10);
+      codes.push(val);
+      checkSum += val * (codes.length - 1);
+    }
+
+    // Switch to Code B (Code 100)
+    codes.push(100);
+    checkSum += 100 * (codes.length - 1);
+
+    // Last single digit
+    const lastVal = clean.charCodeAt(clean.length - 1) - 32;
+    codes.push(lastVal);
+    checkSum += lastVal * (codes.length - 1);
+  } else {
+    // Mode B: standard alphanumeric
+    codes.push(104); // Start Code B
+    checkSum = 104;
+
+    for (let i = 0; i < clean.length; i++) {
+      const charCode = clean.charCodeAt(i) - 32;
+      const validCode = charCode >= 0 && charCode <= 95 ? charCode : 0;
+      codes.push(validCode);
+      checkSum += validCode * (i + 1);
+    }
   }
 
   codes.push(checkSum % 103);
@@ -373,8 +413,8 @@ function generateCode128Svg(text: string): string {
   }
 
   const barWidth = 2;
-  const height = 50;
-  let x = 10;
+  const height = 45;
+  let x = 20; // 20px quiet zone
   let isBar = true;
   const rects: string[] = [];
 
@@ -387,21 +427,60 @@ function generateCode128Svg(text: string): string {
     isBar = !isBar;
   }
 
-  const totalWidth = x + 10;
+  const totalWidth = x + 20; // 20px quiet zone
   return `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalWidth} ${height + 20}" width="100%" height="100%">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalWidth} ${height + 16}" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" style="shape-rendering: crispEdges;">
+      <rect width="${totalWidth}" height="${height + 16}" fill="#fff"/>
       ${rects.join('')}
-      <text x="${totalWidth / 2}" y="${height + 15}" text-anchor="middle" font-family="monospace" font-size="13" font-weight="bold" fill="#000">${text}</text>
+      <text x="${totalWidth / 2}" y="${height + 13}" text-anchor="middle" font-family="'Courier New', Courier, monospace" font-size="12" font-weight="bold" fill="#000">${clean}</text>
     </svg>
   `;
 }
 
-export function printBarcode(product: { name?: string; barcode?: string; price?: number | string }): Promise<boolean> {
+export function printBarcode(
+  product: { name?: string; barcode?: string; price?: number | string },
+  count = 1
+): Promise<boolean> {
   const cleanBarcode = String(product.barcode || '').trim();
   const productName = product.name || 'Product';
   const price = typeof product.price === 'number' ? product.price.toFixed(2) : String(product.price || '0.00');
+  const printCount = Math.max(1, Math.min(count || 1, 500));
 
   const barcodeSvg = generateCode128Svg(cleanBarcode);
+
+  const singleLabelHtml = `
+    <div class="barcode-label">
+      <div class="logo-container">
+        <svg viewBox="0 0 200 150" width="30" height="18" style="display: block; margin: 0 auto;">
+          <path d="M 75 25 L 35 25 L 35 75 L 105 75 L 105 110 L 65 110" fill="none" stroke="#000" stroke-width="12" stroke-linecap="square" stroke-linejoin="miter" />
+          <path d="M 125 125 L 165 125 L 165 75 L 95 75 L 95 40 L 135 40" fill="none" stroke="#000" stroke-width="12" stroke-linecap="square" stroke-linejoin="miter" />
+          <path d="M 55 10 L 20 10 L 20 90 L 120 90 L 120 125 L 50 125" fill="none" stroke="#000" stroke-width="6" stroke-linecap="square" stroke-linejoin="miter" />
+          <path d="M 145 140 L 180 140 L 180 60 L 80 60 L 80 25 L 150 25" fill="none" stroke="#000" stroke-width="6" stroke-linecap="square" stroke-linejoin="miter" />
+        </svg>
+      </div>
+      <div class="store-header">SS MART</div>
+      <div class="product-title">${productName}</div>
+      <div class="price-tag">Rs. ${price}</div>
+      <div class="barcode-box">
+        ${barcodeSvg}
+      </div>
+    </div>
+  `;
+
+  // Group labels into pairs of 2 side by side
+  const rows: string[] = [];
+  for (let i = 0; i < printCount; i += 2) {
+    const first = singleLabelHtml;
+    const second = (i + 1 < printCount) 
+      ? singleLabelHtml 
+      : `<div class="barcode-label invisible-placeholder"></div>`;
+    rows.push(`
+      <div class="barcode-row">
+        ${first}
+        ${second}
+      </div>
+    `);
+  }
 
   const barcodeHtml = `
     <!DOCTYPE html>
@@ -411,7 +490,7 @@ export function printBarcode(product: { name?: string; barcode?: string; price?:
       <style>
         @page {
           size: 80mm auto;
-          margin: 0mm;
+          margin: 0mm !important;
         }
         html, body {
           width: 100%;
@@ -425,57 +504,97 @@ export function printBarcode(product: { name?: string; barcode?: string; price?:
           margin: 0;
           padding: 0;
         }
-        .barcode-label {
+        .barcode-wrapper {
           width: 68mm;
-          margin-left: 1mm;
+          margin-left: 1.5mm;
           margin-right: auto;
-          padding: 2mm 2mm 8mm 2mm;
+          margin-top: 0mm !important;
+          margin-bottom: 0mm;
+          padding-top: 0mm !important;
+          padding-bottom: 4px;
+          padding-left: 0mm;
+          padding-right: 0mm;
+        }
+        .barcode-row {
+          width: 100%;
+          margin: 0 !important;
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          page-break-after: always;
+          break-after: page;
+          padding-top: 0 !important;
+          padding-bottom: 2mm;
+          padding-left: 0;
+          padding-right: 0;
+        }
+        .barcode-label {
+          width: 33mm;
+          margin: 0 !important;
+          padding: 0 0.5mm 1mm 0.5mm;
           text-align: center;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+          overflow: hidden;
+        }
+        .invisible-placeholder {
+          visibility: hidden;
+        }
+        .logo-container {
+          width: 100%;
+          text-align: center;
+          margin: 0 auto !important;
+          padding: 0 !important;
+          line-height: 0;
+        }
+        .logo-container svg {
+          display: block;
+          margin: 0 auto !important;
+          padding: 0 !important;
         }
         .store-header {
-          font-size: 11px;
+          font-size: 8px;
           font-weight: 800;
-          letter-spacing: 0.5px;
+          letter-spacing: 0.3px;
           text-transform: uppercase;
-          margin-bottom: 2px;
+          margin: 1px 0 0.5px 0;
+          line-height: 1.1;
         }
         .product-title {
-          font-size: 13px;
+          font-size: 9px;
           font-weight: 700;
-          line-height: 1.2;
-          margin-bottom: 3px;
+          line-height: 1.1;
+          max-height: 2.2em;
+          overflow: hidden;
+          margin: 0 0 1px 0;
           word-break: break-word;
         }
         .price-tag {
-          font-size: 16px;
+          font-size: 11px;
           font-weight: 900;
-          margin-bottom: 4px;
+          margin: 0 0 1px 0;
+          line-height: 1.1;
         }
         .barcode-box {
-          margin: 4px auto;
+          margin: 0 auto;
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          width: 60mm;
-          height: 18mm;
+          width: 32mm;
+          height: 17mm;
+          background: #fff;
+          padding: 0;
         }
-        .divider {
-          border-top: 1px dashed #000;
-          margin-top: 8px;
+        .barcode-box svg {
+          width: 100%;
+          height: 100%;
+          display: block;
         }
       </style>
     </head>
     <body>
-      <div class="barcode-label">
-        <div class="store-header">SS MART</div>
-        <div class="product-title">${productName}</div>
-        <div class="price-tag">Rs. ${price}</div>
-        <div class="barcode-box">
-          ${barcodeSvg}
-        </div>
-        <div class="divider"></div>
+      <div class="barcode-wrapper">
+        ${rows.join('')}
       </div>
     </body>
     </html>

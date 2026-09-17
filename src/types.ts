@@ -243,7 +243,7 @@ declare global {
       bulkUpdateProducts: (updates: Array<{ id: number; cost_price: number; price: number; stock: number; category?: string }>) => Promise<boolean>;
       deleteProduct: (id: number) => Promise<boolean>;
       printReceipt: (data: { items: CartItem[]; paymentData: PaymentData; saleId?: number; cashierName?: string }) => Promise<boolean>;
-      printBarcode: (product: Product) => Promise<boolean>;
+      printBarcode: (product: Product, count?: number) => Promise<boolean>;
       
       // Sales History & Returns
       getAllSales: () => Promise<Sale[]>;

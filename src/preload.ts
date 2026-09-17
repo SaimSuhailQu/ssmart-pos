@@ -26,7 +26,7 @@ contextBridge.exposeInMainWorld('api', {
   bulkUpdateProducts: (updates: Array<{ id: number; cost_price: number; price: number; stock: number; category?: string }>) => ipcRenderer.invoke('bulk-update-products', updates),
   deleteProduct: (id: number) => ipcRenderer.invoke('delete-product', id),
   printReceipt: (data: { items: CartItem[]; paymentData: PaymentData; saleId?: number; cashierName?: string }) => ipcRenderer.invoke('print-receipt', data),
-  printBarcode: (product: Product) => ipcRenderer.invoke('print-barcode', product),
+  printBarcode: (product: Product, count?: number) => ipcRenderer.invoke('print-barcode', product, count),
   getAllCustomers: () => ipcRenderer.invoke('get-all-customers'),
   getCustomerByPhone: (phone: string) => ipcRenderer.invoke('get-customer-by-phone', phone),
   addCustomer: (customer: Omit<Customer, 'id' | 'points' | 'balance'> & { points?: number; balance?: number }) => ipcRenderer.invoke('add-customer', customer),

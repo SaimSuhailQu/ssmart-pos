@@ -24,6 +24,11 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
   const [isBulkAddOpen, setIsBulkAddOpen] = useState(false);
   const [isBulkEditorOpen, setIsBulkEditorOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  
+  // Barcode Printing State
+  const [barcodeProduct, setBarcodeProduct] = useState<Product | null>(null);
+  const [barcodeQty, setBarcodeQty] = useState<number>(1);
+  const [isPrintingBarcode, setIsPrintingBarcode] = useState(false);
 
   const loadProducts = async () => {
     try {
@@ -78,10 +83,27 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
     }
   };
 
-  const handlePrintBarcode = async (product: Product) => {
-    const success = await window.api.printBarcode(product);
-    if (!success) {
-      alert("Failed to print barcode. Check printer connection.");
+  const handleOpenBarcodeModal = (product: Product) => {
+    setBarcodeProduct(product);
+    setBarcodeQty(1);
+  };
+
+  const handleExecutePrintBarcode = async () => {
+    if (!barcodeProduct) return;
+    setIsPrintingBarcode(true);
+    try {
+      const count = Math.max(1, Math.min(Number(barcodeQty) || 1, 500));
+      const success = await window.api.printBarcode(barcodeProduct, count);
+      if (!success) {
+        alert("Failed to print barcode. Check printer connection.");
+      } else {
+        setBarcodeProduct(null);
+      }
+    } catch (err) {
+      console.error('Print barcode error:', err);
+      alert("Error while sending print job.");
+    } finally {
+      setIsPrintingBarcode(false);
     }
   };
 
@@ -331,7 +353,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                     <td className="py-3 px-4 pr-6">
                       <div className="flex items-center justify-center gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
                         <button 
-                          onClick={() => handlePrintBarcode(p)}
+                          onClick={() => handleOpenBarcodeModal(p)}
                           className="p-1.5 text-slate-400 hover:text-slate-100 hover:bg-slate-800 rounded-md transition-colors"
                           title="Print Barcode Label"
                         >
@@ -429,6 +451,122 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
           onClose={() => setIsBulkEditorOpen(false)}
           onRefresh={loadProducts}
         />
+      )}
+
+      {barcodeProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-slate-900 border border-slate-700/80 rounded-2xl p-6 w-full max-w-md shadow-2xl relative text-white">
+            <div className="flex items-center justify-between pb-4 border-b border-white/10 mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                  <Printer size={20} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg text-white">Print Barcode Labels</h3>
+                  <p className="text-xs text-slate-400">With official SS MART receipt logo</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setBarcodeProduct(null)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
+                disabled={isPrintingBarcode}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Product Summary Card */}
+            <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-3.5 mb-5 space-y-1.5">
+              <div className="flex justify-between items-start">
+                <span className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Product</span>
+                <span className="text-xs font-mono text-emerald-400 font-bold">Rs. {barcodeProduct.price.toFixed(2)}</span>
+              </div>
+              <p className="text-sm font-bold text-white leading-tight">{barcodeProduct.name}</p>
+              <div className="flex items-center justify-between text-xs font-mono text-slate-400 pt-1">
+                <span>Barcode: <strong className="text-slate-200">{barcodeProduct.barcode}</strong></span>
+                <span>Stock: <strong className="text-slate-200">{barcodeProduct.stock}</strong></span>
+              </div>
+            </div>
+
+            {/* Quantity Selector */}
+            <div className="mb-6">
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                Number of Barcodes to Print
+              </label>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setBarcodeQty(prev => Math.max(1, (Number(prev) || 1) - 1))}
+                  className="w-11 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold text-lg flex items-center justify-center transition-colors active:scale-95"
+                  disabled={isPrintingBarcode}
+                >
+                  -
+                </button>
+                <input
+                  type="number"
+                  min={1}
+                  max={500}
+                  value={barcodeQty}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value, 10);
+                    setBarcodeQty(isNaN(val) ? 1 : Math.max(1, Math.min(val, 500)));
+                  }}
+                  className="flex-1 h-11 text-center bg-slate-950 border border-slate-700 rounded-xl text-lg font-bold font-mono text-white focus:outline-none focus:border-emerald-500 transition-colors"
+                  disabled={isPrintingBarcode}
+                />
+                <button
+                  type="button"
+                  onClick={() => setBarcodeQty(prev => Math.min(500, (Number(prev) || 1) + 1))}
+                  className="w-11 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold text-lg flex items-center justify-center transition-colors active:scale-95"
+                  disabled={isPrintingBarcode}
+                >
+                  +
+                </button>
+              </div>
+
+              {/* Quick Preset Buttons */}
+              <div className="flex items-center gap-2 mt-3">
+                {[1, 5, 10, 20, 50].map(qtyPreset => (
+                  <button
+                    key={qtyPreset}
+                    type="button"
+                    onClick={() => setBarcodeQty(qtyPreset)}
+                    className={`flex-1 py-1.5 rounded-lg text-xs font-semibold font-mono border transition-all ${
+                      barcodeQty === qtyPreset
+                        ? 'bg-emerald-500 text-slate-950 border-emerald-400 shadow-sm shadow-emerald-500/30 font-bold'
+                        : 'bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 border-slate-700 hover:border-slate-600'
+                    }`}
+                    disabled={isPrintingBarcode}
+                  >
+                    {qtyPreset}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setBarcodeProduct(null)}
+                className="flex-1 py-2.5 rounded-xl border border-slate-700 text-slate-300 font-semibold text-sm hover:bg-slate-800 transition-colors"
+                disabled={isPrintingBarcode}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleExecutePrintBarcode}
+                className="flex-1 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50"
+                disabled={isPrintingBarcode}
+              >
+                <Printer size={16} />
+                {isPrintingBarcode ? 'Printing...' : `Print ${barcodeQty} ${barcodeQty === 1 ? 'Barcode' : 'Barcodes'}`}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -194,9 +194,9 @@ ipcMain.handle('delete-product', async (_event, id: number) => {
   return result;
 });
 
-ipcMain.handle('print-barcode', async (_event, product) => {
+ipcMain.handle('print-barcode', async (_event, product, count?: number) => {
   try {
-    await printBarcode(product);
+    await printBarcode(product, count);
     return true;
   } catch (err) {
     console.error('Print barcode error:', err);
