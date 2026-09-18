@@ -1040,9 +1040,11 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                           ClipRRect(
                             borderRadius: BorderRadius.circular(8),
                             child: Image.memory(
-                              base64Decode(attachedBillUrl!.contains(',')
-                                  ? attachedBillUrl!.split(',')[1]
-                                  : attachedBillUrl!),
+                              base64Decode(
+                                attachedBillUrl!.contains(',')
+                                    ? attachedBillUrl!.split(',')[1]
+                                    : attachedBillUrl!,
+                              ),
                               width: 48,
                               height: 48,
                               fit: BoxFit.cover,
@@ -1059,10 +1061,14 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Vendor Bill Attached',
-                                    style: TextStyle(color: Colors.purpleAccent, fontWeight: FontWeight.bold, fontSize: 13)),
-                                Text('Bill receipt photo saved with PO',
-                                    style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+                                Text(
+                                  'Vendor Bill Attached',
+                                  style: TextStyle(color: Colors.purpleAccent, fontWeight: FontWeight.bold, fontSize: 13),
+                                ),
+                                Text(
+                                  'Bill receipt photo saved with PO',
+                                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 11),
+                                ),
                               ],
                             ),
                           ),
@@ -1084,10 +1090,14 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Attach Vendor Bill / Invoice',
-                                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
-                                Text('Snap a picture of the paper bill or invoice',
-                                    style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+                                Text(
+                                  'Attach Vendor Bill / Invoice',
+                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
+                                ),
+                                Text(
+                                  'Snap a picture of the paper bill or invoice',
+                                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 11),
+                                ),
                               ],
                             ),
                           ),

@@ -213,9 +213,11 @@ class VendorPODetailsSheet extends StatelessWidget {
                           ClipRRect(
                             borderRadius: BorderRadius.circular(8),
                             child: Image.memory(
-                              base64Decode(attachedReceiptUrl!.contains(',')
-                                  ? attachedReceiptUrl!.split(',')[1]
-                                  : attachedReceiptUrl!),
+                              base64Decode(
+                                attachedReceiptUrl!.contains(',')
+                                    ? attachedReceiptUrl!.split(',')[1]
+                                    : attachedReceiptUrl!,
+                              ),
                               width: 48,
                               height: 48,
                               fit: BoxFit.cover,
@@ -232,10 +234,14 @@ class VendorPODetailsSheet extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Slip Attached',
-                                    style: TextStyle(color: AppTheme.primaryTeal, fontWeight: FontWeight.bold, fontSize: 13)),
-                                Text('Receipt saved with payment',
-                                    style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+                                Text(
+                                  'Slip Attached',
+                                  style: TextStyle(color: AppTheme.primaryTeal, fontWeight: FontWeight.bold, fontSize: 13),
+                                ),
+                                Text(
+                                  'Receipt saved with payment',
+                                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 11),
+                                ),
                               ],
                             ),
                           ),
@@ -257,10 +263,14 @@ class VendorPODetailsSheet extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Attach Payment Slip / Receipt',
-                                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
-                                Text('Photo of cheque, bank deposit, or cash voucher',
-                                    style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+                                Text(
+                                  'Attach Payment Slip / Receipt',
+                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
+                                ),
+                                Text(
+                                  'Photo of cheque, bank deposit, or cash voucher',
+                                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 11),
+                                ),
                               ],
                             ),
                           ),
@@ -436,9 +446,11 @@ class VendorPODetailsSheet extends StatelessWidget {
                           ClipRRect(
                             borderRadius: BorderRadius.circular(8),
                             child: Image.memory(
-                              base64Decode(attachedBillUrl!.contains(',')
-                                  ? attachedBillUrl!.split(',')[1]
-                                  : attachedBillUrl!),
+                              base64Decode(
+                                attachedBillUrl!.contains(',')
+                                    ? attachedBillUrl!.split(',')[1]
+                                    : attachedBillUrl!,
+                              ),
                               width: 48,
                               height: 48,
                               fit: BoxFit.cover,
@@ -455,10 +467,14 @@ class VendorPODetailsSheet extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Bill Photo Attached',
-                                    style: TextStyle(color: Colors.purpleAccent, fontWeight: FontWeight.bold, fontSize: 13)),
-                                Text('Invoice saved with order entry',
-                                    style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+                                Text(
+                                   'Bill Photo Attached',
+                                   style: TextStyle(color: Colors.purpleAccent, fontWeight: FontWeight.bold, fontSize: 13),
+                                 ),
+                                 Text(
+                                   'Invoice saved with order entry',
+                                   style: TextStyle(color: AppTheme.textSecondary, fontSize: 11),
+                                 ),
                               ],
                             ),
                           ),
@@ -480,10 +496,14 @@ class VendorPODetailsSheet extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Attach Vendor Bill / Invoice',
-                                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
-                                Text('Capture paper bill or upload from gallery',
-                                    style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+                                Text(
+                                  'Attach Vendor Bill / Invoice',
+                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
+                                ),
+                                Text(
+                                  'Capture paper bill or upload from gallery',
+                                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 11),
+                                ),
                               ],
                             ),
                           ),
