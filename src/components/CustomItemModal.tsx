@@ -44,9 +44,13 @@ export const CustomItemModal: React.FC<CustomItemModalProps> = ({
 
   if (!isOpen) return null;
 
+  const capitalizeWords = (str: string) => {
+    return str.replace(/\b[a-z]/g, char => char.toUpperCase());
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanName = name.trim() || 'General Item';
+    const cleanName = capitalizeWords(name.trim()) || 'General Item';
     const parsedPrice = parseFloat(priceStr);
 
     if (isNaN(parsedPrice) || parsedPrice <= 0) {
@@ -125,7 +129,7 @@ export const CustomItemModal: React.FC<CustomItemModalProps> = ({
             <input 
               type="text"
               value={name}
-              onChange={e => setName(e.target.value)}
+              onChange={e => setName(capitalizeWords(e.target.value))}
               placeholder="e.g. Loose Sugar, Fresh Pastry, Ad-hoc Item"
               required
               className="w-full glass-input rounded-lg px-3 py-2 text-sm text-white focus:border-indigo-500 focus:outline-none"

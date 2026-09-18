@@ -577,9 +577,15 @@ export function getNextSaleId() {
   return (row.maxId || 0) + 1;
 }
 
+export function capitalizeWords(str: string): string {
+  if (!str) return '';
+  return str.replace(/\b[a-z]/g, char => char.toUpperCase());
+}
+
 export function addProduct(product: Omit<Product, 'id'>) {
+  const formattedName = capitalizeWords(product.name?.trim() || '');
   const insert = db.prepare('INSERT INTO products (name, barcode, price, stock, category, cost_price) VALUES (?, ?, ?, ?, ?, ?)');
-  const info = insert.run(product.name, product.barcode, product.price, product.stock, product.category, product.cost_price || 0);
+  const info = insert.run(formattedName, product.barcode, product.price, product.stock, product.category, product.cost_price || 0);
   return info.lastInsertRowid;
 }
 
@@ -601,7 +607,7 @@ export function bulkAddProducts(productsList: Array<Omit<Product, 'id'>>) {
       if (!item.barcode || !item.name) continue;
       insert.run({
         barcode: String(item.barcode).trim(),
-        name: String(item.name).trim(),
+        name: capitalizeWords(String(item.name).trim()),
         category: item.category?.trim() || 'General',
         cost_price: parseFloat(item.cost_price) || 0,
         price: parseFloat(item.price) || 0,
@@ -616,8 +622,9 @@ export function bulkAddProducts(productsList: Array<Omit<Product, 'id'>>) {
 }
 
 export function updateProduct(id: number, product: Omit<Product, 'id'>) {
+  const formattedName = capitalizeWords(product.name?.trim() || '');
   const update = db.prepare('UPDATE products SET name = ?, barcode = ?, price = ?, stock = ?, category = ?, cost_price = ? WHERE id = ?');
-  const info = update.run(product.name, product.barcode, product.price, product.stock, product.category, product.cost_price || 0, id);
+  const info = update.run(formattedName, product.barcode, product.price, product.stock, product.category, product.cost_price || 0, id);
   return info.changes > 0;
 }
 

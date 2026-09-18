@@ -83,10 +83,15 @@ export const BulkAddProductModal: React.FC<BulkAddProductModalProps> = ({
     setRows(prev => prev.filter(r => r.id !== id));
   };
 
+  const capitalizeWords = (str: string) => {
+    return str.replace(/\b[a-z]/g, char => char.toUpperCase());
+  };
+
   const handleRowChange = (id: string, field: keyof NewProductRow, value: string | number) => {
+    const finalVal = field === 'name' && typeof value === 'string' ? capitalizeWords(value) : value;
     setRows(prev => prev.map(r => {
       if (r.id === id) {
-        return { ...r, [field]: value };
+        return { ...r, [field]: finalVal };
       }
       return r;
     }));
@@ -160,7 +165,7 @@ export const BulkAddProductModal: React.FC<BulkAddProductModalProps> = ({
         newRows.push({
           id: Math.random().toString(36).substring(2, 9),
           barcode: barcode || generateBarcode(),
-          name,
+          name: capitalizeWords(name.trim()),
           category,
           cost_price,
           price,

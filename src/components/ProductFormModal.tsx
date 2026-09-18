@@ -70,11 +70,21 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
     }
   }, [product, existingCategories]);
 
+  const capitalizeWords = (str: string) => {
+    return str.replace(/\b[a-z]/g, char => char.toUpperCase());
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+    let finalValue: string | number = value;
+    if (name === 'price' || name === 'stock' || name === 'cost_price') {
+      finalValue = Number(value);
+    } else if (name === 'name') {
+      finalValue = capitalizeWords(value);
+    }
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'price' || name === 'stock' || name === 'cost_price' ? Number(value) : value
+      [name]: finalValue
     }));
   };
 

@@ -583,11 +583,15 @@ class FirebaseService {
     required int stock,
     required String category,
   }) async {
+    final formattedName = name.trim().replaceAllMapped(
+      RegExp(r'\b[a-z]'),
+      (match) => match.group(0)!.toUpperCase(),
+    );
     final String prodId = id ?? DateTime.now().millisecondsSinceEpoch.toString();
     final productRef = _database.ref('${FirebasePaths.products}/$prodId');
     await productRef.set({
       'id': int.tryParse(prodId) ?? prodId,
-      'name': name,
+      'name': formattedName,
       'barcode': barcode,
       'price': price,
       'cost_price': costPrice,

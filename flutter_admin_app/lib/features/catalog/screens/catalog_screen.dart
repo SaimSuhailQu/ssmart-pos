@@ -289,6 +289,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
               const SizedBox(height: 16),
               TextField(
                 controller: nameCtrl,
+                textCapitalization: TextCapitalization.words,
                 style: const TextStyle(color: Colors.white),
                 decoration: const InputDecoration(labelText: 'Item Name', prefixIcon: Icon(CupertinoIcons.tag)),
               ),
