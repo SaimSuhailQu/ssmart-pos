@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -882,6 +883,7 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
     final paidCtrl = TextEditingController(text: po != null && po.paidAmount > 0 ? po.paidAmount.toStringAsFixed(0) : '0');
     final noteCtrl = TextEditingController(text: po?.notes ?? '');
     String selectedStatus = po?.status ?? 'Pending';
+    String? attachedBillUrl = po?.billUrl;
 
     showModalBottomSheet(
       context: context,
@@ -1019,6 +1021,94 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                       prefixIcon: Icon(CupertinoIcons.doc_plaintext),
                     ),
                   ),
+                  const SizedBox(height: 14),
+                  // Vendor Bill / Receipt Attachment
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppTheme.cardBackground,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: attachedBillUrl != null
+                            ? Colors.purpleAccent.withValues(alpha: 0.5)
+                            : Colors.white10,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        if (attachedBillUrl != null) ...[
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.memory(
+                              base64Decode(attachedBillUrl!.contains(',')
+                                  ? attachedBillUrl!.split(',')[1]
+                                  : attachedBillUrl!),
+                              width: 48,
+                              height: 48,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                width: 48,
+                                height: 48,
+                                color: Colors.white10,
+                                child: const Icon(CupertinoIcons.photo, color: Colors.white54),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Vendor Bill Attached',
+                                    style: TextStyle(color: Colors.purpleAccent, fontWeight: FontWeight.bold, fontSize: 13)),
+                                Text('Bill receipt photo saved with PO',
+                                    style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(CupertinoIcons.trash, color: Colors.redAccent, size: 20),
+                            onPressed: () => setDialogState(() => attachedBillUrl = null),
+                          ),
+                        ] else ...[
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.purple.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(CupertinoIcons.photo_on_rectangle, color: Colors.purpleAccent, size: 22),
+                          ),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Attach Vendor Bill / Invoice',
+                                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+                                Text('Snap a picture of the paper bill or invoice',
+                                    style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+                              ],
+                            ),
+                          ),
+                          TextButton.icon(
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.purpleAccent,
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            ),
+                            icon: const Icon(CupertinoIcons.plus, size: 16),
+                            label: const Text('Add', style: TextStyle(fontWeight: FontWeight.bold)),
+                            onPressed: () async {
+                              final img = await VendorPODetailsSheet.pickReceiptImage(ctx);
+                              if (img != null) {
+                                setDialogState(() => attachedBillUrl = img);
+                              }
+                            },
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
                   const SizedBox(height: 24),
                   SizedBox(
                     width: double.infinity,
@@ -1059,6 +1149,7 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                           status: selectedStatus,
                           paymentStatus: paymentStatus,
                           notes: noteCtrl.text.trim(),
+                          billUrl: attachedBillUrl,
                           items: po?.items,
                           payments: po?.payments,
                           orderEntries: po?.orderEntries,

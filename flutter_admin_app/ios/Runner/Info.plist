@@ -44,7 +44,9 @@
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Camera access is required to scan product and item barcodes.</string>
+	<string>Camera access is required to scan barcodes and photograph vendor bills or receipts.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Photo Library access is required to attach vendor bills and payment receipts.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>LSApplicationQueriesSchemes</key>

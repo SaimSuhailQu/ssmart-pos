@@ -1133,6 +1133,7 @@ class FirebaseService {
     String? status,
     required String paymentStatus,
     String? notes,
+    String? billUrl,
     List<dynamic>? items,
     List<dynamic>? payments,
     List<dynamic>? orderEntries,
@@ -1240,6 +1241,7 @@ class FirebaseService {
         'vendor_id': finalVendorId,
         'amount': totalAmount,
         'notes': notes?.isNotEmpty == true ? notes : 'New order delivery / bill',
+        if (billUrl != null && billUrl.isNotEmpty) 'bill_url': billUrl,
         'timestamp': DateTime.now().toIso8601String(),
       });
 
@@ -1285,6 +1287,7 @@ class FirebaseService {
         'notes': updatedNotes,
         'order_entries': currentEntries,
         'payments': currentPayments,
+        if (billUrl != null && billUrl.isNotEmpty) 'bill_url': billUrl,
         if (phone != null && phone.isNotEmpty) 'phone': phone,
         if (email != null && email.isNotEmpty) 'email': email,
         if (contactPerson != null && contactPerson.isNotEmpty) 'contact_person': contactPerson,
@@ -1316,6 +1319,7 @@ class FirebaseService {
           'vendor_id': finalVendorId,
           'amount': totalAmount,
           'notes': notes?.isNotEmpty == true ? notes : 'Initial order delivery',
+          if (billUrl != null && billUrl.isNotEmpty) 'bill_url': billUrl,
           'timestamp': DateTime.now().toIso8601String(),
         }
       ];
@@ -1346,6 +1350,7 @@ class FirebaseService {
       'status': status ?? 'Pending',
       'payment_status': calcPaymentStatus,
       'notes': notes ?? '',
+      'bill_url': billUrl ?? (existingData?['bill_url']?.toString()),
       'items': items ?? [],
       'payments': poPayments,
       'order_entries': poEntries,
@@ -1374,6 +1379,7 @@ class FirebaseService {
     required String poId,
     required double amount,
     String? notes,
+    String? billUrl,
   }) async {
     final poRef = _database.ref('${FirebasePaths.purchaseOrders}/$poId');
     final snapshot = await poRef.get();
@@ -1421,6 +1427,7 @@ class FirebaseService {
       'vendor_id': poData['vendor_id'] ?? (int.tryParse(poId) ?? 0),
       'amount': amount,
       'notes': notes ?? 'Purchase order delivery / bill',
+      if (billUrl != null && billUrl.isNotEmpty) 'bill_url': billUrl,
       'timestamp': DateTime.now().toIso8601String(),
     });
 
@@ -1452,6 +1459,7 @@ class FirebaseService {
     required double amount,
     required String paymentMethod,
     String? notes,
+    String? receiptUrl,
   }) async {
     final poRef = _database.ref('${FirebasePaths.purchaseOrders}/$poId');
     final snapshot = await poRef.get();
@@ -1504,6 +1512,7 @@ class FirebaseService {
       'amount': amount,
       'payment_method': paymentMethod,
       'notes': notes ?? 'Payment recorded from mobile app',
+      if (receiptUrl != null && receiptUrl.isNotEmpty) 'receipt_url': receiptUrl,
       'timestamp': DateTime.now().toIso8601String(),
     });
 

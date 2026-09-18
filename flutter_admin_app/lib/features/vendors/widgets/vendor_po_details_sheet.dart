@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
 import 'package:ssmart_pos_admin/core/utils/date_utils.dart';
@@ -19,12 +20,84 @@ class VendorPODetailsSheet extends StatelessWidget {
     required this.onEdit,
   });
 
+  /// Helper to pick an image from Camera or Gallery and return base64 data URL
+  static Future<String?> pickReceiptImage(BuildContext context) async {
+    final ImageSource? source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: AppTheme.surfaceDark,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Attach Receipt / Bill Image',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              ListTile(
+                leading: const Icon(CupertinoIcons.camera_fill, color: AppTheme.primaryTeal),
+                title: const Text('Take Photo with Camera', style: TextStyle(color: Colors.white)),
+                onTap: () => Navigator.pop(ctx, ImageSource.camera),
+              ),
+              ListTile(
+                leading: const Icon(CupertinoIcons.photo_fill, color: Colors.purpleAccent),
+                title: const Text('Choose from Photo Gallery', style: TextStyle(color: Colors.white)),
+                onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (source == null) return null;
+
+    try {
+      final picker = ImagePicker();
+      final XFile? file = await picker.pickImage(
+        source: source,
+        maxWidth: 1200,
+        maxHeight: 1200,
+        imageQuality: 75,
+      );
+
+      if (file == null) return null;
+      final bytes = await file.readAsBytes();
+      return 'data:image/jpeg;base64,${base64Encode(bytes)}';
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to pick image: $e'),
+            backgroundColor: AppTheme.errorRed,
+          ),
+        );
+      }
+      return null;
+    }
+  }
+
   void _showRecordPaymentDialog(BuildContext context) {
     final amountCtrl = TextEditingController(
       text: po.balanceDue > 0 ? po.balanceDue.toStringAsFixed(0) : '',
     );
     final noteCtrl = TextEditingController();
     String selectedMethod = 'Cash';
+    String? attachedReceiptUrl;
 
     showModalBottomSheet(
       context: context,
@@ -121,6 +194,94 @@ class VendorPODetailsSheet extends StatelessWidget {
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
+                  const SizedBox(height: 14),
+                  // Payment Receipt / Slip Attachment
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppTheme.cardBackground,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: attachedReceiptUrl != null
+                            ? AppTheme.primaryTeal.withValues(alpha: 0.5)
+                            : Colors.white10,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        if (attachedReceiptUrl != null) ...[
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.memory(
+                              base64Decode(attachedReceiptUrl!.contains(',')
+                                  ? attachedReceiptUrl!.split(',')[1]
+                                  : attachedReceiptUrl!),
+                              width: 48,
+                              height: 48,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                width: 48,
+                                height: 48,
+                                color: Colors.white10,
+                                child: const Icon(CupertinoIcons.photo, color: Colors.white54),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Slip Attached',
+                                    style: TextStyle(color: AppTheme.primaryTeal, fontWeight: FontWeight.bold, fontSize: 13)),
+                                Text('Receipt saved with payment',
+                                    style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(CupertinoIcons.trash, color: Colors.redAccent, size: 20),
+                            onPressed: () => setSheetState(() => attachedReceiptUrl = null),
+                          ),
+                        ] else ...[
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryTeal.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(CupertinoIcons.camera, color: AppTheme.primaryTeal, size: 22),
+                          ),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Attach Payment Slip / Receipt',
+                                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+                                Text('Photo of cheque, bank deposit, or cash voucher',
+                                    style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+                              ],
+                            ),
+                          ),
+                          TextButton.icon(
+                            style: TextButton.styleFrom(
+                              foregroundColor: AppTheme.primaryTeal,
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            ),
+                            icon: const Icon(CupertinoIcons.plus, size: 16),
+                            label: const Text('Add', style: TextStyle(fontWeight: FontWeight.bold)),
+                            onPressed: () async {
+                              final img = await pickReceiptImage(ctx);
+                              if (img != null) {
+                                setSheetState(() => attachedReceiptUrl = img);
+                              }
+                            },
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
                   const SizedBox(height: 20),
                   SizedBox(
                     width: double.infinity,
@@ -152,6 +313,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                             amount: amount,
                             paymentMethod: selectedMethod,
                             notes: noteCtrl.text.trim().isNotEmpty ? noteCtrl.text.trim() : null,
+                            receiptUrl: attachedReceiptUrl,
                           );
 
                           if (!context.mounted) return;
@@ -182,6 +344,7 @@ class VendorPODetailsSheet extends StatelessWidget {
   void _showAddBillDialog(BuildContext context) {
     final amountCtrl = TextEditingController();
     final noteCtrl = TextEditingController();
+    String? attachedBillUrl;
 
     showModalBottomSheet(
       context: context,
@@ -254,6 +417,94 @@ class VendorPODetailsSheet extends StatelessWidget {
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
+                  const SizedBox(height: 14),
+                  // Bill / Invoice Photo Attachment
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppTheme.cardBackground,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: attachedBillUrl != null
+                            ? Colors.purpleAccent.withValues(alpha: 0.5)
+                            : Colors.white10,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        if (attachedBillUrl != null) ...[
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.memory(
+                              base64Decode(attachedBillUrl!.contains(',')
+                                  ? attachedBillUrl!.split(',')[1]
+                                  : attachedBillUrl!),
+                              width: 48,
+                              height: 48,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                width: 48,
+                                height: 48,
+                                color: Colors.white10,
+                                child: const Icon(CupertinoIcons.photo, color: Colors.white54),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Bill Photo Attached',
+                                    style: TextStyle(color: Colors.purpleAccent, fontWeight: FontWeight.bold, fontSize: 13)),
+                                Text('Invoice saved with order entry',
+                                    style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(CupertinoIcons.trash, color: Colors.redAccent, size: 20),
+                            onPressed: () => setSheetState(() => attachedBillUrl = null),
+                          ),
+                        ] else ...[
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.purple.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(CupertinoIcons.photo_on_rectangle, color: Colors.purpleAccent, size: 22),
+                          ),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Attach Vendor Bill / Invoice',
+                                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+                                Text('Capture paper bill or upload from gallery',
+                                    style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+                              ],
+                            ),
+                          ),
+                          TextButton.icon(
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.purpleAccent,
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            ),
+                            icon: const Icon(CupertinoIcons.plus, size: 16),
+                            label: const Text('Add', style: TextStyle(fontWeight: FontWeight.bold)),
+                            onPressed: () async {
+                              final img = await pickReceiptImage(ctx);
+                              if (img != null) {
+                                setSheetState(() => attachedBillUrl = img);
+                              }
+                            },
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
                   const SizedBox(height: 20),
                   SizedBox(
                     width: double.infinity,
@@ -283,6 +534,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                             poId: po.key.isNotEmpty ? po.key : po.id.toString(),
                             amount: amount,
                             notes: noteCtrl.text.trim().isNotEmpty ? noteCtrl.text.trim() : null,
+                            billUrl: attachedBillUrl,
                           );
 
                           if (!context.mounted) return;

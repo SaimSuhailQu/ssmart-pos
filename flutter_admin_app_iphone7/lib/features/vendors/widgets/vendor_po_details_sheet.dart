@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
 import 'package:ssmart_pos_admin/core/utils/date_utils.dart';
@@ -18,12 +20,84 @@ class VendorPODetailsSheet extends StatelessWidget {
     required this.onEdit,
   });
 
+  /// Helper to pick an image from Camera or Gallery and return base64 data URL
+  static Future<String?> pickReceiptImage(BuildContext context) async {
+    final ImageSource? source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: AppTheme.surfaceDark,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Attach Receipt / Bill Image',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              ListTile(
+                leading: const Icon(CupertinoIcons.camera_fill, color: AppTheme.primaryTeal),
+                title: const Text('Take Photo with Camera', style: TextStyle(color: Colors.white)),
+                onTap: () => Navigator.pop(ctx, ImageSource.camera),
+              ),
+              ListTile(
+                leading: const Icon(CupertinoIcons.photo_fill, color: Colors.purpleAccent),
+                title: const Text('Choose from Photo Gallery', style: TextStyle(color: Colors.white)),
+                onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (source == null) return null;
+
+    try {
+      final picker = ImagePicker();
+      final XFile? file = await picker.pickImage(
+        source: source,
+        maxWidth: 1200,
+        maxHeight: 1200,
+        imageQuality: 75,
+      );
+
+      if (file == null) return null;
+      final bytes = await file.readAsBytes();
+      return 'data:image/jpeg;base64,${base64Encode(bytes)}';
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to pick image: $e'),
+            backgroundColor: AppTheme.errorRed,
+          ),
+        );
+      }
+      return null;
+    }
+  }
+
   void _showRecordPaymentDialog(BuildContext context) {
     final amountCtrl = TextEditingController(
       text: po.balanceDue > 0 ? po.balanceDue.toStringAsFixed(0) : '',
     );
     final noteCtrl = TextEditingController();
     String selectedMethod = 'Cash';
+    String? attachedReceiptUrl;
 
     showModalBottomSheet(
       context: context,
@@ -120,6 +194,94 @@ class VendorPODetailsSheet extends StatelessWidget {
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
+                  const SizedBox(height: 14),
+                  // Payment Receipt / Slip Attachment
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppTheme.cardBackground,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: attachedReceiptUrl != null
+                            ? AppTheme.primaryTeal.withValues(alpha: 0.5)
+                            : Colors.white10,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        if (attachedReceiptUrl != null) ...[
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.memory(
+                              base64Decode(attachedReceiptUrl!.contains(',')
+                                  ? attachedReceiptUrl!.split(',')[1]
+                                  : attachedReceiptUrl!),
+                              width: 48,
+                              height: 48,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                width: 48,
+                                height: 48,
+                                color: Colors.white10,
+                                child: const Icon(CupertinoIcons.photo, color: Colors.white54),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Slip Attached',
+                                    style: TextStyle(color: AppTheme.primaryTeal, fontWeight: FontWeight.bold, fontSize: 13)),
+                                Text('Receipt saved with payment',
+                                    style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(CupertinoIcons.trash, color: Colors.redAccent, size: 20),
+                            onPressed: () => setSheetState(() => attachedReceiptUrl = null),
+                          ),
+                        ] else ...[
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryTeal.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(CupertinoIcons.camera, color: AppTheme.primaryTeal, size: 22),
+                          ),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Attach Payment Slip / Receipt',
+                                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+                                Text('Photo of cheque, bank deposit, or cash voucher',
+                                    style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+                              ],
+                            ),
+                          ),
+                          TextButton.icon(
+                            style: TextButton.styleFrom(
+                              foregroundColor: AppTheme.primaryTeal,
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            ),
+                            icon: const Icon(CupertinoIcons.plus, size: 16),
+                            label: const Text('Add', style: TextStyle(fontWeight: FontWeight.bold)),
+                            onPressed: () async {
+                              final img = await pickReceiptImage(ctx);
+                              if (img != null) {
+                                setSheetState(() => attachedReceiptUrl = img);
+                              }
+                            },
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
                   const SizedBox(height: 20),
                   SizedBox(
                     width: double.infinity,
@@ -151,6 +313,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                             amount: amount,
                             paymentMethod: selectedMethod,
                             notes: noteCtrl.text.trim().isNotEmpty ? noteCtrl.text.trim() : null,
+                            receiptUrl: attachedReceiptUrl,
                           );
 
                           if (!context.mounted) return;
@@ -181,6 +344,7 @@ class VendorPODetailsSheet extends StatelessWidget {
   void _showAddBillDialog(BuildContext context) {
     final amountCtrl = TextEditingController();
     final noteCtrl = TextEditingController();
+    String? attachedBillUrl;
 
     showModalBottomSheet(
       context: context,
@@ -253,6 +417,94 @@ class VendorPODetailsSheet extends StatelessWidget {
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
+                  const SizedBox(height: 14),
+                  // Bill / Invoice Photo Attachment
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppTheme.cardBackground,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: attachedBillUrl != null
+                            ? Colors.purpleAccent.withValues(alpha: 0.5)
+                            : Colors.white10,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        if (attachedBillUrl != null) ...[
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.memory(
+                              base64Decode(attachedBillUrl!.contains(',')
+                                  ? attachedBillUrl!.split(',')[1]
+                                  : attachedBillUrl!),
+                              width: 48,
+                              height: 48,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                width: 48,
+                                height: 48,
+                                color: Colors.white10,
+                                child: const Icon(CupertinoIcons.photo, color: Colors.white54),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Bill Photo Attached',
+                                    style: TextStyle(color: Colors.purpleAccent, fontWeight: FontWeight.bold, fontSize: 13)),
+                                Text('Invoice saved with order entry',
+                                    style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(CupertinoIcons.trash, color: Colors.redAccent, size: 20),
+                            onPressed: () => setSheetState(() => attachedBillUrl = null),
+                          ),
+                        ] else ...[
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.purple.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(CupertinoIcons.photo_on_rectangle, color: Colors.purpleAccent, size: 22),
+                          ),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Attach Vendor Bill / Invoice',
+                                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+                                Text('Capture paper bill or upload from gallery',
+                                    style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+                              ],
+                            ),
+                          ),
+                          TextButton.icon(
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.purpleAccent,
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            ),
+                            icon: const Icon(CupertinoIcons.plus, size: 16),
+                            label: const Text('Add', style: TextStyle(fontWeight: FontWeight.bold)),
+                            onPressed: () async {
+                              final img = await pickReceiptImage(ctx);
+                              if (img != null) {
+                                setSheetState(() => attachedBillUrl = img);
+                              }
+                            },
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
                   const SizedBox(height: 20),
                   SizedBox(
                     width: double.infinity,
@@ -282,6 +534,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                             poId: po.key.isNotEmpty ? po.key : po.id.toString(),
                             amount: amount,
                             notes: noteCtrl.text.trim().isNotEmpty ? noteCtrl.text.trim() : null,
+                            billUrl: attachedBillUrl,
                           );
 
                           if (!context.mounted) return;
@@ -305,6 +558,114 @@ class VendorPODetailsSheet extends StatelessWidget {
             ),
           );
         },
+      ),
+    );
+  }
+
+  void _showImagePreviewDialog(BuildContext context, String imageUrl, String title) {
+    Widget imageWidget;
+    if (imageUrl.startsWith('data:image')) {
+      try {
+        final commaIdx = imageUrl.indexOf(',');
+        final base64Str = commaIdx != -1 ? imageUrl.substring(commaIdx + 1) : imageUrl;
+        final bytes = base64Decode(base64Str);
+        imageWidget = Image.memory(
+          bytes,
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) => const Center(
+            child: Text('Failed to load image', style: TextStyle(color: Colors.white70)),
+          ),
+        );
+      } catch (e) {
+        imageWidget = Center(
+          child: Text('Corrupt image data: $e', style: const TextStyle(color: Colors.redAccent)),
+        );
+      }
+    } else {
+      imageWidget = Image.network(
+        imageUrl,
+        fit: BoxFit.contain,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return const Center(child: CircularProgressIndicator());
+        },
+        errorBuilder: (_, __, ___) => const Center(
+          child: Text('Failed to load image from network', style: TextStyle(color: Colors.white70)),
+        ),
+      );
+    }
+
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.black.withValues(alpha: 0.92),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(CupertinoIcons.xmark_circle_fill, color: Colors.white70, size: 24),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1, color: Colors.white12),
+            Flexible(
+              child: InteractiveViewer(
+                minScale: 0.5,
+                maxScale: 4.0,
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: imageWidget,
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Pinch to zoom / pan',
+                    style: TextStyle(color: Colors.white38, fontSize: 11),
+                  ),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryTeal,
+                      foregroundColor: Colors.black,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    ),
+                    icon: const Icon(CupertinoIcons.check_mark, size: 16),
+                    label: const Text('Close', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -558,6 +919,35 @@ class VendorPODetailsSheet extends StatelessWidget {
                       _DetailRow(label: 'Payment Status', value: po.paymentStatus),
                       if (po.email.isNotEmpty) _DetailRow(label: 'Email', value: po.email),
                       if (po.notes.isNotEmpty) _DetailRow(label: 'Notes', value: po.notes),
+                      if (po.billUrl != null && po.billUrl!.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Bill / Receipt', style: TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+                              InkWell(
+                                onTap: () => _showImagePreviewDialog(context, po.billUrl!, 'PO #${po.id} Bill Receipt'),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.purple.withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(color: Colors.purple.withValues(alpha: 0.5)),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(CupertinoIcons.photo, size: 12, color: Colors.purpleAccent),
+                                      SizedBox(width: 4),
+                                      Text('View Attached Bill', style: TextStyle(color: Colors.purpleAccent, fontSize: 11, fontWeight: FontWeight.bold)),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -615,6 +1005,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                     final double amount = (entry['amount'] is num) ? (entry['amount'] as num).toDouble() : (double.tryParse(entry['amount']?.toString() ?? '') ?? 0.0);
                     final String notes = entry['notes']?.toString() ?? 'Purchase order entry';
                     final String time = entry['timestamp']?.toString() ?? '';
+                    final String? billUrl = entry['bill_url']?.toString();
                     final dynamic entryId = entry['id'] ?? idx;
 
                     // 30 minute grace period calculation
@@ -644,7 +1035,35 @@ class VendorPODetailsSheet extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(notes, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(notes, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                                    ),
+                                    if (billUrl != null && billUrl.isNotEmpty) ...[
+                                      const SizedBox(width: 4),
+                                      InkWell(
+                                        onTap: () => _showImagePreviewDialog(context, billUrl, 'Bill / Invoice #$entryId'),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: Colors.cyan.withValues(alpha: 0.2),
+                                            borderRadius: BorderRadius.circular(4),
+                                            border: Border.all(color: Colors.cyan.withValues(alpha: 0.4)),
+                                          ),
+                                          child: const Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(CupertinoIcons.photo, size: 10, color: AppTheme.primaryCyan),
+                                              SizedBox(width: 3),
+                                              Text('Bill Receipt', style: TextStyle(color: AppTheme.primaryCyan, fontSize: 10, fontWeight: FontWeight.bold)),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
                                 if (time.isNotEmpty)
                                   Text(time.length > 16 ? time.substring(0, 16) : time, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
                               ],
@@ -743,6 +1162,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                     final String method = p['payment_method']?.toString() ?? 'Cash';
                     final String time = p['timestamp']?.toString() ?? '';
                     final String notes = p['notes']?.toString() ?? '';
+                    final String? receiptUrl = p['receipt_url']?.toString();
                     final dynamic paymentId = p['id'] ?? idx;
 
                     // 30 minute grace period calculation
@@ -777,7 +1197,35 @@ class VendorPODetailsSheet extends StatelessWidget {
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text('Paid via $method', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: Text('Paid via $method', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                                          ),
+                                          if (receiptUrl != null && receiptUrl.isNotEmpty) ...[
+                                            const SizedBox(width: 4),
+                                            InkWell(
+                                              onTap: () => _showImagePreviewDialog(context, receiptUrl, 'Payment Receipt #$paymentId'),
+                                              child: Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.green.withValues(alpha: 0.2),
+                                                  borderRadius: BorderRadius.circular(4),
+                                                  border: Border.all(color: Colors.green.withValues(alpha: 0.4)),
+                                                ),
+                                                child: const Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    Icon(CupertinoIcons.doc_plaintext, size: 10, color: AppTheme.successGreen),
+                                                    SizedBox(width: 3),
+                                                    Text('Slip Receipt', style: TextStyle(color: AppTheme.successGreen, fontSize: 10, fontWeight: FontWeight.bold)),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
                                       if (notes.isNotEmpty)
                                         Text(notes, style: const TextStyle(color: Colors.white70, fontSize: 11)),
                                       if (time.isNotEmpty)
