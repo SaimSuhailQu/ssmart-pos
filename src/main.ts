@@ -379,8 +379,8 @@ ipcMain.handle('get-all-purchase-orders', () => {
   return getAllPurchaseOrders();
 });
 
-ipcMain.handle('create-purchase-order', async (_event, vendorId: number, items, customTotalCost?: number, notes?: string) => {
-  const res = createPurchaseOrder(vendorId, items, customTotalCost, notes);
+ipcMain.handle('create-purchase-order', async (_event, vendorId: number, items, customTotalCost?: number, notes?: string, billUrl?: string) => {
+  const res = createPurchaseOrder(vendorId, items, customTotalCost, notes, billUrl);
   syncVendorsToCloud(true).catch(err => console.warn('Sync vendors failed:', err));
   return res;
 });

@@ -337,6 +337,7 @@ export async function syncVendorsToCloud(silent = false) {
         paid_amount: po.paid_amount || 0,
         payment_status: po.payment_status || 'Unpaid',
         notes: po.notes || '',
+        bill_url: po.bill_url || '',
         timestamp: po.timestamp,
         items: po.items || [],
         payments: po.payments || [],

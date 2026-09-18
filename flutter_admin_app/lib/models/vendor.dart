@@ -83,6 +83,7 @@ class PurchaseOrderModel {
   final double paidAmount;
   final String paymentStatus;
   final String timestamp;
+  final String? billUrl;
   final List<dynamic> items;
   final List<dynamic> payments;
   final List<dynamic> orderEntries;
@@ -101,6 +102,7 @@ class PurchaseOrderModel {
     required this.paidAmount,
     required this.paymentStatus,
     required this.timestamp,
+    this.billUrl,
     required this.items,
     required this.payments,
     required this.orderEntries,
@@ -193,6 +195,7 @@ class PurchaseOrderModel {
               ? 'Paid'
               : (paidAmount > 0 ? 'Partially Paid' : 'Unpaid')),
       timestamp: json['timestamp']?.toString() ?? DateTime.now().toIso8601String(),
+      billUrl: json['bill_url']?.toString(),
       items: itemsList,
       payments: paymentsList,
       orderEntries: entriesList,
@@ -214,6 +217,7 @@ class PurchaseOrderModel {
       'paid_amount': paidAmount,
       'payment_status': paymentStatus,
       'timestamp': timestamp,
+      'bill_url': billUrl,
       'items': items,
       'payments': payments,
       'order_entries': orderEntries,
@@ -234,6 +238,7 @@ class PurchaseOrderModel {
     double? paidAmount,
     String? paymentStatus,
     String? timestamp,
+    String? billUrl,
     List<dynamic>? items,
     List<dynamic>? payments,
     List<dynamic>? orderEntries,
@@ -252,6 +257,7 @@ class PurchaseOrderModel {
       paidAmount: paidAmount ?? this.paidAmount,
       paymentStatus: paymentStatus ?? this.paymentStatus,
       timestamp: timestamp ?? this.timestamp,
+      billUrl: billUrl ?? this.billUrl,
       items: items ?? this.items,
       payments: payments ?? this.payments,
       orderEntries: orderEntries ?? this.orderEntries,

@@ -1,7 +1,7 @@
 {
   "name": "offline-mart-pos",
   "productName": "offline-mart-pos",
-  "version": "1.0.19",
+  "version": "1.0.20",
   "description": "My Electron application description",
   "main": ".vite/build/main.js",
   "private": true,

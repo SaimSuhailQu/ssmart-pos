@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -309,6 +310,114 @@ class VendorPODetailsSheet extends StatelessWidget {
     );
   }
 
+  void _showImagePreviewDialog(BuildContext context, String imageUrl, String title) {
+    Widget imageWidget;
+    if (imageUrl.startsWith('data:image')) {
+      try {
+        final commaIdx = imageUrl.indexOf(',');
+        final base64Str = commaIdx != -1 ? imageUrl.substring(commaIdx + 1) : imageUrl;
+        final bytes = base64Decode(base64Str);
+        imageWidget = Image.memory(
+          bytes,
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) => const Center(
+            child: Text('Failed to load image', style: TextStyle(color: Colors.white70)),
+          ),
+        );
+      } catch (e) {
+        imageWidget = Center(
+          child: Text('Corrupt image data: $e', style: const TextStyle(color: Colors.redAccent)),
+        );
+      }
+    } else {
+      imageWidget = Image.network(
+        imageUrl,
+        fit: BoxFit.contain,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return const Center(child: CircularProgressIndicator());
+        },
+        errorBuilder: (_, __, ___) => const Center(
+          child: Text('Failed to load image from network', style: TextStyle(color: Colors.white70)),
+        ),
+      );
+    }
+
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.black.withValues(alpha: 0.92),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(CupertinoIcons.xmark_circle_fill, color: Colors.white70, size: 24),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1, color: Colors.white12),
+            Flexible(
+              child: InteractiveViewer(
+                minScale: 0.5,
+                maxScale: 4.0,
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: imageWidget,
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Pinch to zoom / pan',
+                    style: TextStyle(color: Colors.white38, fontSize: 11),
+                  ),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryTeal,
+                      foregroundColor: Colors.black,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    ),
+                    icon: const Icon(CupertinoIcons.check_mark, size: 16),
+                    label: const Text('Close', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isCleared = po.balanceDue <= 0;
@@ -558,6 +667,35 @@ class VendorPODetailsSheet extends StatelessWidget {
                       _DetailRow(label: 'Payment Status', value: po.paymentStatus),
                       if (po.email.isNotEmpty) _DetailRow(label: 'Email', value: po.email),
                       if (po.notes.isNotEmpty) _DetailRow(label: 'Notes', value: po.notes),
+                      if (po.billUrl != null && po.billUrl!.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Bill / Receipt', style: TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+                              InkWell(
+                                onTap: () => _showImagePreviewDialog(context, po.billUrl!, 'PO #${po.id} Bill Receipt'),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.purple.withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(color: Colors.purple.withValues(alpha: 0.5)),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(CupertinoIcons.photo, size: 12, color: Colors.purpleAccent),
+                                      SizedBox(width: 4),
+                                      Text('View Attached Bill', style: TextStyle(color: Colors.purpleAccent, fontSize: 11, fontWeight: FontWeight.bold)),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -615,6 +753,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                     final double amount = (entry['amount'] is num) ? (entry['amount'] as num).toDouble() : (double.tryParse(entry['amount']?.toString() ?? '') ?? 0.0);
                     final String notes = entry['notes']?.toString() ?? 'Purchase order entry';
                     final String time = entry['timestamp']?.toString() ?? '';
+                    final String? billUrl = entry['bill_url']?.toString();
                     final dynamic entryId = entry['id'] ?? idx;
 
                     // 30 minute grace period calculation
@@ -644,7 +783,35 @@ class VendorPODetailsSheet extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(notes, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(notes, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                                    ),
+                                    if (billUrl != null && billUrl.isNotEmpty) ...[
+                                      const SizedBox(width: 4),
+                                      InkWell(
+                                        onTap: () => _showImagePreviewDialog(context, billUrl, 'Bill / Invoice #$entryId'),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: Colors.cyan.withValues(alpha: 0.2),
+                                            borderRadius: BorderRadius.circular(4),
+                                            border: Border.all(color: Colors.cyan.withValues(alpha: 0.4)),
+                                          ),
+                                          child: const Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(CupertinoIcons.photo, size: 10, color: AppTheme.primaryCyan),
+                                              SizedBox(width: 3),
+                                              Text('Bill Receipt', style: TextStyle(color: AppTheme.primaryCyan, fontSize: 10, fontWeight: FontWeight.bold)),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
                                 if (time.isNotEmpty)
                                   Text(time.length > 16 ? time.substring(0, 16) : time, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
                               ],
@@ -743,6 +910,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                     final String method = p['payment_method']?.toString() ?? 'Cash';
                     final String time = p['timestamp']?.toString() ?? '';
                     final String notes = p['notes']?.toString() ?? '';
+                    final String? receiptUrl = p['receipt_url']?.toString();
                     final dynamic paymentId = p['id'] ?? idx;
 
                     // 30 minute grace period calculation
@@ -777,7 +945,35 @@ class VendorPODetailsSheet extends StatelessWidget {
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text('Paid via $method', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: Text('Paid via $method', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                                          ),
+                                          if (receiptUrl != null && receiptUrl.isNotEmpty) ...[
+                                            const SizedBox(width: 4),
+                                            InkWell(
+                                              onTap: () => _showImagePreviewDialog(context, receiptUrl, 'Payment Receipt #$paymentId'),
+                                              child: Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.green.withValues(alpha: 0.2),
+                                                  borderRadius: BorderRadius.circular(4),
+                                                  border: Border.all(color: Colors.green.withValues(alpha: 0.4)),
+                                                ),
+                                                child: const Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    Icon(CupertinoIcons.doc_plaintext, size: 10, color: AppTheme.successGreen),
+                                                    SizedBox(width: 3),
+                                                    Text('Slip Receipt', style: TextStyle(color: AppTheme.successGreen, fontSize: 10, fontWeight: FontWeight.bold)),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
                                       if (notes.isNotEmpty)
                                         Text(notes, style: const TextStyle(color: Colors.white70, fontSize: 11)),
                                       if (time.isNotEmpty)

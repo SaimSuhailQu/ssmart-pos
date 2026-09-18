@@ -99,6 +99,7 @@ export interface VendorPayment {
   amount: number;
   payment_method: string;
   notes?: string;
+  receipt_url?: string;
   timestamp: string;
   vendor_name?: string;
 }
@@ -109,6 +110,7 @@ export interface VendorOrderEntry {
   vendor_id: number;
   amount: number;
   notes?: string;
+  bill_url?: string;
   timestamp: string;
   vendor_name?: string;
 }
@@ -121,6 +123,7 @@ export interface PurchaseOrder {
   paid_amount?: number;
   payment_status?: 'Unpaid' | 'Partially Paid' | 'Paid';
   notes?: string;
+  bill_url?: string;
   timestamp: string;
   vendor_name?: string;
   items?: PurchaseOrderItem[];
@@ -289,14 +292,14 @@ declare global {
       updateVendor: (id: number, vendor: Omit<Vendor, 'id'>) => Promise<boolean>;
       deleteVendor: (id: number) => Promise<boolean>;
       getAllPurchaseOrders: () => Promise<PurchaseOrder[]>;
-      createPurchaseOrder: (vendorId: number, items: POItemInput[], customTotalCost?: number, notes?: string) => Promise<number>;
+      createPurchaseOrder: (vendorId: number, items: POItemInput[], customTotalCost?: number, notes?: string, billUrl?: string) => Promise<number>;
       receivePurchaseOrder: (poId: number) => Promise<boolean>;
       deletePurchaseOrder: (poId: number, bypassTimeCheck?: boolean) => Promise<boolean>;
-      addVendorPayment: (payment: { poId: number; vendorId: number; amount: number; paymentMethod?: string; notes?: string }) => Promise<boolean>;
+      addVendorPayment: (payment: { poId: number; vendorId: number; amount: number; paymentMethod?: string; notes?: string; receiptUrl?: string }) => Promise<boolean>;
       deleteVendorPayment: (paymentId: number, bypassTimeCheck?: boolean) => Promise<boolean>;
-      updateVendorPayment: (paymentId: number, updateData: { amount: number; paymentMethod?: string; notes?: string }, bypassTimeCheck?: boolean) => Promise<boolean>;
+      updateVendorPayment: (paymentId: number, updateData: { amount: number; paymentMethod?: string; notes?: string; receiptUrl?: string }, bypassTimeCheck?: boolean) => Promise<boolean>;
       deleteVendorOrderEntry: (entryId: number, bypassTimeCheck?: boolean) => Promise<boolean>;
-      updateVendorOrderEntry: (entryId: number, updateData: { amount: number; notes?: string }, bypassTimeCheck?: boolean) => Promise<boolean>;
+      updateVendorOrderEntry: (entryId: number, updateData: { amount: number; notes?: string; billUrl?: string }, bypassTimeCheck?: boolean) => Promise<boolean>;
       getVendorPayments: (vendorId?: number) => Promise<VendorPayment[]>;
       getVendorOrderEntries: (vendorId?: number) => Promise<VendorOrderEntry[]>;
 

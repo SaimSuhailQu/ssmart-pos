@@ -274,7 +274,18 @@ export function initDb() {
     }
   }
 
-  // Ensure vendor_payments and vendor_order_entries tables exist
+  // Migration to add bill_url to purchase_orders table
+  try {
+    db.prepare("SELECT bill_url FROM purchase_orders LIMIT 1").get();
+  } catch (e) {
+    try {
+      db.exec("ALTER TABLE purchase_orders ADD COLUMN bill_url TEXT;");
+    } catch (err) {
+      console.error("Migration error adding bill_url to purchase_orders table:", err);
+    }
+  }
+
+  // Ensure vendor_payments and vendor_order_entries tables exist and have receipt_url / bill_url
   try {
     db.exec(`
       CREATE TABLE IF NOT EXISTS vendor_payments (
@@ -284,6 +295,7 @@ export function initDb() {
         amount REAL NOT NULL,
         payment_method TEXT NOT NULL DEFAULT 'Cash',
         notes TEXT,
+        receipt_url TEXT,
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (po_id) REFERENCES purchase_orders(id),
         FOREIGN KEY (vendor_id) REFERENCES vendors(id)
@@ -295,11 +307,24 @@ export function initDb() {
         vendor_id INTEGER NOT NULL,
         amount REAL NOT NULL,
         notes TEXT,
+        bill_url TEXT,
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (po_id) REFERENCES purchase_orders(id),
         FOREIGN KEY (vendor_id) REFERENCES vendors(id)
       );
     `);
+
+    try {
+      db.prepare("SELECT receipt_url FROM vendor_payments LIMIT 1").get();
+    } catch (e) {
+      db.exec("ALTER TABLE vendor_payments ADD COLUMN receipt_url TEXT;");
+    }
+
+    try {
+      db.prepare("SELECT bill_url FROM vendor_order_entries LIMIT 1").get();
+    } catch (e) {
+      db.exec("ALTER TABLE vendor_order_entries ADD COLUMN bill_url TEXT;");
+    }
 
     // Clean up any orphaned vendor payments or order entries from previously deleted POs
     db.exec(`
@@ -1257,8 +1282,8 @@ export function getAllPurchaseOrders() {
   });
 }
 
-export function addVendorPayment(payment: { poId: number, vendorId: number, amount: number, paymentMethod?: string, notes?: string }) {
-  const insertPayment = db.prepare('INSERT INTO vendor_payments (po_id, vendor_id, amount, payment_method, notes) VALUES (?, ?, ?, ?, ?)');
+export function addVendorPayment(payment: { poId: number, vendorId: number, amount: number, paymentMethod?: string, notes?: string, receiptUrl?: string }) {
+  const insertPayment = db.prepare('INSERT INTO vendor_payments (po_id, vendor_id, amount, payment_method, notes, receipt_url) VALUES (?, ?, ?, ?, ?, ?)');
   const selectPO = db.prepare('SELECT * FROM purchase_orders WHERE id = ?');
   const updatePOPayment = db.prepare('UPDATE purchase_orders SET paid_amount = ?, payment_status = ? WHERE id = ?');
 
@@ -1271,7 +1296,8 @@ export function addVendorPayment(payment: { poId: number, vendorId: number, amou
       payment.vendorId,
       payment.amount,
       payment.paymentMethod || 'Cash',
-      payment.notes || ''
+      payment.notes || '',
+      payment.receiptUrl || null
     );
 
     const newPaidAmount = (po.paid_amount || 0) + payment.amount;
@@ -1333,14 +1359,22 @@ export function createPurchaseOrder(
   vendorId: number,
   items: { productId: number, qty: number, costPrice: number }[],
   customTotalCost?: number,
-  notes?: string
+  notes?: string,
+  billUrl?: string
 ) {
   const findExistingPO = db.prepare('SELECT * FROM purchase_orders WHERE vendor_id = ? ORDER BY id DESC LIMIT 1');
-  const updatePO = db.prepare('UPDATE purchase_orders SET total_cost = total_cost + ?, notes = CASE WHEN notes = \'\' THEN ? ELSE notes || \' | \' || ? END, timestamp = CURRENT_TIMESTAMP WHERE id = ?');
+  const updatePO = db.prepare(`
+    UPDATE purchase_orders 
+    SET total_cost = total_cost + ?, 
+        notes = CASE WHEN notes = '' THEN ? ELSE notes || ' | ' || ? END, 
+        bill_url = COALESCE(?, bill_url),
+        timestamp = CURRENT_TIMESTAMP 
+    WHERE id = ?
+  `);
   const updatePaymentStatus = db.prepare('UPDATE purchase_orders SET payment_status = CASE WHEN paid_amount >= total_cost AND total_cost > 0 THEN \'Paid\' WHEN paid_amount > 0 THEN \'Partially Paid\' ELSE \'Unpaid\' END WHERE id = ?');
-  const insertPO = db.prepare('INSERT INTO purchase_orders (vendor_id, total_cost, status, notes) VALUES (?, ?, ?, ?)');
+  const insertPO = db.prepare('INSERT INTO purchase_orders (vendor_id, total_cost, status, notes, bill_url) VALUES (?, ?, ?, ?, ?)');
   const insertPOItem = db.prepare('INSERT INTO purchase_order_items (po_id, product_id, qty, cost_price) VALUES (?, ?, ?, ?)');
-  const insertOrderEntry = db.prepare('INSERT INTO vendor_order_entries (po_id, vendor_id, amount, notes) VALUES (?, ?, ?, ?)');
+  const insertOrderEntry = db.prepare('INSERT INTO vendor_order_entries (po_id, vendor_id, amount, notes, bill_url) VALUES (?, ?, ?, ?, ?)');
 
   let poId = 0;
   const transaction = db.transaction(() => {
@@ -1353,16 +1387,16 @@ export function createPurchaseOrder(
     if (existing) {
       // Sum the new order amount into the vendor's existing PO
       poId = existing.id;
-      updatePO.run(finalTotal, notes || '', notes || '', poId);
+      updatePO.run(finalTotal, notes || '', notes || '', billUrl || null, poId);
       updatePaymentStatus.run(poId);
     } else {
       // Create new unified PO for this vendor
-      const info = insertPO.run(vendorId, finalTotal, 'Pending', notes || '');
+      const info = insertPO.run(vendorId, finalTotal, 'Pending', notes || '', billUrl || null);
       poId = info.lastInsertRowid as number;
     }
 
     // Record this specific order invoice entry in the history ledger
-    insertOrderEntry.run(poId, vendorId, finalTotal, notes || '');
+    insertOrderEntry.run(poId, vendorId, finalTotal, notes || '', billUrl || null);
 
     for (const item of items) {
       insertPOItem.run(poId, item.productId, item.qty, item.costPrice);
@@ -1451,9 +1485,9 @@ export function deleteVendorPayment(paymentId: number, bypassTimeCheck = false) 
   return true;
 }
 
-export function updateVendorPayment(paymentId: number, updateData: { amount: number, paymentMethod?: string, notes?: string }, bypassTimeCheck = false) {
+export function updateVendorPayment(paymentId: number, updateData: { amount: number, paymentMethod?: string, notes?: string, receiptUrl?: string }, bypassTimeCheck = false) {
   const selectPayment = db.prepare('SELECT * FROM vendor_payments WHERE id = ?');
-  const updatePaymentStmt = db.prepare('UPDATE vendor_payments SET amount = ?, payment_method = ?, notes = ? WHERE id = ?');
+  const updatePaymentStmt = db.prepare('UPDATE vendor_payments SET amount = ?, payment_method = ?, notes = ?, receipt_url = COALESCE(?, receipt_url) WHERE id = ?');
   const updatePO = db.prepare('UPDATE purchase_orders SET paid_amount = MAX(0, paid_amount + ?), payment_status = CASE WHEN MAX(0, paid_amount + ?) >= total_cost AND total_cost > 0 THEN \'Paid\' WHEN MAX(0, paid_amount + ?) > 0 THEN \'Partially Paid\' ELSE \'Unpaid\' END WHERE id = ?');
 
   const transaction = db.transaction(() => {
@@ -1469,7 +1503,7 @@ export function updateVendorPayment(paymentId: number, updateData: { amount: num
     }
 
     const diff = updateData.amount - payment.amount;
-    updatePaymentStmt.run(updateData.amount, updateData.paymentMethod || payment.payment_method, updateData.notes ?? payment.notes, paymentId);
+    updatePaymentStmt.run(updateData.amount, updateData.paymentMethod || payment.payment_method, updateData.notes ?? payment.notes, updateData.receiptUrl !== undefined ? updateData.receiptUrl : (payment.receipt_url || null), paymentId);
     if (payment.po_id && diff !== 0) {
       updatePO.run(diff, diff, diff, payment.po_id);
     }
@@ -1506,9 +1540,9 @@ export function deleteVendorOrderEntry(entryId: number, bypassTimeCheck = false)
   return true;
 }
 
-export function updateVendorOrderEntry(entryId: number, updateData: { amount: number, notes?: string }, bypassTimeCheck = false) {
+export function updateVendorOrderEntry(entryId: number, updateData: { amount: number, notes?: string, billUrl?: string }, bypassTimeCheck = false) {
   const selectEntry = db.prepare('SELECT * FROM vendor_order_entries WHERE id = ?');
-  const updateEntryStmt = db.prepare('UPDATE vendor_order_entries SET amount = ?, notes = ? WHERE id = ?');
+  const updateEntryStmt = db.prepare('UPDATE vendor_order_entries SET amount = ?, notes = ?, bill_url = COALESCE(?, bill_url) WHERE id = ?');
   const updatePO = db.prepare('UPDATE purchase_orders SET total_cost = MAX(0, total_cost + ?), payment_status = CASE WHEN paid_amount >= MAX(0, total_cost + ?) AND MAX(0, total_cost + ?) > 0 THEN \'Paid\' WHEN paid_amount > 0 THEN \'Partially Paid\' ELSE \'Unpaid\' END WHERE id = ?');
 
   const transaction = db.transaction(() => {
@@ -1524,7 +1558,7 @@ export function updateVendorOrderEntry(entryId: number, updateData: { amount: nu
     }
 
     const diff = updateData.amount - entry.amount;
-    updateEntryStmt.run(updateData.amount, updateData.notes ?? entry.notes, entryId);
+    updateEntryStmt.run(updateData.amount, updateData.notes ?? entry.notes, updateData.billUrl !== undefined ? updateData.billUrl : (entry.bill_url || null), entryId);
     if (entry.po_id && diff !== 0) {
       updatePO.run(diff, diff, diff, entry.po_id);
     }
@@ -1853,6 +1887,7 @@ export function upsertCloudPurchaseOrder(cloudPo: Record<string, unknown>) {
   const paymentStatus = (cloudPo.payment_status as 'Unpaid' | 'Partially Paid' | 'Paid') || (paidAmount >= totalCost && totalCost > 0 ? 'Paid' : (paidAmount > 0 ? 'Partially Paid' : 'Unpaid'));
   const status = (cloudPo.status as 'Pending' | 'Received' | 'Cancelled') || 'Pending';
   const notes = (cloudPo.notes as string) || '';
+  const billUrl = (cloudPo.bill_url as string) || null;
   const timestamp = (cloudPo.timestamp as string) || new Date().toISOString();
 
   // Find existing PO for this vendor
@@ -1864,14 +1899,14 @@ export function upsertCloudPurchaseOrder(cloudPo: Record<string, unknown>) {
       poId = existingPO.id;
       db.prepare(`
         UPDATE purchase_orders 
-        SET total_cost = ?, paid_amount = ?, payment_status = ?, status = ?, notes = ?, timestamp = ?
+        SET total_cost = ?, paid_amount = ?, payment_status = ?, status = ?, notes = ?, bill_url = COALESCE(?, bill_url), timestamp = ?
         WHERE id = ?
-      `).run(totalCost, paidAmount, paymentStatus, status, notes, timestamp, poId);
+      `).run(totalCost, paidAmount, paymentStatus, status, notes, billUrl, timestamp, poId);
     } else {
       const info = db.prepare(`
-        INSERT INTO purchase_orders (vendor_id, total_cost, paid_amount, payment_status, status, notes, timestamp)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `).run(vendorId, totalCost, paidAmount, paymentStatus, status, notes, timestamp);
+        INSERT INTO purchase_orders (vendor_id, total_cost, paid_amount, payment_status, status, notes, bill_url, timestamp)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(vendorId, totalCost, paidAmount, paymentStatus, status, notes, billUrl, timestamp);
       poId = info.lastInsertRowid as number;
     }
 
@@ -1880,13 +1915,14 @@ export function upsertCloudPurchaseOrder(cloudPo: Record<string, unknown>) {
     if (Array.isArray(orderEntries) && orderEntries.length > 0) {
       // Clear and re-populate order entries for this PO
       db.prepare('DELETE FROM vendor_order_entries WHERE po_id = ?').run(poId);
-      const insertEntry = db.prepare('INSERT INTO vendor_order_entries (po_id, vendor_id, amount, notes, timestamp) VALUES (?, ?, ?, ?, ?)');
+      const insertEntry = db.prepare('INSERT INTO vendor_order_entries (po_id, vendor_id, amount, notes, bill_url, timestamp) VALUES (?, ?, ?, ?, ?, ?)');
       for (const entry of orderEntries) {
         if (!entry) continue;
         const amt = Number(entry.amount) || 0;
         const entryNotes = entry.notes || '';
+        const entryBillUrl = (entry.bill_url as string) || null;
         const entryTime = entry.timestamp || timestamp;
-        insertEntry.run(poId, vendorId, amt, entryNotes, entryTime);
+        insertEntry.run(poId, vendorId, amt, entryNotes, entryBillUrl, entryTime);
       }
     }
 
@@ -1894,14 +1930,15 @@ export function upsertCloudPurchaseOrder(cloudPo: Record<string, unknown>) {
     const payments = cloudPo.payments;
     if (Array.isArray(payments) && payments.length > 0) {
       db.prepare('DELETE FROM vendor_payments WHERE po_id = ?').run(poId);
-      const insertPayment = db.prepare('INSERT INTO vendor_payments (po_id, vendor_id, amount, payment_method, notes, timestamp) VALUES (?, ?, ?, ?, ?, ?)');
+      const insertPayment = db.prepare('INSERT INTO vendor_payments (po_id, vendor_id, amount, payment_method, notes, receipt_url, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?)');
       for (const pay of payments) {
         if (!pay) continue;
         const amt = Number(pay.amount) || 0;
         const method = pay.payment_method || 'Cash';
         const payNotes = pay.notes || '';
+        const payReceiptUrl = (pay.receipt_url as string) || null;
         const payTime = pay.timestamp || timestamp;
-        insertPayment.run(poId, vendorId, amt, method, payNotes, payTime);
+        insertPayment.run(poId, vendorId, amt, method, payNotes, payReceiptUrl, payTime);
       }
     }
   })();

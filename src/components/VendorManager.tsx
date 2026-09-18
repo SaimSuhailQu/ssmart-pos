@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Vendor, PurchaseOrder, Product, VendorPayment, VendorOrderEntry } from '../types';
-import { Search, Plus, Edit2, Trash2, Truck, FileText, CheckCircle, Calendar, Package, ArrowLeft, PlusCircle, CreditCard, History, Clock, FileSpreadsheet, Eye, Send } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Truck, FileText, CheckCircle, Calendar, Package, ArrowLeft, PlusCircle, CreditCard, History, Clock, FileSpreadsheet, Eye, Send, Upload, Image as ImageIcon, Printer, ZoomIn, ZoomOut, RotateCw, Download, X, Paperclip } from 'lucide-react';
 
 export const VendorManager: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'VENDORS' | 'POS' | 'PAYMENTS' | 'ORDERS'>('VENDORS');
@@ -109,12 +109,61 @@ export const VendorManager: React.FC = () => {
     }
   }, [error, success]);
 
+  // Image state for PO Bill & Payment Receipts
+  const [poBillImage, setPoBillImage] = useState<string>('');
+  const [payReceiptImage, setPayReceiptImage] = useState<string>('');
+  const [editOrderBillImage, setEditOrderBillImage] = useState<string>('');
+
+  // Fullscreen interactive Receipt Viewer state
+  const [viewingReceipt, setViewingReceipt] = useState<{ url: string; title: string; subtitle?: string } | null>(null);
+  const [receiptZoom, setReceiptZoom] = useState<number>(1);
+  const [receiptRotation, setReceiptRotation] = useState<number>(0);
+
+  // Helper function to compress and resize receipt images into lightweight Base64 data URLs
+  const handleProcessImageFile = (file: File, callback: (base64: string) => void) => {
+    if (!file.type.startsWith('image/')) {
+      setError('Please upload an image file (PNG, JPEG, WebP).');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new window.Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const maxDimension = 1200;
+        let { width, height } = img;
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          } else {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressed = canvas.toDataURL('image/jpeg', 0.75);
+          callback(compressed);
+        } else {
+          callback(e.target?.result as string);
+        }
+      };
+      img.src = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleOpenPaymentModal = (po: PurchaseOrder) => {
     setSelectedPOForPayment(po);
     const remaining = Math.max(0, po.total_cost - (po.paid_amount || 0));
     setPayAmount(remaining > 0 ? remaining.toString() : '');
     setPayMethod('Cash');
     setPayNotes('');
+    setPayReceiptImage('');
     setEditingPayment(null);
     setIsPaymentModalOpen(true);
   };
@@ -139,6 +188,7 @@ export const VendorManager: React.FC = () => {
     setPayAmount(pay.amount.toString());
     setPayMethod(pay.payment_method || 'Cash');
     setPayNotes(pay.notes || '');
+    setPayReceiptImage(pay.receipt_url || '');
     setIsPaymentModalOpen(true);
   };
 
@@ -173,7 +223,8 @@ export const VendorManager: React.FC = () => {
         await window.api.updateVendorPayment(editingPayment.id, {
           amount,
           paymentMethod: payMethod,
-          notes: payNotes.trim()
+          notes: payNotes.trim(),
+          receiptUrl: payReceiptImage || undefined
         });
         setSuccess(`Updated payment #${editingPayment.id} to Rs. ${amount.toLocaleString()}`);
       } else {
@@ -183,13 +234,15 @@ export const VendorManager: React.FC = () => {
           vendorId: selectedPOForPayment.vendor_id,
           amount,
           paymentMethod: payMethod,
-          notes: payNotes.trim()
+          notes: payNotes.trim(),
+          receiptUrl: payReceiptImage || undefined
         });
         setSuccess(`Recorded payment of Rs. ${amount.toLocaleString()} for PO #${selectedPOForPayment.id}`);
       }
 
       setIsPaymentModalOpen(false);
       setEditingPayment(null);
+      setPayReceiptImage('');
       await loadPurchaseOrders();
       await loadPayments();
       if (selectedPOForDetails) {
@@ -213,6 +266,7 @@ export const VendorManager: React.FC = () => {
     setEditingOrderEntry(entry);
     setEditOrderAmount(entry.amount.toString());
     setEditOrderNotes(entry.notes || '');
+    setEditOrderBillImage(entry.bill_url || '');
     setIsEditOrderEntryModalOpen(true);
   };
 
@@ -228,11 +282,13 @@ export const VendorManager: React.FC = () => {
     try {
       await window.api.updateVendorOrderEntry(editingOrderEntry.id, {
         amount,
-        notes: editOrderNotes.trim()
+        notes: editOrderNotes.trim(),
+        billUrl: editOrderBillImage || undefined
       });
       setSuccess(`Updated Order Entry #${editingOrderEntry.id} to Rs. ${amount.toLocaleString()}`);
       setIsEditOrderEntryModalOpen(false);
       setEditingOrderEntry(null);
+      setEditOrderBillImage('');
       await loadPurchaseOrders();
       await loadOrderEntries();
       if (selectedPOForDetails) {
@@ -321,6 +377,7 @@ export const VendorManager: React.FC = () => {
     setPoItems([]);
     setCustomTotalCost('');
     setPoNotes('');
+    setPoBillImage('');
     setSelectedProductToAdd(null);
     setIsCreatingPO(true);
   };
@@ -398,10 +455,12 @@ export const VendorManager: React.FC = () => {
         Number(selectedVendorId), 
         itemsPayload, 
         finalCost, 
-        poNotes.trim()
+        poNotes.trim(),
+        poBillImage || undefined
       );
       setSuccess(`Purchase order for Rs. ${finalCost.toLocaleString()} saved successfully.`);
       setIsCreatingPO(false);
+      setPoBillImage('');
       await loadPurchaseOrders();
       await loadCatalogProducts();
     } catch (err: unknown) {
@@ -569,15 +628,66 @@ export const VendorManager: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="mb-4 flex-shrink-0">
-                  <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Invoice Notes / Description (Optional)</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Mixed confectionery batch, invoice #8841, cash on delivery..."
-                    value={poNotes}
-                    onChange={(e) => setPoNotes(e.target.value)}
-                    className="w-full px-3 py-2 text-xs glass-input rounded-xl text-gray-200 placeholder:text-gray-600"
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 flex-shrink-0">
+                  <div>
+                    <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Invoice Notes / Description (Optional)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Mixed confectionery batch, invoice #8841, cash on delivery..."
+                      value={poNotes}
+                      onChange={(e) => setPoNotes(e.target.value)}
+                      className="w-full px-3 py-2 text-xs glass-input rounded-xl text-gray-200 placeholder:text-gray-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-cyan-400 uppercase tracking-wider block mb-1 flex items-center gap-1.5">
+                      <Paperclip size={13} />
+                      Attach Vendor Bill / Receipt Photo (Optional)
+                    </label>
+                    {poBillImage ? (
+                      <div className="flex items-center gap-3 p-2 bg-white/5 border border-cyan-500/30 rounded-xl">
+                        <img 
+                          src={poBillImage} 
+                          alt="Bill preview" 
+                          className="w-12 h-10 object-cover rounded-lg border border-white/10 cursor-pointer hover:opacity-80 transition"
+                          onClick={() => setViewingReceipt({ url: poBillImage, title: "Vendor Bill / Invoice Photo", subtitle: "Purchase Order Attachment" })}
+                          title="Click to zoom / view full receipt"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <span className="text-[11px] text-cyan-300 font-bold block truncate">Bill Receipt Attached</span>
+                          <button
+                            type="button"
+                            onClick={() => setViewingReceipt({ url: poBillImage, title: "Vendor Bill / Invoice Photo", subtitle: "Purchase Order Attachment" })}
+                            className="text-[10px] text-gray-400 hover:text-white underline cursor-pointer"
+                          >
+                            Preview Bill
+                          </button>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setPoBillImage('')}
+                          className="p-1 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition"
+                          title="Remove attached bill"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="flex items-center justify-center gap-2 p-2 bg-white/5 hover:bg-white/10 border border-dashed border-white/20 hover:border-cyan-400/50 rounded-xl cursor-pointer transition text-xs text-gray-400 hover:text-cyan-300">
+                        <Upload size={14} />
+                        <span className="font-bold text-[11px]">Upload Vendor Bill / Receipt</span>
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          className="hidden" 
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleProcessImageFile(file, setPoBillImage);
+                          }}
+                        />
+                      </label>
+                    )}
+                  </div>
                 </div>
 
                 <span className="text-xs font-bold text-gray-300 uppercase tracking-widest block mb-2 flex-shrink-0">3. Optional: Specific Line Items ({poItems.length})</span>
@@ -1107,7 +1217,20 @@ export const VendorManager: React.FC = () => {
                                 </span>
                               </td>
                               <td className="py-4 px-4 text-xs text-gray-400 italic">
-                                {pay.notes || '—'}
+                                <div>{pay.notes || '—'}</div>
+                                {pay.receipt_url && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setViewingReceipt({
+                                      url: pay.receipt_url!,
+                                      title: `Payment Installment #${pay.id} Receipt`,
+                                      subtitle: `Vendor: ${pay.vendor_name} • Paid: Rs. ${pay.amount.toLocaleString()} via ${pay.payment_method}`
+                                    })}
+                                    className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 rounded-full text-[10px] font-bold transition cursor-pointer"
+                                  >
+                                    <ImageIcon size={10} /> View Slip
+                                  </button>
+                                )}
                               </td>
                               <td className="py-4 px-5 text-right font-extrabold text-emerald-400 text-base">
                                 Rs. {pay.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
@@ -1117,14 +1240,14 @@ export const VendorManager: React.FC = () => {
                                   <div className="flex items-center justify-center gap-1.5">
                                     <button
                                       onClick={() => handleOpenEditPaymentModal(pay)}
-                                      className="p-1.5 px-2 bg-white/10 hover:bg-white/20 text-cyan-300 rounded-lg text-[10px] font-bold flex items-center gap-1 transition"
+                                      className="p-1.5 px-2 bg-white/10 hover:bg-white/20 text-cyan-300 rounded-lg text-[10px] font-bold flex items-center gap-1 transition cursor-pointer"
                                       title={`Edit payment (${remainingMins}m remaining)`}
                                     >
                                       <Edit2 size={12} /> Edit
                                     </button>
                                     <button
                                       onClick={() => handleDeletePayment(pay.id)}
-                                      className="p-1.5 px-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-[10px] font-bold flex items-center gap-1 transition"
+                                      className="p-1.5 px-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-[10px] font-bold flex items-center gap-1 transition cursor-pointer"
                                       title={`Undo payment (${remainingMins}m remaining)`}
                                     >
                                       <Trash2 size={12} /> Undo
@@ -1190,7 +1313,20 @@ export const VendorManager: React.FC = () => {
                                 </span>
                               </td>
                               <td className="py-4 px-4 text-xs text-gray-300">
-                                {entry.notes || 'Lump-sum stock delivery'}
+                                <div>{entry.notes || 'Lump-sum stock delivery'}</div>
+                                {entry.bill_url && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setViewingReceipt({
+                                      url: entry.bill_url!,
+                                      title: `Order Entry #${entry.id} Bill Receipt`,
+                                      subtitle: `Vendor: ${entry.vendor_name} • Amount: Rs. ${entry.amount.toLocaleString()}`
+                                    })}
+                                    className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 rounded-full text-[10px] font-bold transition cursor-pointer"
+                                  >
+                                    <ImageIcon size={10} /> View Bill Photo
+                                  </button>
+                                )}
                               </td>
                               <td className="py-4 px-5 text-right font-extrabold text-white text-base">
                                 Rs. {entry.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
@@ -1386,12 +1522,63 @@ export const VendorManager: React.FC = () => {
                 />
               </div>
 
+              <div>
+                <label className="text-xs font-bold text-emerald-400 uppercase tracking-wider block mb-1.5 flex items-center gap-1.5">
+                  <Paperclip size={13} />
+                  Attach Payment Receipt / Slip / Cheque (Optional)
+                </label>
+                {payReceiptImage ? (
+                  <div className="flex items-center gap-3 p-2.5 bg-white/5 border border-emerald-500/30 rounded-xl">
+                    <img 
+                      src={payReceiptImage} 
+                      alt="Receipt preview" 
+                      className="w-12 h-10 object-cover rounded-lg border border-white/10 cursor-pointer hover:opacity-80 transition"
+                      onClick={() => setViewingReceipt({ url: payReceiptImage, title: "Vendor Payment Receipt", subtitle: `PO #${selectedPOForPayment.id} • Rs. ${payAmount}` })}
+                      title="Click to zoom / view full receipt"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <span className="text-xs text-emerald-300 font-bold block truncate">Receipt Slip Attached</span>
+                      <button
+                        type="button"
+                        onClick={() => setViewingReceipt({ url: payReceiptImage, title: "Vendor Payment Receipt", subtitle: `PO #${selectedPOForPayment.id} • Rs. ${payAmount}` })}
+                        className="text-[10px] text-gray-400 hover:text-white underline cursor-pointer"
+                      >
+                        Preview Full Slip
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setPayReceiptImage('')}
+                      className="p-1 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition"
+                      title="Remove attached receipt"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex items-center justify-center gap-2 p-3 bg-white/5 hover:bg-white/10 border border-dashed border-white/20 hover:border-emerald-400/50 rounded-xl cursor-pointer transition text-xs text-gray-400 hover:text-emerald-300">
+                    <Upload size={14} />
+                    <span className="font-bold">Upload Payment Slip / Receipt</span>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      className="hidden" 
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleProcessImageFile(file, setPayReceiptImage);
+                      }}
+                    />
+                  </label>
+                )}
+              </div>
+
               <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
                 <button
                   type="button"
                   onClick={() => {
                     setIsPaymentModalOpen(false);
                     setEditingPayment(null);
+                    setPayReceiptImage('');
                   }}
                   className="px-5 py-2.5 glass-button rounded-xl font-bold text-xs text-gray-400 hover:text-white"
                 >
@@ -1452,12 +1639,63 @@ export const VendorManager: React.FC = () => {
                 />
               </div>
 
+              <div>
+                <label className="text-xs font-bold text-cyan-400 uppercase tracking-wider block mb-1.5 flex items-center gap-1.5">
+                  <Paperclip size={13} />
+                  Attach Bill / Invoice Photo (Optional)
+                </label>
+                {editOrderBillImage ? (
+                  <div className="flex items-center gap-3 p-2.5 bg-white/5 border border-cyan-500/30 rounded-xl">
+                    <img 
+                      src={editOrderBillImage} 
+                      alt="Bill preview" 
+                      className="w-12 h-10 object-cover rounded-lg border border-white/10 cursor-pointer hover:opacity-80 transition"
+                      onClick={() => setViewingReceipt({ url: editOrderBillImage, title: `Order Delivery #${editingOrderEntry.id} Bill`, subtitle: `Amount: Rs. ${editOrderAmount}` })}
+                      title="Click to zoom / view full receipt"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <span className="text-xs text-cyan-300 font-bold block truncate">Bill Photo Attached</span>
+                      <button
+                        type="button"
+                        onClick={() => setViewingReceipt({ url: editOrderBillImage, title: `Order Delivery #${editingOrderEntry.id} Bill`, subtitle: `Amount: Rs. ${editOrderAmount}` })}
+                        className="text-[10px] text-gray-400 hover:text-white underline cursor-pointer"
+                      >
+                        Preview Full Bill
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setEditOrderBillImage('')}
+                      className="p-1 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition"
+                      title="Remove attached bill"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex items-center justify-center gap-2 p-3 bg-white/5 hover:bg-white/10 border border-dashed border-white/20 hover:border-cyan-400/50 rounded-xl cursor-pointer transition text-xs text-gray-400 hover:text-cyan-300">
+                    <Upload size={14} />
+                    <span className="font-bold">Upload Bill / Invoice Photo</span>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      className="hidden" 
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleProcessImageFile(file, setEditOrderBillImage);
+                      }}
+                    />
+                  </label>
+                )}
+              </div>
+
               <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
                 <button
                   type="button"
                   onClick={() => {
                     setIsEditOrderEntryModalOpen(false);
                     setEditingOrderEntry(null);
+                    setEditOrderBillImage('');
                   }}
                   className="px-5 py-2.5 glass-button rounded-xl font-bold text-xs text-gray-400 hover:text-white"
                 >
@@ -1610,6 +1848,20 @@ export const VendorManager: React.FC = () => {
                             <div className="font-bold text-white flex items-center gap-2">
                               <span>Order Entry #{entry.id}</span>
                               <span className="text-[10px] text-gray-400">• {new Date(entry.timestamp).toLocaleString()}</span>
+                              {entry.bill_url && (
+                                <button
+                                  type="button"
+                                  onClick={() => setViewingReceipt({
+                                    url: entry.bill_url!,
+                                    title: `Order Entry #${entry.id} Bill Receipt`,
+                                    subtitle: `Vendor: ${selectedPOForDetails.vendor_name} • Amount: Rs. ${entry.amount.toLocaleString()}`
+                                  })}
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 rounded-full text-[10px] font-bold transition cursor-pointer"
+                                  title="View attached bill receipt"
+                                >
+                                  <ImageIcon size={10} /> Bill Photo
+                                </button>
+                              )}
                             </div>
                             <div className="text-[11px] text-gray-400 mt-0.5">{entry.notes || 'Restock Order'}</div>
                           </div>
@@ -1619,14 +1871,14 @@ export const VendorManager: React.FC = () => {
                               <div className="flex items-center gap-1">
                                 <button
                                   onClick={() => handleOpenEditOrderEntryModal(entry)}
-                                  className="p-1 px-2 bg-white/10 hover:bg-white/20 text-cyan-300 rounded-lg text-[10px] font-bold transition"
+                                  className="p-1 px-2 bg-white/10 hover:bg-white/20 text-cyan-300 rounded-lg text-[10px] font-bold transition cursor-pointer"
                                   title={`Edit (${remainingMins}m left)`}
                                 >
                                   Edit
                                 </button>
                                 <button
                                   onClick={() => handleDeleteOrderEntry(entry.id)}
-                                  className="p-1 px-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-[10px] font-bold transition"
+                                  className="p-1 px-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-[10px] font-bold transition cursor-pointer"
                                   title={`Remove (${remainingMins}m left)`}
                                 >
                                   Undo
@@ -1648,6 +1900,20 @@ export const VendorManager: React.FC = () => {
                       <div className="font-bold text-white flex items-center gap-2">
                         <span>Initial Order #{selectedPOForDetails.id}</span>
                         <span className="text-[10px] text-gray-400">• {new Date(selectedPOForDetails.timestamp).toLocaleString()}</span>
+                        {selectedPOForDetails.bill_url && (
+                          <button
+                            type="button"
+                            onClick={() => setViewingReceipt({
+                              url: selectedPOForDetails.bill_url!,
+                              title: `Purchase Order #${selectedPOForDetails.id} Bill Receipt`,
+                              subtitle: `Vendor: ${selectedPOForDetails.vendor_name} • Amount: Rs. ${selectedPOForDetails.total_cost.toLocaleString()}`
+                            })}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 rounded-full text-[10px] font-bold transition cursor-pointer"
+                            title="View attached bill receipt"
+                          >
+                            <ImageIcon size={10} /> Bill Photo
+                          </button>
+                        )}
                       </div>
                       <div className="text-[11px] text-gray-400 mt-0.5">{selectedPOForDetails.notes || 'Lump-sum stock order'}</div>
                     </div>
@@ -1696,6 +1962,20 @@ export const VendorManager: React.FC = () => {
                             <div className="font-bold text-white flex items-center gap-2">
                               <span className="text-emerald-400">{pay.payment_method} Payment</span>
                               <span className="text-[10px] text-gray-400">• {new Date(pay.timestamp).toLocaleString()}</span>
+                              {pay.receipt_url && (
+                                <button
+                                  type="button"
+                                  onClick={() => setViewingReceipt({
+                                    url: pay.receipt_url!,
+                                    title: `Payment Installment #${pay.id} Receipt`,
+                                    subtitle: `Paid: Rs. ${pay.amount.toLocaleString()} via ${pay.payment_method}`
+                                  })}
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 rounded-full text-[10px] font-bold transition cursor-pointer"
+                                  title="View payment slip receipt"
+                                >
+                                  <ImageIcon size={10} /> Slip Receipt
+                                </button>
+                              )}
                             </div>
                             <div className="text-[11px] text-gray-400 mt-0.5">{pay.notes || 'Payment installment'}</div>
                           </div>
@@ -1705,14 +1985,14 @@ export const VendorManager: React.FC = () => {
                               <div className="flex items-center gap-1">
                                 <button
                                   onClick={() => handleOpenEditPaymentModal(pay)}
-                                  className="p-1 px-2 bg-white/10 hover:bg-white/20 text-cyan-300 rounded-lg text-[10px] font-bold transition"
+                                  className="p-1 px-2 bg-white/10 hover:bg-white/20 text-cyan-300 rounded-lg text-[10px] font-bold transition cursor-pointer"
                                   title={`Edit payment (${remainingMins}m left)`}
                                 >
                                   Edit
                                 </button>
                                 <button
                                   onClick={() => handleDeletePayment(pay.id)}
-                                  className="p-1 px-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-[10px] font-bold transition"
+                                  className="p-1 px-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-[10px] font-bold transition cursor-pointer"
                                   title={`Remove payment (${remainingMins}m left)`}
                                 >
                                   Undo
@@ -1812,6 +2092,141 @@ export const VendorManager: React.FC = () => {
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* Interactive Fullscreen Bill & Receipt Viewer Modal */}
+      {viewingReceipt && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/85 backdrop-blur-lg animate-in fade-in duration-200 p-4">
+          <div className="glass-panel w-full max-w-4xl max-h-[90vh] flex flex-col rounded-3xl border border-white/10 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="flex justify-between items-center px-6 py-4 border-b border-white/10 bg-black/40">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                  <ImageIcon size={20} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">{viewingReceipt.title}</h3>
+                  {viewingReceipt.subtitle && (
+                    <p className="text-xs text-gray-400">{viewingReceipt.subtitle}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Controls: Zoom, Rotate, Download, Print, Close */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setReceiptZoom(prev => Math.max(0.5, prev - 0.25))}
+                  className="p-2 text-gray-400 hover:text-white glass-button rounded-xl cursor-pointer"
+                  title="Zoom Out"
+                >
+                  <ZoomOut size={16} />
+                </button>
+                <span className="text-xs font-mono text-gray-400 px-1">{Math.round(receiptZoom * 100)}%</span>
+                <button
+                  type="button"
+                  onClick={() => setReceiptZoom(prev => Math.min(3, prev + 0.25))}
+                  className="p-2 text-gray-400 hover:text-white glass-button rounded-xl cursor-pointer"
+                  title="Zoom In"
+                >
+                  <ZoomIn size={16} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setReceiptRotation(prev => (prev + 90) % 360)}
+                  className="p-2 text-gray-400 hover:text-white glass-button rounded-xl cursor-pointer ml-1"
+                  title="Rotate Image"
+                >
+                  <RotateCw size={16} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const link = document.createElement('a');
+                    link.href = viewingReceipt.url;
+                    link.download = `receipt_${Date.now()}.jpg`;
+                    link.click();
+                  }}
+                  className="p-2 text-gray-400 hover:text-white glass-button rounded-xl cursor-pointer"
+                  title="Download File"
+                >
+                  <Download size={16} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const printWindow = window.open('', '_blank');
+                    if (printWindow) {
+                      printWindow.document.write(`
+                        <html>
+                          <head>
+                            <title>${viewingReceipt.title}</title>
+                            <style>
+                              body { margin: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #fff; }
+                              img { max-width: 100%; max-height: 100vh; object-fit: contain; }
+                            </style>
+                          </head>
+                          <body>
+                            <img src="${viewingReceipt.url}" onload="window.print();window.close();" />
+                          </body>
+                        </html>
+                      `);
+                      printWindow.document.close();
+                    }
+                  }}
+                  className="p-2 text-gray-400 hover:text-white glass-button rounded-xl cursor-pointer"
+                  title="Print Receipt"
+                >
+                  <Printer size={16} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setViewingReceipt(null);
+                    setReceiptZoom(1);
+                    setReceiptRotation(0);
+                  }}
+                  className="p-2 text-gray-400 hover:text-white glass-button rounded-xl cursor-pointer ml-2"
+                  title="Close Preview"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            {/* Viewer Stage */}
+            <div className="flex-1 overflow-auto p-6 flex items-center justify-center bg-black/60 min-h-[450px]">
+              <div 
+                className="transition-transform duration-200 origin-center flex items-center justify-center max-w-full max-h-full"
+                style={{
+                  transform: `scale(${receiptZoom}) rotate(${receiptRotation}deg)`
+                }}
+              >
+                <img
+                  src={viewingReceipt.url}
+                  alt={viewingReceipt.title}
+                  className="max-h-[65vh] max-w-full rounded-2xl shadow-2xl object-contain border border-white/10"
+                />
+              </div>
+            </div>
+
+            {/* Viewer Bottom Info Bar */}
+            <div className="px-6 py-3 border-t border-white/10 bg-black/40 flex justify-between items-center text-xs text-gray-400">
+              <span>Use zoom and rotate buttons to inspect details of the bill/receipt.</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setViewingReceipt(null);
+                  setReceiptZoom(1);
+                  setReceiptRotation(0);
+                }}
+                className="px-4 py-1.5 glass-button rounded-xl font-bold text-white hover:bg-white/10"
+              >
+                Close Viewer
+              </button>
+            </div>
           </div>
         </div>
       )}
