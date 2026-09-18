@@ -932,6 +932,7 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                   const SizedBox(height: 16),
                   TextField(
                     controller: nameCtrl,
+                    textCapitalization: TextCapitalization.words,
                     style: const TextStyle(color: Colors.white),
                     decoration: const InputDecoration(
                       labelText: 'Vendor / Company Name *',
@@ -1131,6 +1132,7 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                   const SizedBox(height: 16),
                   TextField(
                     controller: nameCtrl,
+                    textCapitalization: TextCapitalization.words,
                     style: const TextStyle(color: Colors.white),
                     decoration: const InputDecoration(
                       labelText: 'Vendor / Company Name *',

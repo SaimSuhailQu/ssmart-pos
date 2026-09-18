@@ -340,12 +340,14 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               const SizedBox(height: 12),
               TextField(
                 controller: descCtrl,
+                textCapitalization: TextCapitalization.sentences,
                 style: const TextStyle(color: Colors.white),
                 decoration: const InputDecoration(labelText: 'Description / Purpose', prefixIcon: Icon(CupertinoIcons.pencil)),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: catCtrl,
+                textCapitalization: TextCapitalization.words,
                 style: const TextStyle(color: Colors.white),
                 decoration: const InputDecoration(labelText: 'Category (e.g. Rent, Utilities, Refreshments)', prefixIcon: Icon(CupertinoIcons.folder)),
               ),

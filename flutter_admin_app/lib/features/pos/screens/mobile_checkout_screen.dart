@@ -99,6 +99,7 @@ class _MobileCheckoutScreenState extends State<MobileCheckoutScreen> {
             children: [
               TextField(
                 controller: nameCtrl,
+                textCapitalization: TextCapitalization.words,
                 style: const TextStyle(color: Colors.white),
                 decoration: const InputDecoration(labelText: 'Item Name / Description'),
               ),
@@ -124,7 +125,11 @@ class _MobileCheckoutScreenState extends State<MobileCheckoutScreen> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryCyan, foregroundColor: Colors.black),
             onPressed: () {
-              final name = nameCtrl.text.trim();
+              final rawName = nameCtrl.text.trim();
+              final name = rawName.replaceAllMapped(
+                RegExp(r'\b[a-z]'),
+                (match) => match.group(0)!.toUpperCase(),
+              );
               final price = double.tryParse(priceCtrl.text.trim()) ?? 0;
               final qty = int.tryParse(qtyCtrl.text.trim()) ?? 1;
 

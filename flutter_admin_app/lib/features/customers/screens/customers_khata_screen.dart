@@ -382,6 +382,7 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
             const SizedBox(height: 16),
             TextField(
               controller: nameCtrl,
+              textCapitalization: TextCapitalization.words,
               style: const TextStyle(color: Colors.white),
               decoration: const InputDecoration(labelText: 'Customer Full Name', prefixIcon: Icon(CupertinoIcons.person)),
             ),
