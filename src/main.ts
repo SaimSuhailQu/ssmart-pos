@@ -11,7 +11,7 @@ import { initDb, getAllProducts, getProductByBarcode, saveSale, getNextSaleId, a
   getAllPurchaseOrders, createPurchaseOrder, receivePurchaseOrder, deletePurchaseOrder,
   addVendorPayment, deleteVendorPayment, updateVendorPayment, deleteVendorOrderEntry, updateVendorOrderEntry,
   getVendorPayments, getVendorOrderEntries, addManualDailyClosingSale } from './db';
-import { printReceipt, printBarcode } from './printer';
+import { printReceipt, printBarcode, printBarcodesBatchA4 } from './printer';
 import { startSyncWorker, syncProductsToCloud, syncCustomersToCloud, syncCustomerKhataToCloud, deleteCustomerKhataEntryFromCloud, clearAllKhataFromCloudAndLocal, syncVendorsToCloud, syncExpensesToCloud, syncSalesToCloud, deleteSaleFromCloud } from './syncEngine';
 import { sendWhatsAppMessage } from './whatsappService';
 import { setupAutoUpdater, checkForUpdatesManual, quitAndInstallUpdate } from './updater';
@@ -200,6 +200,16 @@ ipcMain.handle('print-barcode', async (_event, product, count?: number) => {
     return true;
   } catch (err) {
     console.error('Print barcode error:', err);
+    return false;
+  }
+});
+
+ipcMain.handle('print-barcodes-batch-a4', async (_event, items: Array<{ name: string; barcode: string; price: number | string; count: number }>) => {
+  try {
+    const result = await printBarcodesBatchA4(items);
+    return result;
+  } catch (err) {
+    console.error('Print barcodes batch A4 error:', err);
     return false;
   }
 });

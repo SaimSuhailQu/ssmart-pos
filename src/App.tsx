@@ -15,12 +15,13 @@ import { VendorManager } from './components/VendorManager';
 import { AnalyticsDashboard } from './components/AnalyticsDashboard';
 import { SalesRecordManager } from './components/SalesRecordManager';
 import { ExpenseManager } from './components/ExpenseManager';
+import { BarcodePrintManager } from './components/BarcodePrintManager';
 import logoImg from './assets/ss_mart_logo.png';
 
 const TAX_RATE = 0.0; // Tax removed
 const t = (str: string) => str;
 
-type ViewMode = 'POS' | 'INVENTORY' | 'CUSTOMERS' | 'ANALYTICS' | 'SALES_RECORD' | 'EXPENSES' | 'VENDORS';
+type ViewMode = 'POS' | 'INVENTORY' | 'CUSTOMERS' | 'ANALYTICS' | 'SALES_RECORD' | 'EXPENSES' | 'VENDORS' | 'BARCODE_PRINT';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<{ id: number; name: string; role: string } | null>(null);
@@ -56,7 +57,7 @@ const App: React.FC = () => {
     if (viewMode === 'ANALYTICS' && currentUser.role !== 'Admin') {
       setViewMode('POS');
     }
-    if ((viewMode === 'INVENTORY' || viewMode === 'CUSTOMERS' || viewMode === 'VENDORS') && currentUser.role === 'Cashier') {
+    if ((viewMode === 'INVENTORY' || viewMode === 'CUSTOMERS' || viewMode === 'VENDORS' || viewMode === 'BARCODE_PRINT') && currentUser.role === 'Cashier') {
       setViewMode('POS');
     }
   }, [viewMode, currentUser]);
@@ -576,6 +577,16 @@ const App: React.FC = () => {
             >
               <Truck size={15} /> Vendors & POs
             </button>
+            <button 
+              onClick={() => setViewMode('BARCODE_PRINT')} 
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
+                viewMode === 'BARCODE_PRINT' 
+                  ? 'bg-violet-600 text-white shadow-sm' 
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+              }`}
+            >
+              <Printer size={15} /> Barcode Printer
+            </button>
           </>
         )}
 
@@ -662,6 +673,18 @@ const App: React.FC = () => {
       </div>
     </nav>
   );
+
+  // Render Barcode Print Manager View
+  if (viewMode === 'BARCODE_PRINT') {
+    return (
+      <div className="h-screen w-full flex flex-col font-outfit bg-transparent p-2.5 gap-2 overflow-hidden">
+        <div className="flex-1 overflow-hidden min-h-0 enterprise-card rounded-xl border-slate-800">
+          <BarcodePrintManager />
+        </div>
+        {renderNavbar()}
+      </div>
+    );
+  }
 
   // Render Inventory View
   if (viewMode === 'INVENTORY') {

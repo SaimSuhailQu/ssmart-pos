@@ -27,6 +27,7 @@ contextBridge.exposeInMainWorld('api', {
   deleteProduct: (id: number) => ipcRenderer.invoke('delete-product', id),
   printReceipt: (data: { items: CartItem[]; paymentData: PaymentData; saleId?: number; cashierName?: string }) => ipcRenderer.invoke('print-receipt', data),
   printBarcode: (product: Product, count?: number) => ipcRenderer.invoke('print-barcode', product, count),
+  printBarcodesBatchA4: (items: Array<{ name: string; barcode: string; price: number | string; count: number }>) => ipcRenderer.invoke('print-barcodes-batch-a4', items),
   getAllCustomers: () => ipcRenderer.invoke('get-all-customers'),
   getCustomerByPhone: (phone: string) => ipcRenderer.invoke('get-customer-by-phone', phone),
   addCustomer: (customer: Omit<Customer, 'id' | 'points' | 'balance'> & { points?: number; balance?: number }) => ipcRenderer.invoke('add-customer', customer),

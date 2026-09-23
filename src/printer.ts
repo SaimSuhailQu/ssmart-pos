@@ -602,3 +602,300 @@ export function printBarcode(
 
   return printViaWindowsDriver(barcodeHtml);
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// A4 BATCH BARCODE PRINTING via HP LaserJet P2015
+// ═══════════════════════════════════════════════════════════════════════════
+
+let cachedLaserJetPrinter: string | null = null;
+let lastLaserJetCheckTime = 0;
+
+async function getLaserJetPrinterName(win: BrowserWindow): Promise<string> {
+  const now = Date.now();
+  if (cachedLaserJetPrinter && (now - lastLaserJetCheckTime < 10000)) {
+    return cachedLaserJetPrinter;
+  }
+
+  try {
+    const printers = await win.webContents.getPrintersAsync();
+    const target =
+      printers.find(p => p.name.toLowerCase().includes('p2015')) ||
+      printers.find(p => p.name.toLowerCase().includes('laserjet')) ||
+      printers.find(p => p.name.toLowerCase().includes('laser')) ||
+      printers.find(p => p.name.toLowerCase().includes('hp')) ||
+      printers[0];
+
+    cachedLaserJetPrinter = target ? target.name : 'HP LaserJet P2015';
+    lastLaserJetCheckTime = now;
+    return cachedLaserJetPrinter;
+  } catch {
+    return cachedLaserJetPrinter || 'HP LaserJet P2015';
+  }
+}
+
+async function printViaLaserJet(htmlContent: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    try {
+      const printWin = new BrowserWindow({
+        show: false,
+        width: 800,
+        height: 1100,
+        webPreferences: {
+          nodeIntegration: false,
+          contextIsolation: true,
+          offscreen: true
+        }
+      });
+
+      let isCleanedUp = false;
+      const cleanup = (success: boolean) => {
+        if (isCleanedUp) return;
+        isCleanedUp = true;
+        clearTimeout(safetyTimer);
+        try {
+          if (!printWin.isDestroyed()) {
+            printWin.destroy();
+          }
+        } catch {
+          // Already destroyed
+        }
+        resolve(success);
+      };
+
+      // 20-second safety timeout for larger A4 print jobs
+      const safetyTimer = setTimeout(() => {
+        console.warn('LaserJet print window operation timed out (20s). Releasing resources.');
+        cleanup(false);
+      }, 20000);
+
+      printWin.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`);
+
+      printWin.webContents.once('did-finish-load', async () => {
+        try {
+          const deviceName = await getLaserJetPrinterName(printWin);
+
+          printWin.webContents.print({
+            silent: true,
+            printBackground: true,
+            deviceName: deviceName,
+            color: false,
+            margins: {
+              marginType: 'custom',
+              top: 0.3,
+              bottom: 0.3,
+              left: 0.3,
+              right: 0.3
+            },
+            pageSize: 'A4'
+          }, (success) => {
+            cleanup(success);
+          });
+        } catch (err) {
+          console.warn('LaserJet silent print error:', err);
+          cleanup(false);
+        }
+      });
+    } catch (e) {
+      console.warn('Could not spawn LaserJet print window:', e);
+      resolve(false);
+    }
+  });
+}
+
+export interface BarcodeBatchItem {
+  name: string;
+  barcode: string;
+  price: number | string;
+  count: number;
+}
+
+export function printBarcodesBatchA4(
+  items: BarcodeBatchItem[]
+): Promise<boolean> {
+  // Flatten all labels
+  const allLabels: { name: string; barcode: string; price: string; svg: string }[] = [];
+
+  for (const item of items) {
+    const cleanBarcode = String(item.barcode || '').trim();
+    if (!cleanBarcode) continue;
+    const productName = item.name || 'Product';
+    const price = typeof item.price === 'number' ? item.price.toFixed(2) : String(item.price || '0.00');
+    const count = Math.max(1, Math.min(item.count || 1, 500));
+    const svg = generateCode128Svg(cleanBarcode);
+
+    for (let i = 0; i < count; i++) {
+      allLabels.push({ name: productName, barcode: cleanBarcode, price, svg });
+    }
+  }
+
+  if (allLabels.length === 0) {
+    return Promise.resolve(false);
+  }
+
+  // A4 grid: 4 columns × 7 rows = 28 labels per page
+  const COLS = 4;
+  const ROWS = 7;
+  const PER_PAGE = COLS * ROWS;
+
+  const pages: string[] = [];
+  for (let pageStart = 0; pageStart < allLabels.length; pageStart += PER_PAGE) {
+    const pageLabels = allLabels.slice(pageStart, pageStart + PER_PAGE);
+    const rows: string[] = [];
+
+    for (let r = 0; r < ROWS; r++) {
+      const cells: string[] = [];
+      for (let c = 0; c < COLS; c++) {
+        const idx = r * COLS + c;
+        if (idx < pageLabels.length) {
+          const label = pageLabels[idx];
+          cells.push(`
+            <td class="label-cell">
+              <div class="barcode-label">
+                <div class="logo-container">
+                  <svg viewBox="0 0 200 150" width="18" height="12" style="display: block; margin: 0 auto;">
+                    <path d="M 75 25 L 35 25 L 35 75 L 105 75 L 105 110 L 65 110" fill="none" stroke="#000" stroke-width="12" stroke-linecap="square" stroke-linejoin="miter" />
+                    <path d="M 125 125 L 165 125 L 165 75 L 95 75 L 95 40 L 135 40" fill="none" stroke="#000" stroke-width="12" stroke-linecap="square" stroke-linejoin="miter" />
+                    <path d="M 55 10 L 20 10 L 20 90 L 120 90 L 120 125 L 50 125" fill="none" stroke="#000" stroke-width="6" stroke-linecap="square" stroke-linejoin="miter" />
+                    <path d="M 145 140 L 180 140 L 180 60 L 80 60 L 80 25 L 150 25" fill="none" stroke="#000" stroke-width="6" stroke-linecap="square" stroke-linejoin="miter" />
+                  </svg>
+                </div>
+                <div class="store-header">SS MART</div>
+                <div class="product-title">${label.name}</div>
+                <div class="price-tag">Rs. ${label.price}</div>
+                <div class="barcode-box">
+                  ${label.svg}
+                </div>
+              </div>
+            </td>
+          `);
+        } else {
+          cells.push('<td class="label-cell"></td>');
+        }
+      }
+      rows.push(`<tr>${cells.join('')}</tr>`);
+    }
+
+    pages.push(`
+      <div class="a4-page">
+        <table class="label-grid">
+          ${rows.join('')}
+        </table>
+      </div>
+    `);
+  }
+
+  const batchHtml = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        @page {
+          size: A4;
+          margin: 6mm 4mm;
+        }
+        html, body {
+          width: 100%;
+          margin: 0 !important;
+          padding: 0 !important;
+          background: #fff;
+          color: #000;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+        }
+        * {
+          box-sizing: border-box;
+          margin: 0;
+          padding: 0;
+        }
+        .a4-page {
+          width: 100%;
+          page-break-after: always;
+          break-after: page;
+        }
+        .a4-page:last-child {
+          page-break-after: avoid;
+          break-after: avoid;
+        }
+        .label-grid {
+          width: 100%;
+          border-collapse: collapse;
+          table-layout: fixed;
+        }
+        .label-cell {
+          width: 25%;
+          height: 38mm;
+          padding: 1mm;
+          vertical-align: top;
+          border: 0.5px dashed #ccc;
+        }
+        .barcode-label {
+          width: 100%;
+          height: 100%;
+          text-align: center;
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 0.5mm;
+        }
+        .logo-container {
+          width: 100%;
+          text-align: center;
+          margin: 0 auto;
+          padding: 0;
+          line-height: 0;
+        }
+        .logo-container svg {
+          display: block;
+          margin: 0 auto;
+        }
+        .store-header {
+          font-size: 6px;
+          font-weight: 800;
+          letter-spacing: 0.2px;
+          text-transform: uppercase;
+          margin: 0.5px 0 0 0;
+          line-height: 1.1;
+        }
+        .product-title {
+          font-size: 7px;
+          font-weight: 700;
+          line-height: 1.1;
+          max-height: 2.2em;
+          overflow: hidden;
+          margin: 0.5px 0 0 0;
+          word-break: break-word;
+        }
+        .price-tag {
+          font-size: 8.5px;
+          font-weight: 900;
+          margin: 0.5px 0 0.5px 0;
+          line-height: 1.1;
+        }
+        .barcode-box {
+          margin: 0 auto;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          width: 95%;
+          height: 13mm;
+          background: #fff;
+          padding: 0;
+        }
+        .barcode-box svg {
+          width: 100%;
+          height: 100%;
+          display: block;
+        }
+      </style>
+    </head>
+    <body>
+      ${pages.join('')}
+    </body>
+    </html>
+  `;
+
+  return printViaLaserJet(batchHtml);
+}

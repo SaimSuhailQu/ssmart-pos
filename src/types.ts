@@ -247,6 +247,7 @@ declare global {
       deleteProduct: (id: number) => Promise<boolean>;
       printReceipt: (data: { items: CartItem[]; paymentData: PaymentData; saleId?: number; cashierName?: string }) => Promise<boolean>;
       printBarcode: (product: Product, count?: number) => Promise<boolean>;
+      printBarcodesBatchA4: (items: Array<{ name: string; barcode: string; price: number | string; count: number }>) => Promise<boolean>;
       
       // Sales History & Returns
       getAllSales: () => Promise<Sale[]>;
