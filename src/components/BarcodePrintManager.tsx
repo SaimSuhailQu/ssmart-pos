@@ -77,7 +77,7 @@ export const BarcodePrintManager: React.FC = () => {
 
   // Total labels and pages
   const totalLabels = printQueue.reduce((sum, item) => sum + item.count, 0);
-  const totalPages = Math.ceil(totalLabels / 28);
+  const totalPages = Math.ceil(totalLabels / 100);
 
   // Check if product is already in queue
   const isInQueue = (productId: number) => printQueue.some(item => item.product.id === productId);
@@ -121,7 +121,7 @@ export const BarcodePrintManager: React.FC = () => {
           </div>
           <div>
             <h1 className="text-base font-bold text-white tracking-tight">A4 Barcode Printer</h1>
-            <p className="text-[11px] text-slate-400 font-medium">HP LaserJet P2015 · 28 labels per A4 page</p>
+            <p className="text-[11px] text-slate-400 font-medium">HP LaserJet P2015 · 100 labels per A4 page</p>
           </div>
         </div>
 

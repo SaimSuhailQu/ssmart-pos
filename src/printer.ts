@@ -732,9 +732,9 @@ export function printBarcodesBatchA4(
     return Promise.resolve(false);
   }
 
-  // A4 grid: 4 columns × 7 rows = 28 labels per page
-  const COLS = 4;
-  const ROWS = 7;
+  // A4 grid: 10 columns × 10 rows = 100 labels per page
+  const COLS = 10;
+  const ROWS = 10;
   const PER_PAGE = COLS * ROWS;
 
   const pages: string[] = [];
@@ -751,17 +751,7 @@ export function printBarcodesBatchA4(
           cells.push(`
             <td class="label-cell">
               <div class="barcode-label">
-                <div class="logo-container">
-                  <svg viewBox="0 0 200 150" width="18" height="12" style="display: block; margin: 0 auto;">
-                    <path d="M 75 25 L 35 25 L 35 75 L 105 75 L 105 110 L 65 110" fill="none" stroke="#000" stroke-width="12" stroke-linecap="square" stroke-linejoin="miter" />
-                    <path d="M 125 125 L 165 125 L 165 75 L 95 75 L 95 40 L 135 40" fill="none" stroke="#000" stroke-width="12" stroke-linecap="square" stroke-linejoin="miter" />
-                    <path d="M 55 10 L 20 10 L 20 90 L 120 90 L 120 125 L 50 125" fill="none" stroke="#000" stroke-width="6" stroke-linecap="square" stroke-linejoin="miter" />
-                    <path d="M 145 140 L 180 140 L 180 60 L 80 60 L 80 25 L 150 25" fill="none" stroke="#000" stroke-width="6" stroke-linecap="square" stroke-linejoin="miter" />
-                  </svg>
-                </div>
-                <div class="store-header">SS MART</div>
                 <div class="product-title">${label.name}</div>
-                <div class="price-tag">Rs. ${label.price}</div>
                 <div class="barcode-box">
                   ${label.svg}
                 </div>
@@ -792,7 +782,7 @@ export function printBarcodesBatchA4(
       <style>
         @page {
           size: A4;
-          margin: 6mm 4mm;
+          margin: 3mm 2mm;
         }
         html, body {
           width: 100%;
@@ -800,7 +790,7 @@ export function printBarcodesBatchA4(
           padding: 0 !important;
           background: #fff;
           color: #000;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+          font-family: Arial, Helvetica, sans-serif;
         }
         * {
           box-sizing: border-box;
@@ -822,11 +812,11 @@ export function printBarcodesBatchA4(
           table-layout: fixed;
         }
         .label-cell {
-          width: 25%;
-          height: 38mm;
-          padding: 1mm;
+          width: 10%;
+          height: 28.5mm;
+          padding: 0.3mm;
           vertical-align: top;
-          border: 0.5px dashed #ccc;
+          border: 0.3px dashed #bbb;
         }
         .barcode-label {
           width: 100%;
@@ -837,50 +827,26 @@ export function printBarcodesBatchA4(
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          padding: 0.5mm;
-        }
-        .logo-container {
-          width: 100%;
-          text-align: center;
-          margin: 0 auto;
-          padding: 0;
-          line-height: 0;
-        }
-        .logo-container svg {
-          display: block;
-          margin: 0 auto;
-        }
-        .store-header {
-          font-size: 6px;
-          font-weight: 800;
-          letter-spacing: 0.2px;
-          text-transform: uppercase;
-          margin: 0.5px 0 0 0;
-          line-height: 1.1;
+          padding: 0.2mm;
         }
         .product-title {
-          font-size: 7px;
-          font-weight: 700;
-          line-height: 1.1;
-          max-height: 2.2em;
+          font-size: 6.5px;
+          font-weight: 800;
+          line-height: 1.15;
+          max-height: 2.3em;
           overflow: hidden;
-          margin: 0.5px 0 0 0;
-          word-break: break-word;
-        }
-        .price-tag {
-          font-size: 8.5px;
-          font-weight: 900;
-          margin: 0.5px 0 0.5px 0;
-          line-height: 1.1;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+          width: 100%;
+          margin: 0 0 0.5px 0;
         }
         .barcode-box {
           margin: 0 auto;
           display: flex;
-          flex-direction: column;
           align-items: center;
           justify-content: center;
-          width: 95%;
-          height: 13mm;
+          width: 100%;
+          height: 19mm;
           background: #fff;
           padding: 0;
         }
