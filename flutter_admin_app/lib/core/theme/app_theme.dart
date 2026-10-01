@@ -5,26 +5,26 @@ import 'package:google_fonts/google_fonts.dart';
 /// Sleek Monochrome Dark Theme for the POS Admin App
 /// Matches the Electron POS application's modern visual system
 class AppTheme {
-  // Color Palette - Matches POS Desktop App Frosted Glass Aesthetics
-  static const Color primaryCyan = Color(0xFFE5E5E5); // Sleek Silver/White
-  static const Color secondaryPurple = Color(0xFFA3A3A3); // Medium Slate Grey
-  static const Color primaryTeal = Color(0xFF737373); // Muted Slate
+  // Color Palette — Professional indigo accent system on deep obsidian glass
+  static const Color primaryCyan = Color(0xFF818CF8); // Refined Indigo
+  static const Color secondaryPurple = Color(0xFFA5B4FC); // Soft Periwinkle
+  static const Color primaryTeal = Color(0xFF94A3B8); // Slate Steel
   static const Color accentNeon = Color(0xFFFFFFFF);
 
   // Backward compatibility mappings for older theme references
-  static const Color primaryBlue = Color(0xFFE5E5E5);
-  static const Color secondaryBlue = Color(0xFFA3A3A3);
+  static const Color primaryBlue = Color(0xFF818CF8); // Matches primary accent
+  static const Color secondaryBlue = Color(0xFFA5B4FC);
   static const Color darkBlue = Color(0xFF1E2230);
 
   static const Color successGreen = Color(0xFF34D399); // Emerald Green
   static const Color warningOrange = Color(0xFFF59E0B);
   static const Color errorRed = Color(0xFFEF4444);
 
-  static const Color backgroundLight = Color(0xFF0B0C10); // Deep Radial Obsidian
-  static const Color cardBackground = Color(0xFF141722); // Base Glassmorphic Panel
-  static const Color glassSurface = Color(0x99141722); // 60% Frosted Panel
+  static const Color backgroundLight = Color(0xFF0A0C12); // Deep Obsidian
+  static const Color cardBackground = Color(0xFF12151F); // Base Glassmorphic Panel
+  static const Color glassSurface = Color(0x9912151F); // 60% Frosted Panel
   static const Color glassSurfaceLight = Color(0x1FFFFFFF); // 12% White Frost
-  static const Color surfaceDark = Color(0xFF1A1E2B); // Modal & Dialog Surface
+  static const Color surfaceDark = Color(0xFF171B26); // Modal & Dialog Surface
   static const Color borderColor = Color(0x1AFFFFFF); // 10% White Border
   static const Color borderHighlight = Color(0x33FFFFFF); // 20% White Top Highlight
   static const Color glassBorder = Color(0x2EFFFFFF); // 18% Frosted White Border
@@ -49,7 +49,7 @@ class AppTheme {
 
   static TextStyle get headlineMedium => GoogleFonts.inter(
     fontSize: 22,
-    fontWeight: FontWeight.w600,
+    fontWeight: FontWeight.w700,
     color: textPrimary,
   );
 
@@ -118,7 +118,7 @@ class AppTheme {
         error: errorRed,
         surface: cardBackground,
         onPrimary: Colors.black,
-        onSecondary: Colors.white,
+        onSecondary: Colors.black,
         onSurface: textPrimary,
       ),
 
@@ -135,10 +135,41 @@ class AppTheme {
         color: cardBackground,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           side: const BorderSide(color: borderColor, width: 0.5),
         ),
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      ),
+
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: surfaceDark,
+        contentTextStyle: bodyMedium.copyWith(color: textPrimary),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+          side: const BorderSide(color: borderColor),
+        ),
+        elevation: 6,
+      ),
+
+      dialogTheme: DialogThemeData(
+        backgroundColor: surfaceDark,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        titleTextStyle: titleLarge,
+        contentTextStyle: bodyMedium,
+      ),
+
+      dividerTheme: const DividerThemeData(
+        color: borderColor,
+        thickness: 0.5,
+        space: 1,
+      ),
+
+      progressIndicatorTheme: const ProgressIndicatorThemeData(
+        color: primaryCyan,
+        linearTrackColor: borderColor,
       ),
 
       textTheme: TextTheme(
@@ -199,7 +230,7 @@ class AppTheme {
         secondaryLabelStyle: bodyMedium.copyWith(color: textPrimary),
         brightness: Brightness.dark,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(20),
           side: const BorderSide(color: borderColor, width: 0.5),
         ),
       ),

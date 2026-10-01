@@ -4,6 +4,7 @@ import 'package:ssmart_pos_admin/core/widgets/glass_card.dart';
 
 /// A card widget displaying a single metric with icon, label, and value,
 /// styled with frosted glassmorphic theme and defensive overflow protection.
+/// All content is center-aligned for a balanced, professional dashboard look.
 class MetricCard extends StatelessWidget {
   final String label;
   final String value;
@@ -29,89 +30,97 @@ class MetricCard extends StatelessWidget {
     return GlassCard(
       onTap: onTap,
       borderRadius: AppTheme.radiusM,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
       borderColor: effectiveColor.withValues(alpha: 0.25),
       enableGlow: false,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Stack(
         children: [
-          Row(
-            children: [
-              // Icon Container
-              Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  color: effectiveColor.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(AppTheme.radiusS),
-                  border: Border.all(
-                    color: effectiveColor.withValues(alpha: 0.2),
-                    width: 0.8,
-                  ),
-                ),
-                child: Icon(
-                  icon,
-                  color: effectiveColor,
-                  size: 18,
-                ),
-              ),
-              const Spacer(),
-
-              // Optional tap indicator
-              if (onTap != null)
-                const Icon(
-                  CupertinoIcons.chevron_right,
-                  size: 14,
-                  color: AppTheme.textTertiary,
-                ),
-            ],
-          ),
-          const SizedBox(height: 4),
-
-          // Label
-          Text(
-            label,
-            style: AppTheme.bodySmall.copyWith(
-              fontSize: 11,
-              color: AppTheme.textSecondary,
-              fontWeight: FontWeight.w500,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 2),
-
-          // Value with robust scaling
-          Flexible(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                value,
-                style: AppTheme.headlineMedium.copyWith(
-                  color: effectiveColor,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 0.2,
-                ),
-                maxLines: 1,
-              ),
-            ),
-          ),
-
-          // Subtitle (optional)
-          if (subtitle != null) ...[
-            const SizedBox(height: 1),
-            Text(
-              subtitle!,
-              style: AppTheme.labelSmall.copyWith(
-                fontSize: 10,
+          // Optional tap indicator, pinned to the top-right corner
+          if (onTap != null)
+            const Positioned(
+              top: 0,
+              right: 0,
+              child: Icon(
+                CupertinoIcons.chevron_right,
+                size: 13,
                 color: AppTheme.textTertiary,
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
             ),
-          ],
+
+          // Centered metric content
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Icon badge
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: effectiveColor.withValues(alpha: 0.14),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: effectiveColor.withValues(alpha: 0.25),
+                      width: 0.8,
+                    ),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: effectiveColor,
+                    size: 18,
+                  ),
+                ),
+                const SizedBox(height: 8),
+
+                // Label
+                Text(
+                  label,
+                  style: AppTheme.bodySmall.copyWith(
+                    fontSize: 11,
+                    color: AppTheme.textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 3),
+
+                // Value with robust scaling, centered
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.center,
+                  child: Text(
+                    value,
+                    style: AppTheme.headlineMedium.copyWith(
+                      color: effectiveColor,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.2,
+                    ),
+                    maxLines: 1,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+
+                // Subtitle (optional)
+                if (subtitle != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle!,
+                    style: AppTheme.labelSmall.copyWith(
+                      fontSize: 10,
+                      color: AppTheme.textTertiary,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -127,34 +136,35 @@ class MetricCardSkeleton extends StatelessWidget {
     return GlassCard(
       padding: const EdgeInsets.all(AppTheme.spacingM),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
                   color: AppTheme.borderColor,
-                  borderRadius: BorderRadius.circular(AppTheme.radiusS),
+                  shape: BoxShape.circle,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: AppTheme.spacingM),
+          const SizedBox(height: 10),
           Container(
             width: 80,
-            height: 12,
+            height: 10,
             decoration: BoxDecoration(
               color: AppTheme.borderColor,
               borderRadius: BorderRadius.circular(4),
             ),
           ),
-          const SizedBox(height: AppTheme.spacingXS),
+          const SizedBox(height: 6),
           Container(
-            width: 120,
-            height: 24,
+            width: 110,
+            height: 16,
             decoration: BoxDecoration(
               color: AppTheme.borderColor,
               borderRadius: BorderRadius.circular(4),

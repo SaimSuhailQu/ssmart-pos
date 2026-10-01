@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
 import 'package:ssmart_pos_admin/core/utils/date_utils.dart';
 import 'package:ssmart_pos_admin/core/utils/whatsapp_helper.dart';
+import 'package:ssmart_pos_admin/core/utils/statement_pdf_helper.dart';
 import 'package:ssmart_pos_admin/models/vendor.dart';
 import 'package:ssmart_pos_admin/services/firebase_service.dart';
 
@@ -825,6 +826,63 @@ class VendorPODetailsSheet extends StatelessWidget {
                               tooltip: 'Send PO via WhatsApp',
                               onPressed: () => WhatsAppHelper.sendVendorPO(po: po),
                             ),
+                          const SizedBox(width: 4),
+                          IconButton.filled(
+                            style: IconButton.styleFrom(backgroundColor: Colors.purpleAccent),
+                            icon: const Icon(CupertinoIcons.arrow_up_doc_fill, color: Colors.white, size: 20),
+                            tooltip: 'Export Account PDF & Share (WhatsApp, Email…)',
+                            onPressed: () async {
+                              try {
+                                final paymentRows = <Map<String, String>>[];
+                                for (final p in po.payments) {
+                                  try {
+                                    final m = Map<String, dynamic>.from(p as Map);
+                                    final double amt = (m['amount'] is num)
+                                        ? (m['amount'] as num).toDouble()
+                                        : (double.tryParse(m['amount']?.toString() ?? '') ?? 0.0);
+                                    paymentRows.add({
+                                      'date': m['timestamp']?.toString() ?? '',
+                                      'method': m['payment_method']?.toString() ?? 'Cash',
+                                      'notes': (m['notes']?.toString() ?? '').isEmpty ? '-' : m['notes'].toString(),
+                                      'amount': amt.toStringAsFixed(0),
+                                    });
+                                  } catch (_) {}
+                                }
+                                final itemRows = po.items.map((i) {
+                                  final m = Map<String, dynamic>.from(i as Map);
+                                  final int qty = (m['qty'] is num) ? (m['qty'] as num).toInt() : (int.tryParse(m['qty']?.toString() ?? '') ?? 1);
+                                  final double cost = (m['cost_price'] is num) ? (m['cost_price'] as num).toDouble() : (double.tryParse(m['cost_price']?.toString() ?? '') ?? 0.0);
+                                  return <String, String>{
+                                    'name': (m['product_name']?.toString() ?? m['name']?.toString() ?? 'Item'),
+                                    'qty': '$qty',
+                                    'unitCost': 'PKR ${cost.toStringAsFixed(0)}',
+                                    'total': 'PKR ${(qty * cost).toStringAsFixed(0)}',
+                                  };
+                                }).toList();
+
+                                await StatementPdfHelper.shareVendorStatement(
+                                  vendorName: po.vendorName,
+                                  phone: po.phone,
+                                  poNumber: po.id,
+                                  poStatus: po.status,
+                                  totalBilled: po.totalCost,
+                                  totalPaid: po.paidAmount,
+                                  balanceDue: po.balanceDue,
+                                  items: itemRows,
+                                  payments: paymentRows,
+                                );
+                              } catch (err) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Could not generate PDF: $err'),
+                                      backgroundColor: AppTheme.errorRed,
+                                    ),
+                                  );
+                                }
+                              }
+                            },
+                          ),
                           const SizedBox(width: 8),
                           IconButton.filled(
                             style: IconButton.styleFrom(backgroundColor: AppTheme.primaryTeal),

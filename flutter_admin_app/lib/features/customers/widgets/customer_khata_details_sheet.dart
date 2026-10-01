@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
 import 'package:ssmart_pos_admin/core/utils/date_utils.dart';
 import 'package:ssmart_pos_admin/core/utils/whatsapp_helper.dart';
+import 'package:ssmart_pos_admin/core/utils/statement_pdf_helper.dart';
 import 'package:ssmart_pos_admin/models/customer.dart';
 import 'package:ssmart_pos_admin/services/firebase_service.dart';
 
@@ -184,6 +185,31 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                                       customer: customer.copyWith(balance: displayBalance),
                                     ),
                                   ),
+                                const SizedBox(width: 4),
+                                IconButton.filled(
+                                  style: IconButton.styleFrom(backgroundColor: AppTheme.primaryCyan),
+                                  icon: const Icon(CupertinoIcons.arrow_up_doc_fill, color: Colors.black, size: 20),
+                                  tooltip: 'Export PDF & Share (WhatsApp, Email…)',
+                                  onPressed: () async {
+                                    try {
+                                      await StatementPdfHelper.shareCustomerKhata(
+                                        customerName: customer.name,
+                                        phone: customer.phone,
+                                        balance: displayBalance,
+                                        entries: entries,
+                                      );
+                                    } catch (err) {
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text('Could not generate PDF: $err'),
+                                            backgroundColor: AppTheme.errorRed,
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  },
+                                ),
                                 const SizedBox(width: 8),
                                 IconButton.filled(
                                   style: IconButton.styleFrom(backgroundColor: Colors.amber.shade700),

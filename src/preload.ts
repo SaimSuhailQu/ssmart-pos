@@ -15,6 +15,10 @@ import {
 } from './types';
 
 contextBridge.exposeInMainWorld('api', {
+  // Licensing
+  getLicenseState: () => ipcRenderer.invoke('get-license-state'),
+  getDeviceFingerprint: () => ipcRenderer.invoke('get-device-fingerprint'),
+
   getAllProducts: () => ipcRenderer.invoke('get-all-products'),
   getProduct: (barcode: string) => ipcRenderer.invoke('get-product', barcode),
   getNextSaleId: () => ipcRenderer.invoke('get-next-sale-id'),
@@ -95,6 +99,15 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.on('updater-status', handler);
     return () => {
       ipcRenderer.removeListener('updater-status', handler);
+    };
+  },
+
+  // License enforcement push from main process (remote deactivation)
+  onLicenseRevoked: (callback: () => void) => {
+    const handler = () => callback();
+    ipcRenderer.on('license-revoked', handler);
+    return () => {
+      ipcRenderer.removeListener('license-revoked', handler);
     };
   }
 });

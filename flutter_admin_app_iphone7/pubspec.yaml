@@ -34,6 +34,13 @@ dependencies:
   # Loading indicators
   shimmer: ^3.0.0
 
+  # PDF statements & sharing
+  pdf: ^3.11.1
+  printing: ^5.13.3
+  share_plus: ^10.1.2
+  path_provider: ^2.1.4
+  device_info_plus: ^11.2.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

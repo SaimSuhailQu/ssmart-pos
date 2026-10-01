@@ -16,6 +16,7 @@ import { AnalyticsDashboard } from './components/AnalyticsDashboard';
 import { SalesRecordManager } from './components/SalesRecordManager';
 import { ExpenseManager } from './components/ExpenseManager';
 import { BarcodePrintManager } from './components/BarcodePrintManager';
+import { LicenseGate } from './components/LicenseGate';
 import logoImg from './assets/ss_mart_logo.png';
 
 const TAX_RATE = 0.0; // Tax removed
@@ -23,7 +24,7 @@ const t = (str: string) => str;
 
 type ViewMode = 'POS' | 'INVENTORY' | 'CUSTOMERS' | 'ANALYTICS' | 'SALES_RECORD' | 'EXPENSES' | 'VENDORS' | 'BARCODE_PRINT';
 
-const App: React.FC = () => {
+const AppContent: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<{ id: number; name: string; role: string } | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('POS');
   
@@ -1086,5 +1087,12 @@ const App: React.FC = () => {
     </div>
   );
 };
+
+/** App wrapped in the device-locked licensing gate (trial / activation / revocation). */
+const App: React.FC = () => (
+  <LicenseGate>
+    <AppContent />
+  </LicenseGate>
+);
 
 export default App;

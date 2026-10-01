@@ -15,6 +15,7 @@ import { printReceipt, printBarcode, printBarcodesBatchA4 } from './printer';
 import { startSyncWorker, syncProductsToCloud, syncCustomersToCloud, syncCustomerKhataToCloud, deleteCustomerKhataEntryFromCloud, clearAllKhataFromCloudAndLocal, syncVendorsToCloud, syncExpensesToCloud, syncSalesToCloud, deleteSaleFromCloud } from './syncEngine';
 import { sendWhatsAppMessage } from './whatsappService';
 import { setupAutoUpdater, checkForUpdatesManual, quitAndInstallUpdate } from './updater';
+import { checkLicense, computeFingerprint, scheduleRevalidation, shutdownLicensing, LicenseState } from './licensing';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
@@ -48,6 +49,19 @@ app.commandLine.appendSwitch('disable-background-timer-throttling');
 
 let mainWindow: BrowserWindow | null = null;
 
+// Result of the startup license check; sent to the renderer once it loads.
+let initialLicenseState: LicenseState | null = null;
+let licenseBlocked = false;
+
+function sendLicenseState(): void {
+  if (mainWindow && !mainWindow.isDestroyed() && initialLicenseState) {
+    mainWindow.webContents.send('license-state', initialLicenseState);
+    if (licenseBlocked) {
+      mainWindow.webContents.send('license-revoked');
+    }
+  }
+}
+
 const createWindow = () => {
   const iconPath = process.platform === 'win32'
     ? path.join(__dirname, '../../assets/icon.ico')
@@ -78,6 +92,11 @@ const createWindow = () => {
     mainWindow.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`));
   }
 
+  // Push the license decision to the renderer as soon as it is listening.
+  mainWindow.webContents.on('did-finish-load', () => {
+    sendLicenseState();
+  });
+
   // Open the DevTools in development if needed manually with Ctrl+Shift+I
   // if (process.env.NODE_ENV === 'development') {
   //   mainWindow.webContents.openDevTools();
@@ -99,7 +118,36 @@ const createWindow = () => {
 app.on('ready', () => {
   // Initialize SQLite
   initDb();
-  
+
+  // Device-locked licensing check (blocks the UI when expired/revoked)
+  checkLicense()
+    .then((state) => {
+      initialLicenseState = state;
+      licenseBlocked = state.status === 'expired';
+      sendLicenseState();
+      scheduleRevalidation((next) => {
+        initialLicenseState = next;
+        const nowBlocked = next.status === 'expired';
+        if (nowBlocked && !licenseBlocked && mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('license-revoked');
+        }
+        licenseBlocked = nowBlocked;
+      });
+    })
+    .catch((err) => {
+      console.warn('[Licensing] check failed, continuing in trial/offline mode:', err);
+      initialLicenseState = {
+        status: 'trial',
+        mode: 'trial',
+        fingerprint: 'unknown',
+        platform: process.platform,
+        checkedAt: new Date().toISOString(),
+        error: 'check_failed',
+      };
+      licenseBlocked = false;
+      sendLicenseState();
+    });
+
   createWindow();
 
   // Focus the existing window when a second launch is attempted
@@ -492,4 +540,17 @@ ipcMain.handle('check-for-updates', () => {
 
 ipcMain.handle('quit-and-install-update', () => {
   quitAndInstallUpdate();
+});
+
+// --- Licensing IPC ---
+ipcMain.handle('get-license-state', () => {
+  return initialLicenseState;
+});
+
+ipcMain.handle('get-device-fingerprint', () => {
+  return computeFingerprint();
+});
+
+app.on('will-quit', () => {
+  shutdownLicensing().catch(() => undefined);
 });

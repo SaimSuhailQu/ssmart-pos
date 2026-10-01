@@ -1,3 +1,17 @@
+export interface LicenseState {
+  status: 'licensed' | 'trial' | 'expired';
+  mode: 'licensed' | 'trial' | 'expired';
+  licensedTo?: string;
+  licenseKey?: string;
+  expiresAt?: string;
+  daysRemaining?: number;
+  fingerprint: string;
+  platform: string;
+  checkedAt: string;
+  lastValidated?: string;
+  error?: string;
+}
+
 export interface Expense {
   id: number;
   amount: number;
@@ -311,6 +325,11 @@ declare global {
       checkForUpdates: () => Promise<{ success: boolean; message?: string; error?: string }>;
       quitAndInstallUpdate: () => Promise<void>;
       onUpdaterStatus: (callback: (data: UpdaterStatusData) => void) => () => void;
+
+      // Licensing (device-locked activation)
+      getLicenseState: () => Promise<LicenseState>;
+      getDeviceFingerprint: () => Promise<string>;
+      onLicenseRevoked: (callback: () => void) => () => void;
     };
   }
 }

@@ -101,14 +101,16 @@ class _StoreOpsStripState extends State<StoreOpsStrip> {
             isCompact: isCompact,
             child: hasAlerts
                 ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           _badge('${outOfStock.length}', AppTheme.errorRed),
                           const SizedBox(width: 6),
                           _badge('${lowStock.length}', AppTheme.warningOrange),
-                          const Spacer(),
+                          const SizedBox(width: 6),
                           const Icon(
                             CupertinoIcons.exclamationmark_triangle_fill,
                             size: 13,
@@ -125,11 +127,13 @@ class _StoreOpsStripState extends State<StoreOpsStrip> {
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
                       ),
                     ],
                   )
                 : Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       const Icon(
                         CupertinoIcons.checkmark_seal_fill,
@@ -154,7 +158,8 @@ class _StoreOpsStripState extends State<StoreOpsStrip> {
             kind: _OpsCardKind.expenses,
             isCompact: isCompact,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const Icon(
                   CupertinoIcons.money_dollar_circle_fill,
@@ -164,7 +169,7 @@ class _StoreOpsStripState extends State<StoreOpsStrip> {
                 const SizedBox(height: 6),
                 FittedBox(
                   fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
+                  alignment: Alignment.center,
                   child: Text(
                     'PKR ${todaysExpenseTotal.toStringAsFixed(0)}',
                     style: AppTheme.titleMedium.copyWith(
@@ -181,6 +186,7 @@ class _StoreOpsStripState extends State<StoreOpsStrip> {
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
                 ),
               ],
             ),
