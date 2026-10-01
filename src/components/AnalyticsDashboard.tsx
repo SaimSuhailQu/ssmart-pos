@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, DollarSign, ShoppingBag, Receipt, RefreshCw, Star, ArrowUpRight, ArrowDownRight, Activity } from 'lucide-react';
+import { TrendingUp, DollarSign, ShoppingBag, Receipt, RefreshCw, Star, ArrowUpRight, ArrowDownRight, Activity, Download } from 'lucide-react';
+import { rowsToCsv, downloadCsv, exportTimestamp } from '../lib/csv';
 
 interface AnalyticsData {
   summary: {
@@ -29,6 +30,41 @@ export const AnalyticsDashboard: React.FC = () => {
   // Interactive navigation states
   const [activeScope, setActiveScope] = useState<ScopeMode>('TODAY');
   const [activeTrend, setActiveTrend] = useState<TrendMode>('DAILY');
+
+  // Export the full analytics dataset (financials + trends + top products) to CSV
+  const handleExportAnalytics = () => {
+    if (!data) return;
+    const rows: (string | number | null | undefined)[][] = [
+      ['SS MART POS — Financial Analytics Export'],
+      ['Generated', new Date().toLocaleString()],
+      [],
+      ['SCOPE FINANCIALS', 'Revenue', 'Refunds', 'Cost', 'Expenses', 'Profit', 'Orders'],
+    ];
+    const scopeRows: Array<[string, AnalyticsData['financials']['today']]> = [
+      ['Today', data.financials.today],
+      ['This Month', data.financials.month],
+      ['This Year', data.financials.year],
+    ];
+    for (const [label, f] of scopeRows) {
+      rows.push([label, f.revenue.toFixed(2), f.refunds.toFixed(2), f.cost.toFixed(2), f.expenses.toFixed(2), f.profit.toFixed(2), f.orders]);
+    }
+    rows.push([]);
+    rows.push(['DAILY TREND', 'Date', 'Revenue', 'Refunds', 'Cost', 'Expenses']);
+    for (const d of data.dailyTrend) {
+      rows.push(['', d.date, d.revenue.toFixed(2), d.refunds.toFixed(2), d.cost.toFixed(2), (d.expenses ?? 0).toFixed(2)]);
+    }
+    rows.push([]);
+    rows.push(['MONTHLY TREND', 'Month', 'Revenue', 'Refunds', 'Cost', 'Expenses']);
+    for (const m of data.monthlyTrend) {
+      rows.push(['', m.month, m.revenue.toFixed(2), m.refunds.toFixed(2), m.cost.toFixed(2), (m.expenses ?? 0).toFixed(2)]);
+    }
+    rows.push([]);
+    rows.push(['TOP PRODUCTS', 'Product', 'Qty Sold', 'Revenue']);
+    for (const p of data.topProducts) {
+      rows.push(['', p.name, p.qty, p.revenue.toFixed(2)]);
+    }
+    downloadCsv(`ssmart-analytics-${exportTimestamp()}.csv`, rowsToCsv(rows));
+  };
 
   useEffect(() => {
     loadAnalytics();
@@ -151,6 +187,13 @@ export const AnalyticsDashboard: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3">
+            <button
+              onClick={handleExportAnalytics}
+              className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/30 hover:border-emerald-500/50 hover:bg-emerald-500/20 text-emerald-300 rounded-xl transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-wider cursor-pointer"
+              title="Export full analytics data to CSV"
+            >
+              <Download size={14} /> Export CSV
+            </button>
             <button
               onClick={loadAnalytics}
               className="px-4 py-2 bg-white/5 border border-white/10 hover:border-white/30 text-neutral-200 hover:text-neutral-200 rounded-xl transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-wider"

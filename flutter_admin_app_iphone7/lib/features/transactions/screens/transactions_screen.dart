@@ -11,6 +11,7 @@ import 'package:ssmart_pos_admin/features/dashboard/screens/daily_closings_scree
 import 'package:ssmart_pos_admin/widgets/error_widget.dart';
 import 'package:ssmart_pos_admin/widgets/loading_indicator.dart';
 import 'package:ssmart_pos_admin/widgets/manual_closing_dialog.dart';
+import 'dart:ui' show FontFeature;
 
 /// Screen displaying all transactions with filtering and search
 class TransactionsScreen extends StatefulWidget {
@@ -221,16 +222,57 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   }
 
   Widget _buildTransactionsList(List<Sale> sales) {
-    return ListView.separated(
-      padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingM),
-      itemCount: sales.length,
-      separatorBuilder: (context, index) => const SizedBox(
-        height: AppTheme.spacingS,
-      ),
-      itemBuilder: (context, index) {
-        final sale = sales[index];
-        return _TransactionCard(sale: sale);
-      },
+    final resultsTotal = sales.fold<double>(0, (sum, s) => sum + s.total);
+    return Column(
+      children: [
+        // Live results summary for the active search/filter
+        Container(
+          margin: const EdgeInsets.fromLTRB(
+            AppTheme.spacingM,
+            AppTheme.spacingM,
+            AppTheme.spacingM,
+            0,
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: AppTheme.cardBackground,
+            borderRadius: BorderRadius.circular(AppTheme.radiusS),
+            border: Border.all(color: AppTheme.borderColor),
+          ),
+          child: Row(
+            children: [
+              Text(
+                '${sales.length} result${sales.length == 1 ? '' : 's'}',
+                style: AppTheme.labelMedium.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.primaryCyan,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                'Total: ${AppDateUtils.formatCurrency(resultsTotal)}',
+                style: AppTheme.labelMedium.copyWith(
+                  fontWeight: FontWeight.w800,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: ListView.separated(
+            padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingM),
+            itemCount: sales.length,
+            separatorBuilder: (context, index) => const SizedBox(
+              height: AppTheme.spacingS,
+            ),
+            itemBuilder: (context, index) {
+              final sale = sales[index];
+              return _TransactionCard(sale: sale);
+            },
+          ),
+        ),
+      ],
     );
   }
 

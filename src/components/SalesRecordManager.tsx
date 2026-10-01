@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Sale, SaleItemDetails } from '../types';
-import { Search, Receipt, Calendar, User, Undo2, CheckCircle, ArrowRightLeft, DollarSign, X, ShoppingBag, Printer, Copy, Sparkles, PlusCircle, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Receipt, Calendar, User, Undo2, CheckCircle, ArrowRightLeft, DollarSign, X, ShoppingBag, Printer, Copy, Sparkles, PlusCircle, Trash2, ChevronLeft, ChevronRight, Download } from 'lucide-react';
+import { rowsToCsv, downloadCsv, exportTimestamp } from '../lib/csv';
 
 export const SalesRecordManager: React.FC = () => {
   const [sales, setSales] = useState<Sale[]>([]);
@@ -164,6 +165,39 @@ export const SalesRecordManager: React.FC = () => {
     const start = (currentPage - 1) * pageSize;
     return filteredSales.slice(start, start + pageSize);
   }, [filteredSales, currentPage, pageSize]);
+
+  // Export the currently filtered orders to CSV (respects search + status filters)
+  const handleExportCsv = () => {
+    if (filteredSales.length === 0) {
+      setError('No transactions match the current filters to export.');
+      return;
+    }
+    const rows: (string | number | null | undefined)[][] = [
+      ['Sale ID', 'Date', 'Time', 'Cashier', 'Payment Method', 'Status', 'Items', 'Subtotal', 'Discount', 'Tax', 'Total', 'Refunded', 'Net'],
+    ];
+    for (const s of filteredSales) {
+      const dt = new Date(s.timestamp);
+      const datePart = isNaN(dt.getTime()) ? s.timestamp : dt.toLocaleDateString();
+      const timePart = isNaN(dt.getTime()) ? '' : dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      rows.push([
+        s.id,
+        datePart,
+        timePart,
+        s.cashier_name || '',
+        s.payment_method,
+        s.status,
+        s.items?.length ?? 0,
+        s.subtotal.toFixed(2),
+        s.discount.toFixed(2),
+        s.tax.toFixed(2),
+        s.total.toFixed(2),
+        s.refund_amount.toFixed(2),
+        (s.total - s.refund_amount).toFixed(2),
+      ]);
+    }
+    downloadCsv(`ssmart-sales-${exportTimestamp()}.csv`, rowsToCsv(rows));
+    setSuccess(`Exported ${filteredSales.length} transactions to CSV.`);
+  };
 
   // Memoize statistics
   const {
@@ -374,6 +408,14 @@ export const SalesRecordManager: React.FC = () => {
           </div>
           
           <div className="flex items-center gap-3">
+            <button
+              onClick={handleExportCsv}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/20 hover:border-emerald-500/50"
+              title="Export the currently filtered transactions to a CSV file"
+            >
+              <Download size={14} /> Export CSV
+            </button>
+
             <div className="relative group w-64">
               <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-500 group-focus-within:text-indigo-400 transition-colors">
                 <Search size={15} />

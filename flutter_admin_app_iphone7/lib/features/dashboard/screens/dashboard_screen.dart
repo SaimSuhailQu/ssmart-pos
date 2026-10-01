@@ -19,6 +19,7 @@ import 'package:ssmart_pos_admin/features/expenses/screens/expenses_screen.dart'
 import 'package:ssmart_pos_admin/features/vendors/screens/vendors_screen.dart';
 import 'package:ssmart_pos_admin/models/dashboard_metrics.dart';
 import 'package:ssmart_pos_admin/models/sale.dart';
+import 'package:ssmart_pos_admin/features/dashboard/widgets/store_ops_strip.dart';
 import 'package:ssmart_pos_admin/services/auth_service.dart';
 import 'package:ssmart_pos_admin/services/firebase_service.dart';
 import 'package:ssmart_pos_admin/widgets/error_widget.dart';
@@ -349,6 +350,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ],
             ),
           ),
+          const SizedBox(height: AppTheme.spacingL),
+
+          // Live store operations: stock alerts + today's expenses
+          StoreOpsStrip(
+            cachedExpenses: context.read<FirebaseService>().cachedExpenses ?? const [],
+            productStream: context.read<FirebaseService>().getProductsStream(),
+          ),
+
           const SizedBox(height: AppTheme.spacingL),
 
           // Today's metrics header
