@@ -415,8 +415,12 @@ const App: React.FC = () => {
 
   const [lowStockOnlyView, setLowStockOnlyView] = useState(false);
 
-  // Compute low stock items count (stock <= 5)
-  const lowStockCount = products.filter(p => p.stock <= 5).length;
+  // Compute low stock items count (stock <= 5) — memoized to avoid re-filter on every render
+  const lowStockCount = useMemo(() => products.filter(p => p.stock <= 5).length, [products]);
+  const existingCategories = useMemo(
+    () => Array.from(new Set(products.map(p => p.category))).filter(Boolean),
+    [products]
+  );
 
   // State references for instantaneous keyboard shortcut responses without stale closures or re-attachment lag
   const cartRef = useRef(cart);
@@ -1064,14 +1068,14 @@ const App: React.FC = () => {
         isOpen={isCustomItemOpen}
         onClose={() => setIsCustomItemOpen(false)}
         onAdd={handleAddCustomItem}
-        existingCategories={Array.from(new Set(products.map(p => p.category))).filter(Boolean)}
+        existingCategories={existingCategories}
       />
 
       {/* Quick Add Modal on Scanning Unregistered Barcode */}
       {isQuickAddOpen && (
         <ProductFormModal
           product={scannedNewProduct}
-          existingCategories={Array.from(new Set(products.map(p => p.category))).filter(Boolean)}
+          existingCategories={existingCategories}
           onClose={() => {
             setIsQuickAddOpen(false);
             setScannedNewProduct(null);

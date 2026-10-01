@@ -21,6 +21,20 @@ if (require('electron-squirrel-startup')) {
   app.quit();
 }
 
+// Production resilience: never let an unhandled error silently kill the POS.
+process.on('uncaughtException', (err) => {
+  console.error('[POS] Uncaught exception (app kept alive):', err);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('[POS] Unhandled promise rejection (app kept alive):', reason);
+});
+
+// Prevent accidental multi-instance launches that would corrupt the SQLite file
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
+if (!gotSingleInstanceLock) {
+  app.quit();
+}
+
 // Memory and GPU optimization switches for low RAM consumption
 app.commandLine.appendSwitch('js-flags', '--max-old-space-size=256 --expose-gc');
 app.commandLine.appendSwitch('disable-http-cache');
@@ -68,6 +82,18 @@ const createWindow = () => {
   // if (process.env.NODE_ENV === 'development') {
   //   mainWindow.webContents.openDevTools();
   // }
+
+  // Self-heal: reload the renderer instead of dying if it crashes
+  mainWindow.webContents.on('render-process-gone', (_event, details) => {
+    console.error('[POS] Renderer crashed:', details.reason, '- reloading...');
+    if (!mainWindow?.isDestroyed()) {
+      mainWindow?.webContents.reload();
+    }
+  });
+
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
 };
 
 app.on('ready', () => {
@@ -75,6 +101,14 @@ app.on('ready', () => {
   initDb();
   
   createWindow();
+
+  // Focus the existing window when a second launch is attempted
+  app.on('second-instance', () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
+  });
 
   // Initialize auto updater for background silent OTA updates
   setupAutoUpdater(mainWindow);

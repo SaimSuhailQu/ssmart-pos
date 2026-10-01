@@ -2,7 +2,7 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 import { app } from 'electron';
-import { Product, CartItem, PaymentEntry, Payment, Sale, SaleItem, Customer, CustomerKhataEntry, PurchaseOrder, VendorPayment, VendorOrderEntry } from './types';
+import { Product, CartItem, PaymentEntry, Payment, Sale, SaleItem, Customer, CustomerKhataEntry, PurchaseOrder, PurchaseOrderItem, VendorPayment, VendorOrderEntry } from './types';
 
 // Setup database in user data directory
 const userDataPath = app.getPath('userData');
@@ -16,6 +16,8 @@ export function initDb() {
   db.pragma('temp_store = MEMORY');
   db.pragma('cache_size = -16000'); // 16MB SQLite Cache (Low RAM footprint)
   db.pragma('mmap_size = 67108864'); // 64MB mmap
+  db.pragma('busy_timeout = 5000'); // Wait up to 5s instead of failing instantly on lock contention
+  db.pragma('foreign_keys = OFF'); // Legacy data allows dangling refs; avoids unexpected constraint aborts
 
   // Create tables & performance indexes
   db.exec(`
@@ -183,6 +185,8 @@ export function initDb() {
     CREATE INDEX IF NOT EXISTS idx_customers_phone ON customers(phone);
     CREATE INDEX IF NOT EXISTS idx_cke_cust_id ON customer_khata_entries(customer_id);
     CREATE INDEX IF NOT EXISTS idx_cke_timestamp ON customer_khata_entries(timestamp);
+    CREATE INDEX IF NOT EXISTS idx_vendor_payments_po_id ON vendor_payments(po_id);
+    CREATE INDEX IF NOT EXISTS idx_vendor_order_entries_po_id ON vendor_order_entries(po_id);
   `);
 
   // Seed default admin and cashier if users table is empty
@@ -965,11 +969,41 @@ export function getUnsyncedSales() {
     LEFT JOIN users u ON s.user_id = u.id
     WHERE s.synced = 0
   `).all() as (Sale & { user_name?: string })[];
-  return sales.map(sale => {
-    const items = db.prepare('SELECT * FROM sale_items WHERE sale_id = ?').all(sale.id);
-    const payments = db.prepare('SELECT * FROM payments WHERE sale_id = ?').all(sale.id);
-    return { ...sale, items, payments };
-  });
+  if (sales.length === 0) return [];
+
+  // Batch-fetch items and payments for all unsynced sales in 2 queries (no N+1)
+  const ids = sales.map(s => s.id);
+  const placeholders = ids.map(() => '?').join(',');
+  const allItems = db.prepare(`SELECT * FROM sale_items WHERE sale_id IN (${placeholders})`).all(...ids);
+  const allPayments = db.prepare(`SELECT * FROM payments WHERE sale_id IN (${placeholders})`).all(...ids);
+
+  const itemsMap = new Map<number, unknown[]>();
+  for (const item of allItems as { sale_id: number }[]) {
+    let list = itemsMap.get(item.sale_id);
+    if (!list) { list = []; itemsMap.set(item.sale_id, list); }
+    list.push(item);
+  }
+  const paymentsMap = new Map<number, unknown[]>();
+  for (const payment of allPayments as { sale_id: number }[]) {
+    let list = paymentsMap.get(payment.sale_id);
+    if (!list) { list = []; paymentsMap.set(payment.sale_id, list); }
+    list.push(payment);
+  }
+
+  return sales.map(sale => ({
+    ...sale,
+    items: itemsMap.get(sale.id) || [],
+    payments: paymentsMap.get(sale.id) || []
+  }));
+}
+
+/** Compact the WAL file so the on-disk database doesn't grow unbounded. */
+export function checkpointDb() {
+  try {
+    db.pragma('wal_checkpoint(PASSIVE)');
+  } catch (err) {
+    console.warn('WAL checkpoint warning:', err);
+  }
 }
 
 export function markSaleAsSynced(saleId: number) {
@@ -1258,35 +1292,53 @@ export function getAllPurchaseOrders() {
     ORDER BY po.timestamp DESC
   `).all() as (PurchaseOrder & { vendor_name: string; vendor_contact: string; vendor_category: string })[];
 
-  return pos.map(po => {
-    const items = db.prepare(`
-      SELECT poi.*, p.name as product_name, p.barcode as product_barcode
-      FROM purchase_order_items poi
-      JOIN products p ON poi.product_id = p.id
-      WHERE poi.po_id = ?
-    `).all(po.id);
+  if (pos.length === 0) return [];
 
-    const payments = db.prepare(`
-      SELECT * FROM vendor_payments
-      WHERE po_id = ?
-      ORDER BY timestamp DESC
-    `).all(po.id);
+  // Batch-fetch items, payments and order entries for all POs in 3 queries (no N+1)
+  const ids = pos.map(po => po.id);
+  const placeholders = ids.map(() => '?').join(',');
 
-    const orderEntries = db.prepare(`
-      SELECT * FROM vendor_order_entries
-      WHERE po_id = ?
-      ORDER BY timestamp DESC
-    `).all(po.id);
+  const allItems = db.prepare(`
+    SELECT poi.*, p.name as product_name, p.barcode as product_barcode
+    FROM purchase_order_items poi
+    JOIN products p ON poi.product_id = p.id
+    WHERE poi.po_id IN (${placeholders})
+  `).all(...ids) as PurchaseOrderItem[];
 
-    return {
-      ...po,
-      paid_amount: po.paid_amount || 0,
-      payment_status: po.payment_status || 'Unpaid',
-      items,
-      payments,
-      order_entries: orderEntries
-    };
-  });
+  const allPayments = db.prepare(`
+    SELECT * FROM vendor_payments
+    WHERE po_id IN (${placeholders})
+    ORDER BY timestamp DESC
+  `).all(...ids) as VendorPayment[];
+
+  const allEntries = db.prepare(`
+    SELECT * FROM vendor_order_entries
+    WHERE po_id IN (${placeholders})
+    ORDER BY timestamp DESC
+  `).all(...ids) as VendorOrderEntry[];
+
+  const groupByPo = <T extends { po_id: number }>(rows: T[]) => {
+    const map = new Map<number, T[]>();
+    for (const row of rows) {
+      let list = map.get(row.po_id);
+      if (!list) { list = []; map.set(row.po_id, list); }
+      list.push(row);
+    }
+    return map;
+  };
+
+  const itemsMap = groupByPo(allItems);
+  const paymentsMap = groupByPo(allPayments);
+  const entriesMap = groupByPo(allEntries);
+
+  return pos.map(po => ({
+    ...po,
+    paid_amount: po.paid_amount || 0,
+    payment_status: po.payment_status || 'Unpaid',
+    items: itemsMap.get(po.id) || [],
+    payments: paymentsMap.get(po.id) || [],
+    order_entries: entriesMap.get(po.id) || []
+  }));
 }
 
 export function addVendorPayment(payment: { poId: number, vendorId: number, amount: number, paymentMethod?: string, notes?: string, receiptUrl?: string }) {

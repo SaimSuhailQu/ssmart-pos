@@ -30,6 +30,11 @@ class FirebaseService {
   List<VendorModel>? _cachedVendors;
   List<PurchaseOrderModel>? _cachedPurchaseOrders;
 
+  // Live Khata balance cache (customer_id -> balance), maintained by ONE listener
+  // instead of re-fetching the whole ledger on every customer list event.
+  final Map<String, double> _khataBalanceCache = <String, double>{};
+  StreamSubscription<DatabaseEvent>? _khataBalanceListener;
+
   List<Sale>? get cachedSales => _cachedSales;
   List<Product>? get cachedProducts => _cachedProducts;
   List<ExpenseModel>? get cachedExpenses => _cachedExpenses;
@@ -40,6 +45,46 @@ class FirebaseService {
   FirebaseService(this._database) {
     _initializeConnectionListener();
     _enableOfflineSyncing();
+    _initializeKhataBalanceCache();
+  }
+
+  /// Keep an always-fresh in-memory map of customer khata balances.
+  /// One persistent listener beats a full ledger read on every UI event.
+  void _initializeKhataBalanceCache() {
+    try {
+      _khataBalanceListener = _database.ref('customer_khata').onValue.listen((event) {
+        final data = event.snapshot.value;
+        final balances = <String, double>{};
+        if (data is Map) {
+          data.forEach((cId, entries) {
+            double bal = 0.0;
+            void processEntry(Map e) {
+              final eType = e['type']?.toString().toUpperCase() ?? 'LOAN';
+              final double eAmt = (e['amount'] is num)
+                  ? (e['amount'] as num).toDouble()
+                  : (double.tryParse(e['amount']?.toString() ?? '0') ?? 0.0);
+              bal += (eType == 'LOAN' ? eAmt : -eAmt);
+            }
+
+            if (entries is Map) {
+              entries.forEach((_, e) {
+                if (e is Map) processEntry(e);
+              });
+            } else if (entries is List) {
+              for (final e in entries) {
+                if (e is Map) processEntry(Map<dynamic, dynamic>.from(e));
+              }
+            }
+            balances[cId.toString()] = bal;
+          });
+        }
+        _khataBalanceCache
+          ..clear()
+          ..addAll(balances);
+      });
+    } catch (e) {
+      print('Khata balance cache error: $e');
+    }
   }
 
   /// Automatically caches all records to local disk so app works 100% offline
@@ -360,52 +405,16 @@ class FirebaseService {
   /// Get real-time stream of all customers with live dynamically-computed Khata balances
   Stream<List<CustomerModel>> getCustomersStream() {
     final custRef = _database.ref(FirebasePaths.customers);
-    final khataRef = _database.ref('customer_khata');
 
-    return custRef.onValue.asyncMap((event) async {
+    return custRef.onValue.map((event) {
       final data = event.snapshot.value;
       if (data == null) {
         _cachedCustomers = [];
         return <CustomerModel>[];
       }
 
-      // Fetch latest customer_khata snapshot to ensure 100% accurate balances
-      Map<String, double> liveBalances = {};
-      try {
-        final khataSnap = await khataRef.get();
-        if (khataSnap.exists && khataSnap.value != null) {
-          final kVal = khataSnap.value;
-          if (kVal is Map) {
-            kVal.forEach((cId, entries) {
-              double bal = 0.0;
-              if (entries is Map) {
-                entries.forEach((_, e) {
-                  if (e is Map) {
-                    final eType = e['type']?.toString().toUpperCase() ?? 'LOAN';
-                    final double eAmt = (e['amount'] is num)
-                        ? (e['amount'] as num).toDouble()
-                        : (double.tryParse(e['amount']?.toString() ?? '0') ?? 0.0);
-                    bal += (eType == 'LOAN' ? eAmt : -eAmt);
-                  }
-                });
-              } else if (entries is List) {
-                for (final e in entries) {
-                  if (e is Map) {
-                    final eType = e['type']?.toString().toUpperCase() ?? 'LOAN';
-                    final double eAmt = (e['amount'] is num)
-                        ? (e['amount'] as num).toDouble()
-                        : (double.tryParse(e['amount']?.toString() ?? '0') ?? 0.0);
-                    bal += (eType == 'LOAN' ? eAmt : -eAmt);
-                  }
-                }
-              }
-              liveBalances[cId.toString()] = bal;
-            });
-          }
-        }
-      } catch (e) {
-        print('Khata balance merge error: $e');
-      }
+      // Balances come from the always-fresh in-memory khata cache (zero extra reads)
+      final liveBalances = _khataBalanceCache;
 
       final List<CustomerModel> list = [];
       if (data is Map) {
@@ -646,16 +655,21 @@ class FirebaseService {
     // 1. Push Sale transaction to Firebase
     await _database.ref('${FirebasePaths.sales}/$saleId').set(sale.toJson());
 
-    // 2. Decrement inventory for catalog items
+    // 2. Decrement inventory for catalog items — atomic transactions prevent
+    // lost updates when desktop POS and mobile sell the same item concurrently.
     for (final item in items) {
       try {
-        final prodRef = _database.ref('${FirebasePaths.products}/${item.productId}/stock');
-        final snap = await prodRef.get();
-        if (snap.exists && snap.value != null) {
-          final currentStock = (snap.value is num) ? (snap.value as num).toInt() : (int.tryParse(snap.value.toString()) ?? 0);
+        final rawId = item.productId;
+        final pid = rawId is int ? rawId : int.tryParse(rawId.toString());
+        if (pid == null || pid <= 0) continue; // skip custom / daily-closing items
+        final prodRef = _database.ref('${FirebasePaths.products}/$pid/stock');
+        await prodRef.runTransaction((current) {
+          final currentStock = current is int
+              ? current
+              : (int.tryParse(current?.toString() ?? '0') ?? 0);
           final newStock = (currentStock - item.quantity).clamp(0, 999999);
-          await prodRef.set(newStock);
-        }
+          return Transaction.success(newStock);
+        });
       } catch (e) {
         print('Inventory update warning for product ${item.productId}: $e');
       }
@@ -1876,6 +1890,7 @@ class FirebaseService {
 
   /// Dispose resources
   void dispose() {
+    _khataBalanceListener?.cancel();
     _connectionStatusController.close();
   }
 }

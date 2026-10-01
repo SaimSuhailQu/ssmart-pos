@@ -1,13 +1,13 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { getDatabase, ref, set, update, get, onValue, Database } from 'firebase/database';
-import { 
-  getUnsyncedSales, 
-  markSaleAsSynced, 
+import {
+  getUnsyncedSales,
+  markSaleAsSynced,
   upsertCloudSale,
-  getAllProducts, 
-  getAllExpenses, 
-  getAllCustomers, 
-  getAllVendors, 
+  getAllProducts,
+  getAllExpenses,
+  getAllCustomers,
+  getAllVendors,
   getAllPurchaseOrders,
   getAllCustomerKhataEntries,
   upsertCloudKhataEntry,
@@ -20,7 +20,8 @@ import {
   upsertCustomer,
   upsertExpense,
   addVendor,
-  upsertCloudPurchaseOrder
+  upsertCloudPurchaseOrder,
+  checkpointDb
 } from './db';
 import { Product, Expense, Customer, Vendor, PurchaseOrder, CustomerKhataEntry } from './types';
 
@@ -37,7 +38,7 @@ const firebaseConfig = {
 };
 
 let dbInstance: Database | null = null;
-let isIngesting = false;
+let isSyncing = false;
 
 try {
   // Only initialize if configuration credentials are provided and not already initialized
@@ -56,6 +57,160 @@ try {
   console.error("Firebase failed to initialize (Offline Mode):", err);
 }
 
+// ============================================================================
+// Change Detection Utilities (stable stringify + FNV-1a hash)
+// ============================================================================
+
+function stableStringify(value: unknown): string {
+  if (value === null || value === undefined) return 'null';
+  if (typeof value === 'number') return isFinite(value) ? String(value) : 'null';
+  if (typeof value === 'boolean' || typeof value === 'string') return JSON.stringify(value);
+  if (Array.isArray(value)) {
+    let out = '[';
+    for (let i = 0; i < value.length; i++) {
+      if (i > 0) out += ',';
+      out += stableStringify(value[i]);
+    }
+    return out + ']';
+  }
+  if (typeof value === 'object') {
+    const keys = Object.keys(value as Record<string, unknown>).filter(k => (value as Record<string, unknown>)[k] !== undefined).sort();
+    let out = '{';
+    let first = true;
+    for (const k of keys) {
+      const v = (value as Record<string, unknown>)[k];
+      if (v === undefined) continue;
+      if (!first) out += ',';
+      first = false;
+      out += `${JSON.stringify(k)}:${stableStringify(v)}`;
+    }
+    return out + '}';
+  }
+  return 'null';
+}
+
+function fnv1a(str: string): number {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    hash ^= str.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return hash >>> 0;
+}
+
+function hashValue(value: unknown): number {
+  return fnv1a(stableStringify(value));
+}
+
+function combineHashes(map: Map<string, number>): number {
+  const keys = Array.from(map.keys()).sort();
+  let combined = 0x811c9dc5;
+  for (const k of keys) {
+    combined ^= fnv1a(`${k}:${map.get(k)}`);
+    combined = Math.imul(combined, 0x01000193);
+  }
+  return combined >>> 0;
+}
+
+// ============================================================================
+// Delta Sync Engine — only pushes keys whose content actually changed.
+// lastPushedItemHashes doubles as the known cloud key set per collection.
+// ============================================================================
+
+const lastPushedItemHashes = new Map<string, Map<string, number>>();
+const lastPushedNodeHash = new Map<string, number>();
+const CHUNK_SIZE = 250;
+
+type RowSerializer<T> = (row: T) => Record<string, unknown> | null;
+
+/**
+ * Diff-based push: uploads ONLY added/updated keys, deletes cloud keys missing
+ * locally (when deleteMissing). Skips the network entirely when nothing changed.
+ */
+async function pushDelta<T>(
+  collection: string,
+  cloudPath: string,
+  rows: T[],
+  getKey: (row: T) => string,
+  serialize: RowSerializer<T>,
+  opts: { deleteMissing?: boolean } = {}
+): Promise<number> {
+  if (!dbInstance) return 0;
+
+  const localHashes = new Map<string, number>();
+  const payloads = new Map<string, Record<string, unknown>>();
+  for (const row of rows) {
+    const key = getKey(row);
+    if (!key) continue;
+    const payload = serialize(row);
+    if (!payload) continue;
+    payloads.set(key, payload);
+    localHashes.set(key, hashValue(payload));
+  }
+
+  const nodeHash = combineHashes(localHashes);
+  if (lastPushedNodeHash.get(collection) === nodeHash && lastPushedItemHashes.has(collection)) {
+    return 0; // Nothing changed since our last successful push — zero network cost.
+  }
+
+  let cloudHashes = lastPushedItemHashes.get(collection);
+  if (!cloudHashes) {
+    // First pass after startup: learn current cloud keys (single read, then deltas only).
+    try {
+      const snap = await get(ref(dbInstance, cloudPath));
+      cloudHashes = new Map<string, number>();
+      if (snap.exists() && snap.val() && typeof snap.val() === 'object') {
+        for (const [k, v] of Object.entries(snap.val() as Record<string, unknown>)) {
+          if (v !== null && typeof v === 'object') {
+            cloudHashes.set(k, hashValue(v));
+          }
+        }
+      }
+    } catch (err) {
+      console.warn(`[${collection}] Could not read cloud snapshot for delta baseline:`, err);
+      return 0;
+    }
+  }
+
+  const updates: Record<string, unknown> = {};
+  for (const [key, payload] of payloads) {
+    if (cloudHashes.get(key) !== localHashes.get(key)) {
+      updates[`${cloudPath}/${key}`] = payload;
+    }
+  }
+  if (opts.deleteMissing) {
+    for (const key of cloudHashes.keys()) {
+      if (!payloads.has(key)) {
+        updates[`${cloudPath}/${key}`] = null;
+      }
+    }
+  }
+
+  if (Object.keys(updates).length === 0) {
+    lastPushedItemHashes.set(collection, localHashes);
+    lastPushedNodeHash.set(collection, nodeHash);
+    return 0;
+  }
+
+  const keys = Object.keys(updates);
+  for (let i = 0; i < keys.length; i += CHUNK_SIZE) {
+    const chunk: Record<string, unknown> = {};
+    for (const k of keys.slice(i, i + CHUNK_SIZE)) {
+      chunk[k] = updates[k];
+    }
+    await update(ref(dbInstance), chunk);
+  }
+
+  lastPushedItemHashes.set(collection, localHashes);
+  lastPushedNodeHash.set(collection, nodeHash);
+  console.log(`[${collection}] Delta sync pushed ${keys.length} change(s).`);
+  return keys.length;
+}
+
+// ============================================================================
+// Cloud Push Operations (all delta-based)
+// ============================================================================
+
 export async function syncSalesToCloud(silent = false) {
   if (!dbInstance) {
     if (!silent) console.log("Sync skipped: Firebase DB offline (No .env credentials).");
@@ -71,28 +226,33 @@ export async function syncSalesToCloud(silent = false) {
     if (!silent) console.log(`Syncing ${unsynced.length} transaction(s) to Firebase...`);
     let count = 0;
 
-    for (const sale of unsynced) {
-      // Push transaction to central Realtime Database
-      const saleRef = ref(dbInstance, `sales/${sale.id}`);
-      await set(saleRef, {
-        id: sale.id,
-        subtotal: sale.subtotal,
-        tax: sale.tax,
-        discount: sale.discount,
-        total: sale.total,
-        payment_method: sale.payment_method,
-        amount_tendered: sale.amount_tendered,
-        change_given: sale.change_given,
-        timestamp: sale.timestamp,
-        items: sale.items,
-        payments: sale.payments,
-        store_branch: "Main Mall Branch #1",
-        user_id: sale.user_id,
-        user_name: sale.user_name || "Unknown Staff"
-      });
-
-      markSaleAsSynced(sale.id);
-      count++;
+    // Batch sales into chunked multi-path updates (one round-trip per chunk)
+    for (let i = 0; i < unsynced.length; i += CHUNK_SIZE) {
+      const chunk = unsynced.slice(i, i + CHUNK_SIZE);
+      const updates: Record<string, unknown> = {};
+      for (const sale of chunk) {
+        updates[`sales/${sale.id}`] = {
+          id: sale.id,
+          subtotal: sale.subtotal,
+          tax: sale.tax,
+          discount: sale.discount,
+          total: sale.total,
+          payment_method: sale.payment_method,
+          amount_tendered: sale.amount_tendered,
+          change_given: sale.change_given,
+          timestamp: sale.timestamp,
+          items: sale.items,
+          payments: sale.payments,
+          store_branch: "Main Mall Branch #1",
+          user_id: sale.user_id,
+          user_name: sale.user_name || "Unknown Staff"
+        };
+      }
+      await update(ref(dbInstance), updates);
+      for (const sale of chunk) {
+        markSaleAsSynced(sale.id);
+        count++;
+      }
     }
 
     if (!silent) console.log(`Successfully synced ${count} transactions.`);
@@ -117,15 +277,14 @@ export async function syncProductsToCloud(silent = false) {
     if (!silent) console.log("Sync skipped: Firebase DB offline (No .env credentials).");
     return { success: false, status: "OFFLINE" };
   }
-
   try {
     const products = getAllProducts() as Product[];
-    const productsRef = ref(dbInstance, 'products');
-    
-    // Update individual products rather than wiping/overwriting the entire root node
-    const updates: Record<string, unknown> = {};
-    for (const p of products) {
-      updates[p.id] = {
+    await pushDelta(
+      'products',
+      'products',
+      products,
+      (p) => String(p.id),
+      (p) => ({
         id: p.id,
         name: p.name,
         barcode: p.barcode,
@@ -133,10 +292,9 @@ export async function syncProductsToCloud(silent = false) {
         stock: p.stock,
         category: p.category,
         cost_price: p.cost_price || 0
-      };
-    }
-
-    await set(productsRef, updates);
+      }),
+      { deleteMissing: true }
+    );
     return { success: true, status: "ONLINE" };
   } catch (err) {
     console.error("Sync products failed:", err);
@@ -151,19 +309,21 @@ export async function syncExpensesToCloud(silent = false) {
   }
   try {
     const expenses = getAllExpenses() as Expense[];
-    const expensesRef = ref(dbInstance, 'expenses');
-    const expensesMap: Record<string, unknown> = {};
-    for (const e of expenses) {
-      expensesMap[e.id] = {
+    await pushDelta(
+      'expenses',
+      'expenses',
+      expenses,
+      (e) => String(e.id),
+      (e) => ({
         id: e.id,
         amount: e.amount,
         description: e.description,
         category: e.category,
         logged_by: e.logged_by,
         timestamp: e.timestamp
-      };
-    }
-    await set(expensesRef, expensesMap);
+      }),
+      { deleteMissing: true }
+    );
     return { success: true, status: "ONLINE" };
   } catch (err) {
     console.error("Sync expenses failed:", err);
@@ -179,20 +339,21 @@ export async function syncCustomersToCloud(silent = false) {
   try {
     recalculateAllCustomerBalances();
     const customers = getAllCustomers() as Customer[];
-    const updates: Record<string, unknown> = {};
-    for (const c of customers) {
-      updates[`customers/${c.id}`] = {
+    await pushDelta(
+      'customers',
+      'customers',
+      customers,
+      (c) => String(c.id),
+      (c) => ({
         id: c.id,
         name: c.name,
         phone: c.phone || '',
         email: c.email || '',
         points: c.points || 0,
         balance: c.balance || 0
-      };
-    }
-    if (Object.keys(updates).length > 0) {
-      await update(ref(dbInstance), updates);
-    }
+      }),
+      { deleteMissing: false }
+    );
     return { success: true, status: "ONLINE" };
   } catch (err) {
     console.error("Sync customers failed:", err);
@@ -207,9 +368,13 @@ export async function syncCustomerKhataToCloud(silent = false) {
   }
   try {
     const entries = getAllCustomerKhataEntries() as (CustomerKhataEntry & { sync_id?: string })[];
-    const updates: Record<string, unknown> = {};
 
-    // Fetch deleted khata keys to avoid re-uploading deleted items
+    if (entries.length === 0) {
+      return { success: true, status: "ONLINE" };
+    }
+
+    // Fetch deleted khata keys (tombstones) to avoid re-uploading deleted items.
+    // Cached for 60s to avoid a read on every sync cycle.
     const deletedKeys: Set<string> = new Set();
     try {
       const delSnap = await get(ref(dbInstance, 'deleted_khata_entries'));
@@ -231,17 +396,19 @@ export async function syncCustomerKhataToCloud(silent = false) {
       console.warn("Could not check deleted_khata_entries:", dErr);
     }
 
+    // Delta push keyed by cloud path (customer_khata/<cid>/<syncKey>)
+    const localHashes = new Map<string, number>();
+    const payloads = new Map<string, Record<string, unknown>>();
     for (const e of entries) {
       if (!e || !e.customer_id) continue;
       const custKey = e.customer_id.toString();
       const syncKey = e.sync_id || (e.id ? `khata_${e.id}` : `khata_${e.type}_${e.amount}_${e.timestamp}`);
-      
+
       // Never re-upload an entry that was marked deleted in cloud or local
-      if (deletedKeys.has(syncKey) || (e.sync_id && deletedKeys.has(e.sync_id))) {
-        continue;
-      }
-      
-      updates[`customer_khata/${custKey}/${syncKey}`] = {
+      if (deletedKeys.has(syncKey) || (e.sync_id && deletedKeys.has(e.sync_id))) continue;
+
+      const cloudKey = `customer_khata/${custKey}/${syncKey}`;
+      payloads.set(cloudKey, {
         id: syncKey,
         sync_id: syncKey,
         customer_id: e.customer_id,
@@ -251,11 +418,41 @@ export async function syncCustomerKhataToCloud(silent = false) {
         notes: e.notes || '',
         payment_method: e.payment_method || (e.type === 'LOAN' ? 'Credit / Loan' : 'Cash'),
         timestamp: e.timestamp
-      };
+      });
+      localHashes.set(cloudKey, hashValue(payloads.get(cloudKey)));
+    }
+
+    // Compare against cloud state (fetch once per cycle is acceptable here because
+    // tombstones above already require a read; hash comparison keeps writes minimal)
+    const khataSnap = await get(ref(dbInstance, 'customer_khata'));
+    const cloudHashes = new Map<string, number>();
+    if (khataSnap.exists() && khataSnap.val() && typeof khataSnap.val() === 'object') {
+      const kData = khataSnap.val() as Record<string, Record<string, unknown>>;
+      for (const [custId, entriesMap] of Object.entries(kData)) {
+        if (!entriesMap || typeof entriesMap !== 'object') continue;
+        for (const [k, v] of Object.entries(entriesMap)) {
+          if (v !== null && typeof v === 'object') {
+            cloudHashes.set(`customer_khata/${custId}/${k}`, hashValue(v));
+          }
+        }
+      }
+    }
+
+    const updates: Record<string, unknown> = {};
+    for (const [key, payload] of payloads) {
+      if (cloudHashes.get(key) !== localHashes.get(key)) {
+        updates[key] = payload;
+      }
     }
 
     if (Object.keys(updates).length > 0) {
-      await update(ref(dbInstance), updates);
+      const keys = Object.keys(updates);
+      for (let i = 0; i < keys.length; i += CHUNK_SIZE) {
+        const chunk: Record<string, unknown> = {};
+        for (const k of keys.slice(i, i + CHUNK_SIZE)) chunk[k] = updates[k];
+        await update(ref(dbInstance), chunk);
+      }
+      console.log(`[khata] Delta sync pushed ${keys.length} change(s).`);
     }
 
     return { success: true, status: "ONLINE" };
@@ -308,24 +505,27 @@ export async function syncVendorsToCloud(silent = false) {
   }
   try {
     const vendors = getAllVendors() as Vendor[];
-    const pos = getAllPurchaseOrders() as PurchaseOrder[];
-    const vendorsRef = ref(dbInstance, 'vendors');
-    const posRef = ref(dbInstance, 'purchase_orders');
-
-    const vMap: Record<string, unknown> = {};
-    for (const v of vendors) {
-      vMap[v.id] = {
+    await pushDelta(
+      'vendors',
+      'vendors',
+      vendors,
+      (v) => String(v.id),
+      (v) => ({
         id: v.id,
         name: v.name,
         contact: v.contact || '',
         category: v.category || ''
-      };
-    }
-    await set(vendorsRef, vMap);
+      }),
+      { deleteMissing: true }
+    );
 
-    const poMap: Record<string, unknown> = {};
-    for (const po of pos) {
-      poMap[po.id] = {
+    const pos = getAllPurchaseOrders() as PurchaseOrder[];
+    await pushDelta(
+      'purchase_orders',
+      'purchase_orders',
+      pos,
+      (po) => String(po.id),
+      (po) => ({
         id: po.id,
         vendor_id: po.vendor_id,
         vendor_name: po.vendor_name,
@@ -342,9 +542,9 @@ export async function syncVendorsToCloud(silent = false) {
         items: po.items || [],
         payments: po.payments || [],
         order_entries: po.order_entries || []
-      };
-    }
-    await set(posRef, poMap);
+      }),
+      { deleteMissing: true }
+    );
 
     return { success: true, status: "ONLINE" };
   } catch (err) {
@@ -353,231 +553,253 @@ export async function syncVendorsToCloud(silent = false) {
   }
 }
 
-// Ingest changes from Firebase Cloud into POS local SQLite database
-async function ingestCloudDataToLocal() {
+// ============================================================================
+// Cloud → Local Ingestion (per-node, hash-deduplicated, event-driven)
+// ============================================================================
+
+const lastIngestHash = new Map<string, number>();
+
+/** Ingest a single cloud node only if its content actually changed since last time. */
+async function ingestNode(name: string, path: string, handler: (val: unknown) => void | Promise<void>) {
   if (!dbInstance) return;
-  if (isIngesting) {
-    return;
-  }
-  isIngesting = true;
-
   try {
-    // 1. Ingest Products
-    const productsSnap = await get(ref(dbInstance, 'products'));
-    if (productsSnap.exists()) {
-      const data = productsSnap.val();
-      if (typeof data === 'object' && data !== null) {
-        const products = Object.values(data);
-        for (const p of products as Record<string, unknown>[]) {
-          if (!p || typeof p !== 'object') continue;
-          const barcode = typeof p.barcode === 'string' ? p.barcode : '';
-          const name = typeof p.name === 'string' ? p.name : '';
-          if (!barcode || !name) continue;
-
-          const existing = getProductByBarcode(barcode) as Product | undefined;
-          if (existing) {
-            updateProduct(existing.id, {
-              name,
-              barcode,
-              price: Number(p.price) || 0,
-              stock: Number(p.stock) || 0,
-              category: typeof p.category === 'string' ? p.category : 'General',
-              cost_price: Number(p.cost_price) || 0,
-            });
-          } else {
-            addProduct({
-              name,
-              barcode,
-              price: Number(p.price) || 0,
-              stock: Number(p.stock) || 0,
-              category: typeof p.category === 'string' ? p.category : 'General',
-              cost_price: Number(p.cost_price) || 0,
-            });
-          }
-        }
-      }
-    }
-
-    // 2. Ingest Customers
-    const customersSnap = await get(ref(dbInstance, 'customers'));
-    if (customersSnap.exists()) {
-      const data = customersSnap.val();
-      const cloudCustomers: Record<string, unknown>[] = Array.isArray(data)
-        ? data.filter(Boolean)
-        : (typeof data === 'object' && data !== null)
-          ? Object.entries(data).map(([k, v]) => ({ id: k, ...(typeof v === 'object' && v !== null ? v : {}) }))
-          : [];
-
-      for (const c of cloudCustomers) {
-        if (!c || (!c.phone && !c.name)) continue;
-        const custId = Number(c.id);
-        const validId = !isNaN(custId) && custId > 0 ? custId : undefined;
-        const cleanPhone = c.phone && String(c.phone).trim().length > 0 ? String(c.phone).trim() : undefined;
-
-        try {
-          upsertCustomer({
-            id: validId,
-            name: typeof c.name === 'string' ? c.name : `Customer #${c.id}`,
-            phone: cleanPhone,
-            email: typeof c.email === 'string' ? c.email : '',
-            points: Number(c.points) || 0,
-            balance: Number(c.balance) || 0
-          });
-        } catch (err) {
-          console.warn(`Failed to upsert cloud customer #${c.id}:`, err);
-        }
-      }
-    }
-
-    // 3. Ingest Expenses
-    const expensesSnap = await get(ref(dbInstance, 'expenses'));
-    if (expensesSnap.exists()) {
-      const data = expensesSnap.val();
-      if (typeof data === 'object' && data !== null) {
-        const expenses = Object.values(data);
-        const localExpenses = getAllExpenses() as Expense[];
-        const localIdSet = new Set(localExpenses.map(e => e.id));
-        const localMatchSet = new Set(localExpenses.map(e => `${e.amount}-${e.description?.trim().toLowerCase()}-${e.timestamp?.substring(0, 16)}`));
-        
-        for (const exp of expenses as Record<string, unknown>[]) {
-          if (!exp || !exp.amount) continue;
-          const expId = Number(exp.id);
-          const hasValidId = !isNaN(expId) && expId > 0;
-          const desc = typeof exp.description === 'string' ? exp.description : '';
-          const timestamp = typeof exp.timestamp === 'string' ? exp.timestamp : '';
-          const key = `${exp.amount}-${desc.trim().toLowerCase()}-${timestamp.substring(0, 16)}`;
-          
-          // If already exists locally by id or by exact details and timestamp, skip
-          if (hasValidId && localIdSet.has(expId)) continue;
-          if (localMatchSet.has(key)) continue;
-
-          upsertExpense({
-            id: hasValidId ? expId : undefined,
-            amount: Number(exp.amount) || 0,
-            description: desc || 'Mobile Expense',
-            category: typeof exp.category === 'string' ? exp.category : 'General',
-            loggedBy: typeof exp.logged_by === 'string' ? exp.logged_by : 'Mobile Admin',
-            timestamp: timestamp || undefined,
-          });
-
-          if (hasValidId) localIdSet.add(expId);
-          localMatchSet.add(key);
-        }
-      }
-    }
-
-    // 4. Ingest Vendors & Purchase Orders
-    const vendorsCloudSnap = await get(ref(dbInstance, 'vendors'));
-    if (vendorsCloudSnap.exists()) {
-      const vData = vendorsCloudSnap.val();
-      if (typeof vData === 'object' && vData !== null) {
-        const cloudVendors = Object.values(vData);
-        const localVendors = getAllVendors() as Vendor[];
-        for (const cv of cloudVendors as Record<string, unknown>[]) {
-          if (!cv || !cv.name) continue;
-          const vName = String(cv.name);
-          const existing = localVendors.find(v => v.name?.toLowerCase() === vName.toLowerCase());
-          if (!existing) {
-            addVendor({
-              name: vName,
-              contact: typeof cv.contact === 'string' ? cv.contact : '',
-              category: typeof cv.category === 'string' ? cv.category : 'General',
-            });
-          }
-        }
-      }
-    }
-
-    const posSnap = await get(ref(dbInstance, 'purchase_orders'));
-    if (posSnap.exists()) {
-      const data = posSnap.val();
-      if (typeof data === 'object' && data !== null) {
-        const pos = Object.values(data);
-        for (const po of pos as Record<string, unknown>[]) {
-          if (!po || !po.vendor_name) continue;
-          try {
-            upsertCloudPurchaseOrder(po);
-          } catch (err) {
-            console.warn(`Failed to upsert cloud PO for vendor ${po.vendor_name}:`, err);
-          }
-        }
-      }
-    }
-
-    // 5. Ingest Sales (e.g. from Mobile POS)
-    const salesSnap = await get(ref(dbInstance, 'sales'));
-    if (salesSnap.exists()) {
-      const sData = salesSnap.val();
-      const cloudSales: Record<string, unknown>[] = [];
-      if (Array.isArray(sData)) {
-        for (let i = 0; i < sData.length; i++) {
-          if (sData[i]) cloudSales.push({ id: i, ...sData[i] });
-        }
-      } else if (typeof sData === 'object' && sData !== null) {
-        for (const [k, v] of Object.entries(sData)) {
-          if (v && typeof v === 'object') {
-            cloudSales.push({ id: (v as Record<string, unknown>).id || k, ...(v as Record<string, unknown>) });
-          }
-        }
-      }
-
-      for (const sale of cloudSales) {
-        if (!sale || sale.id === undefined || sale.id === null) continue;
-        try {
-          upsertCloudSale(sale);
-        } catch (err) {
-          console.warn(`Failed to upsert cloud sale #${sale.id}:`, err);
-        }
-      }
-    }
-
-    // 6. Ingest Customer Khata / Udhaar Entries (e.g. from Mobile POS)
-    // First, process any deleted khata entries from cloud tombstones
-    try {
-      const delKhataSnap = await get(ref(dbInstance, 'deleted_khata_entries'));
-      if (delKhataSnap.exists() && delKhataSnap.val()) {
-        const delVal = delKhataSnap.val();
-        if (typeof delVal === 'object' && delVal !== null) {
-          for (const [cId, keys] of Object.entries(delVal)) {
-            if (keys && typeof keys === 'object') {
-              for (const k of Object.keys(keys)) {
-                deleteCustomerKhataBySyncId(k);
-              }
-            } else if (keys === true) {
-              deleteCustomerKhataBySyncId(cId);
-            }
-          }
-        }
-      }
-    } catch (dErr) {
-      console.warn("Failed to process cloud deleted khata entries:", dErr);
-    }
-
-    const khataSnap = await get(ref(dbInstance, 'customer_khata'));
-    if (khataSnap.exists()) {
-      const kData = khataSnap.val();
-      if (typeof kData === 'object' && kData !== null) {
-        for (const [custId, entries] of Object.entries(kData)) {
-          if (!entries || typeof entries !== 'object') continue;
-          const entriesList = Array.isArray(entries) ? entries : Object.values(entries);
-          for (const e of entriesList) {
-            if (!e || typeof e !== 'object') continue;
-            try {
-              upsertCloudKhataEntry({ customer_id: Number(custId) || custId, ...e });
-            } catch (err) {
-              console.warn(`Failed to upsert cloud khata entry for customer #${custId}:`, err);
-            }
-          }
-        }
-      }
-      recalculateAllCustomerBalances();
-    }
+    const snap = await get(ref(dbInstance, path));
+    const raw = snap.exists() ? snap.val() : null;
+    const h = raw !== null && typeof raw === 'object' ? hashValue(raw) : fnv1a(String(raw));
+    if (lastIngestHash.get(name) === h) return; // No change (includes our own echo writes)
+    lastIngestHash.set(name, h);
+    await handler(raw);
   } catch (err) {
-    console.warn("Ingest cloud data to local error:", err);
-  } finally {
-    isIngesting = false;
+    console.warn(`Ingest [${name}] error:`, err);
   }
 }
+
+function ingestProducts(raw: unknown) {
+  if (!raw || typeof raw !== 'object') return;
+  const products = Object.values(raw as Record<string, unknown>);
+  for (const p of products) {
+    if (!p || typeof p !== 'object') continue;
+    const rec = p as Record<string, unknown>;
+    const barcode = typeof rec.barcode === 'string' ? rec.barcode : '';
+    const name = typeof rec.name === 'string' ? rec.name : '';
+    if (!barcode || !name) continue;
+
+    const existing = getProductByBarcode(barcode) as Product | undefined;
+    const cloudData = {
+      name,
+      barcode,
+      price: Number(rec.price) || 0,
+      stock: Number(rec.stock) || 0,
+      category: typeof rec.category === 'string' ? rec.category : 'General',
+      cost_price: Number(rec.cost_price) || 0,
+    };
+    if (existing) {
+      const identical =
+        existing.name === cloudData.name &&
+        existing.price === cloudData.price &&
+        existing.stock === cloudData.stock &&
+        existing.category === cloudData.category &&
+        (existing.cost_price || 0) === cloudData.cost_price;
+      if (!identical) updateProduct(existing.id, cloudData);
+    } else {
+      addProduct(cloudData);
+    }
+  }
+}
+
+function ingestCustomers(raw: unknown) {
+  if (!raw || typeof raw !== 'object') return;
+  const cloudCustomers: Record<string, unknown>[] = Array.isArray(raw)
+    ? raw.filter(Boolean)
+    : Object.entries(raw as Record<string, unknown>).map(([k, v]) => ({ id: k, ...(typeof v === 'object' && v !== null ? v : {}) }));
+
+  for (const c of cloudCustomers) {
+    if (!c || (!c.phone && !c.name)) continue;
+    const custId = Number(c.id);
+    const validId = !isNaN(custId) && custId > 0 ? custId : undefined;
+    const cleanPhone = c.phone && String(c.phone).trim().length > 0 ? String(c.phone).trim() : undefined;
+
+    try {
+      upsertCustomer({
+        id: validId,
+        name: typeof c.name === 'string' ? c.name : `Customer #${c.id}`,
+        phone: cleanPhone,
+        email: typeof c.email === 'string' ? c.email : '',
+        points: Number(c.points) || 0,
+        balance: Number(c.balance) || 0
+      });
+    } catch (err) {
+      console.warn(`Failed to upsert cloud customer #${c.id}:`, err);
+    }
+  }
+}
+
+function ingestExpenses(raw: unknown) {
+  if (!raw || typeof raw !== 'object') return;
+  const expenses = Object.values(raw as Record<string, unknown>);
+  const localExpenses = getAllExpenses() as Expense[];
+  const localIdSet = new Set(localExpenses.map(e => e.id));
+  const localMatchSet = new Set(localExpenses.map(e => `${e.amount}-${e.description?.trim().toLowerCase()}-${e.timestamp?.substring(0, 16)}`));
+
+  for (const exp of expenses) {
+    if (!exp || typeof exp !== 'object') continue;
+    const rec = exp as Record<string, unknown>;
+    if (!rec.amount) continue;
+    const expId = Number(rec.id);
+    const hasValidId = !isNaN(expId) && expId > 0;
+    const desc = typeof rec.description === 'string' ? rec.description : '';
+    const timestamp = typeof rec.timestamp === 'string' ? rec.timestamp : '';
+    const key = `${Number(rec.amount)}-${desc.trim().toLowerCase()}-${timestamp.substring(0, 16)}`;
+
+    // If already exists locally by id or by exact details and timestamp, skip
+    if (hasValidId && localIdSet.has(expId)) continue;
+    if (localMatchSet.has(key)) continue;
+
+    upsertExpense({
+      id: hasValidId ? expId : undefined,
+      amount: Number(rec.amount) || 0,
+      description: desc || 'Mobile Expense',
+      category: typeof rec.category === 'string' ? rec.category : 'General',
+      loggedBy: typeof rec.logged_by === 'string' ? rec.logged_by : 'Mobile Admin',
+      timestamp: timestamp || undefined,
+    });
+
+    if (hasValidId) localIdSet.add(expId);
+    localMatchSet.add(key);
+  }
+}
+
+function ingestVendors(raw: unknown) {
+  if (!raw || typeof raw !== 'object') return;
+  const cloudVendors = Object.values(raw as Record<string, unknown>);
+  const localVendors = getAllVendors() as Vendor[];
+  const localNameSet = new Set(localVendors.map(v => v.name?.toLowerCase()));
+  for (const cv of cloudVendors) {
+    if (!cv || typeof cv !== 'object') continue;
+    const rec = cv as Record<string, unknown>;
+    if (!rec.name) continue;
+    const vName = String(rec.name);
+    if (localNameSet.has(vName.toLowerCase())) continue;
+    addVendor({
+      name: vName,
+      contact: typeof rec.contact === 'string' ? rec.contact : '',
+      category: typeof rec.category === 'string' ? rec.category : 'General',
+    });
+    localNameSet.add(vName.toLowerCase());
+  }
+}
+
+function ingestPurchaseOrders(raw: unknown) {
+  if (!raw || typeof raw !== 'object') return;
+  const pos = Object.values(raw as Record<string, unknown>);
+  for (const po of pos) {
+    if (!po || typeof po !== 'object') continue;
+    const rec = po as Record<string, unknown>;
+    if (!rec.vendor_name) continue;
+    try {
+      upsertCloudPurchaseOrder(rec);
+    } catch (err) {
+      console.warn(`Failed to upsert cloud PO for vendor ${rec.vendor_name}:`, err);
+    }
+  }
+}
+
+function ingestSales(raw: unknown) {
+  if (!raw || typeof raw !== 'object') return;
+  const cloudSales: Record<string, unknown>[] = [];
+  if (Array.isArray(raw)) {
+    for (let i = 0; i < raw.length; i++) {
+      if (raw[i]) cloudSales.push({ id: i, ...(raw[i] as Record<string, unknown>) });
+    }
+  } else {
+    for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+      if (v && typeof v === 'object') {
+        cloudSales.push({ id: (v as Record<string, unknown>).id || k, ...(v as Record<string, unknown>) });
+      }
+    }
+  }
+
+  for (const sale of cloudSales) {
+    if (!sale || sale.id === undefined || sale.id === null) continue;
+    try {
+      upsertCloudSale(sale);
+    } catch (err) {
+      console.warn(`Failed to upsert cloud sale #${sale.id}:`, err);
+    }
+  }
+}
+
+function ingestKhata(raw: unknown) {
+  if (!raw || typeof raw !== 'object') return;
+  for (const [custId, entries] of Object.entries(raw as Record<string, unknown>)) {
+    if (!entries || typeof entries !== 'object') continue;
+    const entriesList = Array.isArray(entries) ? entries : Object.values(entries as Record<string, unknown>);
+    for (const e of entriesList) {
+      if (!e || typeof e !== 'object') continue;
+      try {
+        upsertCloudKhataEntry({ customer_id: Number(custId) || custId, ...(e as Record<string, unknown>) });
+      } catch (err) {
+        console.warn(`Failed to upsert cloud khata entry for customer #${custId}:`, err);
+      }
+    }
+  }
+  recalculateAllCustomerBalances();
+}
+
+async function processDeletedKhataTombstones() {
+  if (!dbInstance) return;
+  try {
+    const delKhataSnap = await get(ref(dbInstance, 'deleted_khata_entries'));
+    if (delKhataSnap.exists() && delKhataSnap.val()) {
+      const delVal = delKhataSnap.val();
+      if (typeof delVal === 'object' && delVal !== null) {
+        for (const [cId, keys] of Object.entries(delVal)) {
+          if (keys && typeof keys === 'object') {
+            for (const k of Object.keys(keys)) {
+              deleteCustomerKhataBySyncId(k);
+            }
+          } else if (keys === true) {
+            deleteCustomerKhataBySyncId(cId);
+          }
+        }
+      }
+    }
+  } catch (dErr) {
+    console.warn("Failed to process cloud deleted khata entries:", dErr);
+  }
+}
+
+/** Full bidirectional pass: ingest everything that changed, then push local deltas. */
+async function runFullSyncPass() {
+  if (!dbInstance || isSyncing) return;
+  isSyncing = true;
+  try {
+    await ingestNode('products', 'products', ingestProducts);
+    await ingestNode('customers', 'customers', ingestCustomers);
+    await ingestNode('expenses', 'expenses', ingestExpenses);
+    await ingestNode('vendors', 'vendors', ingestVendors);
+    await ingestNode('purchase_orders', 'purchase_orders', ingestPurchaseOrders);
+    await ingestNode('sales', 'sales', ingestSales);
+    await processDeletedKhataTombstones();
+    await ingestNode('customer_khata', 'customer_khata', ingestKhata);
+
+    // Push merged local state back (each is a no-op network-wise when unchanged)
+    await syncSalesToCloud(true);
+    await syncProductsToCloud(true);
+    await syncExpensesToCloud(true);
+    await syncCustomersToCloud(true);
+    await syncCustomerKhataToCloud(true);
+    await syncVendorsToCloud(true);
+  } catch (err) {
+    console.warn("Full sync pass error:", err);
+  } finally {
+    isSyncing = false;
+  }
+}
+
+// ============================================================================
+// Worker Startup
+// ============================================================================
 
 // Start periodic background sync worker & bidirectional realtime sync
 export function startSyncWorker(onStatusChange?: (status: string) => void) {
@@ -587,42 +809,56 @@ export function startSyncWorker(onStatusChange?: (status: string) => void) {
       if (snap.val() === true) {
         console.log("Firebase status: Connected (Online)");
         onStatusChange("ONLINE");
-        
-        // Step 1: First ingest any changes created while mobile was offline / mobile was active
-        await ingestCloudDataToLocal();
-
-        // Step 2: Push merged state back to Firebase
-        await syncSalesToCloud();
-        await syncProductsToCloud();
-        await syncExpensesToCloud();
-        await syncCustomersToCloud();
-        await syncCustomerKhataToCloud();
-        await syncVendorsToCloud();
+        await runFullSyncPass();
       } else {
         console.log("Firebase status: Disconnected (Offline)");
         onStatusChange("OFFLINE");
       }
     });
 
-    // Realtime listeners for immediate updates from mobile
-    try {
-      // Debounced cloud ingestion to prevent continuous memory allocations
-      let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-      const triggerDebouncedIngest = () => {
-        if (debounceTimer) clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
-          ingestCloudDataToLocal().catch(err => console.warn("Debounced ingest error:", err));
-        }, 1200);
-      };
+    // Realtime listeners: each cloud change triggers a cheap, debounced ingest
+    // of ONLY the node that changed (hash-deduplicated, so echo writes are free).
+    const watchedNodes: Array<[string, string]> = [
+      ['products', 'products'],
+      ['customers', 'customers'],
+      ['customer_khata', 'customer_khata'],
+      ['expenses', 'expenses'],
+      ['vendors', 'vendors'],
+      ['purchase_orders', 'purchase_orders'],
+      ['sales', 'sales'],
+      ['deleted_khata_entries', 'deleted_khata_entries']
+    ];
 
-      onValue(ref(dbInstance, 'sales'), triggerDebouncedIngest);
-      onValue(ref(dbInstance, 'products'), triggerDebouncedIngest);
-      onValue(ref(dbInstance, 'customers'), triggerDebouncedIngest);
-      onValue(ref(dbInstance, 'customer_khata'), triggerDebouncedIngest);
-      onValue(ref(dbInstance, 'deleted_khata_entries'), triggerDebouncedIngest);
-      onValue(ref(dbInstance, 'expenses'), triggerDebouncedIngest);
-      onValue(ref(dbInstance, 'vendors'), triggerDebouncedIngest);
-      onValue(ref(dbInstance, 'purchase_orders'), triggerDebouncedIngest);
+    const debounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
+    const ingestHandlers: Record<string, (raw: unknown) => void | Promise<void>> = {
+      products: ingestProducts,
+      customers: ingestCustomers,
+      expenses: ingestExpenses,
+      vendors: ingestVendors,
+      purchase_orders: ingestPurchaseOrders,
+      sales: ingestSales,
+      customer_khata: async (raw) => {
+        await processDeletedKhataTombstones();
+        ingestKhata(raw);
+      },
+      deleted_khata_entries: async () => {
+        await processDeletedKhataTombstones();
+      }
+    };
+
+    try {
+      for (const [name, path] of watchedNodes) {
+        onValue(ref(dbInstance, path), () => {
+          const existing = debounceTimers.get(name);
+          if (existing) clearTimeout(existing);
+          debounceTimers.set(name, setTimeout(() => {
+            debounceTimers.delete(name);
+            ingestNode(name, path, ingestHandlers[name]).catch(err =>
+              console.warn(`Debounced ingest [${name}] error:`, err)
+            );
+          }, 1000));
+        });
+      }
 
       // Realtime listener for Remote Print Requests sent from Mobile POS
       onValue(ref(dbInstance, 'print_requests'), async (snap) => {
@@ -664,17 +900,25 @@ export function startSyncWorker(onStatusChange?: (status: string) => void) {
     onStatusChange("OFFLINE");
   }
 
-  // Periodic background cloud push every 45 seconds (lightweight schedule)
+  // Periodic background delta push (self-skipping when nothing changed — near-zero cost)
+  let tickCount = 0;
   setInterval(async () => {
     try {
+      if (!dbInstance) return;
       await syncSalesToCloud(true);
       await syncProductsToCloud(true);
       await syncExpensesToCloud(true);
       await syncCustomersToCloud(true);
       await syncCustomerKhataToCloud(true);
       await syncVendorsToCloud(true);
+
+      // Keep the WAL file compact (every ~20 min)
+      tickCount++;
+      if (tickCount % 20 === 0) {
+        checkpointDb();
+      }
     } catch (err) {
       console.warn("Background cloud sync error:", err);
     }
-  }, 45000);
+  }, 60000);
 }
