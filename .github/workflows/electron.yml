@@ -1,0 +1,75 @@
+# Automated multi-platform builds for the Electron POS desktop app.
+# Compiles the native addons (better-sqlite3, escpos-usb) per platform.
+# Trigger on version tags (v*) or manually; artifacts are uploaded and
+# attached to the matching GitHub Release.
+
+name: Build Electron POS Desktop App
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - 'forge.config.ts'
+      - '.github/workflows/electron.yml'
+
+concurrency:
+  group: electron-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install System Dependencies (Linux Only)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm libusb-1.0-0-dev libudev-dev
+
+      - name: Clean Install Dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Compile and Make Packages
+        run: npm run make
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: pos-app-${{ matrix.os }}
+          path: out/make/
+          if-no-files-found: warn
+
+      - name: Attach Installers to GitHub Release (version tags)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            out/make/squirrel.windows/x64/*.exe
+            out/make/deb/x64/*.deb
+            out/make/rpm/x64/*.rpm
+          draft: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

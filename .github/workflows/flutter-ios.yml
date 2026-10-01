@@ -1,0 +1,147 @@
+# Automated unsigned IPA builds for the SSmart POS Flutter admin apps.
+#
+# - Builds both flutter_admin_app and flutter_admin_app_iphone7 as unsigned
+#   release IPAs (no Apple Developer account / certificates required).
+# - IPAs are uploadable as workflow artifacts and can be sideloaded with
+#   Sideloadly / AltStore, or signed later for TestFlight/App Store.
+# - On version tags (v*), the IPAs are attached to the GitHub Release.
+#
+# Optional (signed production builds): add secrets PROVISIONING_PROFILE (base64)
+# and DISTRIBUTION_CERTIFICATE_P12 + DISTRIBUTION_CERTIFICATE_PASSWORD, then set
+# inputs.signed.default to true.
+
+name: Build Flutter iOS Admin Apps (IPA)
+
+on:
+  workflow_dispatch:
+    inputs:
+      signed:
+        description: 'Produce signed IPA (requires signing secrets)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+  push:
+    tags:
+      - 'v*'
+
+concurrency:
+  group: flutter-ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: IPA (${{ matrix.app }})${{ (inputs.signed == 'true') && ' signed' || ' unsigned' }}
+    runs-on: macos-15
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [flutter_admin_app, flutter_admin_app_iphone7]
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Java (required by Flutter)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Show Flutter version
+        run: flutter --version
+
+      - name: Resolve dependencies
+        working-directory: ${{ matrix.app }}
+        run: flutter pub get
+
+      - name: Analyze Dart code
+        working-directory: ${{ matrix.app }}
+        run: flutter analyze --no-fatal-infos
+
+      - name: Prepare code signing (unsigned)
+        if: inputs.signed != 'true'
+        working-directory: ${{ matrix.app }}/ios
+        run: |
+          # Disable automatic signing so the build produces a .app without a
+          # development team; xcodebuild later exports an unsigned IPA.
+          sed -i '' 's/DEVELOPMENT_TEAM = [A-Z0-9]*;/DEVELOPMENT_TEAM = "";/' Runner.xcodeproj/project.pbxproj || true
+          sed -i '' 's/PROVISIONING_PROFILE_SPECIFIER = .*/PROVISIONING_PROFILE_SPECIFIER = "";/' Runner.xcodeproj/project.pbxproj || true
+
+      - name: Prepare code signing (signed)
+        if: inputs.signed == 'true'
+        working-directory: ${{ matrix.app }}/ios
+        env:
+          DISTRIBUTION_CERTIFICATE_P12: ${{ secrets.DISTRIBUTION_CERTIFICATE_P12 }}
+          DISTRIBUTION_CERTIFICATE_PASSWORD: ${{ secrets.DISTRIBUTION_CERTIFICATE_PASSWORD }}
+          PROVISIONING_PROFILE: ${{ secrets.PROVISIONING_PROFILE }}
+        run: |
+          CERT_PATH="$RUNNER_TEMP/distribution.p12"
+          PROFILE_PATH="$RUNNER_TEMP/profile.mobileprovision"
+          echo -n "$DISTRIBUTION_CERTIFICATE_P12" | base64 --decode -o "$CERT_PATH"
+          echo -n "$PROVISIONING_PROFILE" | base64 --decode -o "$PROFILE_PATH"
+
+          KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
+          KEYCHAIN_PASSWORD=$(openssl rand -hex 24)
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -P "$DISTRIBUTION_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychain -d user -s "$KEYCHAIN_PATH" login.keychain-db
+
+          UUID=$(/usr/libexec/PlistBuddy -c 'Print :UUID' /dev/stdin <<< "$(security cms -D -i "$PROFILE_PATH")")
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          cp "$PROFILE_PATH" "$HOME/Library/MobileDevice/Provisioning Profiles/$UUID.mobileprovision"
+
+      - name: Build iOS release archive
+        working-directory: ${{ matrix.app }}/ios
+        run: |
+          flutter build ipa \
+            --release \
+            --no-codesign \
+            --export-options-plist=ExportOptions.plist \
+            --export-method=ad-hoc || \
+          flutter build ipa --release --no-codesign
+
+      - name: Export unsigned IPA
+        if: inputs.signed != 'true'
+        working-directory: ${{ matrix.app }}/ios
+        run: |
+          APP_PATH=$(find ../build/ios/iphoneos -name "*.app" -type d | head -n 1)
+          test -n "$APP_PATH"
+          mkdir -p Payload
+          cp -R "$APP_PATH" Payload/
+          zip -qr "${{ matrix.app }}-unsigned.ipa" Payload
+          rm -rf Payload
+
+      - name: Locate signed IPA
+        if: inputs.signed == 'true'
+        run: |
+          IPA_PATH=$(find ${{ matrix.app }}/build/ios/ipa -name "*.ipa" | head -n 1)
+          test -n "$IPA_PATH"
+          cp "$IPA_PATH" "${{ matrix.app }}-signed.ipa"
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.app }}-ipa
+          path: ${{ matrix.app }}-unsigned.ipa
+          if-no-files-found: error
+
+      - name: Attach IPA to GitHub Release (version tags)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ matrix.app }}-*.ipa
+          draft: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
