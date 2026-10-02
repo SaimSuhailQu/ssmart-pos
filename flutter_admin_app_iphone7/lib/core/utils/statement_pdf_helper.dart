@@ -211,7 +211,7 @@ class StatementPdfHelper {
                   _storeName.toUpperCase(),
                   style: pw.TextStyle(
                     fontSize: 16,
-                    fontWeight: pw.Font.bold,
+                    fontWeight: pw.FontWeight.bold,
                     color: PdfColor.fromHex('#111827'),
                     letterSpacing: 1.2,
                   ),
@@ -237,7 +237,7 @@ class StatementPdfHelper {
                 'OFFICIAL STATEMENT',
                 style: pw.TextStyle(
                   fontSize: 8,
-                  fontWeight: pw.Font.bold,
+                  fontWeight: pw.FontWeight.bold,
                   color: PdfColors.white,
                   letterSpacing: 1.5,
                 ),
@@ -293,7 +293,7 @@ class StatementPdfHelper {
               pw.SizedBox(height: 2),
               pw.Text(name,
                   style: pw.TextStyle(
-                      fontSize: 18, fontWeight: pw.Font.bold)),
+                      fontSize: 18, fontWeight: pw.FontWeight.bold)),
               pw.SizedBox(height: 2),
               pw.Text('Phone: $phone',
                   style: const pw.TextStyle(
@@ -311,7 +311,7 @@ class StatementPdfHelper {
           child: pw.Text(
             _nowLabel(),
             style: pw.TextStyle(
-                fontSize: 10, fontWeight: pw.Font.bold,
+                fontSize: 10, fontWeight: pw.FontWeight.bold,
                 color: PdfColor.fromHex('#3730A3')),
           ),
         ),
@@ -341,14 +341,14 @@ class StatementPdfHelper {
                 pw.Text(label,
                     style: pw.TextStyle(
                         fontSize: 9,
-                        fontWeight: pw.Font.bold,
+                        fontWeight: pw.FontWeight.bold,
                         color: textColor,
                         letterSpacing: 1.5)),
                 pw.SizedBox(height: 3),
                 pw.Text(amount,
                     style: pw.TextStyle(
                         fontSize: 24,
-                        fontWeight: pw.Font.bold,
+                        fontWeight: pw.FontWeight.bold,
                         color: textColor)),
               ]),
         ],
@@ -374,8 +374,8 @@ class StatementPdfHelper {
       );
     }
 
-    pw.TextAlign align(int col) =>
-        col >= alignRightFrom ? pw.TextAlign.right : pw.TextAlign.left;
+    pw.AlignmentGeometry align(int col) =>
+        col >= alignRightFrom ? pw.Alignment.centerRight : pw.Alignment.centerLeft;
 
     return pw.TableHelper.fromTextArray(
       headers: headers,
@@ -384,7 +384,7 @@ class StatementPdfHelper {
       headerDecoration: pw.BoxDecoration(color: PdfColor.fromHex('#111827')),
       headerStyle: pw.TextStyle(
         fontSize: 9,
-        fontWeight: pw.Font.bold,
+        fontWeight: pw.FontWeight.bold,
         color: PdfColors.white,
       ),
       cellStyle: const pw.TextStyle(fontSize: 9.5),
@@ -394,7 +394,7 @@ class StatementPdfHelper {
       cellAlignments: {
         for (var i = 0; i < headers.length; i++) i: align(i),
       },
-      oddRowDecoration: const pw.BoxDecoration(color: PdfColor.fromHex('#F9FAFB')),
+      oddRowDecoration: pw.BoxDecoration(color: PdfColor.fromHex('#F9FAFB')),
     );
   }
 
@@ -421,7 +421,7 @@ class StatementPdfHelper {
                   pw.SizedBox(height: 2),
                   pw.Text('PKR ${value.toStringAsFixed(0)}',
                       style: pw.TextStyle(
-                          fontSize: 13, fontWeight: pw.Font.bold)),
+                          fontSize: 13, fontWeight: pw.FontWeight.bold)),
                 ],
               ),
             ),
@@ -439,7 +439,7 @@ class StatementPdfHelper {
       children: [
         for (final (label, value) in pairs)
           pw.Container(
-            width: (pw.PdfPageFormat.a4.width - 72) / 2 - 6,
+            width: (PdfPageFormat.a4.width - 72) / 2 - 6,
             padding:
                 const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: pw.BoxDecoration(
@@ -457,7 +457,7 @@ class StatementPdfHelper {
                 pw.SizedBox(height: 2),
                 pw.Text(value,
                     style: pw.TextStyle(
-                        fontSize: 13, fontWeight: pw.Font.bold)),
+                        fontSize: 13, fontWeight: pw.FontWeight.bold)),
               ],
             ),
           ),
@@ -467,7 +467,7 @@ class StatementPdfHelper {
 
   static pw.Widget _sectionTitle(String title) {
     return pw.Text(title,
-        style: pw.TextStyle(fontSize: 12, fontWeight: pw.Font.bold));
+        style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold));
   }
 
   // ------------------------------------------------------------------ //
@@ -511,7 +511,7 @@ class StatementPdfHelper {
     required String body,
   }) async {
     final file = await _saveToTemp(doc, fileName);
-    // share_plus 10.x: subject param deprecated; keep the body text only.
+    // share_plus 11.x: SharePlus.instance.share(ShareParams(...)).
     await SharePlus.instance.share(
       ShareParams(files: [XFile(file.path)], text: body, title: subject),
     );

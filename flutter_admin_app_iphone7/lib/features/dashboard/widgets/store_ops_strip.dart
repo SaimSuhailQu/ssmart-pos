@@ -1,4 +1,5 @@
 // iphone7 variant: identical logic to the base app widget (same package name).
+import 'dart:async';
 import 'dart:ui' show FontFeature;
 
 import 'package:flutter/cupertino.dart';
