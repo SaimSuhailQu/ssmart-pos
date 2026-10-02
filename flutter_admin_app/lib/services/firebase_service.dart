@@ -1234,7 +1234,7 @@ class FirebaseService {
     final poRef = _database.ref('${FirebasePaths.purchaseOrders}/$poId');
 
     // Fetch existing node data if targetPoId already existed and existingData not already loaded
-    if (targetPoId != null && (existingData == null || existingData!['payments'] == null)) {
+    if (targetPoId != null && (existingData == null || existingData['payments'] == null)) {
       final snap = await poRef.get();
       if (snap.exists && snap.value != null) {
         existingData = _safeExtractPO(snap.value, poId: targetPoId, vendorId: vendorId);
@@ -1530,12 +1530,6 @@ class FirebaseService {
     final double currentPaid = (rawPaid is num) ? rawPaid.toDouble() : (double.tryParse(rawPaid.toString()) ?? 0.0);
 
     final double newPaidAmount = currentPaid + amount;
-    String newPaymentStatus = 'Unpaid';
-    if (newPaidAmount >= totalCost && totalCost > 0) {
-      newPaymentStatus = 'Paid';
-    } else if (newPaidAmount > 0) {
-      newPaymentStatus = 'Partially Paid';
-    }
 
     // Get current payments list
     List<dynamic> currentPayments = [];

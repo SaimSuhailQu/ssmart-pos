@@ -321,8 +321,10 @@ class StatementPdfHelper {
           child: pw.Text(
             _nowLabel(),
             style: pw.TextStyle(
-                fontSize: 10, fontWeight: pw.FontWeight.bold,
-                color: PdfColor.fromHex('#3730A3')),
+              fontSize: 10,
+              fontWeight: pw.FontWeight.bold,
+              color: PdfColor.fromHex('#3730A3'),
+            ),
           ),
         ),
       ],
@@ -386,8 +388,13 @@ class StatementPdfHelper {
           border: pw.Border.all(color: PdfColors.grey300),
           borderRadius: pw.BorderRadius.circular(8),
         ),
-        child: pw.Text('No entries recorded.',
-            style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey600)),
+        child: pw.Text(
+          'No entries recorded.',
+          style: const pw.TextStyle(
+            fontSize: 10,
+            color: PdfColors.grey600,
+          ),
+        ),
       );
     }
 
@@ -513,8 +520,18 @@ class StatementPdfHelper {
   static String _nowLabel() {
     final now = DateTime.now();
     final months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return '${now.day} ${months[now.month - 1]} ${now.year}, '
         '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
@@ -527,7 +544,8 @@ class StatementPdfHelper {
   }
 
   static List<_StatementEntry> _normalizeEntries(
-      List<Map<String, dynamic>> entries) {
+    List<Map<String, dynamic>> entries,
+  ) {
     final list = entries.map(_StatementEntry.fromMap).toList()
       ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
     return list;

@@ -15,12 +15,11 @@
 
   body {
     @apply text-slate-100 font-sans antialiased overflow-hidden select-none;
-    background-color: #07090e;
+    background-color: #090a0f;
     background-image: 
-      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(120, 119, 198, 0.28), transparent),
-      radial-gradient(ellipse 60% 40% at 10% 20%, rgba(56, 189, 248, 0.16), transparent),
-      radial-gradient(ellipse 50% 50% at 90% 80%, rgba(99, 102, 241, 0.22), transparent),
-      radial-gradient(ellipse 60% 60% at 30% 90%, rgba(16, 185, 129, 0.12), transparent);
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(255, 255, 255, 0.05), transparent),
+      radial-gradient(ellipse 60% 40% at 10% 20%, rgba(255, 255, 255, 0.025), transparent),
+      radial-gradient(ellipse 50% 50% at 90% 80%, rgba(255, 255, 255, 0.03), transparent);
     background-attachment: fixed;
     min-height: 100vh;
   }
