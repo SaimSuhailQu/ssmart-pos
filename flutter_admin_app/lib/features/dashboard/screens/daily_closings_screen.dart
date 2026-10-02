@@ -522,7 +522,7 @@ class _DailyClosingsScreenState extends State<DailyClosingsScreen> {
                   child: ElevatedButton.icon(
                     onPressed: () {
                       final dateStr = '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}';
-                      final text = '🏪 *SS MART & GENERAL STORE*\n'
+                      final text = '🏪 *SS MART*\n'
                           '📅 *DAILY CLOSING SUMMARY*\n'
                           '──────────────────────\n'
                           '🗓️ *Date:* $dateStr\n'
@@ -532,7 +532,7 @@ class _DailyClosingsScreenState extends State<DailyClosingsScreen> {
                           '💳 *Online / Bank:* Rs. ${onlineAmount.toStringAsFixed(2)}\n'
                           '${primaryClosing?.notes.isNotEmpty == true ? '📝 *Notes:* ${primaryClosing!.notes}\n' : ''}'
                           '──────────────────────\n'
-                          '✅ *Recorded via SSmart Admin*';
+                          '✅ *Recorded via SS MART Admin*';
 
                       Clipboard.setData(ClipboardData(text: text));
                       ScaffoldMessenger.of(context).showSnackBar(

@@ -13,7 +13,7 @@ import 'package:share_plus/share_plus.dart';
 /// saved to a temp file, and shared through the system share sheet (WhatsApp,
 /// Email, Files, etc.).
 class StatementPdfHelper {
-  static const String _storeName = 'SS MART & GENERAL STORE';
+  static const String _storeName = 'SS MART';
 
   /// Build and share a customer khata ledger statement.
   static Future<void> shareCustomerKhata({
@@ -261,7 +261,7 @@ class StatementPdfHelper {
           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
           children: [
             pw.Text(
-              'Generated via SSmart POS • ${_nowLabel()}',
+              'Generated via SS MART POS • ${_nowLabel()}',
               style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600),
             ),
             pw.Text(

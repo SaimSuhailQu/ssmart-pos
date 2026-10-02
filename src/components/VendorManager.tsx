@@ -1741,7 +1741,7 @@ export const VendorManager: React.FC = () => {
                     const paid = selectedPOForDetails.paid_amount || 0;
                     const balance = Math.max(0, billed - paid);
 
-                    let message = `🏪 *SS MART & GENERAL STORE*\n`;
+                    let message = `🏪 *SS MART*\n`;
                     message += `📊 *OFFICIAL VENDOR ACCOUNT STATEMENT*\n`;
                     message += `──────────────────────\n`;
                     message += `🏢 *Vendor:* ${selectedPOForDetails.vendor_name}\n`;
@@ -2030,7 +2030,7 @@ export const VendorManager: React.FC = () => {
                   const paid = selectedPOForDetails.paid_amount || 0;
                   const balance = Math.max(0, billed - paid);
 
-                  let message = `🏪 *SS MART & GENERAL STORE*\n`;
+                  let message = `🏪 *SS MART*\n`;
                   message += `📊 *OFFICIAL VENDOR ACCOUNT STATEMENT*\n`;
                   message += `──────────────────────\n`;
                   message += `🏢 *Vendor:* ${selectedPOForDetails.vendor_name}\n`;

@@ -1,4 +1,4 @@
-# SSmart POS — Licensing & Multi-Tenant Cloud Plan
+# SS MART POS — Licensing & Multi-Tenant Cloud Plan
 
 Complete blueprint for selling the POS to multiple stores: per-device license
 locking, a reseller-owned Firebase licensing cloud, tenant data isolation, and
@@ -6,7 +6,7 @@ the rollout roadmap.
 
 ---
 
-## 1. How licensing works today (already implemented)
+## 1. How licensing works (desktop + mobile)
 
 **Desktop (Electron)** — `src/licensing.ts` + `src/components/LicenseGate.tsx`:
 
@@ -27,14 +27,22 @@ the rollout roadmap.
    within hours, even on the buyer's machine. Licensed devices keep a local
    grace cache, so temporary internet outages never block a paying customer.
 
-**Buyer activation flow:** buyer installs → app shows device code → buyer
-sends it on WhatsApp → you paste it into Firebase (console or admin script) →
-app unlocks on next launch or "Recheck Activation".
+**Mobile (Flutter Admin)** — `lib/services/license_service.dart` +
+`lib/widgets/license_gate.dart`:
 
-**Admin (Flutter)** — currently rides on Firebase Auth (you control which
-Google accounts can sign in via the Auth allowlist). Per-device binding for
-mobile is available via the same licensing RTDB (`DeviceFingerprint` helper
-added; wire-up steps in §5).
+Mirrors the desktop system exactly:
+1. On launch, computes a SHA-256 device fingerprint via `DeviceFingerprint`
+   (Android: ANDROID_ID, iOS: identifierForVendor, Windows: MachineGUID).
+2. Checks `licenses/<fingerprint>` in Firebase RTDB.
+3. Same trial/licensed/expired states, same offline grace cache, same UI
+   (activation screen with copyable device code, trial banner, licensed badge).
+4. The gate wraps `DashboardScreen` in `main.dart` so it triggers automatically
+   on every app launch.
+
+**Buyer activation flow (both platforms):** buyer installs → app shows device
+code → buyer sends it on WhatsApp → you activate it from the **License Manager**
+screen on your phone (or Firebase console) → app unlocks on next launch or
+"Recheck Activation".
 
 ---
 
@@ -76,7 +84,19 @@ customer's data project. You own it; customers never see it.
 
 ### Activating a customer (your daily workflow)
 
-Open Firebase Console → Realtime Database → `licenses` → add child:
+**From the mobile app (recommended):**
+
+1. Open the SS MART Admin app on your phone.
+2. Tap the profile icon (top-right) → **License Manager**.
+3. Tap the green **+ Activate** button.
+4. Paste the buyer's device code → fill in customer name → choose role
+   (Tenant or Master) → optionally set an expiry date → tap **Activate
+   License**.
+5. The buyer's app unlocks on next launch or "Recheck Activation".
+
+**From Firebase Console (alternative):**
+
+Open Realtime Database → `licenses` → add child:
 
 ```
 "9f2c1e…full-device-code…" : {
@@ -89,10 +109,12 @@ Open Firebase Console → Realtime Database → `licenses` → add child:
 }
 ```
 
-- **To deactivate / reassign:** set `"active": false` (or delete the node).
-  The buyer's app locks itself within 12 h or on next launch; the device code
-  can then be reused for a different machine.
-- **To extend a subscription:** update `expiresAt`.
+- **To deactivate / reassign:** Use the License Manager → three-dot menu →
+  Deactivate. Or set `"active": false` in the console. The buyer's app locks
+  itself within 12 h or on next launch; the device code can then be reused for
+  a different machine.
+- **To extend a subscription:** License Manager → three-dot menu → Extend /
+  Set Expiry. Or update `expiresAt` in the console.
 - One fingerprint = one device. The same code cannot activate two machines.
 
 ---
@@ -142,22 +164,60 @@ tenant_map/      ← device fingerprint → tenant id (binding a sold copy to it
 | Offline grace so paying customers never get locked out | ✅ shipped |
 | Licensing Firebase rules + activation workflow | ✅ documented (§2) |
 | Mobile fingerprint helper | ✅ shipped (`device_fingerprint.dart`) |
-| Mobile gate wiring | ◻ §5 (half-day) |
+| **Mobile license gate (trial/licensed/expired)** | ✅ shipped (`license_gate.dart`) |
+| **Mobile license service** | ✅ shipped (`license_service.dart`) |
+| **License Manager screen (activate/deactivate/extend from mobile)** | ✅ shipped |
 | **Multi-tenant path scoping (desktop sync)** | ✅ shipped (`syncEngine.setTenant`) |
 | **Master access + tenant binding** | ✅ shipped (§6b) |
 | Licensing Cloud Function (secure activation API) | ◻ §7 (1 day) |
-| Reseller web dashboard (list/activate/revoke) | ◻ §7 (2–3 days) |
+| Reseller web dashboard (browser-based) | ◻ §7 (2–3 days) |
 
 ---
 
-## 5. Wiring the mobile admin gate (when you sell mobile access)
+## 5. How to trigger licensing (step-by-step)
 
-1. Add `license_service.dart` using the existing `DeviceFingerprint`:
-   read `licenses/<fp>` (and `tenant_map/<fp>` in Option B) on startup.
-2. In `main.dart`, gate `DashboardScreen` behind the license result exactly
-   like the desktop's `LicenseGate` (trial/expired/active).
-3. Trial length from `config/trial_days`; cache the state locally so offline
-   stores keep working.
+### Desktop (Electron POS)
+
+The license gate fires **automatically on every launch** — no manual trigger
+needed. Here's the flow:
+
+1. The main process in `src/main.ts` calls `checkLicense()` from
+   `src/licensing.ts` during the app boot sequence.
+2. The result is forwarded to the renderer via IPC (`getLicenseState`,
+   `getDeviceFingerprint`).
+3. `src/components/LicenseGate.tsx` wraps the entire app in `App.tsx` and
+   displays the appropriate state (trial banner / licensed badge / blocked
+   screen).
+4. Background revalidation (`scheduleRevalidation`) runs every 12 hours and
+   pushes `onLicenseRevoked` if the status changes.
+
+**To test:**
+- Delete `license-cache.json` from the Electron userData directory to reset the
+  trial.
+- Set `licenses/<your-fingerprint>` → `{ "active": false }` in Firebase to
+  test revocation. The app will block within 12 h or on restart.
+
+### Mobile (Flutter Admin App)
+
+The license gate fires **automatically after Firebase Auth succeeds** — no
+manual trigger needed. Here's the flow:
+
+1. In `lib/main.dart`, the `DashboardScreen` is wrapped in
+   `MobileLicenseGate`, which takes a `LicenseService` instance.
+2. On init, `MobileLicenseGate` calls `licenseService.checkLicense()` which:
+   - Gets the device fingerprint via `DeviceFingerprint.get()`
+   - Reads `licenses/<fingerprint>` from Firebase RTDB
+   - Returns `licensed`, `trial`, or `expired`
+3. The gate then renders the appropriate UI state — identical to the desktop.
+4. Offline grace: the license state is cached in
+   `ssmart_license_cache.json` so the app works without internet.
+
+**To test:**
+- Uninstall and reinstall the app to get a fresh trial.
+- Add/remove your device code in `licenses/` in Firebase to test activation
+  and revocation.
+
+---
 
 ## 6. Anti-piracy hardening (practical level)
 
@@ -182,9 +242,9 @@ data exactly where it is.
    `tenant_map/<your-fingerprint>` has `role: "master"`, your device uses the
    **legacy root paths** (`sales/`, `customer_khata/`, `products/`, …). Your
    existing khata and everything else is **never moved, duplicated or touched**,
-   and you get a green **“Master Access”** badge in the desktop app.
+   and you get a green **"Master Access"** badge in the desktop app.
 2. **Explicit tenant** — `tenant_map/<fingerprint>` = `"store_ali"` (or
-   `{ "tenant": "store_ali" }`) routes that device to
+   `{ "tenant": "store_ali", "role": "tenant" }`) routes that device to
    `tenants/store_ali/{sales,customer_khata,products,…}`. Fully isolated.
 3. **Safety valve** — set `config/require_tenant: true` in the licensing DB and
    any device without a binding is auto-placed in an isolated sandbox
@@ -199,7 +259,7 @@ Driver's-seat only — in your licensing Firebase → Realtime Database:
 ```
 licenses/<your-device-code> : {
   "active": true,
-  "customerName": "SS Mart (Owner)",
+  "customerName": "SS MART (Owner)",
   "role": "master"
 }
 ```
@@ -208,7 +268,10 @@ licenses/<your-device-code> : {
 
 1. Buyer installs and sends you their **device code** (shown on the activation
    screen).
-2. Add their license **and** bind them to a tenant:
+2. Open the **License Manager** on your phone → tap **+ Activate** → paste the
+   device code → set role to Tenant → activate.
+   
+   Or manually add in Firebase:
 
 ```
 licenses/<buyer-device-code> : {
@@ -220,7 +283,7 @@ licenses/<buyer-device-code> : {
 tenant_map/<buyer-device-code> : { "tenant": "store_ali", "role": "tenant" }
 ```
 
-3. The buyer restarts / hits “Recheck Activation”. Their app syncs only under
+3. The buyer restarts / hits "Recheck Activation". Their app syncs only under
    `tenants/store_ali/`. Your root data is untouched.
 4. Recommended: also set `config/require_tenant: true` so no future device can
    accidentally write to the root.
@@ -232,16 +295,17 @@ tenant_map/<buyer-device-code> : { "tenant": "store_ali", "role": "tenant" }
   ephemeral command queue, not business data).
 - Each sold copy can point at the **same Firebase project** (tenants) or at a
   **separate project** (Option A in §3). Tenant routing composes with either.
-- The mobile admin app is not yet tenant-scoped; wire it per §5 when selling
-  mobile dashboards.
 
 ---
 
 ## 7. Suggested next builds (in order)
 
-1. **Cloud Function `activateLicense`** (admin-key protected) so you can
-   activate customers from a WhatsApp link instead of the console.
-2. **Reseller dashboard** (single-page; list devices, status, revoke,
-   extend) reading the same `licenses` node.
+1. ~~**Cloud Function `activateLicense`**~~ → **Done.** The **License Manager**
+   screen in the mobile admin app lets you activate, deactivate, extend, and
+   delete licenses directly from your phone. Changes write straight to Firebase
+   RTDB and take effect on the buyer's device within 12 h or on next launch.
+2. **Reseller web dashboard** (optional) — a single-page web app reading the
+   same `licenses` node. Useful if you want a browser-based view alongside the
+   mobile manager.
 3. **Multi-tenant scoping** per §3 Option B when you cross ~5 stores.
 4. **Stripe/easypaisa payment links** in the dashboard for renewals.

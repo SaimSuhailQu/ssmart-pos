@@ -312,7 +312,7 @@ class ReceiptPrinterHelper {
                           children: [
                             Text('Thank you for shopping with us!', style: TextStyle(color: Colors.black, fontSize: 11, fontStyle: FontStyle.italic)),
                             SizedBox(height: 2),
-                            Text('*** SSmart POS Mobile System ***', style: TextStyle(color: Colors.black54, fontSize: 10)),
+                            Text('*** SS MART POS Mobile System ***', style: TextStyle(color: Colors.black54, fontSize: 10)),
                           ],
                         ),
                       ),

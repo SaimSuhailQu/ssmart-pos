@@ -257,7 +257,7 @@ export const SalesRecordManager: React.FC = () => {
     const dateFormatted = new Date().toLocaleDateString('en-PK', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
     const timeFormatted = new Date().toLocaleTimeString('en-PK', { hour: '2-digit', minute: '2-digit' });
 
-    const note = `🏪 *SS MART & GENERAL STORE*\n` +
+    const note = `🏪 *SS MART*\n` +
       `📅 *DAILY CLOSING SALES NOTE*\n` +
       `──────────────────────\n` +
       `🗓️ *Date:* ${dateFormatted}\n` +

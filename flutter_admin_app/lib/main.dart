@@ -13,6 +13,8 @@ import 'package:ssmart_pos_admin/features/auth/screens/login_screen.dart';
 import 'package:ssmart_pos_admin/features/dashboard/screens/dashboard_screen.dart';
 import 'package:ssmart_pos_admin/services/auth_service.dart';
 import 'package:ssmart_pos_admin/services/firebase_service.dart';
+import 'package:ssmart_pos_admin/services/license_service.dart';
+import 'package:ssmart_pos_admin/widgets/license_gate.dart';
 
 void main() async {
   // Ensure Flutter bindings are initialized
@@ -172,7 +174,7 @@ class SSMartPOSAdminApp extends StatelessWidget {
     // If Firebase failed to initialize, show clean error & retry screen instead of crashing into [core/no app]
     if (!isFirebaseReady) {
       return MaterialApp(
-        title: 'SSmart POS Admin',
+        title: 'SS MART Admin',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
         home: Scaffold(
@@ -210,7 +212,7 @@ class SSMartPOSAdminApp extends StatelessWidget {
         ),
       ],
       child: MaterialApp(
-        title: 'SSmart POS Admin',
+        title: 'SS MART Admin',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
 
@@ -234,7 +236,11 @@ class SSMartPOSAdminApp extends StatelessWidget {
                 // Navigate based on auth state
                 final user = snapshot.data ?? authService.currentUser;
                 if (user != null) {
-                  return const DashboardScreen();
+                  // Gate the dashboard behind the license check (mirrors desktop LicenseGate)
+                  return MobileLicenseGate(
+                    licenseService: LicenseService(FirebaseDatabase.instance),
+                    child: const DashboardScreen(),
+                  );
                 } else {
                   return const LoginScreen();
                 }
@@ -278,7 +284,7 @@ class _SplashScreen extends StatelessWidget {
 
             // App name
             Text(
-              'SSmart POS Admin',
+              'SS MART Admin',
               style: AppTheme.displayLarge,
             ),
             const SizedBox(height: AppTheme.spacingS),
