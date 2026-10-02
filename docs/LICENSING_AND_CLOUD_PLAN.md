@@ -45,28 +45,32 @@ customer's data project. You own it; customers never see it.
 
 1. Create project → add a **Web app** → enable **Realtime Database** (locked
    mode) and **Email/Password auth** (for your future admin console).
-2. Database rules — only your services can read/write licenses:
+2. Database rules — the desktop app reads licenses **client-side** with the
+   Firebase **web SDK** (`initializeApp` + `getDatabase` in `src/licensing.ts`,
+   no Admin SDK), so the rules below are the ones it needs. Note there is
+   deliberately **no `.read` on the parent** — only a specific device may read
+   its own node, so nobody can dump or enumerate the whole licence list.
 
 ```json
 {
   "rules": {
-    "licenses": {
-      ".read": false,
-      "$fingerprint": {
-        ".write": false
-      }
-    },
-    "config": { ".read": false, ".write": false }
+    "licenses":   { "$fp": { ".read": true,  ".write": false } },
+    "tenant_map": { "$fp": { ".read": true,  ".write": false } },
+    "config":     {             ".read": true,  ".write": false } }
   }
 }
 ```
 
-> The desktop app reads licenses with the **Admin SDK from your machine**
-> (or via a tiny Cloud Function), not with the public web config. If you prefer
-> the app to read directly with the web config, allow read-only on
-> `licenses/$fingerprint` — the fingerprint is already a SHA-256, so the DB
-> leaks nothing useful. Recommended hardening: keep rules closed and issue
-> activations through Cloud Functions (§7).
+> ⚠️ Do **not** set `".read": false` on `licenses`/`config`. The app performs
+> `get(ref(db, 'licenses/<fp>'))` with the public web config; closed read rules
+> make every lookup fail, and every device silently drops to the offline
+> branch (trial from cache / activation screen) instead of activating.
+>
+> This is safe: the key is a one-way SHA-256, so a leaked fingerprint reveals
+> no machine identity, and writes stay closed — activations are issued only
+> from the console or an Admin-SDK script. For stronger guarantees (and to
+> stop customers reading the `config` node at all) move the decision into a
+> Cloud Function (§7) and tighten `.read` to `false` everywhere.
 
 3. Add licensing env vars to the desktop build (project Keys tab or CI
    secrets): `VITE_LICENSING_FIREBASE_API_KEY`,
@@ -76,7 +80,10 @@ customer's data project. You own it; customers never see it.
 
 ### Activating a customer (your daily workflow)
 
-Open Firebase Console → Realtime Database → `licenses` → add child:
+Open Firebase Console → **Realtime Database** (not Firestore!) → Data tab →
+`licenses` → add child. Paste the buyer's **full** device code as the key —
+it is shown on the Activation Required screen and the Copy button copies all
+64 characters.
 
 ```
 "9f2c1e…full-device-code…" : {
