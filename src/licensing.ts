@@ -13,8 +13,15 @@
  * for the reseller workflow (deactivate/reassign a license, remote kill).
  */
 
-import { createHash, randomUUID } from 'crypto';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHash,
+  randomBytes,
+  randomUUID,
+  scryptSync,
+} from 'crypto';
+import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
 import { hostname, userInfo } from 'os';
 import { join } from 'path';
 import { app } from 'electron';
@@ -113,16 +120,69 @@ function platformLabel(): string {
 
 // -------------------------------------------------------------------- //
 //  Local activation cache (grace when offline)
+//
+//  Stored as AES-256-GCM ciphertext keyed from the device fingerprint, so
+//  the file is unreadable off-device and copying `license-cache.bin` to a
+//  second machine fails to decrypt and is treated as absent. This stops the
+//  classic crack of "copy a friend's activated cache file".
+//
+//  Migration: v1 wrote plaintext `license-cache.json`. It is still readable
+//  and is deleted the first time an encrypted cache is written.
 // -------------------------------------------------------------------- //
 
+const CACHE_FILE = 'license-cache.bin';
+const LEGACY_CACHE_FILE = 'license-cache.json';
+const CACHE_SALT = 'ssmart-pos/license-cache/v2';
+const IV_BYTES = 12;
+const TAG_BYTES = 16;
+
 function cachePath(): string {
-  return join(app.getPath('userData'), 'license-cache.json');
+  return join(app.getPath('userData'), CACHE_FILE);
 }
 
-function readCache(): StoredLicenseCache | null {
+function legacyCachePath(): string {
+  return join(app.getPath('userData'), LEGACY_CACHE_FILE);
+}
+
+/** Derive the cache encryption key from this device's fingerprint. */
+function cacheKey(fingerprint: string): Buffer {
+  return scryptSync(fingerprint, CACHE_SALT, 32);
+}
+
+function readCache(fingerprint: string): StoredLicenseCache | null {
+  const fromEncrypted = readEncryptedCache(fingerprint);
+  if (fromEncrypted) return fromEncrypted;
+  return readLegacyCache();
+}
+
+function readEncryptedCache(fingerprint: string): StoredLicenseCache | null {
   try {
     if (!existsSync(cachePath())) return null;
-    const parsed = JSON.parse(readFileSync(cachePath(), 'utf8')) as StoredLicenseCache;
+    const blob = readFileSync(cachePath());
+    if (blob.length < IV_BYTES + TAG_BYTES) return null;
+
+    const iv = blob.subarray(0, IV_BYTES);
+    const tag = blob.subarray(IV_BYTES, IV_BYTES + TAG_BYTES);
+    const ciphertext = blob.subarray(IV_BYTES + TAG_BYTES);
+
+    const decipher = createDecipheriv('aes-256-gcm', cacheKey(fingerprint), iv);
+    decipher.setAuthTag(tag);
+    const plain = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+
+    const parsed = JSON.parse(plain.toString('utf8')) as StoredLicenseCache;
+    if (parsed?.version !== CACHE_VERSION || !parsed.fingerprint) return null;
+    return parsed;
+  } catch {
+    // Wrong machine, tampered file, or unreadable — all treated as no cache.
+    return null;
+  }
+}
+
+/** Read the v1 plaintext cache so existing installs keep their license state. */
+function readLegacyCache(): StoredLicenseCache | null {
+  try {
+    if (!existsSync(legacyCachePath())) return null;
+    const parsed = JSON.parse(readFileSync(legacyCachePath(), 'utf8')) as StoredLicenseCache;
     if (parsed?.version !== CACHE_VERSION || !parsed.fingerprint) return null;
     return parsed;
   } catch {
@@ -130,11 +190,28 @@ function readCache(): StoredLicenseCache | null {
   }
 }
 
-function writeCache(state: LicenseState): void {
+function writeCache(state: LicenseState, fingerprint: string): void {
   try {
     const payload: StoredLicenseCache = { ...state, version: CACHE_VERSION };
     mkdirSync(app.getPath('userData'), { recursive: true });
-    writeFileSync(cachePath(), JSON.stringify(payload, null, 2), 'utf8');
+
+    const iv = randomBytes(IV_BYTES);
+    const cipher = createCipheriv('aes-256-gcm', cacheKey(fingerprint), iv);
+    const ciphertext = Buffer.concat([
+      cipher.update(JSON.stringify(payload), 'utf8'),
+      cipher.final(),
+    ]);
+    const tag = cipher.getAuthTag();
+    writeFileSync(cachePath(), Buffer.concat([iv, tag, ciphertext]));
+
+    // Migration complete — the plaintext v1 cache must not survive on disk.
+    if (existsSync(legacyCachePath())) {
+      try {
+        unlinkSync(legacyCachePath());
+      } catch {
+        /* non-fatal; the plaintext copy is harmless and will be retried */
+      }
+    }
   } catch {
     /* non-fatal */
   }
@@ -319,7 +396,7 @@ export async function checkLicense(): Promise<LicenseState> {
     remote = await fetchRemoteLicense(fingerprint);
   } catch (err) {
     // Network failure: fall back to cached state within grace window.
-    const cached = readCache();
+    const cached = readCache(fingerprint);
     if (cached && cached.status === 'licensed') {
       const state: LicenseState = {
         ...base,
@@ -357,7 +434,7 @@ export async function checkLicense(): Promise<LicenseState> {
           licenseKey: remote.licenseKey,
           error: 'subscription_expired',
         };
-        writeCache(state);
+        writeCache(state, fingerprint);
         return state;
       }
     }
@@ -370,12 +447,12 @@ export async function checkLicense(): Promise<LicenseState> {
       licenseKey: remote.licenseKey,
       lastValidated: base.checkedAt,
     };
-    writeCache(state);
+    writeCache(state, fingerprint);
     return state;
   }
 
   // No active remote license -> trial evaluation
-  const cached = readCache();
+  const cached = readCache(fingerprint);
   return await evaluateTrialFromCache(cached, base, remote?.revoked || remote?.deactivated, tenant);
 }
 
@@ -437,7 +514,7 @@ async function startTrial(
     expiresAt: expires.toISOString(),
     daysRemaining: trialDays,
   };
-  writeCache(state);
+  writeCache(state, base.fingerprint);
   return state;
 }
 
