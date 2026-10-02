@@ -3,9 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
 import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
-import 'package:ssmart_pos_admin/core/widgets/glass_card.dart';
 
 /// Admin screen for managing device licenses from the mobile app.
 ///
@@ -107,9 +105,11 @@ class _LicenseManagerScreenState extends State<LicenseManagerScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    Text('Activate License',
-                        style: AppTheme.titleLarge
-                            .copyWith(fontWeight: FontWeight.bold)),
+                    Text(
+                      'Activate License',
+                      style: AppTheme.titleLarge
+                          .copyWith(fontWeight: FontWeight.bold),
+                    ),
                     const SizedBox(height: 4),
                     Text(
                       'Enter the device code sent by the buyer to activate their license.',
@@ -130,8 +130,10 @@ class _LicenseManagerScreenState extends State<LicenseManagerScreen> {
                         hintText: 'Paste the SHA-256 device fingerprint',
                         hintStyle: AppTheme.bodySmall,
                         suffixIcon: IconButton(
-                          icon: const Icon(CupertinoIcons.doc_on_clipboard,
-                              size: 18),
+                          icon: const Icon(
+                            CupertinoIcons.doc_on_clipboard,
+                            size: 18,
+                          ),
                           onPressed: () async {
                             final data =
                                 await Clipboard.getData(Clipboard.kTextPlain);
@@ -218,7 +220,9 @@ class _LicenseManagerScreenState extends State<LicenseManagerScreen> {
                       child: Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 14),
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
                         decoration: BoxDecoration(
                           color: AppTheme.cardBackground,
                           borderRadius: BorderRadius.circular(10),
@@ -236,8 +240,11 @@ class _LicenseManagerScreenState extends State<LicenseManagerScreen> {
                                 ),
                               ),
                             ),
-                            const Icon(CupertinoIcons.calendar,
-                                size: 16, color: AppTheme.textSecondary),
+                            const Icon(
+                              CupertinoIcons.calendar,
+                              size: 16,
+                              color: AppTheme.textSecondary,
+                            ),
                           ],
                         ),
                       ),
@@ -256,11 +263,15 @@ class _LicenseManagerScreenState extends State<LicenseManagerScreen> {
                           role: selectedRole,
                           expiresAt: expiresAt,
                         ),
-                        icon: const Icon(CupertinoIcons.checkmark_shield,
-                            size: 16),
-                        label: Text('Activate License',
-                            style: AppTheme.labelLarge
-                                .copyWith(color: Colors.black)),
+                        icon: const Icon(
+                          CupertinoIcons.checkmark_shield,
+                          size: 16,
+                        ),
+                        label: Text(
+                          'Activate License',
+                          style: AppTheme.labelLarge
+                              .copyWith(color: Colors.black),
+                        ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.successGreen,
                           foregroundColor: Colors.black,
@@ -290,9 +301,11 @@ class _LicenseManagerScreenState extends State<LicenseManagerScreen> {
     String? expiresAt,
   }) async {
     if (code.isEmpty) {
-      ScaffoldMessenger.of(ctx).showSnackBar(
-        const SnackBar(content: Text('Device code is required')),
-      );
+      if (ctx.mounted) {
+        ScaffoldMessenger.of(ctx).showSnackBar(
+          const SnackBar(content: Text('Device code is required')),
+        );
+      }
       return;
     }
 
@@ -318,7 +331,7 @@ class _LicenseManagerScreenState extends State<LicenseManagerScreen> {
         });
       }
 
-      Navigator.of(ctx).pop();
+      if (ctx.mounted) Navigator.of(ctx).pop();
       _loadLicenses();
 
       if (mounted) {
@@ -330,9 +343,11 @@ class _LicenseManagerScreenState extends State<LicenseManagerScreen> {
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(ctx).showSnackBar(
-        SnackBar(content: Text('Failed to activate: $e')),
-      );
+      if (ctx.mounted) {
+        ScaffoldMessenger.of(ctx).showSnackBar(
+          SnackBar(content: Text('Failed to activate: $e')),
+        );
+      }
     }
   }
 
@@ -344,7 +359,8 @@ class _LicenseManagerScreenState extends State<LicenseManagerScreen> {
       builder: (ctx) => CupertinoAlertDialog(
         title: const Text('Deactivate License'),
         content: Text(
-            'Are you sure you want to deactivate the license for "$name"? The device will lock within 12 hours.'),
+          'Are you sure you want to deactivate the license for "$name"? The device will lock within 12 hours.',
+        ),
         actions: [
           CupertinoDialogAction(
             child: const Text('Cancel'),
@@ -438,7 +454,8 @@ class _LicenseManagerScreenState extends State<LicenseManagerScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-                '📅 License for $name extended to ${DateFormat('dd MMM yyyy').format(picked)}'),
+              '📅 License for $name extended to ${DateFormat('dd MMM yyyy').format(picked)}',
+            ),
             backgroundColor: AppTheme.primaryCyan.withValues(alpha: 0.9),
           ),
         );
@@ -460,7 +477,8 @@ class _LicenseManagerScreenState extends State<LicenseManagerScreen> {
       builder: (ctx) => CupertinoAlertDialog(
         title: const Text('Delete License'),
         content: Text(
-            'Permanently delete the license record for "$name"? This cannot be undone.'),
+          'Permanently delete the license record for "$name"? This cannot be undone.',
+        ),
         actions: [
           CupertinoDialogAction(
             child: const Text('Cancel'),
@@ -518,8 +536,10 @@ class _LicenseManagerScreenState extends State<LicenseManagerScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: Text('License Manager',
-            style: AppTheme.titleLarge.copyWith(fontWeight: FontWeight.bold)),
+        title: Text(
+          'License Manager',
+          style: AppTheme.titleLarge.copyWith(fontWeight: FontWeight.bold),
+        ),
         actions: [
           IconButton(
             icon: const Icon(CupertinoIcons.arrow_clockwise, size: 20),
@@ -532,8 +552,10 @@ class _LicenseManagerScreenState extends State<LicenseManagerScreen> {
         backgroundColor: AppTheme.successGreen,
         foregroundColor: Colors.black,
         icon: const Icon(CupertinoIcons.add, size: 18),
-        label: Text('Activate',
-            style: AppTheme.labelLarge.copyWith(color: Colors.black)),
+        label: Text(
+          'Activate',
+          style: AppTheme.labelLarge.copyWith(color: Colors.black),
+        ),
       ),
       body: Column(
         children: [
@@ -603,8 +625,11 @@ class _LicenseManagerScreenState extends State<LicenseManagerScreen> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(CupertinoIcons.shield,
-                                size: 48, color: AppTheme.textTertiary),
+                            const Icon(
+                              CupertinoIcons.shield,
+                              size: 48,
+                              color: AppTheme.textTertiary,
+                            ),
                             const SizedBox(height: 12),
                             Text(
                               _licenses.isEmpty
@@ -630,9 +655,13 @@ class _LicenseManagerScreenState extends State<LicenseManagerScreen> {
                               fingerprint: fp,
                               data: val,
                               onDeactivate: () => _deactivateLicense(
-                                  fp, val['customerName'] ?? fp),
+                                fp,
+                                val['customerName'] ?? fp,
+                              ),
                               onReactivate: () => _reactivateLicense(
-                                  fp, val['customerName'] ?? fp),
+                                fp,
+                                val['customerName'] ?? fp,
+                              ),
                               onExtend: () =>
                                   _extendLicense(fp, val['customerName'] ?? fp),
                               onDelete: () =>
@@ -673,9 +702,13 @@ class _StatChip extends StatelessWidget {
         ),
         child: Column(
           children: [
-            Text(value,
-                style: AppTheme.titleMedium
-                    .copyWith(color: color, fontWeight: FontWeight.bold)),
+            Text(
+              value,
+              style: AppTheme.titleMedium.copyWith(
+                color: color,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             const SizedBox(height: 2),
             Text(label, style: AppTheme.labelSmall),
           ],
@@ -786,8 +819,11 @@ class _LicenseCard extends StatelessWidget {
               ),
               // Actions popup
               PopupMenuButton<String>(
-                icon: const Icon(CupertinoIcons.ellipsis,
-                    size: 18, color: AppTheme.textSecondary),
+                icon: const Icon(
+                  CupertinoIcons.ellipsis,
+                  size: 18,
+                  color: AppTheme.textSecondary,
+                ),
                 color: AppTheme.surfaceDark,
                 onSelected: (action) {
                   switch (action) {
@@ -812,8 +848,11 @@ class _LicenseCard extends StatelessWidget {
                       value: 'deactivate',
                       child: Row(
                         children: [
-                          Icon(CupertinoIcons.xmark_shield,
-                              size: 16, color: AppTheme.errorRed),
+                          Icon(
+                            CupertinoIcons.xmark_shield,
+                            size: 16,
+                            color: AppTheme.errorRed,
+                          ),
                           SizedBox(width: 8),
                           Text('Deactivate'),
                         ],
@@ -824,8 +863,11 @@ class _LicenseCard extends StatelessWidget {
                       value: 'reactivate',
                       child: Row(
                         children: [
-                          Icon(CupertinoIcons.checkmark_shield,
-                              size: 16, color: AppTheme.successGreen),
+                          Icon(
+                            CupertinoIcons.checkmark_shield,
+                            size: 16,
+                            color: AppTheme.successGreen,
+                          ),
                           SizedBox(width: 8),
                           Text('Reactivate'),
                         ],
@@ -835,8 +877,11 @@ class _LicenseCard extends StatelessWidget {
                     value: 'extend',
                     child: Row(
                       children: [
-                        Icon(CupertinoIcons.calendar,
-                            size: 16, color: AppTheme.primaryCyan),
+                        Icon(
+                          CupertinoIcons.calendar,
+                          size: 16,
+                          color: AppTheme.primaryCyan,
+                        ),
                         SizedBox(width: 8),
                         Text('Extend / Set Expiry'),
                       ],
@@ -846,8 +891,11 @@ class _LicenseCard extends StatelessWidget {
                     value: 'copy',
                     child: Row(
                       children: [
-                        Icon(CupertinoIcons.doc_on_doc,
-                            size: 16, color: AppTheme.textSecondary),
+                        Icon(
+                          CupertinoIcons.doc_on_doc,
+                          size: 16,
+                          color: AppTheme.textSecondary,
+                        ),
                         SizedBox(width: 8),
                         Text('Copy Device Code'),
                       ],
@@ -858,8 +906,11 @@ class _LicenseCard extends StatelessWidget {
                     value: 'delete',
                     child: Row(
                       children: [
-                        Icon(CupertinoIcons.trash,
-                            size: 16, color: AppTheme.errorRed),
+                        Icon(
+                          CupertinoIcons.trash,
+                          size: 16,
+                          color: AppTheme.errorRed,
+                        ),
                         SizedBox(width: 8),
                         Text('Delete'),
                       ],
@@ -874,19 +925,31 @@ class _LicenseCard extends StatelessWidget {
           // Details row
           Row(
             children: [
-              Icon(CupertinoIcons.device_phone_portrait,
-                  size: 12, color: AppTheme.textTertiary),
+              const Icon(
+                CupertinoIcons.device_phone_portrait,
+                size: 12,
+                color: AppTheme.textTertiary,
+              ),
               const SizedBox(width: 4),
-              Text(fpShort,
-                  style: AppTheme.labelSmall
-                      .copyWith(fontFamily: 'monospace', fontSize: 10)),
+              Text(
+                fpShort,
+                style: AppTheme.labelSmall.copyWith(
+                  fontFamily: 'monospace',
+                  fontSize: 10,
+                ),
+              ),
               if (licenseKey != null) ...[
                 const SizedBox(width: 12),
-                Icon(CupertinoIcons.tag,
-                    size: 12, color: AppTheme.textTertiary),
+                const Icon(
+                  CupertinoIcons.tag,
+                  size: 12,
+                  color: AppTheme.textTertiary,
+                ),
                 const SizedBox(width: 4),
-                Text(licenseKey.toString(),
-                    style: AppTheme.labelSmall.copyWith(fontSize: 10)),
+                Text(
+                  licenseKey.toString(),
+                  style: AppTheme.labelSmall.copyWith(fontSize: 10),
+                ),
               ],
             ],
           ),
@@ -894,11 +957,13 @@ class _LicenseCard extends StatelessWidget {
             const SizedBox(height: 4),
             Row(
               children: [
-                Icon(CupertinoIcons.clock,
-                    size: 12,
-                    color: subscriptionExpired
-                        ? AppTheme.warningOrange
-                        : AppTheme.textTertiary),
+                Icon(
+                  CupertinoIcons.clock,
+                  size: 12,
+                  color: subscriptionExpired
+                      ? AppTheme.warningOrange
+                      : AppTheme.textTertiary,
+                ),
                 const SizedBox(width: 4),
                 Text(
                   'Expires: $expiresAt',

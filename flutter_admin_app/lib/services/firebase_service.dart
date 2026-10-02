@@ -659,9 +659,8 @@ class FirebaseService {
     // lost updates when desktop POS and mobile sell the same item concurrently.
     for (final item in items) {
       try {
-        final rawId = item.productId;
-        final pid = rawId is int ? rawId : int.tryParse(rawId.toString());
-        if (pid == null || pid <= 0) continue; // skip custom / daily-closing items
+        final pid = item.productId;
+        if (pid <= 0) continue; // skip custom / daily-closing items
         final prodRef = _database.ref('${FirebasePaths.products}/$pid/stock');
         await prodRef.runTransaction((current) {
           final currentStock = current is int
@@ -1170,7 +1169,25 @@ class FirebaseService {
 
       // 2. If not found in cache, check directly in RTDB
       if (existingModel != null) {
-        targetPoId = existingModel.id.toString();
+        targetPoId = existingModel.key.isNotEmpty ? existingModel.key : existingModel.id.toString();
+        existingData = {
+          'id': existingModel.id,
+          'vendor_id': existingModel.vendorId,
+          'vendor_name': existingModel.vendorName,
+          'contact_person': existingModel.contactPerson,
+          'phone': existingModel.phone,
+          'email': existingModel.email,
+          'total_cost': existingModel.totalCost,
+          'total_amount': existingModel.totalCost,
+          'paid_amount': existingModel.paidAmount,
+          'payment_status': existingModel.paymentStatus,
+          'status': existingModel.status,
+          'notes': existingModel.notes,
+          'bill_url': existingModel.billUrl,
+          'items': existingModel.items,
+          'payments': existingModel.payments,
+          'order_entries': existingModel.orderEntries,
+        };
       } else {
         try {
           final snap = await _database.ref(FirebasePaths.purchaseOrders).get();
@@ -1217,7 +1234,7 @@ class FirebaseService {
     final poRef = _database.ref('${FirebasePaths.purchaseOrders}/$poId');
 
     // Fetch existing node data if targetPoId already existed and existingData not already loaded
-    if (targetPoId != null && existingData == null) {
+    if (targetPoId != null && (existingData == null || existingData!['payments'] == null)) {
       final snap = await poRef.get();
       if (snap.exists && snap.value != null) {
         existingData = _safeExtractPO(snap.value, poId: targetPoId, vendorId: vendorId);
@@ -1312,6 +1329,15 @@ class FirebaseService {
 
     // Creating fresh PO or editing explicit PO by ID
     List<dynamic> poPayments = payments ?? [];
+    if (poPayments.isEmpty && existingData != null && existingData['payments'] != null) {
+      if (existingData['payments'] is List) {
+        poPayments = List.from(existingData['payments'] as List);
+      } else if (existingData['payments'] is Map) {
+        (existingData['payments'] as Map).forEach((_, v) {
+          if (v != null) poPayments.add(v);
+        });
+      }
+    }
     if (poPayments.isEmpty && paidAmount > 0) {
       poPayments = [
         {
@@ -1530,9 +1556,30 @@ class FirebaseService {
       'timestamp': DateTime.now().toIso8601String(),
     });
 
+    // Re-sum total paid from all payments in currentPayments to ensure consistency
+    double verifiedPaid = 0.0;
+    for (final p in currentPayments) {
+      if (p is Map) {
+        final amt = p['amount'];
+        if (amt is num) {
+          verifiedPaid += amt.toDouble();
+        } else if (amt != null) {
+          verifiedPaid += double.tryParse(amt.toString()) ?? 0.0;
+        }
+      }
+    }
+    if (verifiedPaid <= 0) verifiedPaid = newPaidAmount;
+
+    String verifiedStatus = 'Unpaid';
+    if (verifiedPaid >= totalCost && totalCost > 0) {
+      verifiedStatus = 'Paid';
+    } else if (verifiedPaid > 0) {
+      verifiedStatus = 'Partially Paid';
+    }
+
     await targetRef.update({
-      'paid_amount': newPaidAmount,
-      'payment_status': newPaymentStatus,
+      'paid_amount': verifiedPaid,
+      'payment_status': verifiedStatus,
       'payments': currentPayments,
     });
   }

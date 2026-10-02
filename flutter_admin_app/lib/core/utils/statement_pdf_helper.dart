@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -235,7 +234,7 @@ class StatementPdfHelper {
               ),
               child: pw.Text(
                 'OFFICIAL STATEMENT',
-                style: pw.TextStyle(
+                style: const pw.TextStyle(
                   fontSize: 8,
                   fontWeight: pw.FontWeight.bold,
                   color: PdfColors.white,
@@ -285,19 +284,30 @@ class StatementPdfHelper {
           child: pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              pw.Text('PARTY',
-                  style: pw.TextStyle(
-                      fontSize: 8,
-                      color: PdfColors.grey600,
-                      letterSpacing: 1.5)),
+              pw.Text(
+                'PARTY',
+                style: const pw.TextStyle(
+                  fontSize: 8,
+                  color: PdfColors.grey600,
+                  letterSpacing: 1.5,
+                ),
+              ),
               pw.SizedBox(height: 2),
-              pw.Text(name,
-                  style: pw.TextStyle(
-                      fontSize: 18, fontWeight: pw.FontWeight.bold)),
+              pw.Text(
+                name,
+                style: const pw.TextStyle(
+                  fontSize: 18,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
               pw.SizedBox(height: 2),
-              pw.Text('Phone: $phone',
-                  style: const pw.TextStyle(
-                      fontSize: 10, color: PdfColors.grey700)),
+              pw.Text(
+                'Phone: $phone',
+                style: const pw.TextStyle(
+                  fontSize: 10,
+                  color: PdfColors.grey700,
+                ),
+              ),
             ],
           ),
         ),
@@ -338,19 +348,26 @@ class StatementPdfHelper {
           pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
-                pw.Text(label,
-                    style: pw.TextStyle(
-                        fontSize: 9,
-                        fontWeight: pw.FontWeight.bold,
-                        color: textColor,
-                        letterSpacing: 1.5)),
+                pw.Text(
+                  label,
+                  style: pw.TextStyle(
+                    fontSize: 9,
+                    fontWeight: pw.FontWeight.bold,
+                    color: textColor,
+                    letterSpacing: 1.5,
+                  ),
+                ),
                 pw.SizedBox(height: 3),
-                pw.Text(amount,
-                    style: pw.TextStyle(
-                        fontSize: 24,
-                        fontWeight: pw.FontWeight.bold,
-                        color: textColor)),
-              ]),
+                pw.Text(
+                  amount,
+                  style: pw.TextStyle(
+                    fontSize: 24,
+                    fontWeight: pw.FontWeight.bold,
+                    color: textColor,
+                  ),
+                ),
+              ],
+            ),
         ],
       ),
     );
@@ -382,7 +399,7 @@ class StatementPdfHelper {
       data: rows,
       border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
       headerDecoration: pw.BoxDecoration(color: PdfColor.fromHex('#111827')),
-      headerStyle: pw.TextStyle(
+      headerStyle: const pw.TextStyle(
         fontSize: 9,
         fontWeight: pw.FontWeight.bold,
         color: PdfColors.white,
@@ -413,15 +430,22 @@ class StatementPdfHelper {
               child: pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
-                  pw.Text(label.toUpperCase(),
-                      style: pw.TextStyle(
-                          fontSize: 7.5,
-                          color: PdfColors.grey600,
-                          letterSpacing: 1.2)),
+                  pw.Text(
+                    label.toUpperCase(),
+                    style: const pw.TextStyle(
+                      fontSize: 7.5,
+                      color: PdfColors.grey600,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
                   pw.SizedBox(height: 2),
-                  pw.Text('PKR ${value.toStringAsFixed(0)}',
-                      style: pw.TextStyle(
-                          fontSize: 13, fontWeight: pw.FontWeight.bold)),
+                  pw.Text(
+                    'PKR ${value.toStringAsFixed(0)}',
+                    style: const pw.TextStyle(
+                      fontSize: 13,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -449,15 +473,22 @@ class StatementPdfHelper {
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
-                pw.Text(label.toUpperCase(),
-                    style: pw.TextStyle(
-                        fontSize: 7.5,
-                        color: PdfColors.grey600,
-                        letterSpacing: 1.2)),
+                pw.Text(
+                  label.toUpperCase(),
+                  style: const pw.TextStyle(
+                    fontSize: 7.5,
+                    color: PdfColors.grey600,
+                    letterSpacing: 1.2,
+                  ),
+                ),
                 pw.SizedBox(height: 2),
-                pw.Text(value,
-                    style: pw.TextStyle(
-                        fontSize: 13, fontWeight: pw.FontWeight.bold)),
+                pw.Text(
+                  value,
+                  style: const pw.TextStyle(
+                    fontSize: 13,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
               ],
             ),
           ),
@@ -466,8 +497,13 @@ class StatementPdfHelper {
   }
 
   static pw.Widget _sectionTitle(String title) {
-    return pw.Text(title,
-        style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold));
+    return pw.Text(
+      title,
+      style: const pw.TextStyle(
+        fontSize: 12,
+        fontWeight: pw.FontWeight.bold,
+      ),
+    );
   }
 
   // ------------------------------------------------------------------ //
@@ -554,7 +590,7 @@ class _StatementEntry {
 
     final months = [
       'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
     ];
     final label = '${dt.day} ${months[dt.month - 1]} '
         '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';

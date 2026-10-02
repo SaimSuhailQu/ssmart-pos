@@ -145,7 +145,7 @@ class MetricCardSkeleton extends StatelessWidget {
               Container(
                 width: 36,
                 height: 36,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: AppTheme.borderColor,
                   shape: BoxShape.circle,
                 ),
@@ -156,18 +156,18 @@ class MetricCardSkeleton extends StatelessWidget {
           Container(
             width: 80,
             height: 10,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: AppTheme.borderColor,
-              borderRadius: BorderRadius.circular(4),
+              borderRadius: BorderRadius.all(Radius.circular(4)),
             ),
           ),
           const SizedBox(height: 6),
           Container(
             width: 110,
             height: 16,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: AppTheme.borderColor,
-              borderRadius: BorderRadius.circular(4),
+              borderRadius: BorderRadius.all(Radius.circular(4)),
             ),
           ),
         ],

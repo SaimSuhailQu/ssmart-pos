@@ -151,12 +151,16 @@ class LicenseService {
         }
 
         // Revoked or deactivated — fall through to trial/expired evaluation
-        return _evaluateTrial(fingerprint, platform, now,
-            wasRevoked: revoked || deactivated);
+        return await _evaluateTrial(
+          fingerprint,
+          platform,
+          now,
+          wasRevoked: revoked || deactivated,
+        );
       }
 
       // No record — trial evaluation
-      return _evaluateTrial(fingerprint, platform, now);
+      return await _evaluateTrial(fingerprint, platform, now);
     } catch (e) {
       // Network error — use cached state
       final cached = await _readCache();

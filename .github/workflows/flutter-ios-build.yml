@@ -77,7 +77,7 @@ jobs:
           INPUT_BUILD_TYPE: ${{ github.event.inputs.build_type }}
           INPUT_BUILD_NUMBER_OVERRIDE: ${{ github.event.inputs.build_number_override }}
           GITHUB_RUN_NUMBER: ${{ github.run_number }}
-          HAS_SIGNING_SECRETS: ${{ secrets.MATCH_PASSWORD }}
+          HAS_SIGNING_SECRETS: ${{ secrets['MATCH_PASSWORD'] }}
         run: |
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "  Determining Build Configuration"
@@ -325,10 +325,10 @@ jobs:
       # ========================================================================
       - name: Install Apple Certificate & Provisioning Profile
         env:
-          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
-          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
-          BUILD_PROVISION_PROFILE_BASE64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
-          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          BUILD_CERTIFICATE_BASE64: ${{ secrets['BUILD_CERTIFICATE_BASE64'] }}
+          P12_PASSWORD: ${{ secrets['P12_PASSWORD'] }}
+          BUILD_PROVISION_PROFILE_BASE64: ${{ secrets['BUILD_PROVISION_PROFILE_BASE64'] }}
+          KEYCHAIN_PASSWORD: ${{ secrets['KEYCHAIN_PASSWORD'] }}
           BUILD_TYPE: ${{ steps.build_config.outputs.type }}
         run: |
           if [ "$BUILD_TYPE" != "signed" ] || [ -z "$BUILD_CERTIFICATE_BASE64" ]; then
@@ -407,7 +407,7 @@ jobs:
       - name: Build iOS Application
         working-directory: ${{ env.WORKING_DIRECTORY }}
         env:
-          FASTLANE_TEAM_ID: ${{ secrets.FASTLANE_TEAM_ID }}
+          FASTLANE_TEAM_ID: ${{ secrets['FASTLANE_TEAM_ID'] }}
           BUILD_VERSION: ${{ steps.build_config.outputs.version }}
           BUILD_NUMBER: ${{ steps.build_config.outputs.build_number }}
         run: |
@@ -475,11 +475,11 @@ jobs:
           (github.event.inputs.deploy_to_testflight == 'true' || startsWith(github.ref, 'refs/tags/flutter-v') || startsWith(github.ref, 'refs/tags/v'))
         working-directory: ${{ env.WORKING_DIRECTORY }}/ios/fastlane
         env:
-          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
-          FASTLANE_USER: ${{ secrets.FASTLANE_USER }}
-          FASTLANE_TEAM_ID: ${{ secrets.FASTLANE_TEAM_ID }}
-          FASTLANE_SESSION: ${{ secrets.FASTLANE_SESSION }}
-          FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD: ${{ secrets.FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD }}
+          MATCH_PASSWORD: ${{ secrets['MATCH_PASSWORD'] }}
+          FASTLANE_USER: ${{ secrets['FASTLANE_USER'] }}
+          FASTLANE_TEAM_ID: ${{ secrets['FASTLANE_TEAM_ID'] }}
+          FASTLANE_SESSION: ${{ secrets['FASTLANE_SESSION'] }}
+          FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD: ${{ secrets['FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD'] }}
         run: |
           bundle exec fastlane beta
 

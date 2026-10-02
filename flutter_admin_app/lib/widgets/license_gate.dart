@@ -94,9 +94,6 @@ class _MobileLicenseGateState extends State<MobileLicenseGate> {
               ? 'The subscription period for this license has ended.'
               : 'Your free trial period has ended.';
       final fp = license?.fingerprint ?? '';
-      final fpShort = fp.length > 24
-          ? '${fp.substring(0, 16)}…${fp.substring(fp.length - 8)}'
-          : fp;
 
       return Scaffold(
         backgroundColor: AppTheme.backgroundLight,
@@ -180,7 +177,9 @@ class _MobileLicenseGateState extends State<MobileLicenseGate> {
                               onTap: _copyFingerprint,
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 10, vertical: 6),
+                                  horizontal: 10,
+                                  vertical: 6,
+                                ),
                                 decoration: BoxDecoration(
                                   color: AppTheme.primaryCyan
                                       .withValues(alpha: 0.15),
@@ -234,8 +233,10 @@ class _MobileLicenseGateState extends State<MobileLicenseGate> {
                       onPressed: _checkLicense,
                       icon: _checking
                           ? const CupertinoActivityIndicator(radius: 8)
-                          : const Icon(CupertinoIcons.arrow_clockwise,
-                              size: 14),
+                          : const Icon(
+                              CupertinoIcons.arrow_clockwise,
+                              size: 14,
+                            ),
                       label: Text(
                         _checking
                             ? 'Checking…'
@@ -285,8 +286,11 @@ class _MobileLicenseGateState extends State<MobileLicenseGate> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(CupertinoIcons.shield,
-                          size: 13, color: AppTheme.warningOrange),
+                      const Icon(
+                        CupertinoIcons.shield,
+                        size: 13,
+                        color: AppTheme.warningOrange,
+                      ),
                       const SizedBox(width: 6),
                       Text(
                         'Free Trial — ${license.daysRemaining ?? 0} day${(license.daysRemaining ?? 0) == 1 ? '' : 's'} remaining',
@@ -328,8 +332,11 @@ class _MobileLicenseGateState extends State<MobileLicenseGate> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(CupertinoIcons.checkmark_shield,
-                        size: 13, color: AppTheme.successGreen),
+                    const Icon(
+                      CupertinoIcons.checkmark_shield,
+                      size: 13,
+                      color: AppTheme.successGreen,
+                    ),
                     const SizedBox(width: 6),
                     Text(
                       license.isMaster
