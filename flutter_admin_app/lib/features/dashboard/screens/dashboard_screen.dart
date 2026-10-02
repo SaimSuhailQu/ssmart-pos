@@ -11,6 +11,7 @@ import 'package:ssmart_pos_admin/features/dashboard/screens/daily_closings_scree
 import 'package:ssmart_pos_admin/features/dashboard/widgets/metric_card.dart';
 import 'package:ssmart_pos_admin/features/dashboard/widgets/recent_transactions.dart';
 import 'package:ssmart_pos_admin/features/dashboard/widgets/sales_chart.dart';
+import 'package:ssmart_pos_admin/features/licensing/screens/license_manager_screen.dart';
 import 'package:ssmart_pos_admin/features/pos/screens/mobile_checkout_screen.dart';
 import 'package:ssmart_pos_admin/features/transactions/screens/transactions_screen.dart';
 import 'package:ssmart_pos_admin/features/catalog/screens/catalog_screen.dart';
@@ -97,7 +98,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('SSmart Admin', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                const Text('SS MART Admin', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 StreamBuilder<ConnectionStatus>(
                   stream: firebaseService.connectionStatusStream,
                   builder: (context, snapshot) {
@@ -161,6 +162,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
             onSelected: (value) {
               if (value == 'logout') {
                 _handleLogout();
+              } else if (value == 'licenses') {
+                Navigator.push(
+                  context,
+                  CupertinoPageRoute(
+                    builder: (context) => const LicenseManagerScreen(),
+                  ),
+                );
               }
             },
             itemBuilder: (context) => [
@@ -178,6 +186,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         authService.userEmail!,
                         style: AppTheme.bodySmall,
                       ),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(),
+              const PopupMenuItem(
+                value: 'licenses',
+                child: Row(
+                  children: [
+                    Icon(CupertinoIcons.shield, size: 18, color: AppTheme.primaryCyan),
+                    SizedBox(width: 8),
+                    Text('License Manager'),
                   ],
                 ),
               ),
@@ -495,7 +514,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   .where((e) => e.key.toLowerCase().contains('khata') || e.key.toLowerCase().contains('credit'))
                                   .fold<double>(0.0, (sum, e) => sum + e.value);
 
-                              final text = '🏪 *SS MART & GENERAL STORE*\n'
+                              final text = '🏪 *SS MART*\n'
                                   '📅 *DAILY CLOSING SALES NOTE*\n'
                                   '──────────────────────\n'
                                   '🗓️ *Date:* $dateFormatted\n'
@@ -509,7 +528,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   '• Online / Bank / Card: Rs. ${onlineRev.toStringAsFixed(2)}\n'
                                   '• Khata / Credit: Rs. ${khataRev.toStringAsFixed(2)}\n'
                                   '──────────────────────\n'
-                                  '✅ *Generated via SSmart Admin Mobile*';
+                                  '✅ *Generated via SS MART Admin Mobile*';
 
                               Clipboard.setData(ClipboardData(text: text));
                               ScaffoldMessenger.of(context).showSnackBar(

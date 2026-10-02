@@ -105,7 +105,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   // Title
                   Text(
-                    'SSmart POS Admin',
+                    'SS MART Admin',
                     style: AppTheme.displayLarge,
                     textAlign: TextAlign.center,
                   ),

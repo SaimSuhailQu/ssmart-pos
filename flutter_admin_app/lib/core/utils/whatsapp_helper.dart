@@ -52,18 +52,18 @@ class WhatsAppHelper {
     required CustomerModel customer,
   }) async {
     final message = '''
-🏪 *SS MART & GENERAL STORE*
+🏪 *SS MART*
 ━━━━━━━━━━━━━━━━━━━━━
 Assalam-o-Alaikum *${customer.name}* sahab,
 
-Yeh aapke SSmart account ka summary balance reminder hai:
+Yeh aapke SS MART account ka summary balance reminder hai:
 
 💰 *Total Udhaar (Loan Due): PKR ${customer.balance.toStringAsFixed(0)}*
 ⭐ *Loyalty Points:* ${customer.points}
 
 Baraye meherbani apna baqaya jaat jald az jald clear karwayen. Shukriya!
 ━━━━━━━━━━━━━━━━━━━━━
-_SSmart POS Automation_''';
+_SS MART POS Automation_''';
 
     return openWhatsApp(phone: customer.phone, message: message);
   }
@@ -80,7 +80,7 @@ _SSmart POS Automation_''';
     final actionText = isPayment ? '✅ PAYMENT RECEIVED (Wasool Hua)' : '⚠️ UDHAAR ENTRY (Loan Given)';
 
     final message = '''
-🏪 *SS MART & GENERAL STORE*
+🏪 *SS MART*
 ━━━━━━━━━━━━━━━━━━━━━
 *Customer:* $customerName
 *Transaction:* $actionText
@@ -88,7 +88,7 @@ _SSmart POS Automation_''';
 💰 *Updated Balance Due: PKR ${newBalance.toStringAsFixed(0)}*
 📅 *Date:* ${DateTime.now().toString().substring(0, 16)}
 ━━━━━━━━━━━━━━━━━━━━━
-Shukriya! SSmart POS System.''';
+Shukriya! SS MART POS System.''';
 
     return openWhatsApp(phone: phone, message: message);
   }
@@ -135,7 +135,7 @@ Thank you for shopping at SS Mart! 🙏''';
 *Status:* ${po.status} / ${po.paymentStatus}
 ${po.notes.isNotEmpty ? '*Notes:* ${po.notes}\n' : ''}
 ━━━━━━━━━━━━━━━━━━━━━
-_SSmart POS Vendor Management_''';
+_SS MART POS Vendor Management_''';
 
     return openWhatsApp(phone: po.phone, message: message);
   }

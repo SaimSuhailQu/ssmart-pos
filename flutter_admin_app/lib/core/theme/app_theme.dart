@@ -5,32 +5,32 @@ import 'package:google_fonts/google_fonts.dart';
 /// Sleek Monochrome Dark Theme for the POS Admin App
 /// Matches the Electron POS application's modern visual system
 class AppTheme {
-  // Color Palette — Professional indigo accent system on deep obsidian glass
-  static const Color primaryCyan = Color(0xFF818CF8); // Refined Indigo
-  static const Color secondaryPurple = Color(0xFFA5B4FC); // Soft Periwinkle
-  static const Color primaryTeal = Color(0xFF94A3B8); // Slate Steel
+  // Color Palette — High-contrast professional grayscale system
+  static const Color primaryCyan = Color(0xFFE2E8F0); // Crisp Titanium / Silver (Slate 200)
+  static const Color secondaryPurple = Color(0xFFCBD5E1); // Muted Silver (Slate 300)
+  static const Color primaryTeal = Color(0xFF94A3B8); // Slate Steel (Slate 400)
   static const Color accentNeon = Color(0xFFFFFFFF);
 
   // Backward compatibility mappings for older theme references
-  static const Color primaryBlue = Color(0xFF818CF8); // Matches primary accent
-  static const Color secondaryBlue = Color(0xFFA5B4FC);
-  static const Color darkBlue = Color(0xFF1E2230);
+  static const Color primaryBlue = Color(0xFFE2E8F0);
+  static const Color secondaryBlue = Color(0xFFCBD5E1);
+  static const Color darkBlue = Color(0xFF1E2024);
 
-  static const Color successGreen = Color(0xFF34D399); // Emerald Green
-  static const Color warningOrange = Color(0xFFF59E0B);
-  static const Color errorRed = Color(0xFFEF4444);
+  static const Color successGreen = Color(0xFF10B981); // Emerald accent for cash/paid
+  static const Color warningOrange = Color(0xFFF59E0B); // Amber for warnings/due
+  static const Color errorRed = Color(0xFFEF4444); // Red for debt/deletions
 
-  static const Color backgroundLight = Color(0xFF0A0C12); // Deep Obsidian
-  static const Color cardBackground = Color(0xFF12151F); // Base Glassmorphic Panel
-  static const Color glassSurface = Color(0x9912151F); // 60% Frosted Panel
-  static const Color glassSurfaceLight = Color(0x1FFFFFFF); // 12% White Frost
-  static const Color surfaceDark = Color(0xFF171B26); // Modal & Dialog Surface
-  static const Color borderColor = Color(0x1AFFFFFF); // 10% White Border
+  static const Color backgroundLight = Color(0xFF090A0D); // Deep True Black-Grey
+  static const Color cardBackground = Color(0xFF13151A); // Neutral Monochromatic Glass
+  static const Color glassSurface = Color(0x9913151A); // 60% Frosted Panel
+  static const Color glassSurfaceLight = Color(0x1AFFFFFF); // 10% White Frost
+  static const Color surfaceDark = Color(0xFF181A20); // Modal & Dialog Surface
+  static const Color borderColor = Color(0x1FFFFFFF); // 12% White Border
   static const Color borderHighlight = Color(0x33FFFFFF); // 20% White Top Highlight
-  static const Color glassBorder = Color(0x2EFFFFFF); // 18% Frosted White Border
+  static const Color glassBorder = Color(0x28FFFFFF); // 16% Frosted White Border
 
-  static const Color textPrimary = Color(0xFFF8FAFC); // Crisp Off-White
-  static const Color textSecondary = Color(0xFF94A3B8); // Slate 400
+  static const Color textPrimary = Color(0xFFF8FAFC); // Crisp Pure Off-White
+  static const Color textSecondary = Color(0xFF94A3B8); // Balanced Slate 400
   static const Color textTertiary = Color(0x6694A3B8); // 40% Slate
 
   // Text Styles using Google Fonts

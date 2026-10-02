@@ -1,8 +1,6 @@
 import 'dart:async';
-import 'dart:ui' show FontFeature;
 
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
 import 'package:ssmart_pos_admin/core/utils/date_utils.dart';
 import 'package:ssmart_pos_admin/core/widgets/glass_card.dart';
@@ -43,11 +41,14 @@ class _StoreOpsStripState extends State<StoreOpsStrip> {
   void initState() {
     super.initState();
     _products = widget.initialProducts;
-    _productSub = widget.productStream.listen((products) {
-      if (mounted) setState(() => _products = products);
-    }, onError: (_) {
-      // Stream errors are non-fatal: the strip simply keeps its last data.
-    });
+    _productSub = widget.productStream.listen(
+      (products) {
+        if (mounted) setState(() => _products = products);
+      },
+      onError: (_) {
+        // Stream errors are non-fatal: the strip simply keeps its last data.
+      },
+    );
   }
 
   @override
@@ -55,9 +56,12 @@ class _StoreOpsStripState extends State<StoreOpsStrip> {
     super.didUpdateWidget(oldWidget);
     if (widget.productStream != oldWidget.productStream) {
       _productSub?.cancel();
-      _productSub = widget.productStream.listen((products) {
-        if (mounted) setState(() => _products = products);
-      }, onError: (_) {});
+      _productSub = widget.productStream.listen(
+        (products) {
+          if (mounted) setState(() => _products = products);
+        },
+        onError: (_) {},
+      );
     }
   }
 

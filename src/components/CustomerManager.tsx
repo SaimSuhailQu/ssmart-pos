@@ -228,7 +228,7 @@ export const CustomerManager: React.FC = () => {
     const todayStr = new Date().toLocaleDateString('en-PK', { dateStyle: 'medium' });
     const currentBalance = customer.balance || 0;
 
-    let message = `🏪 *SS MART & GENERAL STORE*\n`;
+    let message = `🏪 *SS MART*\n`;
     message += `📋 *CUSTOMER UDHAAR / LOAN STATEMENT*\n`;
     message += `──────────────────────\n`;
     message += `👤 *Customer:* ${customer.name}\n`;

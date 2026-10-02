@@ -11,7 +11,6 @@ import 'package:ssmart_pos_admin/features/dashboard/screens/daily_closings_scree
 import 'package:ssmart_pos_admin/widgets/error_widget.dart';
 import 'package:ssmart_pos_admin/widgets/loading_indicator.dart';
 import 'package:ssmart_pos_admin/widgets/manual_closing_dialog.dart';
-import 'dart:ui' show FontFeature;
 
 /// Screen displaying all transactions with filtering and search
 class TransactionsScreen extends StatefulWidget {
