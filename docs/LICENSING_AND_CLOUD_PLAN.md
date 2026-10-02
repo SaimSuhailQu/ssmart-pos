@@ -143,8 +143,9 @@ tenant_map/      ← device fingerprint → tenant id (binding a sold copy to it
 | Licensing Firebase rules + activation workflow | ✅ documented (§2) |
 | Mobile fingerprint helper | ✅ shipped (`device_fingerprint.dart`) |
 | Mobile gate wiring | ◻ §5 (half-day) |
+| **Multi-tenant path scoping (desktop sync)** | ✅ shipped (`syncEngine.setTenant`) |
+| **Master access + tenant binding** | ✅ shipped (§6b) |
 | Licensing Cloud Function (secure activation API) | ◻ §7 (1 day) |
-| Multi-tenant path scoping | ◻ §3 (2–3 days) |
 | Reseller web dashboard (list/activate/revoke) | ◻ §7 (2–3 days) |
 
 ---
@@ -167,6 +168,74 @@ tenant_map/      ← device fingerprint → tenant id (binding a sold copy to it
 - For high-risk markets, move the activation decision into a Cloud Function
   (§7) and sign responses; the app then verifies the signature with an
   embedded public key.
+
+## 6b. Selling + Master access (IMPLEMENTED)
+
+The desktop app now routes its cloud sync through a **tenant**, resolved
+during the startup license check (`src/licensing.ts` → `resolveTenant`, then
+`setTenant` in `src/main.ts`). This lets you sell copies while keeping your own
+data exactly where it is.
+
+### How routing is decided (in order)
+
+1. **Master** — if `licenses/<your-fingerprint>` has `role: "master"`, or
+   `tenant_map/<your-fingerprint>` has `role: "master"`, your device uses the
+   **legacy root paths** (`sales/`, `customer_khata/`, `products/`, …). Your
+   existing khata and everything else is **never moved, duplicated or touched**,
+   and you get a green **“Master Access”** badge in the desktop app.
+2. **Explicit tenant** — `tenant_map/<fingerprint>` = `"store_ali"` (or
+   `{ "tenant": "store_ali" }`) routes that device to
+   `tenants/store_ali/{sales,customer_khata,products,…}`. Fully isolated.
+3. **Safety valve** — set `config/require_tenant: true` in the licensing DB and
+   any device without a binding is auto-placed in an isolated sandbox
+   `tenants/device_<fingerprint>` so an unprovisioned trial can never read or
+   write your root data. With the flag absent (default), unmapped devices use
+   the root — i.e. **your current single-store behaviour is unchanged**.
+
+### Turn yourself into the master (once)
+
+Driver's-seat only — in your licensing Firebase → Realtime Database:
+
+```
+licenses/<your-device-code> : {
+  "active": true,
+  "customerName": "SS Mart (Owner)",
+  "role": "master"
+}
+```
+
+### Sell a copy (buyer workflow)
+
+1. Buyer installs and sends you their **device code** (shown on the activation
+   screen).
+2. Add their license **and** bind them to a tenant:
+
+```
+licenses/<buyer-device-code> : {
+  "active": true,
+  "customerName": "Ali Mart, Rawalpindi",
+  "licenseKey": "SSM-XXXX-XXXX",
+  "role": "tenant"
+}
+tenant_map/<buyer-device-code> : { "tenant": "store_ali", "role": "tenant" }
+```
+
+3. The buyer restarts / hits “Recheck Activation”. Their app syncs only under
+   `tenants/store_ali/`. Your root data is untouched.
+4. Recommended: also set `config/require_tenant: true` so no future device can
+   accidentally write to the root.
+
+### Notes
+
+- `print_requests` intentionally stays at the **root** so the mobile POS can
+  still trigger printing on the desktop regardless of tenant (it is an
+  ephemeral command queue, not business data).
+- Each sold copy can point at the **same Firebase project** (tenants) or at a
+  **separate project** (Option A in §3). Tenant routing composes with either.
+- The mobile admin app is not yet tenant-scoped; wire it per §5 when selling
+  mobile dashboards.
+
+---
 
 ## 7. Suggested next builds (in order)
 

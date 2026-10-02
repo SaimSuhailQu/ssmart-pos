@@ -12,7 +12,7 @@ import { initDb, getAllProducts, getProductByBarcode, saveSale, getNextSaleId, a
   addVendorPayment, deleteVendorPayment, updateVendorPayment, deleteVendorOrderEntry, updateVendorOrderEntry,
   getVendorPayments, getVendorOrderEntries, addManualDailyClosingSale } from './db';
 import { printReceipt, printBarcode, printBarcodesBatchA4 } from './printer';
-import { startSyncWorker, syncProductsToCloud, syncCustomersToCloud, syncCustomerKhataToCloud, deleteCustomerKhataEntryFromCloud, clearAllKhataFromCloudAndLocal, syncVendorsToCloud, syncExpensesToCloud, syncSalesToCloud, deleteSaleFromCloud } from './syncEngine';
+import { startSyncWorker, setTenant, syncProductsToCloud, syncCustomersToCloud, syncCustomerKhataToCloud, deleteCustomerKhataEntryFromCloud, clearAllKhataFromCloudAndLocal, syncVendorsToCloud, syncExpensesToCloud, syncSalesToCloud, deleteSaleFromCloud } from './syncEngine';
 import { sendWhatsAppMessage } from './whatsappService';
 import { setupAutoUpdater, checkForUpdatesManual, quitAndInstallUpdate } from './updater';
 import { checkLicense, computeFingerprint, scheduleRevalidation, shutdownLicensing, LicenseState } from './licensing';
@@ -52,6 +52,21 @@ let mainWindow: BrowserWindow | null = null;
 // Result of the startup license check; sent to the renderer once it loads.
 let initialLicenseState: LicenseState | null = null;
 let licenseBlocked = false;
+let syncStarted = false;
+
+/**
+ * Start the cloud sync worker exactly once, after tenant routing is known.
+ * Must run after setTenant() so every cloud path is correctly scoped.
+ */
+function startCloudSync(): void {
+  if (syncStarted) return;
+  syncStarted = true;
+  startSyncWorker((status) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('sync-status-changed', status);
+    }
+  });
+}
 
 function sendLicenseState(): void {
   if (mainWindow && !mainWindow.isDestroyed() && initialLicenseState) {
@@ -124,6 +139,10 @@ app.on('ready', () => {
     .then((state) => {
       initialLicenseState = state;
       licenseBlocked = state.status === 'expired';
+      // Route cloud sync for this device: master -> legacy root (data intact),
+      // sold copy -> its tenant subtree. Must precede startCloudSync().
+      setTenant(state.tenantId ?? null);
+      startCloudSync();
       sendLicenseState();
       scheduleRevalidation((next) => {
         initialLicenseState = next;
@@ -145,6 +164,8 @@ app.on('ready', () => {
         error: 'check_failed',
       };
       licenseBlocked = false;
+      setTenant(null);
+      startCloudSync();
       sendLicenseState();
     });
 
@@ -161,12 +182,8 @@ app.on('ready', () => {
   // Initialize auto updater for background silent OTA updates
   setupAutoUpdater(mainWindow);
 
-  // Start background Sync worker to Firebase and broadcast status changes to Renderer
-  startSyncWorker((status) => {
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('sync-status-changed', status);
-    }
-  });
+  // NOTE: the cloud sync worker is started from the license-check callbacks
+  // above (after tenant routing is resolved), not here.
 });
 
 app.on('window-all-closed', () => {

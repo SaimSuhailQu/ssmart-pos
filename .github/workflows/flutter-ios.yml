@@ -40,6 +40,11 @@ jobs:
       matrix:
         app: [flutter_admin_app, flutter_admin_app_iphone7]
 
+    env:
+      # Stable, version-agnostic asset name so the LiveContainer / AltStore
+      # source and download links never need to change per release.
+      IPA_NAME: ${{ matrix.app == 'flutter_admin_app' && 'ssmartpos.ipa' || 'ssmartpos-iphone7.ipa' }}
+
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v4
@@ -120,7 +125,7 @@ jobs:
           test -n "$APP_PATH"
           mkdir -p Payload
           cp -R "$APP_PATH" Payload/
-          zip -qr "${{ matrix.app }}-unsigned.ipa" Payload
+          zip -qr "$IPA_NAME" Payload
           rm -rf Payload
 
       - name: Locate signed IPA
@@ -128,20 +133,22 @@ jobs:
         run: |
           IPA_PATH=$(find ${{ matrix.app }}/build/ios/ipa -name "*.ipa" | head -n 1)
           test -n "$IPA_PATH"
-          cp "$IPA_PATH" "${{ matrix.app }}-signed.ipa"
+          cp "$IPA_PATH" "$IPA_NAME"
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.app }}-ipa
-          path: ${{ matrix.app }}-unsigned.ipa
+          path: ${{ env.IPA_NAME }}
           if-no-files-found: error
 
       - name: Attach IPA to GitHub Release (version tags)
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ matrix.app }}-*.ipa
-          draft: true
+          files: ${{ env.IPA_NAME }}
+          # Published (non-draft) so LiveContainer/AltStore and the desktop
+          # auto-updater can resolve the release immediately.
+          draft: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

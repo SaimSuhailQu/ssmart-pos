@@ -9,6 +9,11 @@ export interface LicenseState {
   platform: string;
   checkedAt: string;
   lastValidated?: string;
+  /** Cloud tenant routing: undefined = seller's legacy root, otherwise `tenants/<id>`. */
+  tenantId?: string;
+  /** 'master' = seller (root + full access); 'tenant' = a sold copy. */
+  role?: 'master' | 'tenant';
+  isMaster?: boolean;
   error?: string;
 }
 

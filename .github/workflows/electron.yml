@@ -8,13 +8,10 @@ name: Build Electron POS Desktop App
 on:
   workflow_dispatch:
   push:
+    # Tag-only. (Do NOT combine `tags` with a `paths` filter: tag pushes carry
+    # no file change list, so the workflow would silently never run on a tag.)
     tags:
       - 'v*'
-    paths:
-      - 'src/**'
-      - 'package.json'
-      - 'forge.config.ts'
-      - '.github/workflows/electron.yml'
 
 concurrency:
   group: electron-${{ github.ref }}
@@ -68,8 +65,13 @@ jobs:
         with:
           files: |
             out/make/squirrel.windows/x64/*.exe
+            out/make/squirrel.windows/x64/*.nupkg
+            out/make/squirrel.windows/x64/RELEASES
             out/make/deb/x64/*.deb
             out/make/rpm/x64/*.rpm
-          draft: true
+          # Published (non-draft) so update.electronjs.org can serve the
+          # Squirrel feed and the in-app "Check Updates" button works.
+          draft: false
+          fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

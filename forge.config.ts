@@ -34,7 +34,9 @@ const config: ForgeConfig = {
           name: 'ssmart-pos',
         },
         prerelease: false,
-        draft: true,
+        // Publish immediately: draft releases are invisible to
+        // update.electronjs.org and to LiveContainer/AltStore.
+        draft: false,
       },
     },
   ],

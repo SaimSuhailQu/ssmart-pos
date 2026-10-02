@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { LicenseState } from '../types';
-import { ShieldAlert, ShieldX, Copy, RefreshCw } from 'lucide-react';
+import { ShieldAlert, ShieldX, ShieldCheck, Copy, RefreshCw } from 'lucide-react';
 
 interface LicenseGateProps {
   children: React.ReactNode;
@@ -146,11 +146,25 @@ export const LicenseGate: React.FC<LicenseGateProps> = ({ children }) => {
       </div>
     ) : null;
 
+  // Subtle badge for licensed devices; calls out Master (seller) access.
+  const licensedBadge =
+    license.status === 'licensed' ? (
+      <div className="fixed bottom-3 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/15 backdrop-blur-md border border-emerald-500/30 text-emerald-300 text-[11px] font-semibold shadow-xl whitespace-nowrap">
+        <ShieldCheck size={12} className="shrink-0" />
+        <span>
+          {license.isMaster ? 'Master Access' : 'Licensed'}
+          {license.licensedTo ? ` — ${license.licensedTo}` : ''}
+          {!license.isMaster && license.tenantId ? ` · ${license.tenantId}` : ''}
+        </span>
+      </div>
+    ) : null;
+
   // Wrap the app; intercept the revoked push to re-evaluate
   return (
     <LicenseRevokedBoundary>
       {children}
       {trialBanner}
+      {licensedBadge}
     </LicenseRevokedBoundary>
   );
 };

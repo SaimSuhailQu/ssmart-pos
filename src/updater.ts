@@ -51,7 +51,12 @@ export function setupAutoUpdater(mainWindow: BrowserWindow | null) {
     autoUpdater.on('error', (err) => {
       console.warn('[AutoUpdater] Error checking/downloading update:', err?.message || err);
       if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('updater-status', { status: 'error', error: err?.message });
+        // Translate the most common cause into an actionable message.
+        const raw = err?.message || String(err);
+        const friendly = /latest\.yml|404|releases|HttpError|ENOTFOUND|ETIMEDOUT/i.test(raw)
+          ? `Could not reach the update server (${raw}). Make sure the GitHub repository is public and the latest release is published.`
+          : raw;
+        mainWindow.webContents.send('updater-status', { status: 'error', error: friendly });
       }
     });
 
@@ -107,7 +112,11 @@ export function setupAutoUpdater(mainWindow: BrowserWindow | null) {
 
 export function checkForUpdatesManual() {
   if (!app.isPackaged) {
-    return { success: false, message: 'App is running in development mode.' };
+    return { success: false, message: 'App is running in development mode. Updates are only checked in a packaged build.' };
+  }
+  // Electron's built-in Squirrel updater is only supported on Windows and macOS.
+  if (process.platform !== 'win32' && process.platform !== 'darwin') {
+    return { success: false, message: 'Automatic updates are not supported on this platform.' };
   }
   try {
     autoUpdater.checkForUpdates();

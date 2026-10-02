@@ -32,6 +32,20 @@ export interface LicenseState {
   platform: string;
   checkedAt: string;
   lastValidated?: string;
+  /**
+   * Multi-tenant cloud routing.
+   *
+   *  - undefined  -> the LEGACY ROOT of the Firebase project. This is the
+   *    seller/master device, whose existing khata/sales/products data lives at
+   *    the root paths and is never moved or duplicated.
+   *  - "store_xyz" -> this device syncs under `tenants/store_xyz/...` so a sold
+   *    copy is fully isolated from the seller's data.
+   */
+  tenantId?: string;
+  /** 'master' = the seller (root + full access); 'tenant' = a sold copy. */
+  role?: 'master' | 'tenant';
+  /** Convenience flag: true when this device is the seller/master. */
+  isMaster?: boolean;
   error?: string;
 }
 
@@ -186,6 +200,82 @@ interface RemoteLicenseRecord {
   note?: string;
   expiresAt?: string; // optional subscription expiry
   deactivated?: boolean;
+  /** Explicit tenant id for this device, if set on the license record. */
+  tenant?: string;
+  /** 'master' grants the seller root access; anything else is a tenant. */
+  role?: string;
+}
+
+interface TenantBinding {
+  tenantId?: string;
+  role?: string;
+}
+
+type TenantRouting = { tenantId?: string; role: 'master' | 'tenant'; isMaster: boolean };
+
+/**
+ * Resolve which tenant subtree this device should use.
+ *
+ * Reads `tenant_map/<fingerprint>`, which may be either a plain string
+ * (`"store_ali"`) or an object (`{ tenant: "store_ali", role: "tenant" }`).
+ */
+async function fetchTenantBinding(fingerprint: string): Promise<TenantBinding | null> {
+  const db = licensingDb();
+  if (!db) return null;
+  try {
+    const snap = await get(ref(db, `tenant_map/${fingerprint}`));
+    if (!snap.exists()) return null;
+    const val = snap.val();
+    if (typeof val === 'string') return { tenantId: val };
+    if (val && typeof val === 'object') {
+      const rec = val as Record<string, unknown>;
+      return {
+        tenantId: typeof rec.tenant === 'string' ? rec.tenant : undefined,
+        role: typeof rec.role === 'string' ? rec.role : undefined,
+      };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Safety valve for buying/selling: when `config/require_tenant` is true, any
+ * device without an explicit tenant binding is auto-placed in an isolated
+ * sandbox (`device_<fingerprint>`) so an unprovisioned buyer trial can NEVER
+ * read or write the seller's root data.
+ */
+async function fetchRequireTenant(): Promise<boolean> {
+  const db = licensingDb();
+  if (!db) return false;
+  try {
+    const snap = await get(ref(db, 'config/require_tenant'));
+    return snap.exists() ? snap.val() === true : false;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Compute the tenant routing for a device. Master devices keep the legacy root
+ * (tenantId undefined) so their existing data is untouched.
+ */
+async function resolveTenant(
+  fingerprint: string,
+  remote: RemoteLicenseRecord | null,
+): Promise<{ tenantId?: string; role: 'master' | 'tenant'; isMaster: boolean }> {
+  const binding = await fetchTenantBinding(fingerprint);
+  const isMaster = remote?.role === 'master' || binding?.role === 'master';
+  if (isMaster) {
+    return { tenantId: undefined, role: 'master', isMaster: true };
+  }
+  let tenantId = binding?.tenantId;
+  if (!tenantId && remote?.tenant) tenantId = String(remote.tenant);
+  if (!tenantId && (await fetchRequireTenant())) {
+    tenantId = `device_${fingerprint.slice(0, 12)}`;
+  }
+  return { tenantId, role: 'tenant', isMaster: false };
 }
 
 async function fetchRemoteLicense(fingerprint: string): Promise<RemoteLicenseRecord | null> {
@@ -238,14 +328,20 @@ export async function checkLicense(): Promise<LicenseState> {
         licensedTo: cached.licensedTo,
         licenseKey: cached.licenseKey,
         lastValidated: cached.checkedAt,
+        tenantId: cached.tenantId,
+        role: cached.role,
+        isMaster: cached.isMaster,
       };
       return state;
     }
     if (cached && cached.status === 'trial') {
       return await evaluateTrialFromCache(cached, base);
     }
-    return { ...base, status: 'trial', mode: 'trial', error: 'offline' };
+    return { ...base, status: 'trial', mode: 'trial', role: 'tenant', isMaster: false, error: 'offline' };
   }
+
+  // Resolve tenant routing (master -> root; tenant -> tenants/<id>).
+  const tenant = await resolveTenant(fingerprint, remote);
 
   if (remote && !remote.revoked && !remote.deactivated && remote.active !== false) {
     // Optional subscription expiry
@@ -254,17 +350,20 @@ export async function checkLicense(): Promise<LicenseState> {
       if (!Number.isNaN(exp.getTime()) && exp.getTime() < Date.now()) {
         const state: LicenseState = {
           ...base,
+          ...tenant,
           status: 'expired',
           mode: 'expired',
           licensedTo: remote.customerName,
           licenseKey: remote.licenseKey,
           error: 'subscription_expired',
         };
+        writeCache(state);
         return state;
       }
     }
     const state: LicenseState = {
       ...base,
+      ...tenant,
       status: 'licensed',
       mode: 'licensed',
       licensedTo: remote.customerName ?? remote.customerEmail,
@@ -277,21 +376,29 @@ export async function checkLicense(): Promise<LicenseState> {
 
   // No active remote license -> trial evaluation
   const cached = readCache();
-  return await evaluateTrialFromCache(cached, base, remote?.revoked || remote?.deactivated);
+  return await evaluateTrialFromCache(cached, base, remote?.revoked || remote?.deactivated, tenant);
 }
 
 async function evaluateTrialFromCache(
   cached: StoredLicenseCache | null,
   base: Pick<LicenseState, 'fingerprint' | 'platform' | 'checkedAt'>,
   wasRevoked = false,
+  tenant?: TenantRouting,
 ): Promise<LicenseState> {
   const now = Date.now();
+  // When offline, reuse whatever tenant routing the cache already learned.
+  const routing: TenantRouting = tenant ?? {
+    tenantId: cached?.tenantId,
+    role: cached?.role ?? 'tenant',
+    isMaster: cached?.isMaster ?? false,
+  };
 
   if (cached?.fingerprint === base.fingerprint && cached.status === 'trial' && cached.expiresAt) {
     const exp = new Date(cached.expiresAt).getTime();
     if (Number.isFinite(exp) && exp > now) {
       return {
         ...base,
+        ...routing,
         status: 'trial',
         mode: 'trial',
         expiresAt: cached.expiresAt,
@@ -302,6 +409,7 @@ async function evaluateTrialFromCache(
     // Trial over
     const expired: LicenseState = {
       ...base,
+      ...routing,
       status: 'expired',
       mode: 'expired',
       expiresAt: cached.expiresAt,
@@ -312,16 +420,18 @@ async function evaluateTrialFromCache(
   }
 
   // First run on this device (or cache mismatch) -> start a fresh trial.
-  return startTrial(base);
+  return startTrial(base, routing);
 }
 
 async function startTrial(
   base: Pick<LicenseState, 'fingerprint' | 'platform' | 'checkedAt'>,
+  routing?: TenantRouting,
 ): Promise<LicenseState> {
   const trialDays = await fetchTrialDays();
   const expires = new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000);
   const state: LicenseState = {
     ...base,
+    ...(routing ?? { role: 'tenant', isMaster: false }),
     status: 'trial',
     mode: 'trial',
     expiresAt: expires.toISOString(),

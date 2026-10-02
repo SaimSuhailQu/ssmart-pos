@@ -639,6 +639,9 @@ const AppContent: React.FC = () => {
             if (isCheckingUpdate) return;
             setIsCheckingUpdate(true);
             setError(null);
+            // Safety net: never leave the button stuck spinning if the updater
+            // produces no status event (offline / unsupported platform).
+            const resetTimer = setTimeout(() => setIsCheckingUpdate(false), 30000);
             try {
               const res = await window.api.checkForUpdates();
               if (res.message) {
@@ -646,9 +649,15 @@ const AppContent: React.FC = () => {
               }
               if (res.error) {
                 setError(res.error);
+              }
+              // Progress streams through onUpdaterStatus; stop the spinner now
+              // when the check could not even start.
+              if (res.success === false) {
+                clearTimeout(resetTimer);
                 setIsCheckingUpdate(false);
               }
             } catch (err: unknown) {
+              clearTimeout(resetTimer);
               const errMessage = err instanceof Error ? err.message : String(err);
               setError(errMessage || 'Failed to check for updates.');
               setIsCheckingUpdate(false);

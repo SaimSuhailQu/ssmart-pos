@@ -58,6 +58,28 @@ try {
 }
 
 // ============================================================================
+// Multi-tenant cloud routing
+//
+// tenantPrefix is '' for the seller/master device so its existing data stays at
+// the legacy root paths (never moved or duplicated). Sold copies are routed to
+// `tenants/<id>/...`. main.ts calls setTenant() with the value resolved during
+// the device license check, BEFORE the sync worker starts.
+// See docs/LICENSING_AND_CLOUD_PLAN.md §3.
+// ============================================================================
+
+let tenantPrefix = '';
+let activeTenantId: string | null = null;
+
+/** Prefix a root-relative cloud path with the active tenant, when one is set. */
+function cp(path: string): string {
+  return tenantPrefix ? `${tenantPrefix}/${path}` : path;
+}
+
+export function getActiveTenant(): string | null {
+  return activeTenantId;
+}
+
+// ============================================================================
 // Change Detection Utilities (stable stringify + FNV-1a hash)
 // ============================================================================
 
@@ -231,7 +253,7 @@ export async function syncSalesToCloud(silent = false) {
       const chunk = unsynced.slice(i, i + CHUNK_SIZE);
       const updates: Record<string, unknown> = {};
       for (const sale of chunk) {
-        updates[`sales/${sale.id}`] = {
+        updates[cp(`sales/${sale.id}`)] = {
           id: sale.id,
           subtotal: sale.subtotal,
           tax: sale.tax,
@@ -266,7 +288,7 @@ export async function syncSalesToCloud(silent = false) {
 export async function deleteSaleFromCloud(saleId: number) {
   if (!dbInstance) return;
   try {
-    await set(ref(dbInstance, `sales/${saleId}`), null);
+    await set(ref(dbInstance, cp(`sales/${saleId}`)), null);
   } catch (err) {
     console.warn(`Failed to delete sale #${saleId} from cloud:`, err);
   }
@@ -281,7 +303,7 @@ export async function syncProductsToCloud(silent = false) {
     const products = getAllProducts() as Product[];
     await pushDelta(
       'products',
-      'products',
+      cp('products'),
       products,
       (p) => String(p.id),
       (p) => ({
@@ -311,7 +333,7 @@ export async function syncExpensesToCloud(silent = false) {
     const expenses = getAllExpenses() as Expense[];
     await pushDelta(
       'expenses',
-      'expenses',
+      cp('expenses'),
       expenses,
       (e) => String(e.id),
       (e) => ({
@@ -341,7 +363,7 @@ export async function syncCustomersToCloud(silent = false) {
     const customers = getAllCustomers() as Customer[];
     await pushDelta(
       'customers',
-      'customers',
+      cp('customers'),
       customers,
       (c) => String(c.id),
       (c) => ({
@@ -377,7 +399,7 @@ export async function syncCustomerKhataToCloud(silent = false) {
     // Cached for 60s to avoid a read on every sync cycle.
     const deletedKeys: Set<string> = new Set();
     try {
-      const delSnap = await get(ref(dbInstance, 'deleted_khata_entries'));
+      const delSnap = await get(ref(dbInstance, cp('deleted_khata_entries')));
       if (delSnap.exists() && delSnap.val()) {
         const val = delSnap.val();
         if (typeof val === 'object' && val !== null) {
@@ -407,7 +429,7 @@ export async function syncCustomerKhataToCloud(silent = false) {
       // Never re-upload an entry that was marked deleted in cloud or local
       if (deletedKeys.has(syncKey) || (e.sync_id && deletedKeys.has(e.sync_id))) continue;
 
-      const cloudKey = `customer_khata/${custKey}/${syncKey}`;
+      const cloudKey = cp(`customer_khata/${custKey}/${syncKey}`);
       payloads.set(cloudKey, {
         id: syncKey,
         sync_id: syncKey,
@@ -424,7 +446,7 @@ export async function syncCustomerKhataToCloud(silent = false) {
 
     // Compare against cloud state (fetch once per cycle is acceptable here because
     // tombstones above already require a read; hash comparison keeps writes minimal)
-    const khataSnap = await get(ref(dbInstance, 'customer_khata'));
+    const khataSnap = await get(ref(dbInstance, cp('customer_khata')));
     const cloudHashes = new Map<string, number>();
     if (khataSnap.exists() && khataSnap.val() && typeof khataSnap.val() === 'object') {
       const kData = khataSnap.val() as Record<string, Record<string, unknown>>;
@@ -432,7 +454,7 @@ export async function syncCustomerKhataToCloud(silent = false) {
         if (!entriesMap || typeof entriesMap !== 'object') continue;
         for (const [k, v] of Object.entries(entriesMap)) {
           if (v !== null && typeof v === 'object') {
-            cloudHashes.set(`customer_khata/${custId}/${k}`, hashValue(v));
+            cloudHashes.set(cp(`customer_khata/${custId}/${k}`), hashValue(v));
           }
         }
       }
@@ -467,8 +489,8 @@ export async function deleteCustomerKhataEntryFromCloud(customerId: number, sync
   try {
     if (syncId) {
       // Remove from customer_khata and register tombstone in deleted_khata_entries
-      await set(ref(dbInstance, `customer_khata/${customerId}/${syncId}`), null);
-      await set(ref(dbInstance, `deleted_khata_entries/${customerId}/${syncId}`), true);
+      await set(ref(dbInstance, cp(`customer_khata/${customerId}/${syncId}`)), null);
+      await set(ref(dbInstance, cp(`deleted_khata_entries/${customerId}/${syncId}`)), true);
     }
   } catch (err) {
     console.warn("Delete khata entry from cloud warning:", err);
@@ -479,13 +501,13 @@ export async function clearAllKhataFromCloudAndLocal() {
   clearAllKhataRecords();
   if (dbInstance) {
     try {
-      await set(ref(dbInstance, 'customer_khata'), null);
-      const custSnap = await get(ref(dbInstance, 'customers'));
+      await set(ref(dbInstance, cp('customer_khata')), null);
+      const custSnap = await get(ref(dbInstance, cp('customers')));
       if (custSnap.exists()) {
         const val = custSnap.val();
         if (typeof val === 'object' && val !== null) {
           for (const key of Object.keys(val)) {
-            await set(ref(dbInstance, `customers/${key}/balance`), 0);
+            await set(ref(dbInstance, cp(`customers/${key}/balance`)), 0);
           }
         }
       }
@@ -507,7 +529,7 @@ export async function syncVendorsToCloud(silent = false) {
     const vendors = getAllVendors() as Vendor[];
     await pushDelta(
       'vendors',
-      'vendors',
+      cp('vendors'),
       vendors,
       (v) => String(v.id),
       (v) => ({
@@ -522,7 +544,7 @@ export async function syncVendorsToCloud(silent = false) {
     const pos = getAllPurchaseOrders() as PurchaseOrder[];
     await pushDelta(
       'purchase_orders',
-      'purchase_orders',
+      cp('purchase_orders'),
       pos,
       (po) => String(po.id),
       (po) => ({
@@ -558,6 +580,23 @@ export async function syncVendorsToCloud(silent = false) {
 // ============================================================================
 
 const lastIngestHash = new Map<string, number>();
+
+/**
+ * Route every cloud read/write through the active tenant.
+ *
+ * Passing null/undefined restores the legacy root (the seller's own data). All
+ * delta caches are cleared because every cloud path changes with the tenant.
+ */
+export function setTenant(tenantId: string | null | undefined): void {
+  const nextId = tenantId && tenantId.trim().length > 0 ? tenantId.trim() : null;
+  if (nextId === activeTenantId) return;
+  activeTenantId = nextId;
+  tenantPrefix = nextId ? `tenants/${nextId}` : '';
+  lastPushedItemHashes.clear();
+  lastPushedNodeHash.clear();
+  lastIngestHash.clear();
+  console.log(`[Sync] Tenant routing: ${nextId ? `tenants/${nextId}` : 'legacy root (master)'}`);
+}
 
 /** Ingest a single cloud node only if its content actually changed since last time. */
 async function ingestNode(name: string, path: string, handler: (val: unknown) => void | Promise<void>) {
@@ -749,7 +788,7 @@ function ingestKhata(raw: unknown) {
 async function processDeletedKhataTombstones() {
   if (!dbInstance) return;
   try {
-    const delKhataSnap = await get(ref(dbInstance, 'deleted_khata_entries'));
+    const delKhataSnap = await get(ref(dbInstance, cp('deleted_khata_entries')));
     if (delKhataSnap.exists() && delKhataSnap.val()) {
       const delVal = delKhataSnap.val();
       if (typeof delVal === 'object' && delVal !== null) {
@@ -774,14 +813,14 @@ async function runFullSyncPass() {
   if (!dbInstance || isSyncing) return;
   isSyncing = true;
   try {
-    await ingestNode('products', 'products', ingestProducts);
-    await ingestNode('customers', 'customers', ingestCustomers);
-    await ingestNode('expenses', 'expenses', ingestExpenses);
-    await ingestNode('vendors', 'vendors', ingestVendors);
-    await ingestNode('purchase_orders', 'purchase_orders', ingestPurchaseOrders);
-    await ingestNode('sales', 'sales', ingestSales);
+    await ingestNode('products', cp('products'), ingestProducts);
+    await ingestNode('customers', cp('customers'), ingestCustomers);
+    await ingestNode('expenses', cp('expenses'), ingestExpenses);
+    await ingestNode('vendors', cp('vendors'), ingestVendors);
+    await ingestNode('purchase_orders', cp('purchase_orders'), ingestPurchaseOrders);
+    await ingestNode('sales', cp('sales'), ingestSales);
     await processDeletedKhataTombstones();
-    await ingestNode('customer_khata', 'customer_khata', ingestKhata);
+    await ingestNode('customer_khata', cp('customer_khata'), ingestKhata);
 
     // Push merged local state back (each is a no-op network-wise when unchanged)
     await syncSalesToCloud(true);
@@ -818,15 +857,18 @@ export function startSyncWorker(onStatusChange?: (status: string) => void) {
 
     // Realtime listeners: each cloud change triggers a cheap, debounced ingest
     // of ONLY the node that changed (hash-deduplicated, so echo writes are free).
+    // NOTE: `print_requests` stays at the ROOT so the mobile POS can trigger
+    // the desktop printer regardless of tenant (it is an ephemeral command
+    // queue, not business data).
     const watchedNodes: Array<[string, string]> = [
-      ['products', 'products'],
-      ['customers', 'customers'],
-      ['customer_khata', 'customer_khata'],
-      ['expenses', 'expenses'],
-      ['vendors', 'vendors'],
-      ['purchase_orders', 'purchase_orders'],
-      ['sales', 'sales'],
-      ['deleted_khata_entries', 'deleted_khata_entries']
+      ['products', cp('products')],
+      ['customers', cp('customers')],
+      ['customer_khata', cp('customer_khata')],
+      ['expenses', cp('expenses')],
+      ['vendors', cp('vendors')],
+      ['purchase_orders', cp('purchase_orders')],
+      ['sales', cp('sales')],
+      ['deleted_khata_entries', cp('deleted_khata_entries')]
     ];
 
     const debounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
