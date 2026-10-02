@@ -141,11 +141,11 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax
   const receiptClipPath = 'polygon(0% 0%, 100% 0%, 100% 98%, 98% 100%, 96% 98%, 94% 100%, 92% 98%, 90% 100%, 88% 98%, 86% 100%, 84% 98%, 82% 100%, 80% 98%, 78% 100%, 76% 98%, 74% 100%, 72% 98%, 70% 100%, 68% 98%, 66% 100%, 64% 98%, 62% 100%, 60% 98%, 58% 100%, 56% 98%, 54% 100%, 52% 98%, 50% 100%, 48% 98%, 46% 100%, 44% 98%, 42% 100%, 40% 98%, 38% 100%, 36% 98%, 34% 100%, 32% 98%, 30% 100%, 28% 98%, 26% 100%, 24% 98%, 22% 100%, 20% 98%, 18% 100%, 16% 98%, 14% 100%, 12% 98%, 10% 100%, 8% 98%, 6% 100%, 4% 98%, 2% 100%, 0% 98%)';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-150 p-4 overflow-y-auto">
-      <div className="enterprise-card w-full max-w-6xl max-h-[95vh] flex rounded-2xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 border-slate-700">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-canvas/80 backdrop-blur-sm animate-in fade-in duration-150 p-4 overflow-y-auto">
+      <div className="enterprise-card w-full max-w-6xl max-h-[95vh] flex rounded-2xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 border-canvas-hover">
         
         {/* Left 56%: Checkout Summary, Methods, & Keypad */}
-        <div className="w-[56%] border-r border-slate-800 p-5 flex flex-col justify-between relative overflow-y-auto bg-slate-900/90">
+        <div className="w-[56%] border-r border-canvas-card p-5 flex flex-col justify-between relative overflow-y-auto bg-canvas-subtle/90">
           
           <div className="relative z-10 flex-1 flex flex-col gap-3.5">
             {/* Modal Title */}
@@ -156,12 +156,12 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax
                 </div>
                 <div>
                   <h2 className="text-base font-bold tracking-tight">TERMINAL SETTLEMENT</h2>
-                  <p className="text-[11px] text-slate-400 font-mono">Sale Order ID: #{nextSaleId}</p>
+                  <p className="text-[11px] text-content-secondary font-mono">Sale Order ID: #{nextSaleId}</p>
                 </div>
               </div>
               <button 
                 onClick={onClose} 
-                className="w-7 h-7 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 flex items-center justify-center transition-colors"
+                className="w-7 h-7 rounded-lg text-content-secondary hover:text-white hover:bg-canvas-card flex items-center justify-center transition-colors"
               >
                 <X size={16} />
               </button>
@@ -176,9 +176,9 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax
                   className={`py-2 px-1 rounded-lg font-medium text-xs transition-all flex flex-col items-center justify-center gap-1 cursor-pointer ${
                     method === m
                       ? m === 'Credit / Loan'
-                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50 shadow-sm'
+                        ? 'bg-status-amber/20 text-status-amber border border-status-amber/50 shadow-sm'
                         : 'bg-indigo-600 text-white shadow-sm'
-                      : 'bg-slate-950/60 border border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                      : 'bg-canvas/60 border border-canvas-card text-content-secondary hover:text-content-primary hover:border-canvas-hover'
                   }`}
                 >
                   {m === 'Cash' && <DollarSign size={14} />}
@@ -195,8 +195,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax
             <div className="flex-1 flex flex-col justify-center">
               {method === 'Cash' ? (
                 <div className="flex flex-col gap-2.5">
-                  <div className="flex justify-between items-center bg-slate-950/80 p-3 rounded-xl border border-slate-800">
-                    <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Cash Tendered</span>
+                  <div className="flex justify-between items-center bg-canvas/80 p-3 rounded-xl border border-canvas-card">
+                    <span className="text-[11px] font-semibold text-content-secondary uppercase tracking-wider">Cash Tendered</span>
                     <div className="text-2xl font-bold text-white font-mono tabular-nums tracking-tight">
                       Rs. {tenderedStr || '0.00'}
                     </div>
@@ -208,14 +208,14 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax
                       <button
                         key={amount}
                         onClick={() => handleQuickAdd(amount)}
-                        className="py-2 rounded-lg font-mono tabular-nums text-xs font-semibold text-slate-200 bg-slate-800/80 border border-slate-700 hover:bg-slate-700 transition-all cursor-pointer"
+                        className="py-2 rounded-lg font-mono tabular-nums text-xs font-semibold text-content-primary bg-canvas-card/80 border border-canvas-hover hover:bg-canvas-hover transition-all cursor-pointer"
                       >
                         +Rs. {amount}
                       </button>
                     ))}
                     <button
                       onClick={() => handleQuickAdd(Math.ceil(remaining))}
-                      className="py-2 rounded-lg text-xs font-bold text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 hover:bg-emerald-500/25 transition-all cursor-pointer"
+                      className="py-2 rounded-lg text-xs font-bold text-status-emerald bg-status-emerald/15 border border-status-emerald/30 hover:bg-status-emerald/25 transition-all cursor-pointer"
                     >
                       Exact Cash
                     </button>
@@ -228,14 +228,14 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax
                         <button
                           key={num}
                           onClick={() => handleKeypad(num.toString())}
-                          className="h-10 rounded-lg text-base font-mono font-bold text-slate-100 bg-slate-800/80 border border-slate-700 hover:bg-slate-700 hover:text-white transition-all cursor-pointer"
+                          className="h-10 rounded-lg text-base font-mono font-bold text-content-primary bg-canvas-card/80 border border-canvas-hover hover:bg-canvas-hover hover:text-white transition-all cursor-pointer"
                         >
                           {num}
                         </button>
                       ))}
                       <button
                         onClick={() => handleKeypad('C')}
-                        className="h-10 rounded-lg flex items-center justify-center text-rose-400 bg-slate-800/80 border border-slate-700 hover:bg-rose-500/20 transition-all cursor-pointer"
+                        className="h-10 rounded-lg flex items-center justify-center text-status-coral bg-canvas-card/80 border border-canvas-hover hover:bg-status-coral/20 transition-all cursor-pointer"
                       >
                         <Delete size={16} />
                       </button>
@@ -252,20 +252,20 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax
                   </div>
                 </div>
               ) : method === 'Credit / Loan' ? (
-                <div className="flex flex-col gap-2.5 animate-in fade-in zoom-in-95 duration-150 bg-amber-950/20 border border-amber-500/30 p-3 rounded-xl">
+                <div className="flex flex-col gap-2.5 animate-in fade-in zoom-in-95 duration-150 bg-status-amber/20 border border-status-amber/30 p-3 rounded-xl">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="text-xs font-semibold text-status-amber uppercase tracking-wider flex items-center gap-1.5">
                       <BookOpen size={14} />
                       Select Customer For Khata / Loan
                     </span>
-                    <span className="text-xs font-mono tabular-nums font-bold text-amber-200">
+                    <span className="text-xs font-mono tabular-nums font-bold text-status-amber">
                       Amount: Rs. {remaining.toFixed(2)}
                     </span>
                   </div>
 
                   {/* Customer search filter */}
                   <div className="relative">
-                    <Search className="absolute left-3 top-2.5 text-slate-500" size={13} />
+                    <Search className="absolute left-3 top-2.5 text-content-muted" size={13} />
                     <input 
                       type="text"
                       placeholder="Search customer by name or phone..."
@@ -278,7 +278,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax
                   {/* Customer selection list */}
                   <div className="max-h-28 overflow-y-auto space-y-1 pr-1 scrollbar-thin">
                     {filteredCustomers.length === 0 ? (
-                      <div className="text-center py-3 text-xs text-slate-500">
+                      <div className="text-center py-3 text-xs text-content-muted">
                         No customers found. Please add customer in Customers tab first.
                       </div>
                     ) : (
@@ -288,20 +288,20 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax
                           onClick={() => setSelectedCustomerId(c.id)}
                           className={`p-2 rounded-lg border flex justify-between items-center cursor-pointer transition-all ${
                             selectedCustomerId === c.id
-                              ? 'bg-amber-500/20 border-amber-500/60'
-                              : 'bg-slate-950/60 border-slate-800 hover:border-slate-700'
+                              ? 'bg-status-amber/20 border-status-amber/60'
+                              : 'bg-canvas/60 border-canvas-card hover:border-canvas-hover'
                           }`}
                         >
                           <div>
-                            <div className="text-xs font-semibold text-slate-100 flex items-center gap-1.5">
+                            <div className="text-xs font-semibold text-content-primary flex items-center gap-1.5">
                               {c.name}
-                              {selectedCustomerId === c.id && <UserCheck size={13} className="text-amber-400" />}
+                              {selectedCustomerId === c.id && <UserCheck size={13} className="text-status-amber" />}
                             </div>
-                            <div className="text-[10px] text-slate-400 font-mono">{c.phone || 'No phone'}</div>
+                            <div className="text-[10px] text-content-secondary font-mono">{c.phone || 'No phone'}</div>
                           </div>
                           <div className="text-right">
-                            <span className="text-[10px] text-slate-400 block">Prev Udhaar</span>
-                            <span className="text-xs font-mono tabular-nums font-bold text-amber-400">
+                            <span className="text-[10px] text-content-secondary block">Prev Udhaar</span>
+                            <span className="text-xs font-mono tabular-nums font-bold text-status-amber">
                               Rs. {moneyCompact(c.balance || 0)}
                             </span>
                           </div>
@@ -311,14 +311,14 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax
                   </div>
 
                   {selectedCustomer && (
-                    <div className="flex items-center justify-between bg-slate-950/60 p-2 rounded-lg border border-amber-500/30 text-xs">
-                      <span className="text-amber-200">
+                    <div className="flex items-center justify-between bg-canvas/60 p-2 rounded-lg border border-status-amber/30 text-xs">
+                      <span className="text-status-amber">
                         Total New Due: <strong className="font-mono tabular-nums">Rs. {moneyCompact((selectedCustomer.balance || 0) + remaining)}</strong>
                       </span>
                       <button
                         onClick={handleAddPayment}
                         disabled={remaining <= 0}
-                        className="px-3 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 font-semibold text-xs active:scale-95 transition cursor-pointer"
+                        className="px-3 py-1 rounded bg-status-amber/20 hover:bg-status-amber/30 border border-status-amber/40 text-status-amber font-semibold text-xs active:scale-95 transition cursor-pointer"
                       >
                         Add to Udhaar
                       </button>
@@ -333,7 +333,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax
                     {method === 'Gift Card' && <Gift size={24} />}
                   </div>
                   <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-0.5">Process {method}</h3>
-                  <p className="text-xs text-slate-400">Tender charge: <strong className="text-white font-mono tabular-nums">Rs. {remaining.toFixed(2)}</strong></p>
+                  <p className="text-xs text-content-secondary">Tender charge: <strong className="text-white font-mono tabular-nums">Rs. {remaining.toFixed(2)}</strong></p>
                   
                   <button 
                     onClick={handleAddPayment}
@@ -347,25 +347,25 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax
             </div>
 
             {/* Split Payments Tracker Table */}
-            <div className="bg-slate-950/60 rounded-xl border border-slate-800 p-2.5 flex flex-col gap-1.5">
-              <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Settled Splits</span>
+            <div className="bg-canvas/60 rounded-xl border border-canvas-card p-2.5 flex flex-col gap-1.5">
+              <span className="text-[10px] text-content-secondary font-semibold uppercase tracking-wider">Settled Splits</span>
               <div className="max-h-20 overflow-y-auto pr-1 space-y-1 scrollbar-none">
                 {payments.length === 0 ? (
-                  <div className="text-center py-1 text-xs text-slate-500 italic">No payments logged yet</div>
+                  <div className="text-center py-1 text-xs text-content-muted italic">No payments logged yet</div>
                 ) : (
                   payments.map((p, idx) => (
-                    <div key={idx} className="flex justify-between items-center px-2 py-1.5 bg-slate-900 border border-slate-800 rounded-lg">
-                      <div className="flex items-center gap-2 text-slate-300 text-xs font-medium">
+                    <div key={idx} className="flex justify-between items-center px-2 py-1.5 bg-canvas-subtle border border-canvas-card rounded-lg">
+                      <div className="flex items-center gap-2 text-content-secondary text-xs font-medium">
                         {p.method === 'Cash' && <DollarSign size={13} />}
                         {p.method === 'Card' && <CreditCard size={13} />}
                         {p.method === 'Mobile' && <Smartphone size={13} />}
                         {p.method === 'Gift Card' && <Gift size={13} />}
-                        {p.method === 'Credit / Loan' && <BookOpen size={13} className="text-amber-400" />}
+                        {p.method === 'Credit / Loan' && <BookOpen size={13} className="text-status-amber" />}
                         <span>{p.method}</span>
                       </div>
                       <div className="flex items-center gap-3 text-xs">
                         <span className="text-white font-mono tabular-nums font-bold">Rs. {p.amount.toFixed(2)}</span>
-                        <button onClick={() => removePayment(idx)} className="text-rose-400 hover:text-rose-300 transition cursor-pointer">
+                        <button onClick={() => removePayment(idx)} className="text-status-coral hover:text-status-coral transition cursor-pointer">
                           <X size={13} />
                         </button>
                       </div>
@@ -381,7 +381,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax
                 <button
                   onClick={() => handlePay(false)}
                   disabled={isProcessing || !isEnough}
-                  className="py-2.5 rounded-lg font-bold text-xs text-white bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 disabled:text-slate-500 transition-all flex justify-center items-center gap-2 cursor-pointer disabled:cursor-not-allowed shadow-sm"
+                  className="py-2.5 rounded-lg font-bold text-xs text-white bg-indigo-600 hover:bg-indigo-500 disabled:bg-canvas-card disabled:text-content-muted transition-all flex justify-center items-center gap-2 cursor-pointer disabled:cursor-not-allowed shadow-sm"
                   title="Save bill and send receipt to thermal printer"
                 >
                   {isProcessing ? (
@@ -396,7 +396,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax
                 <button
                   onClick={() => handlePay(true)}
                   disabled={isProcessing || !isEnough}
-                  className="py-2.5 rounded-lg font-bold text-xs text-emerald-300 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 disabled:border-slate-800 disabled:bg-slate-800/40 disabled:text-slate-500 transition-all flex justify-center items-center gap-2 cursor-pointer disabled:cursor-not-allowed shadow-sm"
+                  className="py-2.5 rounded-lg font-bold text-xs text-status-emerald bg-status-emerald/20 hover:bg-status-emerald/30 border border-status-emerald/40 disabled:border-canvas-card disabled:bg-canvas-card/40 disabled:text-content-muted transition-all flex justify-center items-center gap-2 cursor-pointer disabled:cursor-not-allowed shadow-sm"
                   title="Save bill to database and ledger without printing paper receipt"
                 >
                   <Save size={15} />
@@ -406,7 +406,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax
 
               <button 
                 onClick={onClose}
-                className="w-full py-2 rounded-lg font-medium text-xs text-slate-400 hover:text-white bg-slate-800/80 border border-slate-700 hover:bg-slate-700 transition cursor-pointer"
+                className="w-full py-2 rounded-lg font-medium text-xs text-content-secondary hover:text-white bg-canvas-card/80 border border-canvas-hover hover:bg-canvas-hover transition cursor-pointer"
               >
                 CANCEL (Esc)
               </button>
@@ -419,7 +419,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax
           {/* Virtual Printer Slot Cover */}
           <div className="w-full bg-[#1b1e2a] h-3.5 rounded-full border border-white/10 relative z-20 flex justify-center items-center shadow-md shrink-0">
             <div className="w-[90%] bg-black h-1 rounded-full relative overflow-hidden">
-              <div className="absolute inset-x-0 h-[2px] bg-neutral-400"></div>
+              <div className="absolute inset-x-0 h-[2px] bg-content-faint"></div>
             </div>
           </div>
 
@@ -431,7 +431,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax
             
             {/* Header */}
             <div className="text-center font-mono border-b border-gray-400 pb-2 flex flex-col items-center">
-              <span className="font-black text-sm text-gray-900 tracking-wider">SS MART</span>
+              <span className="font-black text-sm text-canvas tracking-wider">SS MART</span>
               <span className="text-[8px] text-gray-600 font-medium">Old Lakar Mandi</span>
               <span className="text-[8px] text-gray-600 font-medium">Opposite Railway Station, Havelian</span>
               <span className="text-[8px] text-gray-600 font-medium">Ph: 0316-5915787</span>
@@ -447,7 +447,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax
             </div>
 
             {/* Table Header */}
-            <div className="font-mono text-[8px] border-b border-gray-400 py-1 grid grid-cols-6 font-bold text-gray-900 text-right">
+            <div className="font-mono text-[8px] border-b border-gray-400 py-1 grid grid-cols-6 font-bold text-canvas text-right">
               <span className="col-span-2 text-left">Description</span>
               <span>O.Price</span>
               <span>Disc%</span>
@@ -462,13 +462,13 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax
                 const finalPrice = item.price * (1 - itemDiscPercent / 100);
                 return (
                   <div key={idx} className="py-1">
-                    <div className="font-bold text-gray-900 leading-tight mb-0.5">{item.name}</div>
+                    <div className="font-bold text-canvas leading-tight mb-0.5">{item.name}</div>
                     <div className="grid grid-cols-6 text-right text-gray-700">
                       <span className="col-span-2"></span>
                       <span>{item.price.toFixed(2)}</span>
                       <span>{itemDiscPercent > 0 ? itemDiscPercent.toFixed(1) + '%' : '0.0%'}</span>
                       <span>{item.qty}</span>
-                      <span className="font-bold text-gray-900">{(finalPrice * item.qty).toFixed(2)}</span>
+                      <span className="font-bold text-canvas">{(finalPrice * item.qty).toFixed(2)}</span>
                     </div>
                   </div>
                 );
@@ -477,7 +477,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax
 
             {/* Sub Total / Totals */}
             <div className="font-mono text-[8px] py-1 border-b border-gray-400 flex flex-col gap-0.5">
-              <div className="flex justify-between font-bold text-gray-900">
+              <div className="flex justify-between font-bold text-canvas">
                 <span>Sub Total {subtotal.toFixed(2)}</span>
                 <span>{total.toFixed(2)}</span>
               </div>
@@ -493,7 +493,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax
 
             {/* Discount Box */}
             {discount > 0 && (
-              <div className="font-mono text-[8px] my-1 py-1 border-y border-gray-900 bg-gray-200 flex justify-between font-bold px-2 text-gray-900">
+              <div className="font-mono text-[8px] my-1 py-1 border-y border-gray-900 bg-gray-200 flex justify-between font-bold px-2 text-canvas">
                 <span>Total Discount</span>
                 <span>{discount.toFixed(2)}</span>
               </div>
@@ -501,14 +501,14 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax
 
             {/* Note & Footer */}
             <div className="text-center font-mono text-[7px] pt-1 text-gray-600 flex flex-col items-center leading-tight">
-              <span className="font-bold text-gray-900 tracking-wider mt-1">THANKS FOR YOUR VISIT</span>
+              <span className="font-bold text-canvas tracking-wider mt-1">THANKS FOR YOUR VISIT</span>
               <span className="text-[6px] text-gray-500 mt-0.5">Software Developed By: SSQ</span>
             </div>
           </div>
 
           {/* Quick thermal print status banner & Print Receipt Trigger */}
           <div className="w-full flex items-center justify-between gap-2 relative z-20 mt-2">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[10px] font-mono text-slate-400 border border-slate-800 bg-slate-900/80 uppercase select-none">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[10px] font-mono text-content-secondary border border-canvas-card bg-canvas-subtle/80 uppercase select-none">
               <Printer size={11} className="text-indigo-400" /> Thermal Preview
             </span>
             <button
@@ -530,7 +530,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax
                   window.print();
                 }
               }}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 shadow-sm transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer uppercase tracking-wider"
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-canvas-card hover:bg-canvas-hover border border-canvas-hover shadow-sm transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer uppercase tracking-wider"
             >
               <Printer size={13} /> Print Bill
             </button>

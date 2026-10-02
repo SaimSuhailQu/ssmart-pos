@@ -114,21 +114,21 @@ export const BarcodePrintManager: React.FC = () => {
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-3 border-b border-slate-800 flex-shrink-0">
+      <div className="flex items-center justify-between px-5 py-3 border-b border-canvas-card flex-shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-violet-500/20 border border-violet-500/30 flex items-center justify-center text-violet-400">
             <Printer size={20} />
           </div>
           <div>
             <h1 className="text-base font-bold text-white tracking-tight">A4 Barcode Printer</h1>
-            <p className="text-[11px] text-slate-400 font-medium">HP LaserJet P2015 · 100 labels per A4 page</p>
+            <p className="text-[11px] text-content-secondary font-medium">HP LaserJet P2015 · 100 labels per A4 page</p>
           </div>
         </div>
 
         {printQueue.length > 0 && (
           <button
             onClick={clearQueue}
-            className="px-3 py-1.5 text-xs font-semibold text-red-400 hover:text-red-300 hover:bg-red-500/10 border border-red-500/30 rounded-lg transition-all"
+            className="px-3 py-1.5 text-xs font-semibold text-status-coral hover:text-status-coral hover:bg-status-coral/10 border border-status-coral/30 rounded-lg transition-all"
           >
             <Trash2 size={12} className="inline mr-1.5" />Clear All
           </button>
@@ -138,29 +138,29 @@ export const BarcodePrintManager: React.FC = () => {
       {/* Main content: split panel */}
       <div className="flex flex-1 overflow-hidden min-h-0">
         {/* LEFT: Product Search & List */}
-        <div className="w-[55%] flex flex-col border-r border-slate-800 overflow-hidden">
+        <div className="w-[55%] flex flex-col border-r border-canvas-card overflow-hidden">
           {/* Search bar */}
-          <div className="px-4 py-3 border-b border-slate-800/60 flex-shrink-0">
+          <div className="px-4 py-3 border-b border-canvas-card/60 flex-shrink-0">
             <div className="relative">
-              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-content-muted" />
               <input
                 type="text"
                 placeholder="Search products by name, barcode, or category..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2.5 bg-slate-900/80 border border-slate-700/60 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500/60 transition-colors"
+                className="w-full pl-9 pr-4 py-2.5 bg-canvas-subtle/80 border border-canvas-hover/60 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500/60 transition-colors"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-content-muted hover:text-white"
                 >
                   <X size={14} />
                 </button>
               )}
             </div>
             <div className="flex items-center justify-between mt-2">
-              <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">
+              <span className="text-[10px] text-content-muted font-semibold uppercase tracking-wider">
                 {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''} found
               </span>
               <span className="text-[10px] text-violet-400 font-semibold">
@@ -172,7 +172,7 @@ export const BarcodePrintManager: React.FC = () => {
           {/* Product list */}
           <div className="flex-1 overflow-y-auto min-h-0 px-2 py-1">
             {filteredProducts.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-slate-500">
+              <div className="flex flex-col items-center justify-center h-full text-content-muted">
                 <PackageOpen size={40} className="mb-3 opacity-40" />
                 <p className="text-sm font-medium">No products found</p>
                 <p className="text-xs mt-1">Try a different search term</p>
@@ -189,21 +189,21 @@ export const BarcodePrintManager: React.FC = () => {
                       className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-all group ${
                         inQueue
                           ? 'bg-violet-500/10 border border-violet-500/25 hover:bg-violet-500/15'
-                          : 'hover:bg-slate-800/60 border border-transparent'
+                          : 'hover:bg-canvas-card/60 border border-transparent'
                       }`}
                     >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-semibold text-white truncate">{product.name}</span>
                           {product.category && (
-                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-medium uppercase tracking-wide flex-shrink-0">
+                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-canvas-card text-content-secondary font-medium uppercase tracking-wide flex-shrink-0">
                               {product.category}
                             </span>
                           )}
                         </div>
                         <div className="flex items-center gap-3 mt-0.5">
-                          <span className="text-[11px] font-mono text-slate-400">{product.barcode}</span>
-                          <span className="text-[11px] font-bold text-emerald-400">Rs. {product.price.toFixed(2)}</span>
+                          <span className="text-[11px] font-mono text-content-secondary">{product.barcode}</span>
+                          <span className="text-[11px] font-bold text-status-emerald">Rs. {product.price.toFixed(2)}</span>
                         </div>
                       </div>
 
@@ -213,7 +213,7 @@ export const BarcodePrintManager: React.FC = () => {
                             ×{queueItem.count}
                           </span>
                         ) : (
-                          <span className="text-slate-600 group-hover:text-violet-400 transition-colors">
+                          <span className="text-status-slate group-hover:text-violet-400 transition-colors">
                             <Plus size={16} />
                           </span>
                         )}
@@ -227,13 +227,13 @@ export const BarcodePrintManager: React.FC = () => {
         </div>
 
         {/* RIGHT: Print Queue */}
-        <div className="w-[45%] flex flex-col overflow-hidden bg-slate-950/40">
+        <div className="w-[45%] flex flex-col overflow-hidden bg-canvas/40">
           {/* Queue header */}
-          <div className="px-4 py-3 border-b border-slate-800/60 flex-shrink-0">
+          <div className="px-4 py-3 border-b border-canvas-card/60 flex-shrink-0">
             <div className="flex items-center justify-between">
-              <h2 className="text-xs font-bold text-slate-300 uppercase tracking-widest">Print Queue</h2>
+              <h2 className="text-xs font-bold text-content-secondary uppercase tracking-widest">Print Queue</h2>
               <div className="flex items-center gap-3">
-                <span className="text-[10px] font-mono text-slate-400">
+                <span className="text-[10px] font-mono text-content-secondary">
                   {printQueue.length} item{printQueue.length !== 1 ? 's' : ''}
                 </span>
               </div>
@@ -243,9 +243,9 @@ export const BarcodePrintManager: React.FC = () => {
           {/* Queue items */}
           <div className="flex-1 overflow-y-auto min-h-0 px-3 py-2">
             {printQueue.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-slate-600">
+              <div className="flex flex-col items-center justify-center h-full text-status-slate">
                 <FileText size={36} className="mb-3 opacity-30" />
-                <p className="text-sm font-medium text-slate-500">Queue is empty</p>
+                <p className="text-sm font-medium text-content-muted">Queue is empty</p>
                 <p className="text-xs mt-1">Select products from the left to add barcode labels</p>
               </div>
             ) : (
@@ -253,19 +253,19 @@ export const BarcodePrintManager: React.FC = () => {
                 {printQueue.map(item => (
                   <div
                     key={item.product.id}
-                    className="bg-slate-900/80 border border-slate-700/50 rounded-xl p-3"
+                    className="bg-canvas-subtle/80 border border-canvas-hover/50 rounded-xl p-3"
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1 min-w-0 mr-2">
                         <p className="text-sm font-bold text-white truncate">{item.product.name}</p>
                         <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-[10px] font-mono text-slate-400">{item.product.barcode}</span>
-                          <span className="text-[10px] font-bold text-emerald-400">Rs. {item.product.price.toFixed(2)}</span>
+                          <span className="text-[10px] font-mono text-content-secondary">{item.product.barcode}</span>
+                          <span className="text-[10px] font-bold text-status-emerald">Rs. {item.product.price.toFixed(2)}</span>
                         </div>
                       </div>
                       <button
                         onClick={() => removeFromQueue(item.product.id)}
-                        className="text-slate-600 hover:text-red-400 p-1 rounded hover:bg-red-500/10 transition-all flex-shrink-0"
+                        className="text-status-slate hover:text-status-coral p-1 rounded hover:bg-status-coral/10 transition-all flex-shrink-0"
                         title="Remove from queue"
                       >
                         <X size={14} />
@@ -274,10 +274,10 @@ export const BarcodePrintManager: React.FC = () => {
 
                     {/* Quantity controls */}
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider w-12">Labels:</span>
+                      <span className="text-[10px] text-content-muted font-semibold uppercase tracking-wider w-12">Labels:</span>
                       <button
                         onClick={() => updateCount(item.product.id, item.count - 1)}
-                        className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold text-sm flex items-center justify-center transition-colors active:scale-95"
+                        className="w-8 h-8 rounded-lg bg-canvas-card hover:bg-canvas-hover border border-canvas-hover text-white font-bold text-sm flex items-center justify-center transition-colors active:scale-95"
                       >
                         <Minus size={12} />
                       </button>
@@ -290,11 +290,11 @@ export const BarcodePrintManager: React.FC = () => {
                           const val = parseInt(e.target.value, 10);
                           updateCount(item.product.id, isNaN(val) ? 1 : val);
                         }}
-                        className="w-16 h-8 text-center bg-slate-950 border border-slate-700 rounded-lg text-sm font-bold font-mono text-white focus:outline-none focus:border-violet-500 transition-colors"
+                        className="w-16 h-8 text-center bg-canvas border border-canvas-hover rounded-lg text-sm font-bold font-mono text-white focus:outline-none focus:border-violet-500 transition-colors"
                       />
                       <button
                         onClick={() => updateCount(item.product.id, item.count + 1)}
-                        className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold text-sm flex items-center justify-center transition-colors active:scale-95"
+                        className="w-8 h-8 rounded-lg bg-canvas-card hover:bg-canvas-hover border border-canvas-hover text-white font-bold text-sm flex items-center justify-center transition-colors active:scale-95"
                       >
                         <Plus size={12} />
                       </button>
@@ -308,7 +308,7 @@ export const BarcodePrintManager: React.FC = () => {
                             className={`px-2 py-1 rounded text-[10px] font-semibold font-mono border transition-all ${
                               item.count === preset
                                 ? 'bg-violet-500 text-white border-violet-400 shadow-sm shadow-violet-500/30'
-                                : 'bg-slate-800/60 hover:bg-slate-700/60 text-slate-400 border-slate-700/60 hover:border-slate-600'
+                                : 'bg-canvas-card/60 hover:bg-canvas-hover/60 text-content-secondary border-canvas-hover/60 hover:border-canvas-hover'
                             }`}
                           >
                             {preset}
@@ -324,22 +324,22 @@ export const BarcodePrintManager: React.FC = () => {
 
           {/* Print summary + action */}
           {printQueue.length > 0 && (
-            <div className="px-4 py-3 border-t border-slate-800/60 flex-shrink-0 space-y-3">
+            <div className="px-4 py-3 border-t border-canvas-card/60 flex-shrink-0 space-y-3">
               {/* Summary stats */}
-              <div className="flex items-center justify-between bg-slate-900/60 border border-slate-700/40 rounded-xl px-4 py-2.5">
+              <div className="flex items-center justify-between bg-canvas-subtle/60 border border-canvas-hover/40 rounded-xl px-4 py-2.5">
                 <div className="text-center flex-1">
-                  <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Products</p>
+                  <p className="text-[10px] text-content-muted uppercase tracking-wider font-semibold">Products</p>
                   <p className="text-lg font-bold font-mono text-white">{printQueue.length}</p>
                 </div>
-                <div className="w-px h-8 bg-slate-700/60" />
+                <div className="w-px h-8 bg-canvas-hover/60" />
                 <div className="text-center flex-1">
-                  <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Total Labels</p>
+                  <p className="text-[10px] text-content-muted uppercase tracking-wider font-semibold">Total Labels</p>
                   <p className="text-lg font-bold font-mono text-violet-400">{totalLabels}</p>
                 </div>
-                <div className="w-px h-8 bg-slate-700/60" />
+                <div className="w-px h-8 bg-canvas-hover/60" />
                 <div className="text-center flex-1">
-                  <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">A4 Pages</p>
-                  <p className="text-lg font-bold font-mono text-emerald-400">{totalPages}</p>
+                  <p className="text-[10px] text-content-muted uppercase tracking-wider font-semibold">A4 Pages</p>
+                  <p className="text-lg font-bold font-mono text-status-emerald">{totalPages}</p>
                 </div>
               </div>
 
@@ -347,8 +347,8 @@ export const BarcodePrintManager: React.FC = () => {
               {printResult && (
                 <div className={`px-3 py-2 rounded-lg text-xs font-semibold ${
                   printResult.success
-                    ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-300'
-                    : 'bg-red-500/15 border border-red-500/30 text-red-300'
+                    ? 'bg-status-emerald/15 border border-status-emerald/30 text-status-emerald'
+                    : 'bg-status-coral/15 border border-status-coral/30 text-status-coral'
                 }`}>
                   {printResult.message}
                 </div>

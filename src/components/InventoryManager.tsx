@@ -138,13 +138,13 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
             </div>
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-white drop-shadow-md">INVENTORY</h1>
-              <p className="text-xs text-neutral-200 font-bold uppercase tracking-widest mt-1">{products.length} Products Found</p>
+              <p className="text-xs text-content-primary font-bold uppercase tracking-widest mt-1">{products.length} Products Found</p>
             </div>
           </div>
           
           <div className="flex items-center gap-4">
             <div className="relative group w-72">
-              <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-gray-400 group-focus-within:text-neutral-200 transition-colors">
+              <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-gray-400 group-focus-within:text-content-primary transition-colors">
                 <Search size={18} />
               </div>
               <input 
@@ -160,7 +160,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
               onClick={() => setLowStockOnly(prev => !prev)}
               className={`flex items-center gap-2 px-4 py-3 rounded-xl font-bold text-xs transition-all border ${
                 lowStockOnly 
-                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-[0_0_15px_rgba(245,158,11,0.3)]' 
+                  ? 'bg-status-amber/20 text-status-amber border-status-amber/40 shadow-[0_0_15px_rgba(245,158,11,0.3)]' 
                   : 'bg-white/5 text-gray-400 hover:text-white border-white/10'
               }`}
               title="Toggle Low Stock Filter (≤ 5 units)"
@@ -179,7 +179,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
             </button>
 
             {/* Direct CSV Import */}
-            <label className="flex items-center gap-2 px-4 py-3 rounded-xl font-bold text-xs text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 transition-all border border-emerald-500/30 shadow-md cursor-pointer active:scale-95">
+            <label className="flex items-center gap-2 px-4 py-3 rounded-xl font-bold text-xs text-status-emerald bg-status-emerald/10 hover:bg-status-emerald/20 transition-all border border-status-emerald/30 shadow-md cursor-pointer active:scale-95">
               <Upload size={16} />
               <span>Import CSV</span>
               <input 
@@ -273,7 +273,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
             <button 
               type="button"
               onClick={() => setIsBulkAddOpen(true)}
-              className="flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-emerald-300 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 transition-all cursor-pointer active:scale-95 shadow-md"
+              className="flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-status-emerald bg-status-emerald/15 hover:bg-status-emerald/25 border border-status-emerald/30 transition-all cursor-pointer active:scale-95 shadow-md"
               title="Add multiple products at once"
             >
               <Layers size={17} /> 
@@ -294,8 +294,8 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
 
         <div className="flex-1 overflow-auto scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
           <table className="w-full text-left border-collapse">
-            <thead className="sticky top-0 bg-slate-950/90 backdrop-blur-md z-10 border-b border-slate-800">
-              <tr className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+            <thead className="sticky top-0 bg-canvas/90 backdrop-blur-md z-10 border-b border-canvas-card">
+              <tr className="text-[11px] font-semibold text-content-secondary uppercase tracking-wider">
                 <th className="py-3 px-4 pl-6">Product Item</th>
                 <th className="py-3 px-4">Category</th>
                 <th className="py-3 px-4">Barcode</th>
@@ -306,7 +306,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                 <th className="py-3 px-4 pr-6 text-center">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60">
+            <tbody className="divide-y divide-canvas-card/60">
               {paginatedProducts.map(p => {
                 const margin = p.price > 0 && p.cost_price >= 0 
                   ? ((p.price - p.cost_price) / p.price) * 100 
@@ -315,25 +315,25 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                 const isLowStock = p.stock > 0 && p.stock <= 5;
                 
                 return (
-                  <tr key={p.id} className="hover:bg-slate-800/30 transition-colors group">
-                    <td className="py-3 px-4 pl-6 font-semibold text-slate-100 text-sm leading-tight">{p.name}</td>
+                  <tr key={p.id} className="hover:bg-canvas-card/30 transition-colors group">
+                    <td className="py-3 px-4 pl-6 font-semibold text-content-primary text-sm leading-tight">{p.name}</td>
                     <td className="py-3 px-4 text-xs">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-800/80 text-slate-300 border border-slate-700/50">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium bg-canvas-card/80 text-content-secondary border border-canvas-hover/50">
                         {p.category}
                       </span>
                     </td>
-                    <td className="py-3 px-4 font-mono text-xs text-slate-400 tabular-nums">{p.barcode}</td>
-                    <td className="py-3 px-4 text-right font-mono text-xs tabular-nums text-slate-400">Rs. {(p.cost_price || 0).toFixed(2)}</td>
-                    <td className="py-3 px-4 text-right font-mono text-sm font-bold tabular-nums text-slate-100">Rs. {p.price.toFixed(2)}</td>
+                    <td className="py-3 px-4 font-mono text-xs text-content-secondary tabular-nums">{p.barcode}</td>
+                    <td className="py-3 px-4 text-right font-mono text-xs tabular-nums text-content-secondary">Rs. {(p.cost_price || 0).toFixed(2)}</td>
+                    <td className="py-3 px-4 text-right font-mono text-sm font-bold tabular-nums text-content-primary">Rs. {p.price.toFixed(2)}</td>
                     <td className="py-3 px-4 text-right font-mono text-xs tabular-nums">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border ${
                         margin >= 30 
-                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' 
+                          ? 'bg-status-emerald/10 text-status-emerald border-status-emerald/30' 
                           : margin >= 15 
                           ? 'bg-indigo-500/10 text-indigo-300 border-indigo-500/30' 
                           : margin > 0 
-                          ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' 
-                          : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+                          ? 'bg-status-amber/10 text-status-amber border-status-amber/30' 
+                          : 'bg-status-coral/10 text-status-coral border-status-coral/30'
                       }`}>
                         {margin.toFixed(1)}%
                       </span>
@@ -341,12 +341,12 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                     <td className="py-3 px-4 text-right font-mono text-xs tabular-nums">
                       <span className={`inline-flex items-center gap-1.5 font-bold ${
                         isOutOfStock 
-                          ? 'text-rose-400' 
+                          ? 'text-status-coral' 
                           : isLowStock 
-                          ? 'text-amber-400' 
-                          : 'text-slate-200'
+                          ? 'text-status-amber' 
+                          : 'text-content-primary'
                       }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${isOutOfStock ? 'bg-rose-400' : isLowStock ? 'bg-amber-400' : 'bg-emerald-400'}`}></span>
+                        <span className={`w-1.5 h-1.5 rounded-full ${isOutOfStock ? 'bg-status-coral' : isLowStock ? 'bg-status-amber' : 'bg-status-emerald'}`}></span>
                         {p.stock} units
                       </span>
                     </td>
@@ -354,7 +354,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                       <div className="flex items-center justify-center gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
                         <button 
                           onClick={() => handleOpenBarcodeModal(p)}
-                          className="p-1.5 text-slate-400 hover:text-slate-100 hover:bg-slate-800 rounded-md transition-colors"
+                          className="p-1.5 text-content-secondary hover:text-content-primary hover:bg-canvas-card rounded-md transition-colors"
                           title="Print Barcode Label"
                         >
                           <Printer size={15} />
@@ -368,7 +368,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                         </button>
                         <button 
                           onClick={() => handleDelete(p.id, p.name)}
-                          className="p-1.5 text-rose-400 hover:text-rose-200 hover:bg-rose-500/15 rounded-md transition-colors"
+                          className="p-1.5 text-status-coral hover:text-status-coral hover:bg-status-coral/15 rounded-md transition-colors"
                           title="Delete Product"
                         >
                           <Trash2 size={15} />
@@ -402,7 +402,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
         {/* Pagination Controls */}
         {filteredProducts.length > itemsPerPage && (
           <div className="p-4 border-t border-white/5 bg-black/20 backdrop-blur-md flex items-center justify-between">
-            <span className="text-xs text-slate-400 font-mono">
+            <span className="text-xs text-content-secondary font-mono">
               Showing <strong className="text-white">{(currentPage - 1) * itemsPerPage + 1}</strong> to <strong className="text-white">{Math.min(currentPage * itemsPerPage, filteredProducts.length)}</strong> of <strong className="text-white">{filteredProducts.length}</strong> products
             </span>
             <div className="flex items-center gap-2">
@@ -455,20 +455,20 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
 
       {barcodeProduct && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-slate-900 border border-slate-700/80 rounded-2xl p-6 w-full max-w-md shadow-2xl relative text-white">
+          <div className="bg-canvas-subtle border border-canvas-hover/80 rounded-2xl p-6 w-full max-w-md shadow-2xl relative text-white">
             <div className="flex items-center justify-between pb-4 border-b border-white/10 mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                <div className="w-10 h-10 rounded-xl bg-status-emerald/20 border border-status-emerald/30 flex items-center justify-center text-status-emerald">
                   <Printer size={20} />
                 </div>
                 <div>
                   <h3 className="font-bold text-lg text-white">Print Barcode Labels</h3>
-                  <p className="text-xs text-slate-400">With official SS MART receipt logo</p>
+                  <p className="text-xs text-content-secondary">With official SS MART receipt logo</p>
                 </div>
               </div>
               <button 
                 onClick={() => setBarcodeProduct(null)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
+                className="text-content-secondary hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
                 disabled={isPrintingBarcode}
               >
                 ✕
@@ -476,21 +476,21 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
             </div>
 
             {/* Product Summary Card */}
-            <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-3.5 mb-5 space-y-1.5">
+            <div className="bg-canvas-card/60 border border-canvas-hover/60 rounded-xl p-3.5 mb-5 space-y-1.5">
               <div className="flex justify-between items-start">
-                <span className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Product</span>
-                <span className="text-xs font-mono text-emerald-400 font-bold">Rs. {barcodeProduct.price.toFixed(2)}</span>
+                <span className="text-xs text-content-secondary uppercase tracking-wider font-semibold">Product</span>
+                <span className="text-xs font-mono text-status-emerald font-bold">Rs. {barcodeProduct.price.toFixed(2)}</span>
               </div>
               <p className="text-sm font-bold text-white leading-tight">{barcodeProduct.name}</p>
-              <div className="flex items-center justify-between text-xs font-mono text-slate-400 pt-1">
-                <span>Barcode: <strong className="text-slate-200">{barcodeProduct.barcode}</strong></span>
-                <span>Stock: <strong className="text-slate-200">{barcodeProduct.stock}</strong></span>
+              <div className="flex items-center justify-between text-xs font-mono text-content-secondary pt-1">
+                <span>Barcode: <strong className="text-content-primary">{barcodeProduct.barcode}</strong></span>
+                <span>Stock: <strong className="text-content-primary">{barcodeProduct.stock}</strong></span>
               </div>
             </div>
 
             {/* Quantity Selector */}
             <div className="mb-6">
-              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+              <label className="block text-xs font-bold text-content-secondary uppercase tracking-wider mb-2">
                 Number of Barcodes to Print
               </label>
 
@@ -498,7 +498,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                 <button
                   type="button"
                   onClick={() => setBarcodeQty(prev => Math.max(1, (Number(prev) || 1) - 1))}
-                  className="w-11 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold text-lg flex items-center justify-center transition-colors active:scale-95"
+                  className="w-11 h-11 rounded-xl bg-canvas-card hover:bg-canvas-hover border border-canvas-hover text-white font-bold text-lg flex items-center justify-center transition-colors active:scale-95"
                   disabled={isPrintingBarcode}
                 >
                   -
@@ -512,13 +512,13 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                     const val = parseInt(e.target.value, 10);
                     setBarcodeQty(isNaN(val) ? 1 : Math.max(1, Math.min(val, 500)));
                   }}
-                  className="flex-1 h-11 text-center bg-slate-950 border border-slate-700 rounded-xl text-lg font-bold font-mono text-white focus:outline-none focus:border-emerald-500 transition-colors"
+                  className="flex-1 h-11 text-center bg-canvas border border-canvas-hover rounded-xl text-lg font-bold font-mono text-white focus:outline-none focus:border-status-emerald transition-colors"
                   disabled={isPrintingBarcode}
                 />
                 <button
                   type="button"
                   onClick={() => setBarcodeQty(prev => Math.min(500, (Number(prev) || 1) + 1))}
-                  className="w-11 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold text-lg flex items-center justify-center transition-colors active:scale-95"
+                  className="w-11 h-11 rounded-xl bg-canvas-card hover:bg-canvas-hover border border-canvas-hover text-white font-bold text-lg flex items-center justify-center transition-colors active:scale-95"
                   disabled={isPrintingBarcode}
                 >
                   +
@@ -534,8 +534,8 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                     onClick={() => setBarcodeQty(qtyPreset)}
                     className={`flex-1 py-1.5 rounded-lg text-xs font-semibold font-mono border transition-all ${
                       barcodeQty === qtyPreset
-                        ? 'bg-emerald-500 text-slate-950 border-emerald-400 shadow-sm shadow-emerald-500/30 font-bold'
-                        : 'bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 border-slate-700 hover:border-slate-600'
+                        ? 'bg-status-emerald text-canvas border-status-emerald shadow-sm shadow-status-emerald/30 font-bold'
+                        : 'bg-canvas-card/80 hover:bg-canvas-hover/80 text-content-secondary border-canvas-hover hover:border-canvas-hover'
                     }`}
                     disabled={isPrintingBarcode}
                   >
@@ -550,7 +550,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
               <button
                 type="button"
                 onClick={() => setBarcodeProduct(null)}
-                className="flex-1 py-2.5 rounded-xl border border-slate-700 text-slate-300 font-semibold text-sm hover:bg-slate-800 transition-colors"
+                className="flex-1 py-2.5 rounded-xl border border-canvas-hover text-content-secondary font-semibold text-sm hover:bg-canvas-card transition-colors"
                 disabled={isPrintingBarcode}
               >
                 Cancel
@@ -558,7 +558,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
               <button
                 type="button"
                 onClick={handleExecutePrintBarcode}
-                className="flex-1 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50"
+                className="flex-1 py-2.5 rounded-xl bg-status-emerald hover:brightness-110 text-canvas font-bold text-sm shadow-lg shadow-status-emerald/20 flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50"
                 disabled={isPrintingBarcode}
               >
                 <Printer size={16} />

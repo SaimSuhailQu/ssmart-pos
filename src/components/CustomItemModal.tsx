@@ -90,25 +90,25 @@ export const CustomItemModal: React.FC<CustomItemModalProps> = ({
 
   return (
     <div 
-      className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 bg-canvas/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150"
       onKeyDown={handleKeyDown}
     >
-      <div className="enterprise-card border-slate-700 bg-slate-900 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden border">
+      <div className="enterprise-card border-canvas-hover bg-canvas-subtle rounded-2xl w-full max-w-md shadow-2xl overflow-hidden border">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-slate-800 bg-slate-950/40">
+        <div className="flex items-center justify-between p-4 border-b border-canvas-card bg-canvas/40">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center">
               <PlusCircle size={18} />
             </div>
             <div>
               <h3 className="text-sm font-bold text-white">Add Custom Item</h3>
-              <p className="text-[11px] text-slate-400">Quickly add an unlisted or ad-hoc product to the cart</p>
+              <p className="text-[11px] text-content-secondary">Quickly add an unlisted or ad-hoc product to the cart</p>
             </div>
           </div>
           <button 
             type="button" 
             onClick={onClose}
-            className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition"
+            className="text-content-secondary hover:text-white p-1 rounded-lg hover:bg-canvas-card transition"
           >
             <X size={18} />
           </button>
@@ -117,13 +117,13 @@ export const CustomItemModal: React.FC<CustomItemModalProps> = ({
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           {error && (
-            <div className="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs">
+            <div className="p-2.5 rounded-lg bg-status-coral/10 border border-status-coral/20 text-status-coral text-xs">
               {error}
             </div>
           )}
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">
+            <label className="block text-xs font-semibold text-content-secondary mb-1">
               Item Name / Description
             </label>
             <input 
@@ -138,11 +138,11 @@ export const CustomItemModal: React.FC<CustomItemModalProps> = ({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-content-secondary mb-1">
                 Unit Price (PKR / Rs.)
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-2 text-xs font-mono text-slate-400">Rs.</span>
+                <span className="absolute left-3 top-2 text-xs font-mono text-content-secondary">Rs.</span>
                 <input 
                   ref={priceInputRef}
                   type="number"
@@ -158,7 +158,7 @@ export const CustomItemModal: React.FC<CustomItemModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-content-secondary mb-1">
                 Quantity
               </label>
               <input 
@@ -174,13 +174,13 @@ export const CustomItemModal: React.FC<CustomItemModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">
+            <label className="block text-xs font-semibold text-content-secondary mb-1">
               Category
             </label>
             <select
               value={category}
               onChange={e => setCategory(e.target.value)}
-              className="w-full glass-input rounded-lg px-3 py-2 text-sm text-white focus:border-indigo-500 focus:outline-none bg-slate-900 cursor-pointer"
+              className="w-full glass-input rounded-lg px-3 py-2 text-sm text-white focus:border-indigo-500 focus:outline-none bg-canvas-subtle cursor-pointer"
             >
               <option value="General">General</option>
               {existingCategories.filter(c => c && c !== 'General').map(c => (
@@ -191,14 +191,14 @@ export const CustomItemModal: React.FC<CustomItemModalProps> = ({
 
           {/* Quick preset price buttons */}
           <div>
-            <span className="block text-[11px] text-slate-400 font-medium mb-1.5">Quick Prices</span>
+            <span className="block text-[11px] text-content-secondary font-medium mb-1.5">Quick Prices</span>
             <div className="flex gap-2">
               {[50, 100, 200, 500, 1000].map(amt => (
                 <button
                   type="button"
                   key={amt}
                   onClick={() => setPriceStr(amt.toString())}
-                  className="flex-1 py-1 text-xs font-mono font-medium rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition cursor-pointer"
+                  className="flex-1 py-1 text-xs font-mono font-medium rounded-md bg-canvas-card hover:bg-canvas-hover text-content-secondary border border-canvas-hover transition cursor-pointer"
                 >
                   +{amt}
                 </button>
@@ -207,11 +207,11 @@ export const CustomItemModal: React.FC<CustomItemModalProps> = ({
           </div>
 
           {/* Footer Actions */}
-          <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-800/80">
+          <div className="pt-2 flex items-center justify-end gap-2 border-t border-canvas-card/80">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white rounded-lg hover:bg-slate-800 transition cursor-pointer"
+              className="px-4 py-2 text-xs font-semibold text-content-secondary hover:text-white rounded-lg hover:bg-canvas-card transition cursor-pointer"
             >
               Cancel
             </button>

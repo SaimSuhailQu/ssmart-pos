@@ -155,7 +155,7 @@ export const ShiftManager: React.FC<ShiftManagerProps> = ({ currentUser, onLogou
           <div className="flex justify-between items-center mb-8 border-b border-white/10 pb-6">
             <div>
               <h2 className="text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
-                <Shield className="text-neutral-300 drop-shadow-[0_0_8px_rgba(200, 200, 200, 0.4)]" size={32} />
+                <Shield className="text-content-secondary drop-shadow-[0_0_8px_rgba(200, 200, 200, 0.4)]" size={32} />
                 Staff Dashboard
               </h2>
               <p className="text-gray-400 mt-1">Shift logs, role actions, and secure terminal control.</p>
@@ -163,7 +163,7 @@ export const ShiftManager: React.FC<ShiftManagerProps> = ({ currentUser, onLogou
             
             <button 
               onClick={handleClockOut}
-              className="px-5 py-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 transition-colors font-bold flex items-center gap-2"
+              className="px-5 py-3 rounded-xl bg-status-coral/10 hover:bg-status-coral/20 border border-status-coral/30 text-status-coral transition-colors font-bold flex items-center gap-2"
             >
               <Power size={18} /> Clock Out & Lock
             </button>
@@ -178,7 +178,7 @@ export const ShiftManager: React.FC<ShiftManagerProps> = ({ currentUser, onLogou
                 <h3 className="text-xl font-black text-white tracking-wide truncate">{currentUser.name}</h3>
               </div>
               <div className="mt-4">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 border border-white/30 text-neutral-200 rounded-full font-black text-[9px] uppercase tracking-widest shadow-[0_0_10px_rgba(255, 255, 255, 0.15)]">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 border border-white/30 text-content-primary rounded-full font-black text-[9px] uppercase tracking-widest shadow-[0_0_10px_rgba(255, 255, 255, 0.15)]">
                   <Sparkles size={10} className="animate-spin" style={{ animationDuration: '6s' }} /> {currentUser.role}
                 </span>
               </div>
@@ -204,7 +204,7 @@ export const ShiftManager: React.FC<ShiftManagerProps> = ({ currentUser, onLogou
                 <span className="text-xs text-gray-500 font-bold uppercase tracking-wider block mb-1">Shift Analytics</span>
                 <div className="flex items-baseline gap-2">
                   <h3 className="text-3xl font-black text-white font-mono">Rs. 14.8k</h3>
-                  <span className="text-[10px] text-neutral-200 font-black">+14.2%</span>
+                  <span className="text-[10px] text-content-primary font-black">+14.2%</span>
                 </div>
               </div>
               
@@ -226,7 +226,7 @@ export const ShiftManager: React.FC<ShiftManagerProps> = ({ currentUser, onLogou
                 </svg>
               </div>
               
-              <div className="text-[10px] text-neutral-200 flex items-center gap-1.5 mt-4 font-bold uppercase tracking-wider relative z-10">
+              <div className="text-[10px] text-content-primary flex items-center gap-1.5 mt-4 font-bold uppercase tracking-wider relative z-10">
                 <TrendingUp size={12} className="animate-bounce" />
                 <span>Sync Engine Online</span>
               </div>
@@ -239,7 +239,7 @@ export const ShiftManager: React.FC<ShiftManagerProps> = ({ currentUser, onLogou
           <div className="glass-panel p-6 rounded-2xl border-white/5 bg-white/5 mb-8 flex-1 flex flex-col">
             <div className="flex justify-between items-center mb-6 border-b border-white/5 pb-4">
               <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                <Award className="text-neutral-200" size={22} />
+                <Award className="text-content-primary" size={22} />
                 User & Security PIN Manager
               </h3>
               
@@ -295,7 +295,7 @@ export const ShiftManager: React.FC<ShiftManagerProps> = ({ currentUser, onLogou
                   <div className="flex gap-2 justify-end">
                     <button
                       type="submit"
-                      className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold transition flex-1"
+                      className="px-4 py-2.5 bg-status-emerald hover:brightness-110 text-white rounded-xl text-sm font-bold transition flex-1"
                     >
                       Save
                     </button>
@@ -315,7 +315,7 @@ export const ShiftManager: React.FC<ShiftManagerProps> = ({ currentUser, onLogou
             <div className="overflow-x-auto overflow-y-auto max-h-[220px] pr-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
               <table className="w-full text-left border-collapse text-sm">
                 <thead>
-                  <tr className="border-b border-white/5 text-neutral-200 font-bold uppercase text-xs">
+                  <tr className="border-b border-white/5 text-content-primary font-bold uppercase text-xs">
                     <th className="py-3 px-3">Staff Name</th>
                     <th className="py-3 px-3">Role</th>
                     <th className="py-3 px-3">Security PIN</th>
@@ -374,7 +374,7 @@ export const ShiftManager: React.FC<ShiftManagerProps> = ({ currentUser, onLogou
                               <>
                                 <button
                                   onClick={() => handleSaveEdit(user.id)}
-                                  className="p-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-neutral-200 border border-emerald-500/20 rounded-lg"
+                                  className="p-1.5 bg-status-emerald/20 hover:bg-status-emerald/30 text-content-primary border border-status-emerald/20 rounded-lg"
                                   title="Save Changes"
                                 >
                                   <Check size={16} />
@@ -391,14 +391,14 @@ export const ShiftManager: React.FC<ShiftManagerProps> = ({ currentUser, onLogou
                               <>
                                 <button
                                   onClick={() => handleStartEdit(user)}
-                                  className="p-1.5 bg-cyan-600/20 hover:bg-cyan-600/30 text-neutral-200 border border-white/20 rounded-lg"
+                                  className="p-1.5 bg-cyan-600/20 hover:bg-cyan-600/30 text-content-primary border border-white/20 rounded-lg"
                                   title="Edit Credentials"
                                 >
                                   <Edit2 size={16} />
                                 </button>
                                 <button
                                   onClick={() => handleDeleteUser(user.id)}
-                                  className="p-1.5 bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/20 rounded-lg"
+                                  className="p-1.5 bg-status-coral/20 hover:bg-status-coral/30 text-status-coral border border-status-coral/20 rounded-lg"
                                   title="Delete User Profile"
                                 >
                                   <Trash2 size={16} />
@@ -424,20 +424,20 @@ export const ShiftManager: React.FC<ShiftManagerProps> = ({ currentUser, onLogou
               disabled={currentUser.role !== 'Admin' && currentUser.role !== 'Manager'}
               className="py-4 rounded-xl glass-button text-gray-300 font-bold hover:text-white flex flex-col items-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed"
             >
-              <TrendingUp size={20} className="text-neutral-200" />
+              <TrendingUp size={20} className="text-content-primary" />
               Void Transaction
             </button>
             <button 
               className="py-4 rounded-xl glass-button text-gray-300 font-bold hover:text-white flex flex-col items-center gap-2"
             >
-              <Clock size={20} className="text-neutral-200" />
+              <Clock size={20} className="text-content-primary" />
               Shift History
             </button>
             <button 
               onClick={onLogout}
               className="py-4 rounded-xl bg-white/5 border border-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-all font-bold flex flex-col items-center gap-2"
             >
-              <Power size={20} className="text-red-400" />
+              <Power size={20} className="text-status-coral" />
               Lock Terminal
             </button>
           </div>

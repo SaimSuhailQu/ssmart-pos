@@ -275,8 +275,8 @@ export const BulkAddProductModal: React.FC<BulkAddProductModalProps> = ({
         {message && (
           <div className={`mx-6 mt-4 p-3.5 rounded-xl text-xs font-bold flex items-center gap-2 border flex-shrink-0 animate-in zoom-in-95 ${
             message.type === 'success' 
-              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' 
-              : 'bg-red-500/10 border-red-500/30 text-red-300'
+              ? 'bg-status-emerald/10 border-status-emerald/30 text-status-emerald' 
+              : 'bg-status-coral/10 border-status-coral/30 text-status-coral'
           }`}>
             {message.type === 'success' ? <CheckCircle size={16} /> : <AlertTriangle size={16} />}
             <span>{message.text}</span>
@@ -306,7 +306,7 @@ export const BulkAddProductModal: React.FC<BulkAddProductModalProps> = ({
               </button>
               <button
                 onClick={handleParsePastedData}
-                className="px-4 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 rounded-lg text-xs font-bold cursor-pointer"
+                className="px-4 py-1.5 bg-status-emerald/20 hover:bg-status-emerald/30 border border-status-emerald/40 text-status-emerald rounded-lg text-xs font-bold cursor-pointer"
               >
                 Parse & Add to Table
               </button>
@@ -343,7 +343,7 @@ export const BulkAddProductModal: React.FC<BulkAddProductModalProps> = ({
                       placeholder="e.g. Olpers Milk 1L"
                       value={row.name}
                       onChange={e => handleRowChange(row.id, 'name', e.target.value)}
-                      className="w-full px-3 py-2 glass-input rounded-xl text-xs font-bold text-white placeholder:text-gray-600 focus:border-emerald-400"
+                      className="w-full px-3 py-2 glass-input rounded-xl text-xs font-bold text-white placeholder:text-gray-600 focus:border-status-emerald"
                     />
                   </td>
 
@@ -355,12 +355,12 @@ export const BulkAddProductModal: React.FC<BulkAddProductModalProps> = ({
                         placeholder="Scan or Generate..."
                         value={row.barcode}
                         onChange={e => handleRowChange(row.id, 'barcode', e.target.value)}
-                        className="w-full pl-3 pr-8 py-2 glass-input rounded-xl text-xs font-mono text-emerald-400 placeholder:text-gray-600 border-white/10"
+                        className="w-full pl-3 pr-8 py-2 glass-input rounded-xl text-xs font-mono text-status-emerald placeholder:text-gray-600 border-white/10"
                       />
                       <button
                         type="button"
                         onClick={() => handleAutoGenerateBarcode(row.id)}
-                        className="absolute right-2 text-gray-500 hover:text-emerald-400 p-1"
+                        className="absolute right-2 text-gray-500 hover:text-status-emerald p-1"
                         title="Auto-generate 12-digit barcode"
                       >
                         <Wand2 size={13} />
@@ -373,10 +373,10 @@ export const BulkAddProductModal: React.FC<BulkAddProductModalProps> = ({
                     <select
                       value={row.category}
                       onChange={e => handleRowChange(row.id, 'category', e.target.value)}
-                      className="w-full px-3 py-2 glass-input rounded-xl text-xs text-gray-200 bg-neutral-900 border-white/10"
+                      className="w-full px-3 py-2 glass-input rounded-xl text-xs text-gray-200 bg-canvas-card border-white/10"
                     >
                       {categoryOptions.map(cat => (
-                        <option key={cat} value={cat} className="bg-neutral-900 text-white">
+                        <option key={cat} value={cat} className="bg-canvas-card text-white">
                           {cat}
                         </option>
                       ))}
@@ -405,7 +405,7 @@ export const BulkAddProductModal: React.FC<BulkAddProductModalProps> = ({
                       placeholder="0.00"
                       value={row.price}
                       onChange={e => handleRowChange(row.id, 'price', e.target.value)}
-                      className="w-full px-3 py-2 glass-input rounded-xl text-xs text-right text-emerald-400 font-bold placeholder:text-gray-600"
+                      className="w-full px-3 py-2 glass-input rounded-xl text-xs text-right text-status-emerald font-bold placeholder:text-gray-600"
                     />
                   </td>
 
@@ -425,7 +425,7 @@ export const BulkAddProductModal: React.FC<BulkAddProductModalProps> = ({
                   <td className="py-2.5 px-3 text-center">
                     <button
                       onClick={() => handleRemoveRow(row.id)}
-                      className="p-1.5 text-gray-500 hover:text-red-400 rounded-lg hover:bg-white/5 transition"
+                      className="p-1.5 text-gray-500 hover:text-status-coral rounded-lg hover:bg-white/5 transition"
                       title="Remove Row"
                     >
                       <Trash2 size={15} />

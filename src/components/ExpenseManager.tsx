@@ -182,15 +182,15 @@ export const ExpenseManager: React.FC<ExpenseManagerProps> = ({ currentUser }) =
   const getCategoryColor = (cat: string) => {
     switch (cat) {
       case 'Utilities & Bills':
-        return 'bg-amber-500/10 text-amber-400 border-amber-500/30';
+        return 'bg-status-amber/10 text-status-amber border-status-amber/30';
       case 'Staff Tea & Food':
         return 'bg-pink-500/10 text-pink-400 border-pink-500/30';
       case 'Store Maintenance':
-        return 'bg-white/10 text-neutral-200 border-white/30';
+        return 'bg-white/10 text-content-primary border-white/30';
       case 'Cash Withdrawals':
-        return 'bg-red-500/10 text-red-400 border-red-500/30';
+        return 'bg-status-coral/10 text-status-coral border-status-coral/30';
       case 'Inventory logistics':
-        return 'bg-white/10 text-neutral-300 border-white/30';
+        return 'bg-white/10 text-content-secondary border-white/30';
       default:
         return 'bg-gray-500/10 text-gray-400 border-gray-500/30';
     }
@@ -202,8 +202,8 @@ export const ExpenseManager: React.FC<ExpenseManagerProps> = ({ currentUser }) =
       {/* Metrics widgets */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3 flex-shrink-0">
         <div className="glass-panel p-3.5 rounded-2xl flex items-center gap-3 relative overflow-hidden border-white/5">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 blur-[30px] rounded-full -mr-6 -mt-6"></div>
-          <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 animate-pulse">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-status-amber/10 blur-[30px] rounded-full -mr-6 -mt-6"></div>
+          <div className="w-12 h-12 rounded-xl bg-status-amber/10 border border-status-amber/30 flex items-center justify-center text-status-amber animate-pulse">
             <DollarSign size={24} />
           </div>
           <div>
@@ -213,8 +213,8 @@ export const ExpenseManager: React.FC<ExpenseManagerProps> = ({ currentUser }) =
         </div>
 
         <div className="glass-panel p-5 rounded-2xl flex items-center gap-4 relative overflow-hidden border-white/5">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-rose-500/10 blur-[30px] rounded-full -mr-6 -mt-6"></div>
-          <div className="w-12 h-12 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-status-coral/10 blur-[30px] rounded-full -mr-6 -mt-6"></div>
+          <div className="w-12 h-12 rounded-xl bg-status-coral/10 border border-status-coral/30 flex items-center justify-center text-status-coral">
             <Receipt size={24} />
           </div>
           <div>
@@ -225,7 +225,7 @@ export const ExpenseManager: React.FC<ExpenseManagerProps> = ({ currentUser }) =
 
         <div className="glass-panel p-5 rounded-2xl flex items-center gap-4 relative overflow-hidden border-white/5">
           <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 blur-[30px] rounded-full -mr-6 -mt-6"></div>
-          <div className="w-12 h-12 rounded-xl bg-white/10 border border-white/30 flex items-center justify-center text-neutral-300">
+          <div className="w-12 h-12 rounded-xl bg-white/10 border border-white/30 flex items-center justify-center text-content-secondary">
             <PlusCircle size={24} />
           </div>
           <div>
@@ -250,21 +250,21 @@ export const ExpenseManager: React.FC<ExpenseManagerProps> = ({ currentUser }) =
                 <h2 className="text-base font-bold text-white tracking-wide">
                   {editingExpense ? `Edit Expense #${editingExpense.id}` : 'Record Mart Expense'}
                 </h2>
-                <p className="text-[9px] text-neutral-200 font-bold uppercase tracking-widest mt-0.5">
+                <p className="text-[9px] text-content-primary font-bold uppercase tracking-widest mt-0.5">
                   {editingExpense ? 'Modify existing ledger entry' : 'Logs outflow from register'}
                 </p>
               </div>
             </div>
 
             {error && (
-              <div className="p-2.5 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-xs backdrop-blur-md flex items-center gap-2 animate-in slide-in-from-top-2">
+              <div className="p-2.5 bg-status-coral/10 border border-status-coral/20 text-status-coral rounded-xl text-xs backdrop-blur-md flex items-center gap-2 animate-in slide-in-from-top-2">
                 <AlertCircle size={14} />
                 <span>{error}</span>
               </div>
             )}
 
             {success && (
-              <div className="p-2.5 bg-white/10 border border-emerald-500/20 text-neutral-200 rounded-xl text-xs backdrop-blur-md flex items-center gap-2 animate-in slide-in-from-top-2">
+              <div className="p-2.5 bg-white/10 border border-status-emerald/20 text-content-primary rounded-xl text-xs backdrop-blur-md flex items-center gap-2 animate-in slide-in-from-top-2">
                 <CheckCircle2 size={14} />
                 <span>{success}</span>
               </div>
@@ -297,7 +297,7 @@ export const ExpenseManager: React.FC<ExpenseManagerProps> = ({ currentUser }) =
                   className="w-full glass-input block p-2.5 text-xs font-semibold"
                 >
                   {CATEGORIES.map(cat => (
-                    <option key={cat} value={cat} className="bg-slate-900 text-white font-semibold">
+                    <option key={cat} value={cat} className="bg-canvas-subtle text-white font-semibold">
                       {cat}
                     </option>
                   ))}
@@ -353,12 +353,12 @@ export const ExpenseManager: React.FC<ExpenseManagerProps> = ({ currentUser }) =
           <header className="p-5 border-b border-white/5 bg-black/20 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 backdrop-blur-md">
             <div>
               <h2 className="text-lg font-bold text-white tracking-wide">Expense Outflow Ledger</h2>
-              <p className="text-[10px] text-neutral-200 font-bold uppercase tracking-widest mt-0.5">{filteredExpenses.length} Records Loaded</p>
+              <p className="text-[10px] text-content-primary font-bold uppercase tracking-widest mt-0.5">{filteredExpenses.length} Records Loaded</p>
             </div>
 
             <div className="flex items-center gap-3 w-full md:w-auto">
               <div className="relative group w-48 flex-1 md:flex-initial">
-                <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-neutral-200 transition-colors" />
+                <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-content-primary transition-colors" />
                 <input
                   type="text"
                   placeholder="Search ledger..."
@@ -375,9 +375,9 @@ export const ExpenseManager: React.FC<ExpenseManagerProps> = ({ currentUser }) =
                   onChange={e => setFilterCategory(e.target.value)}
                   className="bg-transparent text-gray-300 font-bold text-[10px] border-none focus:outline-none pr-3 cursor-pointer py-1"
                 >
-                  <option value="All" className="bg-slate-900 text-white font-bold">All Categories</option>
+                  <option value="All" className="bg-canvas-subtle text-white font-bold">All Categories</option>
                   {CATEGORIES.map(cat => (
-                    <option key={cat} value={cat} className="bg-slate-900 text-white font-bold">
+                    <option key={cat} value={cat} className="bg-canvas-subtle text-white font-bold">
                       {cat}
                     </option>
                   ))}
@@ -409,7 +409,7 @@ export const ExpenseManager: React.FC<ExpenseManagerProps> = ({ currentUser }) =
                     <td className="p-4 font-semibold text-gray-200 max-w-[200px] truncate leading-relaxed" title={exp.description}>
                       {exp.description}
                     </td>
-                    <td className="p-4 text-right font-mono font-black text-rose-400">
+                    <td className="p-4 text-right font-mono font-black text-status-coral">
                       Rs. {exp.amount.toFixed(2)}
                     </td>
                     <td className="p-4 font-medium text-gray-300 whitespace-nowrap">
@@ -435,7 +435,7 @@ export const ExpenseManager: React.FC<ExpenseManagerProps> = ({ currentUser }) =
                         </button>
                         <button
                           onClick={() => handleDelete(exp.id, exp.amount)}
-                          className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg border border-red-500/20 hover:border-red-500/40 opacity-40 hover:opacity-100 transition-all flex items-center justify-center cursor-pointer"
+                          className="p-2 bg-status-coral/10 hover:bg-status-coral/20 text-status-coral rounded-lg border border-status-coral/20 hover:border-status-coral/40 opacity-40 hover:opacity-100 transition-all flex items-center justify-center cursor-pointer"
                           title={currentUser?.role === 'Cashier' ? 'Cashiers cannot delete entries' : 'Delete entry'}
                         >
                           <Trash2 size={12} />

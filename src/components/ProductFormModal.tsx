@@ -154,7 +154,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
         {/* Scrollable Form Body */}
         <form id="product-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 md:p-6 flex flex-col gap-4 bg-transparent scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
           {error && (
-            <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-sm backdrop-blur-md shrink-0">
+            <div className="p-3 bg-status-coral/10 border border-status-coral/20 text-status-coral rounded-xl text-sm backdrop-blur-md shrink-0">
               {error}
             </div>
           )}
@@ -211,13 +211,13 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               <div className="grid grid-cols-2 gap-3">
                 <div className="p-2.5 rounded-xl bg-black/40 border border-white/5 flex flex-col justify-between">
                   <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Profit Margin</span>
-                  <span className={`text-xs font-black tracking-widest ${margin >= 30 ? 'text-emerald-400' : margin >= 15 ? 'text-yellow-400' : margin > 0 ? 'text-orange-400' : 'text-red-400'}`}>
+                  <span className={`text-xs font-black tracking-widest ${margin >= 30 ? 'text-status-emerald' : margin >= 15 ? 'text-yellow-400' : margin > 0 ? 'text-orange-400' : 'text-status-coral'}`}>
                     {margin.toFixed(2)}%
                   </span>
                 </div>
                 <div className="p-2.5 rounded-xl bg-black/40 border border-white/5 flex flex-col justify-between">
                   <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Total Stock Cost</span>
-                  <span className="text-xs font-black tracking-widest text-emerald-400">
+                  <span className="text-xs font-black tracking-widest text-status-emerald">
                     Rs. {totalCostValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
@@ -244,14 +244,14 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                   name="category"
                   value={formData.category}
                   onChange={handleCategorySelect}
-                  className="w-full glass-input rounded-xl p-3 text-sm bg-neutral-900 text-white cursor-pointer"
+                  className="w-full glass-input rounded-xl p-3 text-sm bg-canvas-card text-white cursor-pointer"
                 >
                   {categoryOptions.map(cat => (
-                    <option key={cat} value={cat} className="bg-neutral-900 text-white py-1">
+                    <option key={cat} value={cat} className="bg-canvas-card text-white py-1">
                       {cat}
                     </option>
                   ))}
-                  <option value="__NEW__" className="bg-neutral-900 text-emerald-400 font-bold py-1">
+                  <option value="__NEW__" className="bg-canvas-card text-status-emerald font-bold py-1">
                     ➕ + Create New Category...
                   </option>
                 </select>
@@ -297,7 +297,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               <button 
                 type="button"
                 onClick={handleGenerateBarcode}
-                className="p-3 glass-button rounded-xl text-neutral-200 hover:text-white hover:border-white/50 flex items-center justify-center cursor-pointer active:scale-95 shrink-0"
+                className="p-3 glass-button rounded-xl text-content-primary hover:text-white hover:border-white/50 flex items-center justify-center cursor-pointer active:scale-95 shrink-0"
                 title="Auto-Generate Barcode"
               >
                 <Wand2 size={18} />

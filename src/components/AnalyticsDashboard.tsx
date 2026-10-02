@@ -87,7 +87,7 @@ export const AnalyticsDashboard: React.FC = () => {
     return (
       <div className="glass-panel p-8 rounded-3xl border border-white/10 flex items-center justify-center h-full">
         <div className="text-center">
-          <RefreshCw className="animate-spin text-neutral-200 mx-auto mb-4" size={40} />
+          <RefreshCw className="animate-spin text-content-primary mx-auto mb-4" size={40} />
           <p className="text-gray-400 font-bold">Compiling Financial Trends...</p>
         </div>
       </div>
@@ -181,7 +181,7 @@ export const AnalyticsDashboard: React.FC = () => {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
           <div>
             <h2 className="text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
-              <TrendingUp className="text-neutral-200 drop-shadow-[0_0_8px_rgba(255, 255, 255, 0.4)]" size={32} />
+              <TrendingUp className="text-content-primary drop-shadow-[0_0_8px_rgba(255, 255, 255, 0.4)]" size={32} />
               Financial & Sales Analytics
             </h2>
             <p className="text-xs text-gray-400 mt-1 uppercase tracking-wider font-semibold">E-Commerce Store performance & profit trackers</p>
@@ -190,14 +190,14 @@ export const AnalyticsDashboard: React.FC = () => {
           <div className="flex items-center gap-3">
             <button
               onClick={handleExportAnalytics}
-              className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/30 hover:border-emerald-500/50 hover:bg-emerald-500/20 text-emerald-300 rounded-xl transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-wider cursor-pointer"
+              className="px-4 py-2 bg-status-emerald/10 border border-status-emerald/30 hover:border-status-emerald/50 hover:bg-status-emerald/20 text-status-emerald rounded-xl transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-wider cursor-pointer"
               title="Export full analytics data to CSV"
             >
               <Download size={14} /> Export CSV
             </button>
             <button
               onClick={loadAnalytics}
-              className="px-4 py-2 bg-white/5 border border-white/10 hover:border-white/30 text-neutral-200 hover:text-neutral-200 rounded-xl transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-wider"
+              className="px-4 py-2 bg-white/5 border border-white/10 hover:border-white/30 text-content-primary hover:text-content-primary rounded-xl transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-wider"
             >
               <RefreshCw size={14} /> Refresh
             </button>
@@ -210,7 +210,7 @@ export const AnalyticsDashboard: React.FC = () => {
                   onClick={() => setActiveScope(mode)}
                   className={`px-3.5 py-1.5 rounded-lg text-[10px] font-black tracking-widest uppercase transition-all ${
                     activeScope === mode
-                      ? 'bg-white/20 text-neutral-200 border border-white/20'
+                      ? 'bg-white/20 text-content-primary border border-white/20'
                       : 'text-gray-400 hover:text-white'
                   }`}
                 >
@@ -225,69 +225,69 @@ export const AnalyticsDashboard: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 mb-6">
           
           {/* Revenue */}
-          <div className="enterprise-card p-4 rounded-xl relative overflow-hidden transition-all hover:border-slate-700">
-            <div className="flex items-center justify-between text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+          <div className="enterprise-card p-4 rounded-xl relative overflow-hidden transition-all hover:border-canvas-hover">
+            <div className="flex items-center justify-between text-xs font-semibold text-content-secondary uppercase tracking-wider mb-2">
               <span>{scope.label} Revenue</span>
               <div className="w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center border border-indigo-500/20">
                 <DollarSign size={15} />
               </div>
             </div>
-            <div className="text-2xl font-bold text-slate-100 font-mono tabular-nums tracking-tight">
+            <div className="text-2xl font-bold text-content-primary font-mono tabular-nums tracking-tight">
               Rs. {money(scope.revenue)}
             </div>
-            <div className="text-[11px] text-slate-400 mt-2 flex items-center gap-1.5 font-medium">
+            <div className="text-[11px] text-content-secondary mt-2 flex items-center gap-1.5 font-medium">
               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">GROSS</span>
               <span>All payment methods</span>
             </div>
           </div>
 
           {/* Refunded */}
-          <div className="enterprise-card p-4 rounded-xl relative overflow-hidden transition-all hover:border-slate-700">
-            <div className="flex items-center justify-between text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+          <div className="enterprise-card p-4 rounded-xl relative overflow-hidden transition-all hover:border-canvas-hover">
+            <div className="flex items-center justify-between text-xs font-semibold text-content-secondary uppercase tracking-wider mb-2">
               <span>{scope.label} Refunds</span>
-              <div className="w-7 h-7 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center border border-rose-500/20">
+              <div className="w-7 h-7 rounded-lg bg-status-coral/10 text-status-coral flex items-center justify-center border border-status-coral/20">
                 <ArrowDownRight size={15} />
               </div>
             </div>
-            <div className="text-2xl font-bold text-rose-400 font-mono tabular-nums tracking-tight">
+            <div className="text-2xl font-bold text-status-coral font-mono tabular-nums tracking-tight">
               Rs. {money(scope.refunds)}
             </div>
-            <div className="text-[11px] text-rose-400/80 mt-2 flex items-center gap-1.5 font-medium">
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-500/15 text-rose-300 border border-rose-500/30">VOID</span>
+            <div className="text-[11px] text-status-coral/80 mt-2 flex items-center gap-1.5 font-medium">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-status-coral/15 text-status-coral border border-status-coral/30">VOID</span>
               <span>Returned Capital</span>
             </div>
           </div>
 
           {/* Expenses */}
-          <div className="enterprise-card p-4 rounded-xl relative overflow-hidden transition-all hover:border-slate-700">
-            <div className="flex items-center justify-between text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+          <div className="enterprise-card p-4 rounded-xl relative overflow-hidden transition-all hover:border-canvas-hover">
+            <div className="flex items-center justify-between text-xs font-semibold text-content-secondary uppercase tracking-wider mb-2">
               <span>{scope.label} Expenses</span>
-              <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20">
+              <div className="w-7 h-7 rounded-lg bg-status-amber/10 text-status-amber flex items-center justify-center border border-status-amber/20">
                 <Receipt size={15} />
               </div>
             </div>
-            <div className="text-2xl font-bold text-amber-400 font-mono tabular-nums tracking-tight">
+            <div className="text-2xl font-bold text-status-amber font-mono tabular-nums tracking-tight">
               Rs. {money(scope.expenses)}
             </div>
-            <div className="text-[11px] text-amber-400/80 mt-2 flex items-center gap-1.5 font-medium">
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">OPEX</span>
+            <div className="text-[11px] text-status-amber/80 mt-2 flex items-center gap-1.5 font-medium">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-status-amber/15 text-status-amber border border-status-amber/30">OPEX</span>
               <span>Store Operating Costs</span>
             </div>
           </div>
 
           {/* Profit */}
-          <div className="enterprise-card p-4 rounded-xl relative overflow-hidden transition-all hover:border-slate-700">
-            <div className="flex items-center justify-between text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+          <div className="enterprise-card p-4 rounded-xl relative overflow-hidden transition-all hover:border-canvas-hover">
+            <div className="flex items-center justify-between text-xs font-semibold text-content-secondary uppercase tracking-wider mb-2">
               <span>{scope.label} Net Profit</span>
-              <div className={`w-7 h-7 rounded-lg flex items-center justify-center border ${scope.profit >= 0 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`}>
+              <div className={`w-7 h-7 rounded-lg flex items-center justify-center border ${scope.profit >= 0 ? 'bg-status-emerald/10 text-status-emerald border-status-emerald/20' : 'bg-status-coral/10 text-status-coral border-status-coral/20'}`}>
                 <ArrowUpRight size={15} />
               </div>
             </div>
-            <div className={`text-2xl font-bold font-mono tabular-nums tracking-tight ${scope.profit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+            <div className={`text-2xl font-bold font-mono tabular-nums tracking-tight ${scope.profit >= 0 ? 'text-status-emerald' : 'text-status-coral'}`}>
               Rs. {money(scope.profit)}
             </div>
-            <div className="text-[11px] text-slate-400 mt-2 flex items-center gap-1.5 font-medium">
-              <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold border ${scope.profit >= 0 ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' : 'bg-rose-500/15 text-rose-300 border-rose-500/30'}`}>
+            <div className="text-[11px] text-content-secondary mt-2 flex items-center gap-1.5 font-medium">
+              <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold border ${scope.profit >= 0 ? 'bg-status-emerald/15 text-status-emerald border-status-emerald/30' : 'bg-status-coral/15 text-status-coral border-status-coral/30'}`}>
                 {scope.revenue > 0 ? ((scope.profit / scope.revenue) * 100).toFixed(1) : 0}% MARGIN
               </span>
               <span>Net After OPEX</span>
@@ -295,18 +295,18 @@ export const AnalyticsDashboard: React.FC = () => {
           </div>
 
           {/* Orders Count */}
-          <div className="enterprise-card p-4 rounded-xl relative overflow-hidden transition-all hover:border-slate-700">
-            <div className="flex items-center justify-between text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+          <div className="enterprise-card p-4 rounded-xl relative overflow-hidden transition-all hover:border-canvas-hover">
+            <div className="flex items-center justify-between text-xs font-semibold text-content-secondary uppercase tracking-wider mb-2">
               <span>{scope.label} Orders</span>
-              <div className="w-7 h-7 rounded-lg bg-slate-800 text-slate-300 flex items-center justify-center border border-slate-700">
+              <div className="w-7 h-7 rounded-lg bg-canvas-card text-content-secondary flex items-center justify-center border border-canvas-hover">
                 <ShoppingBag size={15} />
               </div>
             </div>
-            <div className="text-2xl font-bold text-slate-100 font-mono tabular-nums tracking-tight">
-              {scope.orders} <span className="text-sm font-normal text-slate-400">Txns</span>
+            <div className="text-2xl font-bold text-content-primary font-mono tabular-nums tracking-tight">
+              {scope.orders} <span className="text-sm font-normal text-content-secondary">Txns</span>
             </div>
-            <div className="text-[11px] text-slate-400 mt-2 font-medium">
-              Avg Ticket: <span className="text-slate-200 font-mono font-semibold tabular-nums">Rs. {scope.orders > 0 ? (scope.revenue / scope.orders).toFixed(2) : '0.00'}</span>
+            <div className="text-[11px] text-content-secondary mt-2 font-medium">
+              Avg Ticket: <span className="text-content-primary font-mono font-semibold tabular-nums">Rs. {scope.orders > 0 ? (scope.revenue / scope.orders).toFixed(2) : '0.00'}</span>
             </div>
           </div>
         </div>
@@ -319,7 +319,7 @@ export const AnalyticsDashboard: React.FC = () => {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
               <div>
                 <h4 className="text-lg font-bold text-white mb-1 flex items-center gap-2">
-                  <Activity size={18} className="text-neutral-200" />
+                  <Activity size={18} className="text-content-primary" />
                   Financial & Margin Trends
                 </h4>
                 <p className="text-xs text-gray-400">Live graphical vectors of sales volume relative to inventory cost.</p>
@@ -333,7 +333,7 @@ export const AnalyticsDashboard: React.FC = () => {
                     onClick={() => setActiveTrend(mode)}
                     className={`px-3 py-1 rounded-md text-[9px] font-black tracking-widest uppercase transition-all ${
                       activeTrend === mode
-                        ? 'bg-white/20 text-neutral-200'
+                        ? 'bg-white/20 text-content-primary'
                         : 'text-gray-500 hover:text-white'
                     }`}
                   >
@@ -354,11 +354,11 @@ export const AnalyticsDashboard: React.FC = () => {
                 <div className="w-full h-full flex flex-col">
                   {/* Legend Indicators */}
                   <div className="flex gap-4 justify-end text-[10px] font-bold uppercase tracking-wider mb-2">
-                    <span className="flex items-center gap-1.5 text-neutral-200">
+                    <span className="flex items-center gap-1.5 text-content-primary">
                       <span className="w-2.5 h-1 bg-cyan-400 rounded"></span> Gross Sales
                     </span>
-                    <span className="flex items-center gap-1.5 text-neutral-200">
-                      <span className="w-2.5 h-1 bg-emerald-400 rounded"></span> Net Profit
+                    <span className="flex items-center gap-1.5 text-content-primary">
+                      <span className="w-2.5 h-1 bg-status-emerald rounded"></span> Net Profit
                     </span>
                   </div>
 
@@ -452,13 +452,13 @@ export const AnalyticsDashboard: React.FC = () => {
             <div className="glass-panel p-5 rounded-2xl border-white/5 bg-white/5 flex-1 flex flex-col justify-between overflow-hidden shadow-lg">
               <div>
                 <h4 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
-                  <Star size={16} className="text-neutral-300" />
+                  <Star size={16} className="text-content-secondary" />
                   Top Products
                 </h4>
                 <div className="overflow-y-auto max-h-[110px] pr-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
-                      <tr className="border-b border-white/5 text-neutral-200/80 font-bold uppercase">
+                      <tr className="border-b border-white/5 text-content-primary/80 font-bold uppercase">
                         <th className="py-2 px-1">Item</th>
                         <th className="py-2 px-1 text-center">Qty</th>
                         <th className="py-2 px-1 text-right">Gross</th>
@@ -469,7 +469,7 @@ export const AnalyticsDashboard: React.FC = () => {
                         <tr key={idx} className="hover:bg-white/5 transition-colors">
                           <td className="py-2 px-1 font-bold text-white truncate max-w-[120px]">{p.name}</td>
                           <td className="py-2 px-1 text-center text-gray-300 font-semibold">{p.qty}</td>
-                          <td className="py-2 px-1 text-right text-neutral-200 font-black">Rs. {p.revenue.toFixed(0)}</td>
+                          <td className="py-2 px-1 text-right text-content-primary font-black">Rs. {p.revenue.toFixed(0)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -482,7 +482,7 @@ export const AnalyticsDashboard: React.FC = () => {
             <div className="glass-panel p-5 rounded-2xl border-white/5 bg-white/5 flex-1 flex flex-col justify-between shadow-lg">
               <div>
                 <h4 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
-                  <DollarSign size={16} className="text-neutral-200" />
+                  <DollarSign size={16} className="text-content-primary" />
                   Payment Methods
                 </h4>
                 <div className="space-y-2.5">

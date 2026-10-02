@@ -301,21 +301,21 @@ export const CustomerManager: React.FC = () => {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
           <div>
             <h2 className="text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
-              <BookOpen className="text-amber-400 drop-shadow-[0_0_8px_rgba(245, 158, 11, 0.4)]" size={32} />
+              <BookOpen className="text-status-amber drop-shadow-[0_0_8px_rgba(245, 158, 11, 0.4)]" size={32} />
               Customer CRM & Khata (Udhaar) Register
             </h2>
             <p className="text-gray-400 mt-1">Manage customer loans, credit records, repayments, and automated WhatsApp statements.</p>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="px-4 py-2 bg-amber-500/10 border border-amber-500/30 rounded-xl text-right">
-              <span className="text-[10px] text-amber-300 uppercase font-black tracking-wider block">Total Outstanding Udhaar</span>
-              <span className="text-lg font-black text-amber-400 font-mono">Rs. {totalOutstandingUdhaar.toLocaleString()}</span>
+            <div className="px-4 py-2 bg-status-amber/10 border border-status-amber/30 rounded-xl text-right">
+              <span className="text-[10px] text-status-amber uppercase font-black tracking-wider block">Total Outstanding Udhaar</span>
+              <span className="text-lg font-black text-status-amber font-mono">Rs. {totalOutstandingUdhaar.toLocaleString()}</span>
             </div>
 
             <button
               onClick={handleClearAllKhata}
-              className="px-4 py-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 font-bold rounded-xl transition flex items-center gap-2 cursor-pointer active:scale-95 text-sm"
+              className="px-4 py-3 bg-status-coral/10 hover:bg-status-coral/20 border border-status-coral/30 text-status-coral font-bold rounded-xl transition flex items-center gap-2 cursor-pointer active:scale-95 text-sm"
               title="Reset all customer Khata loan/payment transactions and zero balances"
             >
               <Trash2 size={16} /> Reset Khata
@@ -339,14 +339,14 @@ export const CustomerManager: React.FC = () => {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-12 pr-4 py-3.5 glass-input rounded-xl text-sm"
           />
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-200" size={20} />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-content-primary" size={20} />
         </div>
 
         {/* Customer List */}
         <div className="flex-1 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-white/5 text-neutral-200 font-bold text-xs tracking-wider uppercase">
+              <tr className="border-b border-white/5 text-content-primary font-bold text-xs tracking-wider uppercase">
                 <th className="py-4 px-4">Customer</th>
                 <th className="py-4 px-4">Contact</th>
                 <th className="py-4 px-4 text-center">Khata / Loan Balance (Udhaar)</th>
@@ -359,36 +359,36 @@ export const CustomerManager: React.FC = () => {
                 <tr key={c.id} className="hover:bg-white/5 transition-colors group">
                   <td className="py-4 px-4">
                     <div className="font-extrabold text-white text-base">{c.name}</div>
-                    <div className="text-xs text-neutral-400">Customer ID: #{c.id}</div>
+                    <div className="text-xs text-content-secondary">Customer ID: #{c.id}</div>
                   </td>
                   <td className="py-4 px-4">
                     <div className="flex flex-col gap-1">
                       {c.phone ? (
                         <span className="text-gray-300 text-sm flex items-center gap-1.5 font-mono">
-                          <Phone size={12} className="text-neutral-400" /> {c.phone}
+                          <Phone size={12} className="text-content-secondary" /> {c.phone}
                         </span>
                       ) : (
                         <span className="text-gray-500 text-xs italic">No phone registered</span>
                       )}
-                      {c.email && <span className="text-gray-400 text-xs flex items-center gap-1.5"><Mail size={12} className="text-neutral-400" /> {c.email}</span>}
+                      {c.email && <span className="text-gray-400 text-xs flex items-center gap-1.5"><Mail size={12} className="text-content-secondary" /> {c.email}</span>}
                     </div>
                   </td>
                   <td className="py-4 px-4 text-center">
                     {(c.balance || 0) > 0 ? (
                       <div className="inline-flex flex-col items-center gap-1">
-                        <span className="px-3 py-1 bg-amber-500/20 border border-amber-500/40 text-amber-300 rounded-full font-black text-sm font-mono">
+                        <span className="px-3 py-1 bg-status-amber/20 border border-status-amber/40 text-status-amber rounded-full font-black text-sm font-mono">
                           Rs. {(c.balance || 0).toLocaleString()} Due
                         </span>
-                        <span className="text-[10px] text-amber-400/80 font-bold uppercase tracking-widest">Udhaar Pending</span>
+                        <span className="text-[10px] text-status-amber/80 font-bold uppercase tracking-widest">Udhaar Pending</span>
                       </div>
                     ) : (
-                      <span className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-full font-bold text-xs">
+                      <span className="px-3 py-1 bg-status-emerald/10 border border-status-emerald/30 text-status-emerald rounded-full font-bold text-xs">
                         ✓ Clear (Rs. 0)
                       </span>
                     )}
                   </td>
                   <td className="py-4 px-4 text-center">
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 border border-white/30 text-neutral-200 rounded-full font-bold text-xs">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 border border-white/30 text-content-primary rounded-full font-bold text-xs">
                       <Award size={14} /> {c.points} pts
                     </div>
                   </td>
@@ -396,7 +396,7 @@ export const CustomerManager: React.FC = () => {
                     <div className="flex justify-end items-center gap-2">
                       <button
                         onClick={() => handleOpenKhata(c)}
-                        className="px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/35 border border-amber-500/40 text-amber-300 rounded-xl font-bold text-xs flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-sm"
+                        className="px-3 py-1.5 bg-status-amber/20 hover:bg-status-amber/35 border border-status-amber/40 text-status-amber rounded-xl font-bold text-xs flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-sm"
                         title="View Full Khata Ledger & Send WhatsApp Statement"
                       >
                         <BookOpen size={14} />
@@ -404,14 +404,14 @@ export const CustomerManager: React.FC = () => {
                       </button>
                       <button
                         onClick={() => handleOpenEdit(c)}
-                        className="p-2 text-neutral-200 bg-white/10 border border-white/20 rounded-lg hover:bg-white/20 transition cursor-pointer"
+                        className="p-2 text-content-primary bg-white/10 border border-white/20 rounded-lg hover:bg-white/20 transition cursor-pointer"
                         title="Edit profile"
                       >
                         <Edit2 size={15} />
                       </button>
                       <button
                         onClick={() => handleDelete(c.id)}
-                        className="p-2 text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg hover:bg-red-500/20 transition cursor-pointer"
+                        className="p-2 text-status-coral bg-status-coral/10 border border-status-coral/20 rounded-lg hover:bg-status-coral/20 transition cursor-pointer"
                         title="Delete profile"
                       >
                         <Trash2 size={15} />
@@ -448,14 +448,14 @@ export const CustomerManager: React.FC = () => {
             {/* Modal Header */}
             <div className="flex justify-between items-start mb-4 flex-shrink-0 pb-4 border-b border-white/5">
               <div>
-                <span className="text-[10px] text-amber-400 font-bold uppercase tracking-widest block">Customer Khata Ledger</span>
+                <span className="text-[10px] text-status-amber font-bold uppercase tracking-widest block">Customer Khata Ledger</span>
                 <h3 className="text-2xl font-extrabold text-white mt-0.5">{selectedCustomerForKhata.name}</h3>
                 <span className="text-xs text-gray-400 font-mono">Phone: {selectedCustomerForKhata.phone || 'N/A'}</span>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => sendCustomerWhatsAppStatement(selectedCustomerForKhata, khataEntries)}
-                  className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-[0_0_15px_rgba(16,185,129,0.4)] transition cursor-pointer active:scale-95"
+                  className="px-3.5 py-2 bg-status-emerald hover:brightness-110 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-[0_0_15px_rgba(16,185,129,0.4)] transition cursor-pointer active:scale-95"
                   title="Automate send ledger statement to Customer on WhatsApp"
                 >
                   <Send size={14} />
@@ -471,10 +471,10 @@ export const CustomerManager: React.FC = () => {
             </div>
 
             {/* Khata Balance Summary Card */}
-            <div className="grid grid-cols-3 gap-3 p-4 bg-black/40 rounded-2xl border border-amber-500/20 mb-4 flex-shrink-0">
+            <div className="grid grid-cols-3 gap-3 p-4 bg-black/40 rounded-2xl border border-status-amber/20 mb-4 flex-shrink-0">
               <div>
                 <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider block">Current Loan (Udhaar)</span>
-                <span className="text-xl font-black text-amber-400 font-mono">
+                <span className="text-xl font-black text-status-amber font-mono">
                   Rs. {(selectedCustomerForKhata.balance || 0).toLocaleString()}
                 </span>
               </div>
@@ -485,13 +485,13 @@ export const CustomerManager: React.FC = () => {
               <div className="flex items-center justify-end gap-2">
                 <button
                   onClick={() => { setLoanAmount(''); setLoanNotes(''); setIsPayLoanModalOpen(true); }}
-                  className="px-3 py-2 bg-emerald-500/20 hover:bg-emerald-500/35 border border-emerald-500/40 text-emerald-300 font-bold text-xs rounded-xl flex items-center gap-1 transition cursor-pointer active:scale-95"
+                  className="px-3 py-2 bg-status-emerald/20 hover:bg-status-emerald/35 border border-status-emerald/40 text-status-emerald font-bold text-xs rounded-xl flex items-center gap-1 transition cursor-pointer active:scale-95"
                 >
                   <ArrowDownLeft size={14} /> Pay / Wasool
                 </button>
                 <button
                   onClick={() => { setLoanAmount(''); setLoanNotes(''); setIsAddLoanModalOpen(true); }}
-                  className="px-3 py-2 bg-amber-500/20 hover:bg-amber-500/35 border border-amber-500/40 text-amber-300 font-bold text-xs rounded-xl flex items-center gap-1 transition cursor-pointer active:scale-95"
+                  className="px-3 py-2 bg-status-amber/20 hover:bg-status-amber/35 border border-status-amber/40 text-status-amber font-bold text-xs rounded-xl flex items-center gap-1 transition cursor-pointer active:scale-95"
                 >
                   <ArrowUpRight size={14} /> Add Loan
                 </button>
@@ -521,16 +521,16 @@ export const CustomerManager: React.FC = () => {
                       key={entry.id}
                       className={`p-3.5 rounded-xl border flex justify-between items-center text-xs transition ${
                         entry.type === 'LOAN'
-                          ? 'bg-amber-500/10 border-amber-500/20'
-                          : 'bg-emerald-500/10 border-emerald-500/20'
+                          ? 'bg-status-amber/10 border-status-amber/20'
+                          : 'bg-status-emerald/10 border-status-emerald/20'
                       }`}
                     >
                       <div>
                         <div className="flex items-center gap-2">
                           <span className={`font-black uppercase tracking-wider text-[11px] px-2 py-0.5 rounded-md ${
                             entry.type === 'LOAN'
-                              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                              : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                              ? 'bg-status-amber/20 text-status-amber border border-status-amber/30'
+                              : 'bg-status-emerald/20 text-status-emerald border border-status-emerald/30'
                           }`}>
                             {entry.type === 'LOAN' ? '🔺 Borrowed / Sale on Credit' : '🟢 Repayment / Wasool'}
                           </span>
@@ -551,7 +551,7 @@ export const CustomerManager: React.FC = () => {
                       <div className="flex items-center gap-3">
                         <div className="text-right">
                           <span className={`text-base font-black font-mono ${
-                            entry.type === 'LOAN' ? 'text-amber-400' : 'text-emerald-400'
+                            entry.type === 'LOAN' ? 'text-status-amber' : 'text-status-emerald'
                           }`}>
                             {entry.type === 'LOAN' ? '+' : '-'}Rs. {entry.amount.toLocaleString()}
                           </span>
@@ -569,7 +569,7 @@ export const CustomerManager: React.FC = () => {
                           )}
                           <button
                             onClick={() => handleDeleteKhataEntry(entry)}
-                            className="p-1.5 rounded-lg bg-red-500/15 hover:bg-red-500/30 text-red-400 hover:text-red-300 transition flex items-center gap-1 text-[11px] font-semibold cursor-pointer"
+                            className="p-1.5 rounded-lg bg-status-coral/15 hover:bg-status-coral/30 text-status-coral hover:text-status-coral transition flex items-center gap-1 text-[11px] font-semibold cursor-pointer"
                             title="Delete this entry and recalculate balance"
                           >
                             <Trash2 size={13} />
@@ -587,7 +587,7 @@ export const CustomerManager: React.FC = () => {
             <div className="pt-4 border-t border-white/5 flex justify-between items-center flex-shrink-0 mt-4">
               <button
                 onClick={() => sendCustomerWhatsAppStatement(selectedCustomerForKhata, khataEntries)}
-                className="px-4 py-2 bg-emerald-600/20 hover:bg-emerald-600/35 border border-emerald-500/40 text-emerald-300 font-bold text-xs rounded-xl flex items-center gap-1.5 transition cursor-pointer"
+                className="px-4 py-2 bg-status-emerald/20 hover:bg-status-emerald/35 border border-status-emerald/40 text-status-emerald font-bold text-xs rounded-xl flex items-center gap-1.5 transition cursor-pointer"
               >
                 <Send size={13} /> Send Ledger to WhatsApp
               </button>
@@ -606,13 +606,13 @@ export const CustomerManager: React.FC = () => {
       {/* Pay Loan / Repayment Wasool Modal */}
       {isPayLoanModalOpen && selectedCustomerForKhata && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md animate-in fade-in duration-200 p-4">
-          <div className="glass-panel w-full max-w-md p-6 rounded-3xl border border-emerald-500/30 shadow-2xl relative">
-            <h3 className="text-xl font-black text-emerald-400 mb-1 flex items-center gap-2">
+          <div className="glass-panel w-full max-w-md p-6 rounded-3xl border border-status-emerald/30 shadow-2xl relative">
+            <h3 className="text-xl font-black text-status-emerald mb-1 flex items-center gap-2">
               <ArrowDownLeft size={20} />
               Receive Loan Repayment (Wasool)
             </h3>
             <p className="text-xs text-gray-400 mb-4">
-              Customer: <strong className="text-white">{selectedCustomerForKhata.name}</strong> • Current Due: <strong className="text-amber-400 font-mono">Rs. {(selectedCustomerForKhata.balance || 0).toLocaleString()}</strong>
+              Customer: <strong className="text-white">{selectedCustomerForKhata.name}</strong> • Current Due: <strong className="text-status-amber font-mono">Rs. {(selectedCustomerForKhata.balance || 0).toLocaleString()}</strong>
             </p>
 
             <form onSubmit={handlePayLoanSubmit} className="space-y-4">
@@ -625,7 +625,7 @@ export const CustomerManager: React.FC = () => {
                   placeholder="0.00"
                   value={loanAmount}
                   onChange={e => setLoanAmount(e.target.value)}
-                  className="w-full px-4 py-3 glass-input rounded-xl text-lg font-mono font-bold text-emerald-300"
+                  className="w-full px-4 py-3 glass-input rounded-xl text-lg font-mono font-bold text-status-emerald"
                 />
               </div>
 
@@ -636,10 +636,10 @@ export const CustomerManager: React.FC = () => {
                   onChange={e => setLoanPayMethod(e.target.value)}
                   className="w-full px-4 py-2.5 glass-input rounded-xl text-xs font-bold"
                 >
-                  <option value="Cash" className="bg-slate-900 text-white">Cash</option>
-                  <option value="Bank Transfer" className="bg-slate-900 text-white">Bank Transfer / Online</option>
-                  <option value="JazzCash / EasyPaisa" className="bg-slate-900 text-white">JazzCash / EasyPaisa</option>
-                  <option value="Card" className="bg-slate-900 text-white">Card</option>
+                  <option value="Cash" className="bg-canvas-subtle text-white">Cash</option>
+                  <option value="Bank Transfer" className="bg-canvas-subtle text-white">Bank Transfer / Online</option>
+                  <option value="JazzCash / EasyPaisa" className="bg-canvas-subtle text-white">JazzCash / EasyPaisa</option>
+                  <option value="Card" className="bg-canvas-subtle text-white">Card</option>
                 </select>
               </div>
 
@@ -664,7 +664,7 @@ export const CustomerManager: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs shadow-lg cursor-pointer active:scale-95"
+                  className="px-6 py-2.5 bg-status-emerald hover:brightness-110 text-white rounded-xl font-bold text-xs shadow-lg cursor-pointer active:scale-95"
                 >
                   Save Repayment
                 </button>
@@ -677,13 +677,13 @@ export const CustomerManager: React.FC = () => {
       {/* Manual Add Loan Modal */}
       {isAddLoanModalOpen && selectedCustomerForKhata && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md animate-in fade-in duration-200 p-4">
-          <div className="glass-panel w-full max-w-md p-6 rounded-3xl border border-amber-500/30 shadow-2xl relative">
-            <h3 className="text-xl font-black text-amber-400 mb-1 flex items-center gap-2">
+          <div className="glass-panel w-full max-w-md p-6 rounded-3xl border border-status-amber/30 shadow-2xl relative">
+            <h3 className="text-xl font-black text-status-amber mb-1 flex items-center gap-2">
               <ArrowUpRight size={20} />
               Add Loan (Udhaar)
             </h3>
             <p className="text-xs text-gray-400 mb-4">
-              Customer: <strong className="text-white">{selectedCustomerForKhata.name}</strong> • Current Due: <strong className="text-amber-400 font-mono">Rs. {(selectedCustomerForKhata.balance || 0).toLocaleString()}</strong>
+              Customer: <strong className="text-white">{selectedCustomerForKhata.name}</strong> • Current Due: <strong className="text-status-amber font-mono">Rs. {(selectedCustomerForKhata.balance || 0).toLocaleString()}</strong>
             </p>
 
             <form onSubmit={handleAddLoanSubmit} className="space-y-4">
@@ -696,7 +696,7 @@ export const CustomerManager: React.FC = () => {
                   placeholder="0.00"
                   value={loanAmount}
                   onChange={e => setLoanAmount(e.target.value)}
-                  className="w-full px-4 py-3 glass-input rounded-xl text-lg font-mono font-bold text-amber-300"
+                  className="w-full px-4 py-3 glass-input rounded-xl text-lg font-mono font-bold text-status-amber"
                 />
               </div>
 
@@ -721,7 +721,7 @@ export const CustomerManager: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-bold text-xs shadow-lg cursor-pointer active:scale-95"
+                  className="px-6 py-2.5 bg-status-amber hover:brightness-110 text-white rounded-xl font-bold text-xs shadow-lg cursor-pointer active:scale-95"
                 >
                   Add to Khata
                 </button>
@@ -740,7 +740,7 @@ export const CustomerManager: React.FC = () => {
               Edit Khata Entry
             </h3>
             <p className="text-xs text-gray-400 mb-1">
-              Customer: <strong className="text-white">{selectedCustomerForKhata.name}</strong> • Type: <strong className={editingKhataEntry.type === 'LOAN' ? 'text-amber-400' : 'text-emerald-400'}>
+              Customer: <strong className="text-white">{selectedCustomerForKhata.name}</strong> • Type: <strong className={editingKhataEntry.type === 'LOAN' ? 'text-status-amber' : 'text-status-emerald'}>
                 {editingKhataEntry.type === 'LOAN' ? 'Loan / Udhaar' : 'Repayment / Wasool'}
               </strong>
             </p>
@@ -750,7 +750,7 @@ export const CustomerManager: React.FC = () => {
             </p>
 
             {editKhataError && (
-              <div className="mb-4 p-3 bg-red-500/20 border border-red-500/40 rounded-xl text-xs text-red-300">
+              <div className="mb-4 p-3 bg-status-coral/20 border border-status-coral/40 rounded-xl text-xs text-status-coral">
                 {editKhataError}
               </div>
             )}
@@ -777,10 +777,10 @@ export const CustomerManager: React.FC = () => {
                     onChange={e => setEditKhataPaymentMethod(e.target.value)}
                     className="w-full px-4 py-2.5 glass-input rounded-xl text-xs font-bold"
                   >
-                    <option value="Cash" className="bg-slate-900 text-white">Cash</option>
-                    <option value="Bank Transfer" className="bg-slate-900 text-white">Bank Transfer / Online</option>
-                    <option value="JazzCash / EasyPaisa" className="bg-slate-900 text-white">JazzCash / EasyPaisa</option>
-                    <option value="Card" className="bg-slate-900 text-white">Card</option>
+                    <option value="Cash" className="bg-canvas-subtle text-white">Cash</option>
+                    <option value="Bank Transfer" className="bg-canvas-subtle text-white">Bank Transfer / Online</option>
+                    <option value="JazzCash / EasyPaisa" className="bg-canvas-subtle text-white">JazzCash / EasyPaisa</option>
+                    <option value="Card" className="bg-canvas-subtle text-white">Card</option>
                   </select>
                 </div>
               )}
@@ -821,7 +821,7 @@ export const CustomerManager: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="glass-panel w-full max-w-md p-8 rounded-3xl border border-white/10 animate-in zoom-in-95 duration-300 relative shadow-2xl">
             <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
-              <Award className="text-neutral-200" />
+              <Award className="text-content-primary" />
               {editingCustomer ? 'Edit Customer' : 'Add Customer'}
             </h3>
 

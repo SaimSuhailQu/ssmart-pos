@@ -64,12 +64,12 @@ export const PinLogin: React.FC<PinLoginProps> = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-canvas/70 backdrop-blur-2xl">
       {/* Liquid Glass Background Orbs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/3 -translate-x-1/2 w-96 h-96 bg-indigo-600/25 rounded-full blur-3xl animate-pulse" />
         <div className="absolute bottom-1/4 right-1/3 translate-x-1/2 w-80 h-80 bg-cyan-500/20 rounded-full blur-3xl" />
-        <div className="absolute top-2/3 left-1/2 w-72 h-72 bg-emerald-500/15 rounded-full blur-3xl" />
+        <div className="absolute top-2/3 left-1/2 w-72 h-72 bg-status-emerald/15 rounded-full blur-3xl" />
       </div>
 
       <div className="liquid-glass-thick w-full max-w-md p-8 rounded-3xl text-center animate-in zoom-in-95 duration-300 relative z-10">
@@ -98,7 +98,7 @@ export const PinLogin: React.FC<PinLoginProps> = ({ onLoginSuccess }) => {
         {/* Error Alert */}
         <div className="h-10 mb-2">
           {error && (
-            <div className="flex items-center justify-center gap-2 text-red-400 font-bold text-sm bg-red-950/20 border border-red-500/20 py-2 rounded-xl animate-in fade-in slide-in-from-top-2">
+            <div className="flex items-center justify-center gap-2 text-status-coral font-bold text-sm bg-status-coral/20 border border-status-coral/20 py-2 rounded-xl animate-in fade-in slide-in-from-top-2">
               <ShieldAlert size={16} />
               <span>{error}</span>
             </div>
@@ -118,7 +118,7 @@ export const PinLogin: React.FC<PinLoginProps> = ({ onLoginSuccess }) => {
           ))}
           <button
             onClick={handleClear}
-            className="w-16 h-16 rounded-2xl liquid-press text-sm font-black text-rose-400 hover:text-rose-300 transition-all flex items-center justify-center mx-auto"
+            className="w-16 h-16 rounded-2xl liquid-press text-sm font-black text-status-coral hover:text-status-coral transition-all flex items-center justify-center mx-auto"
           >
             CLEAR
           </button>
@@ -130,7 +130,7 @@ export const PinLogin: React.FC<PinLoginProps> = ({ onLoginSuccess }) => {
           </button>
           <button
             onClick={handleBackspace}
-            className="w-16 h-16 rounded-2xl liquid-press text-sm font-black text-amber-400 hover:text-amber-300 transition-all flex items-center justify-center mx-auto"
+            className="w-16 h-16 rounded-2xl liquid-press text-sm font-black text-status-amber hover:text-status-amber transition-all flex items-center justify-center mx-auto"
           >
             DEL
           </button>

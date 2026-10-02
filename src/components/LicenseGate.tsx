@@ -65,10 +65,10 @@ export const LicenseGate: React.FC<LicenseGateProps> = ({ children }) => {
   // Loading state while the first license check completes
   if (!license) {
     return (
-      <div className="h-screen w-full flex items-center justify-center bg-slate-950">
+      <div className="h-screen w-full flex items-center justify-center bg-canvas">
         <div className="text-center">
           <RefreshCw size={32} className="animate-spin text-indigo-400 mx-auto mb-4" />
-          <p className="text-slate-400 text-xs uppercase tracking-widest font-bold">Verifying license…</p>
+          <p className="text-content-secondary text-xs uppercase tracking-widest font-bold">Verifying license…</p>
         </div>
       </div>
     );
@@ -91,16 +91,16 @@ export const LicenseGate: React.FC<LicenseGateProps> = ({ children }) => {
         : 'Your free trial period has ended.';
 
     return (
-      <div className="h-screen w-full flex items-center justify-center bg-slate-950 p-6 font-sans">
-        <div className="w-full max-w-lg bg-slate-900 border border-rose-500/30 rounded-2xl p-8 shadow-2xl text-center">
-          <div className="w-16 h-16 mx-auto rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center mb-5">
-            <ShieldX size={30} className="text-rose-400" />
+      <div className="h-screen w-full flex items-center justify-center bg-canvas p-6 font-sans">
+        <div className="w-full max-w-lg bg-canvas-subtle border border-status-coral/30 rounded-2xl p-8 shadow-2xl text-center">
+          <div className="w-16 h-16 mx-auto rounded-2xl bg-status-coral/10 border border-status-coral/30 flex items-center justify-center mb-5">
+            <ShieldX size={30} className="text-status-coral" />
           </div>
           <h1 className="text-xl font-bold text-white mb-1">Activation Required</h1>
-          <p className="text-slate-400 text-sm mb-6">{reason}</p>
+          <p className="text-content-secondary text-sm mb-6">{reason}</p>
 
-          <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-4 mb-5 text-left">
-            <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-1.5">
+          <div className="bg-canvas/70 border border-canvas-card rounded-xl p-4 mb-5 text-left">
+            <p className="text-[10px] uppercase tracking-widest text-content-muted font-bold mb-1.5">
               Your Device Code (send this to activate)
             </p>
             <div className="flex items-center gap-2">
@@ -117,14 +117,14 @@ export const LicenseGate: React.FC<LicenseGateProps> = ({ children }) => {
             </div>
           </div>
 
-          <p className="text-xs text-slate-400 leading-relaxed mb-5">
-            Contact <span className="text-slate-200 font-semibold">SS Mart POS Sales</span> with the device
+          <p className="text-xs text-content-secondary leading-relaxed mb-5">
+            Contact <span className="text-content-primary font-semibold">SS Mart POS Sales</span> with the device
             code above. Activation is locked to this machine only and cannot be transferred.
           </p>
 
           <button
             onClick={() => setLastRefresh(Date.now())}
-            className="w-full py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 text-xs font-bold uppercase tracking-wider hover:bg-slate-700 transition flex items-center justify-center gap-2 cursor-pointer"
+            className="w-full py-2.5 rounded-xl bg-canvas-card border border-canvas-hover text-content-primary text-xs font-bold uppercase tracking-wider hover:bg-canvas-hover transition flex items-center justify-center gap-2 cursor-pointer"
           >
             <RefreshCw size={13} /> Recheck Activation
           </button>
@@ -136,20 +136,20 @@ export const LicenseGate: React.FC<LicenseGateProps> = ({ children }) => {
   // Trial banner floats above the app UI without affecting h-screen layout
   const trialBanner =
     license.status === 'trial' ? (
-      <div className="fixed bottom-3 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/15 backdrop-blur-md border border-amber-500/30 text-amber-300 text-[11px] font-semibold shadow-xl whitespace-nowrap">
+      <div className="fixed bottom-3 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-2 px-4 py-1.5 rounded-full bg-status-amber/15 backdrop-blur-md border border-status-amber/30 text-status-amber text-[11px] font-semibold shadow-xl whitespace-nowrap">
         <ShieldAlert size={12} className="shrink-0" />
         <span>
           Free Trial — {license.daysRemaining ?? 0} day{(license.daysRemaining ?? 0) === 1 ? '' : 's'} remaining.
           {(license.daysRemaining ?? 0) <= 3 && ' Contact SS Mart POS Sales to activate.'}
         </span>
-        <span className="hidden lg:inline text-amber-500/60 font-mono">({fingerprintShort})</span>
+        <span className="hidden lg:inline text-status-amber/60 font-mono">({fingerprintShort})</span>
       </div>
     ) : null;
 
   // Subtle badge for licensed devices; calls out Master (seller) access.
   const licensedBadge =
     license.status === 'licensed' ? (
-      <div className="fixed bottom-3 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/15 backdrop-blur-md border border-emerald-500/30 text-emerald-300 text-[11px] font-semibold shadow-xl whitespace-nowrap">
+      <div className="fixed bottom-3 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-2 px-3 py-1.5 rounded-full bg-status-emerald/15 backdrop-blur-md border border-status-emerald/30 text-status-emerald text-[11px] font-semibold shadow-xl whitespace-nowrap">
         <ShieldCheck size={12} className="shrink-0" />
         <span>
           {license.isMaster ? 'Master Access' : 'Licensed'}
@@ -189,11 +189,11 @@ const LicenseRevokedBoundary: React.FC<{ children: React.ReactNode }> = ({
 
   if (revoked) {
     return (
-      <div className="h-screen w-full flex items-center justify-center bg-slate-950 p-6 font-sans">
-        <div className="w-full max-w-md bg-slate-900 border border-rose-500/30 rounded-2xl p-8 text-center shadow-2xl">
-          <ShieldX size={36} className="text-rose-400 mx-auto mb-4" />
+      <div className="h-screen w-full flex items-center justify-center bg-canvas p-6 font-sans">
+        <div className="w-full max-w-md bg-canvas-subtle border border-status-coral/30 rounded-2xl p-8 text-center shadow-2xl">
+          <ShieldX size={36} className="text-status-coral mx-auto mb-4" />
           <h1 className="text-lg font-bold text-white mb-2">License Deactivated</h1>
-          <p className="text-slate-400 text-sm">
+          <p className="text-content-secondary text-sm">
             This device&apos;s license was deactivated remotely. Please contact SS Mart POS Sales.
           </p>
         </div>

@@ -30,7 +30,7 @@ const ProductCard = React.memo<{
     >
       <div className="flex-1 relative z-10">
         <div className="flex justify-between items-start mb-3">
-          <span className="text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-md bg-black/60 border border-white/10 text-neutral-200">
+          <span className="text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-md bg-black/60 border border-white/10 text-content-primary">
             {p.category}
           </span>
         </div>
@@ -38,13 +38,13 @@ const ProductCard = React.memo<{
         <p className="text-xs text-gray-500 mt-1 font-mono tracking-wide">{p.barcode}</p>
       </div>
       <div className="mt-5 flex justify-between items-end relative z-10">
-        <span className="text-xl font-extrabold text-neutral-200">Rs. {p.price.toFixed(2)}</span>
+        <span className="text-xl font-extrabold text-content-primary">Rs. {p.price.toFixed(2)}</span>
         {p.stock === 0 ? (
-          <span className="text-[10px] font-black uppercase tracking-wider text-red-400 bg-red-950/40 border border-red-500/30 px-2 py-1 rounded-lg">Out of stock</span>
+          <span className="text-[10px] font-black uppercase tracking-wider text-status-coral bg-status-coral/40 border border-status-coral/30 px-2 py-1 rounded-lg">Out of stock</span>
         ) : p.stock <= 5 ? (
           <span className="text-[10px] font-black uppercase tracking-wider text-orange-400 bg-orange-950/40 border border-orange-500/30 px-2 py-1 rounded-lg">Low Stock: {p.stock}</span>
         ) : (
-          <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-200 bg-emerald-950/30 border border-emerald-500/20 px-2 py-1 rounded-lg">Stock: {p.stock}</span>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-content-primary bg-status-emerald/30 border border-status-emerald/20 px-2 py-1 rounded-lg">Stock: {p.stock}</span>
         )}
       </div>
     </div>

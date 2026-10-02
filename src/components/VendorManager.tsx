@@ -527,12 +527,12 @@ export const VendorManager: React.FC = () => {
         {(error || success) && (
           <div className="mb-4">
             {error && (
-              <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-sm backdrop-blur-md flex items-center gap-2 animate-in zoom-in-95">
+              <div className="p-3 bg-status-coral/10 border border-status-coral/20 text-status-coral rounded-xl text-sm backdrop-blur-md flex items-center gap-2 animate-in zoom-in-95">
                 <span>⚠️</span> <div>{error}</div>
               </div>
             )}
             {success && (
-              <div className="p-3 bg-white/10 border border-emerald-500/20 text-neutral-200 rounded-xl text-sm backdrop-blur-md flex items-center gap-2 animate-in zoom-in-95">
+              <div className="p-3 bg-white/10 border border-status-emerald/20 text-content-primary rounded-xl text-sm backdrop-blur-md flex items-center gap-2 animate-in zoom-in-95">
                 <CheckCircle size={16} /> <div>{success}</div>
               </div>
             )}
@@ -553,7 +553,7 @@ export const VendorManager: React.FC = () => {
                 </button>
                 <div>
                   <h2 className="text-2xl font-extrabold text-white tracking-tight flex items-center gap-2">
-                    <FileText className="text-neutral-200" size={24} /> Create Purchase Order
+                    <FileText className="text-content-primary" size={24} /> Create Purchase Order
                   </h2>
                   <p className="text-xs text-gray-400">Order wholesale inventory restocks.</p>
                 </div>
@@ -586,10 +586,10 @@ export const VendorManager: React.FC = () => {
                     <select
                       value={selectedVendorId}
                       onChange={(e) => setSelectedVendorId(e.target.value ? Number(e.target.value) : '')}
-                      className="w-full px-4 py-3 glass-input rounded-xl font-bold text-white text-sm bg-neutral-900"
+                      className="w-full px-4 py-3 glass-input rounded-xl font-bold text-white text-sm bg-canvas-card"
                     >
                       {vendors.map(v => (
-                        <option key={v.id} value={v.id} className="bg-neutral-900 text-white font-bold">{v.name} ({v.category})</option>
+                        <option key={v.id} value={v.id} className="bg-canvas-card text-white font-bold">{v.name} ({v.category})</option>
                       ))}
                     </select>
                     {(() => {
@@ -597,7 +597,7 @@ export const VendorManager: React.FC = () => {
                       if (vendorPO) {
                         const remaining = Math.max(0, vendorPO.total_cost - (vendorPO.paid_amount || 0));
                         return (
-                          <span className="text-[10px] text-emerald-400 font-bold mt-1 block">
+                          <span className="text-[10px] text-status-emerald font-bold mt-1 block">
                             Active Bill: Rs. {vendorPO.total_cost.toLocaleString()} • Due: Rs. {remaining.toLocaleString()} (Auto-sums)
                           </span>
                         );
@@ -607,7 +607,7 @@ export const VendorManager: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="text-xs font-bold text-emerald-400 uppercase tracking-wider block mb-1.5">2. Add Order Amount (Rs.)</label>
+                    <label className="text-xs font-bold text-status-emerald uppercase tracking-wider block mb-1.5">2. Add Order Amount (Rs.)</label>
                     <input 
                       type="number"
                       step="0.01"
@@ -615,14 +615,14 @@ export const VendorManager: React.FC = () => {
                       placeholder={poItems.length > 0 ? `Subtotal: ${calculateItemsSubtotal()}` : "Enter Order Invoice Rs..."}
                       value={customTotalCost}
                       onChange={(e) => setCustomTotalCost(e.target.value)}
-                      className="w-full px-4 py-3 glass-input rounded-xl font-bold text-emerald-400 text-sm placeholder:text-gray-600 border-emerald-500/30 focus:border-emerald-400"
+                      className="w-full px-4 py-3 glass-input rounded-xl font-bold text-status-emerald text-sm placeholder:text-gray-600 border-status-emerald/30 focus:border-status-emerald"
                     />
                     <span className="text-[10px] text-gray-500 mt-1 block">Adds to this vendor's single running balance.</span>
                   </div>
 
                   <div className="flex flex-col justify-between p-3 bg-white/5 rounded-xl border border-white/5">
                     <span className="text-[10px] text-gray-400 uppercase font-black tracking-widest">Added Bill Amount</span>
-                    <span className="text-2xl font-extrabold text-emerald-400">
+                    <span className="text-2xl font-extrabold text-status-emerald">
                       Rs. {getEffectivePOTotal().toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </div>
@@ -666,7 +666,7 @@ export const VendorManager: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => setPoBillImage('')}
-                          className="p-1 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition"
+                          className="p-1 text-status-coral hover:text-status-coral hover:bg-status-coral/10 rounded-lg transition"
                           title="Remove attached bill"
                         >
                           <X size={16} />
@@ -714,7 +714,7 @@ export const VendorManager: React.FC = () => {
                           <tr key={item.productId} className="hover:bg-white/5 transition-colors group">
                             <td className="py-3">
                               <div className="font-extrabold text-white text-sm">{item.name}</div>
-                              <div className="text-[10px] text-neutral-200/70">{item.barcode}</div>
+                              <div className="text-[10px] text-content-primary/70">{item.barcode}</div>
                             </td>
                             <td className="py-3 text-center">
                               <input 
@@ -724,7 +724,7 @@ export const VendorManager: React.FC = () => {
                                   const val = Number(e.target.value);
                                   setPoItems(prev => prev.map(p => p.productId === item.productId ? { ...p, costPrice: val } : p));
                                 }}
-                                className="w-20 px-2 py-1 bg-white/5 border border-white/10 rounded text-center text-neutral-200 font-bold text-xs focus:outline-none focus:border-white/60"
+                                className="w-20 px-2 py-1 bg-white/5 border border-white/10 rounded text-center text-content-primary font-bold text-xs focus:outline-none focus:border-white/60"
                               />
                             </td>
                             <td className="py-3 text-center">
@@ -744,7 +744,7 @@ export const VendorManager: React.FC = () => {
                             <td className="py-3 text-right">
                               <button
                                 onClick={() => handleRemovePOItem(item.productId)}
-                                className="text-red-400 hover:text-red-300 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                className="text-status-coral hover:text-status-coral p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                               >
                                 <Trash2 size={14} />
                               </button>
@@ -759,7 +759,7 @@ export const VendorManager: React.FC = () => {
 
               {/* Right Side: Product Catalog Search (4 Columns) */}
               <div className="lg:col-span-4 flex flex-col glass-panel p-5 rounded-2xl border-white/5 overflow-hidden">
-                <span className="text-xs font-bold text-neutral-200 uppercase tracking-widest block mb-2 flex-shrink-0">Catalog Product Search</span>
+                <span className="text-xs font-bold text-content-primary uppercase tracking-widest block mb-2 flex-shrink-0">Catalog Product Search</span>
                 <div className="relative mb-3 flex-shrink-0">
                   <input
                     type="text"
@@ -768,7 +768,7 @@ export const VendorManager: React.FC = () => {
                     onChange={(e) => setProductSearch(e.target.value)}
                     className="w-full pl-9 pr-3 py-2 text-xs glass-input rounded-xl"
                   />
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-200" size={14} />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-content-primary" size={14} />
                 </div>
 
                 {/* Search list */}
@@ -784,7 +784,7 @@ export const VendorManager: React.FC = () => {
                         <div className="text-[9px] text-gray-500 mt-0.5">Code: {p.barcode} • Stock: {p.stock}</div>
                       </div>
                       <div className="text-right">
-                        <div className="text-[11px] font-bold text-neutral-200">Rs. {p.price}</div>
+                        <div className="text-[11px] font-bold text-content-primary">Rs. {p.price}</div>
                         <div className="text-[9px] text-gray-500">Cost: Rs. {p.cost_price}</div>
                       </div>
                     </div>
@@ -805,7 +805,7 @@ export const VendorManager: React.FC = () => {
                           min="0"
                           value={itemCostPrice}
                           onChange={e => setItemCostPrice(Number(e.target.value))}
-                          className="w-full px-2 py-1.5 bg-black/25 border border-white/10 rounded font-bold text-xs text-emerald-400 focus:outline-none focus:border-emerald-400"
+                          className="w-full px-2 py-1.5 bg-black/25 border border-white/10 rounded font-bold text-xs text-status-emerald focus:outline-none focus:border-status-emerald"
                         />
                       </div>
                       <div>
@@ -834,7 +834,7 @@ export const VendorManager: React.FC = () => {
                               setItemCostPrice(Number((totalVal / itemQty).toFixed(2)));
                             }
                           }}
-                          className="w-full px-2 py-1.5 bg-black/25 border border-white/10 rounded font-bold text-xs text-emerald-400 focus:outline-none focus:border-emerald-400"
+                          className="w-full px-2 py-1.5 bg-black/25 border border-white/10 rounded font-bold text-xs text-status-emerald focus:outline-none focus:border-status-emerald"
                         />
                       </div>
                     </div>
@@ -860,7 +860,7 @@ export const VendorManager: React.FC = () => {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
               <div>
                 <h2 className="text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
-                  <Truck className="text-neutral-200 drop-shadow-[0_0_8px_rgba(255, 255, 255, 0.4)]" size={32} />
+                  <Truck className="text-content-primary drop-shadow-[0_0_8px_rgba(255, 255, 255, 0.4)]" size={32} />
                   Vendors & Purchase Orders
                 </h2>
                 <p className="text-gray-400 mt-1">Manage wholesale suppliers, purchase order invoices, and restock inventory.</p>
@@ -888,7 +888,7 @@ export const VendorManager: React.FC = () => {
                 onClick={() => setActiveTab('VENDORS')}
                 className={`pb-3 px-6 font-bold text-sm tracking-wider uppercase border-b-2 transition flex items-center gap-2 ${
                   activeTab === 'VENDORS' 
-                    ? 'border-emerald-400 text-emerald-400'
+                    ? 'border-status-emerald text-status-emerald'
                     : 'border-transparent text-gray-500 hover:text-gray-300'
                 }`}
               >
@@ -898,7 +898,7 @@ export const VendorManager: React.FC = () => {
                 onClick={() => setActiveTab('POS')}
                 className={`pb-3 px-6 font-bold text-sm tracking-wider uppercase border-b-2 transition flex items-center gap-2 ${
                   activeTab === 'POS' 
-                    ? 'border-emerald-400 text-emerald-400'
+                    ? 'border-status-emerald text-status-emerald'
                     : 'border-transparent text-gray-500 hover:text-gray-300'
                 }`}
               >
@@ -908,7 +908,7 @@ export const VendorManager: React.FC = () => {
                 onClick={() => setActiveTab('PAYMENTS')}
                 className={`pb-3 px-6 font-bold text-sm tracking-wider uppercase border-b-2 transition flex items-center gap-2 ${
                   activeTab === 'PAYMENTS' 
-                    ? 'border-emerald-400 text-emerald-400'
+                    ? 'border-status-emerald text-status-emerald'
                     : 'border-transparent text-gray-500 hover:text-gray-300'
                 }`}
               >
@@ -918,7 +918,7 @@ export const VendorManager: React.FC = () => {
                 onClick={() => setActiveTab('ORDERS')}
                 className={`pb-3 px-6 font-bold text-sm tracking-wider uppercase border-b-2 transition flex items-center gap-2 ${
                   activeTab === 'ORDERS' 
-                    ? 'border-emerald-400 text-emerald-400'
+                    ? 'border-status-emerald text-status-emerald'
                     : 'border-transparent text-gray-500 hover:text-gray-300'
                 }`}
               >
@@ -938,7 +938,7 @@ export const VendorManager: React.FC = () => {
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full pl-12 pr-4 py-3.5 glass-input rounded-xl"
                   />
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-200" size={20} />
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-content-primary" size={20} />
                 </div>
 
                 {/* Vendors Table */}
@@ -952,7 +952,7 @@ export const VendorManager: React.FC = () => {
                   ) : (
                     <table className="w-full text-left border-collapse">
                       <thead>
-                        <tr className="border-b border-white/5 text-neutral-200 font-bold text-sm tracking-wider uppercase">
+                        <tr className="border-b border-white/5 text-content-primary font-bold text-sm tracking-wider uppercase">
                           <th className="py-4 px-4">Vendor Company</th>
                           <th className="py-4 px-4">Wholesale Category</th>
                           <th className="py-4 px-4">Contact & Support</th>
@@ -964,10 +964,10 @@ export const VendorManager: React.FC = () => {
                           <tr key={v.id} className="hover:bg-white/5 transition-colors group">
                             <td className="py-4 px-4">
                               <div className="font-extrabold text-white">{v.name}</div>
-                              <div className="text-xs text-neutral-200/70">ID: #{v.id}</div>
+                              <div className="text-xs text-content-primary/70">ID: #{v.id}</div>
                             </td>
                             <td className="py-4 px-4">
-                              <span className="inline-flex items-center px-3 py-1 bg-white/10 border border-white/25 text-neutral-200 rounded-full font-bold text-xs">
+                              <span className="inline-flex items-center px-3 py-1 bg-white/10 border border-white/25 text-content-primary rounded-full font-bold text-xs">
                                 {v.category || 'General'}
                               </span>
                             </td>
@@ -978,13 +978,13 @@ export const VendorManager: React.FC = () => {
                               <div className="flex justify-end gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
                                 <button
                                   onClick={() => handleOpenEditVendor(v)}
-                                  className="p-2 text-neutral-200 bg-white/10 border border-white/20 rounded-lg hover:bg-white/20 transition-colors"
+                                  className="p-2 text-content-primary bg-white/10 border border-white/20 rounded-lg hover:bg-white/20 transition-colors"
                                 >
                                   <Edit2 size={16} />
                                 </button>
                                 <button
                                   onClick={() => handleDeleteVendor(v.id)}
-                                  className="p-2 text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg hover:bg-red-500/20 transition-colors"
+                                  className="p-2 text-status-coral bg-status-coral/10 border border-status-coral/20 rounded-lg hover:bg-status-coral/20 transition-colors"
                                 >
                                   <Trash2 size={16} />
                                 </button>
@@ -1030,9 +1030,9 @@ export const VendorManager: React.FC = () => {
                               {/* Stock Delivery Status */}
                               <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
                                 po.status === 'Received'
-                                  ? 'bg-white/10 text-emerald-400 border-emerald-500/30'
+                                  ? 'bg-white/10 text-status-emerald border-status-emerald/30'
                                   : po.status === 'Cancelled'
-                                  ? 'bg-red-500/10 text-red-400 border-red-500/30'
+                                  ? 'bg-status-coral/10 text-status-coral border-status-coral/30'
                                   : 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30 animate-pulse'
                               }`}>
                                 {po.status}
@@ -1041,7 +1041,7 @@ export const VendorManager: React.FC = () => {
                               {/* Payment Status Pill */}
                               <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
                                 isPaid 
-                                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                                  ? 'bg-status-emerald/10 text-status-emerald border-status-emerald/30'
                                   : isPartial
                                   ? 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30'
                                   : 'bg-orange-500/10 text-orange-400 border-orange-500/30'
@@ -1059,7 +1059,7 @@ export const VendorManager: React.FC = () => {
                                   return (
                                     <button
                                       onClick={() => handleDeletePO(po.id)}
-                                      className="px-2 py-1 text-[10px] font-bold bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-lg transition-colors flex items-center gap-1 ml-1"
+                                      className="px-2 py-1 text-[10px] font-bold bg-status-coral/10 hover:bg-status-coral/20 text-status-coral border border-status-coral/20 rounded-lg transition-colors flex items-center gap-1 ml-1"
                                       title={`Created ${Math.floor(diffMins)}m ago. Allowed to remove within 30 mins.`}
                                     >
                                       <Trash2 size={12} />
@@ -1088,11 +1088,11 @@ export const VendorManager: React.FC = () => {
                             </div>
                             <div className="flex justify-between items-center mb-1.5 text-xs">
                               <span className="text-gray-400 font-bold uppercase text-[10px] tracking-wider">Paid Amount:</span>
-                              <span className="font-extrabold text-emerald-400">Rs. {paid.toLocaleString()}</span>
+                              <span className="font-extrabold text-status-emerald">Rs. {paid.toLocaleString()}</span>
                             </div>
                             <div className="flex justify-between items-center pt-1.5 border-t border-white/5 text-xs">
                               <span className="text-gray-300 font-bold uppercase text-[10px] tracking-wider">Remaining Balance:</span>
-                              <span className={`font-black ${remaining > 0 ? 'text-orange-400' : 'text-emerald-400'}`}>
+                              <span className={`font-black ${remaining > 0 ? 'text-orange-400' : 'text-status-emerald'}`}>
                                 Rs. {remaining.toLocaleString()}
                               </span>
                             </div>
@@ -1101,7 +1101,7 @@ export const VendorManager: React.FC = () => {
                             {po.total_cost > 0 && (
                               <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden mt-2.5">
                                 <div 
-                                  className={`h-full ${isPaid ? 'bg-emerald-400' : 'bg-gradient-to-r from-emerald-400 to-cyan-400'}`}
+                                  className={`h-full ${isPaid ? 'bg-status-emerald' : 'bg-gradient-to-r from-emerald-400 to-cyan-400'}`}
                                   style={{ width: `${Math.min(100, (paid / po.total_cost) * 100)}%` }}
                                 ></div>
                               </div>
@@ -1136,7 +1136,7 @@ export const VendorManager: React.FC = () => {
                               {remaining > 0 && (
                                 <button
                                   onClick={() => handleOpenPaymentModal(po)}
-                                  className="flex-1 py-2.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 rounded-xl font-bold text-xs tracking-wider uppercase transition flex justify-center items-center gap-1.5 shadow-[0_0_12px_rgba(16,185,129,0.1)] cursor-pointer active:scale-95"
+                                  className="flex-1 py-2.5 bg-status-emerald/20 hover:bg-status-emerald/30 text-status-emerald border border-status-emerald/40 rounded-xl font-bold text-xs tracking-wider uppercase transition flex justify-center items-center gap-1.5 shadow-[0_0_12px_rgba(16,185,129,0.1)] cursor-pointer active:scale-95"
                                 >
                                   <CreditCard size={14} /> Pay Vendor
                                 </button>
@@ -1226,13 +1226,13 @@ export const VendorManager: React.FC = () => {
                                       title: `Payment Installment #${pay.id} Receipt`,
                                       subtitle: `Vendor: ${pay.vendor_name} • Paid: Rs. ${pay.amount.toLocaleString()} via ${pay.payment_method}`
                                     })}
-                                    className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 rounded-full text-[10px] font-bold transition cursor-pointer"
+                                    className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 bg-status-emerald/20 hover:bg-status-emerald/30 text-status-emerald border border-status-emerald/40 rounded-full text-[10px] font-bold transition cursor-pointer"
                                   >
                                     <ImageIcon size={10} /> View Slip
                                   </button>
                                 )}
                               </td>
-                              <td className="py-4 px-5 text-right font-extrabold text-emerald-400 text-base">
+                              <td className="py-4 px-5 text-right font-extrabold text-status-emerald text-base">
                                 Rs. {pay.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                               </td>
                               <td className="py-4 px-4 text-center">
@@ -1247,7 +1247,7 @@ export const VendorManager: React.FC = () => {
                                     </button>
                                     <button
                                       onClick={() => handleDeletePayment(pay.id)}
-                                      className="p-1.5 px-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-[10px] font-bold flex items-center gap-1 transition cursor-pointer"
+                                      className="p-1.5 px-2 bg-status-coral/10 hover:bg-status-coral/20 text-status-coral rounded-lg text-[10px] font-bold flex items-center gap-1 transition cursor-pointer"
                                       title={`Undo payment (${remainingMins}m remaining)`}
                                     >
                                       <Trash2 size={12} /> Undo
@@ -1343,7 +1343,7 @@ export const VendorManager: React.FC = () => {
                                     </button>
                                     <button
                                       onClick={() => handleDeleteOrderEntry(entry.id)}
-                                      className="p-1.5 px-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-[10px] font-bold flex items-center gap-1 transition"
+                                      className="p-1.5 px-2 bg-status-coral/10 hover:bg-status-coral/20 text-status-coral rounded-lg text-[10px] font-bold flex items-center gap-1 transition"
                                       title={`Undo invoice entry (${remainingMins}m remaining)`}
                                     >
                                       <Trash2 size={12} /> Undo
@@ -1375,12 +1375,12 @@ export const VendorManager: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md animate-in fade-in duration-200 p-4">
           <div className="glass-panel w-full max-w-md p-6 md:p-8 rounded-3xl border border-white/10 animate-in zoom-in-95 duration-300 relative shadow-2xl">
             <h3 className="text-2xl font-bold text-white mb-4 flex items-center gap-2.5">
-              <Truck className="text-emerald-400" />
+              <Truck className="text-status-emerald" />
               {editingVendor ? 'Edit Vendor Profile' : 'Register New Vendor'}
             </h3>
 
             {error && (
-              <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-xs">
+              <div className="mb-4 p-3 bg-status-coral/10 border border-status-coral/20 text-status-coral rounded-xl text-xs">
                 {error}
               </div>
             )}
@@ -1447,7 +1447,7 @@ export const VendorManager: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md animate-in fade-in duration-200 p-4">
           <div className="glass-panel w-full max-w-md p-6 md:p-8 rounded-3xl border border-white/10 animate-in zoom-in-95 duration-300 relative shadow-2xl">
             <h3 className="text-2xl font-bold text-white mb-2 flex items-center gap-2.5">
-              <CreditCard className="text-emerald-400" />
+              <CreditCard className="text-status-emerald" />
               {editingPayment ? 'Edit Payment Installment' : 'Pay Vendor'}
             </h3>
             <p className="text-xs text-gray-400 mb-5">
@@ -1465,7 +1465,7 @@ export const VendorManager: React.FC = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-400">Already Paid:</span>
-                <span className="font-extrabold text-emerald-400">Rs. {(selectedPOForPayment.paid_amount || 0).toLocaleString()}</span>
+                <span className="font-extrabold text-status-emerald">Rs. {(selectedPOForPayment.paid_amount || 0).toLocaleString()}</span>
               </div>
               <div className="flex justify-between pt-1.5 border-t border-white/5">
                 <span className="text-gray-200 font-bold">Remaining Due Balance:</span>
@@ -1477,7 +1477,7 @@ export const VendorManager: React.FC = () => {
 
             <form onSubmit={handleSavePayment} className="space-y-4">
               <div>
-                <label className="text-xs font-bold text-emerald-400 uppercase tracking-wider block mb-1.5">
+                <label className="text-xs font-bold text-status-emerald uppercase tracking-wider block mb-1.5">
                   Payment Amount (Rs.) *
                 </label>
                 <input
@@ -1487,7 +1487,7 @@ export const VendorManager: React.FC = () => {
                   required
                   value={payAmount}
                   onChange={(e) => setPayAmount(e.target.value)}
-                  className="w-full px-4 py-3 glass-input rounded-xl text-emerald-400 font-bold text-base"
+                  className="w-full px-4 py-3 glass-input rounded-xl text-status-emerald font-bold text-base"
                   placeholder="Enter amount to pay..."
                   autoFocus
                 />
@@ -1500,12 +1500,12 @@ export const VendorManager: React.FC = () => {
                 <select
                   value={payMethod}
                   onChange={(e) => setPayMethod(e.target.value)}
-                  className="w-full px-4 py-3 glass-input rounded-xl text-white font-bold text-sm bg-neutral-900"
+                  className="w-full px-4 py-3 glass-input rounded-xl text-white font-bold text-sm bg-canvas-card"
                 >
-                  <option value="Cash" className="bg-neutral-900 text-white">Cash</option>
-                  <option value="Bank Transfer" className="bg-neutral-900 text-white">Bank Transfer / Online</option>
-                  <option value="Cheque" className="bg-neutral-900 text-white">Cheque</option>
-                  <option value="JazzCash / EasyPaisa" className="bg-neutral-900 text-white">JazzCash / EasyPaisa</option>
+                  <option value="Cash" className="bg-canvas-card text-white">Cash</option>
+                  <option value="Bank Transfer" className="bg-canvas-card text-white">Bank Transfer / Online</option>
+                  <option value="Cheque" className="bg-canvas-card text-white">Cheque</option>
+                  <option value="JazzCash / EasyPaisa" className="bg-canvas-card text-white">JazzCash / EasyPaisa</option>
                 </select>
               </div>
 
@@ -1523,12 +1523,12 @@ export const VendorManager: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-emerald-400 uppercase tracking-wider block mb-1.5 flex items-center gap-1.5">
+                <label className="text-xs font-bold text-status-emerald uppercase tracking-wider block mb-1.5 flex items-center gap-1.5">
                   <Paperclip size={13} />
                   Attach Payment Receipt / Slip / Cheque (Optional)
                 </label>
                 {payReceiptImage ? (
-                  <div className="flex items-center gap-3 p-2.5 bg-white/5 border border-emerald-500/30 rounded-xl">
+                  <div className="flex items-center gap-3 p-2.5 bg-white/5 border border-status-emerald/30 rounded-xl">
                     <img 
                       src={payReceiptImage} 
                       alt="Receipt preview" 
@@ -1537,7 +1537,7 @@ export const VendorManager: React.FC = () => {
                       title="Click to zoom / view full receipt"
                     />
                     <div className="flex-1 min-w-0">
-                      <span className="text-xs text-emerald-300 font-bold block truncate">Receipt Slip Attached</span>
+                      <span className="text-xs text-status-emerald font-bold block truncate">Receipt Slip Attached</span>
                       <button
                         type="button"
                         onClick={() => setViewingReceipt({ url: payReceiptImage, title: "Vendor Payment Receipt", subtitle: `PO #${selectedPOForPayment.id} • Rs. ${payAmount}` })}
@@ -1549,14 +1549,14 @@ export const VendorManager: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setPayReceiptImage('')}
-                      className="p-1 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition"
+                      className="p-1 text-status-coral hover:text-status-coral hover:bg-status-coral/10 rounded-lg transition"
                       title="Remove attached receipt"
                     >
                       <X size={16} />
                     </button>
                   </div>
                 ) : (
-                  <label className="flex items-center justify-center gap-2 p-3 bg-white/5 hover:bg-white/10 border border-dashed border-white/20 hover:border-emerald-400/50 rounded-xl cursor-pointer transition text-xs text-gray-400 hover:text-emerald-300">
+                  <label className="flex items-center justify-center gap-2 p-3 bg-white/5 hover:bg-white/10 border border-dashed border-white/20 hover:border-status-emerald/50 rounded-xl cursor-pointer transition text-xs text-gray-400 hover:text-status-emerald">
                     <Upload size={14} />
                     <span className="font-bold">Upload Payment Slip / Receipt</span>
                     <input 
@@ -1666,7 +1666,7 @@ export const VendorManager: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setEditOrderBillImage('')}
-                      className="p-1 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition"
+                      className="p-1 text-status-coral hover:text-status-coral hover:bg-status-coral/10 rounded-lg transition"
                       title="Remove attached bill"
                     >
                       <X size={16} />
@@ -1721,7 +1721,7 @@ export const VendorManager: React.FC = () => {
             {/* Modal Header */}
             <div className="flex justify-between items-start mb-4 flex-shrink-0 pb-4 border-b border-white/5">
               <div>
-                <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest block">Complete Financial Statement</span>
+                <span className="text-[10px] text-status-emerald font-bold uppercase tracking-widest block">Complete Financial Statement</span>
                 <h3 className="text-2xl font-extrabold text-white mt-0.5">{selectedPOForDetails.vendor_name}</h3>
                 <span className="text-xs text-gray-400">Account ID: #{selectedPOForDetails.id}</span>
               </div>
@@ -1791,7 +1791,7 @@ export const VendorManager: React.FC = () => {
                       window.open(waUrl, '_blank');
                     });
                   }}
-                  className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-[0_0_15px_rgba(16,185,129,0.4)] transition cursor-pointer active:scale-95"
+                  className="px-3.5 py-2 bg-status-emerald hover:brightness-110 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-[0_0_15px_rgba(16,185,129,0.4)] transition cursor-pointer active:scale-95"
                   title="Automate send complete ledger to Vendor on WhatsApp"
                 >
                   <Send size={14} />
@@ -1814,11 +1814,11 @@ export const VendorManager: React.FC = () => {
               </div>
               <div>
                 <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider block">Total Paid</span>
-                <span className="text-lg font-black text-emerald-400">Rs. {(selectedPOForDetails.paid_amount || 0).toLocaleString()}</span>
+                <span className="text-lg font-black text-status-emerald">Rs. {(selectedPOForDetails.paid_amount || 0).toLocaleString()}</span>
               </div>
               <div>
                 <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider block">Balance Due</span>
-                <span className={`text-lg font-black ${Math.max(0, selectedPOForDetails.total_cost - (selectedPOForDetails.paid_amount || 0)) > 0 ? 'text-orange-400' : 'text-emerald-400'}`}>
+                <span className={`text-lg font-black ${Math.max(0, selectedPOForDetails.total_cost - (selectedPOForDetails.paid_amount || 0)) > 0 ? 'text-orange-400' : 'text-status-emerald'}`}>
                   Rs. {Math.max(0, selectedPOForDetails.total_cost - (selectedPOForDetails.paid_amount || 0)).toLocaleString()}
                 </span>
               </div>
@@ -1878,7 +1878,7 @@ export const VendorManager: React.FC = () => {
                                 </button>
                                 <button
                                   onClick={() => handleDeleteOrderEntry(entry.id)}
-                                  className="p-1 px-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-[10px] font-bold transition cursor-pointer"
+                                  className="p-1 px-2 bg-status-coral/10 hover:bg-status-coral/20 text-status-coral rounded-lg text-[10px] font-bold transition cursor-pointer"
                                   title={`Remove (${remainingMins}m left)`}
                                 >
                                   Undo
@@ -1940,7 +1940,7 @@ export const VendorManager: React.FC = () => {
               {/* 2. All Payment Installments */}
               <div>
                 <h4 className="text-xs font-bold text-gray-300 uppercase tracking-wider mb-2.5 flex items-center gap-2">
-                  <CreditCard size={15} className="text-emerald-400" />
+                  <CreditCard size={15} className="text-status-emerald" />
                   Payment Installments Recorded ({selectedPOForDetails.payments?.length || 0})
                 </h4>
 
@@ -1957,10 +1957,10 @@ export const VendorManager: React.FC = () => {
                       const remainingMins = Math.max(0, Math.ceil(30 - diffMins));
 
                       return (
-                        <div key={pay.id || idx} className="p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/20 flex justify-between items-center text-xs">
+                        <div key={pay.id || idx} className="p-3 bg-status-emerald/10 rounded-xl border border-status-emerald/20 flex justify-between items-center text-xs">
                           <div>
                             <div className="font-bold text-white flex items-center gap-2">
-                              <span className="text-emerald-400">{pay.payment_method} Payment</span>
+                              <span className="text-status-emerald">{pay.payment_method} Payment</span>
                               <span className="text-[10px] text-gray-400">• {new Date(pay.timestamp).toLocaleString()}</span>
                               {pay.receipt_url && (
                                 <button
@@ -1970,7 +1970,7 @@ export const VendorManager: React.FC = () => {
                                     title: `Payment Installment #${pay.id} Receipt`,
                                     subtitle: `Paid: Rs. ${pay.amount.toLocaleString()} via ${pay.payment_method}`
                                   })}
-                                  className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 rounded-full text-[10px] font-bold transition cursor-pointer"
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 bg-status-emerald/20 hover:bg-status-emerald/30 text-status-emerald border border-status-emerald/40 rounded-full text-[10px] font-bold transition cursor-pointer"
                                   title="View payment slip receipt"
                                 >
                                   <ImageIcon size={10} /> Slip Receipt
@@ -1980,7 +1980,7 @@ export const VendorManager: React.FC = () => {
                             <div className="text-[11px] text-gray-400 mt-0.5">{pay.notes || 'Payment installment'}</div>
                           </div>
                           <div className="flex items-center gap-3">
-                            <span className="font-extrabold text-emerald-400 text-sm">Rs. {pay.amount.toLocaleString()}</span>
+                            <span className="font-extrabold text-status-emerald text-sm">Rs. {pay.amount.toLocaleString()}</span>
                             {isEditable ? (
                               <div className="flex items-center gap-1">
                                 <button
@@ -1992,7 +1992,7 @@ export const VendorManager: React.FC = () => {
                                 </button>
                                 <button
                                   onClick={() => handleDeletePayment(pay.id)}
-                                  className="p-1 px-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-[10px] font-bold transition cursor-pointer"
+                                  className="p-1 px-2 bg-status-coral/10 hover:bg-status-coral/20 text-status-coral rounded-lg text-[10px] font-bold transition cursor-pointer"
                                   title={`Remove payment (${remainingMins}m left)`}
                                 >
                                   Undo
@@ -2080,7 +2080,7 @@ export const VendorManager: React.FC = () => {
                     window.open(waUrl, '_blank');
                   });
                 }}
-                className="px-4 py-2 bg-emerald-600/20 hover:bg-emerald-600/35 border border-emerald-500/40 text-emerald-300 font-bold text-xs rounded-xl flex items-center gap-1.5 transition cursor-pointer"
+                className="px-4 py-2 bg-status-emerald/20 hover:bg-status-emerald/35 border border-status-emerald/40 text-status-emerald font-bold text-xs rounded-xl flex items-center gap-1.5 transition cursor-pointer"
               >
                 <Send size={13} /> Send Ledger to Vendor on WhatsApp
               </button>

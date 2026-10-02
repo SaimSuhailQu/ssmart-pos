@@ -506,7 +506,7 @@ const AppContent: React.FC = () => {
 
   // Navigation Panel JSX helper
   const renderNavbar = () => (
-    <nav className="enterprise-card py-2 px-4 rounded-xl flex flex-wrap items-center justify-between gap-3 relative z-30 text-slate-200 shadow-lg flex-shrink-0 border-slate-800">
+    <nav className="enterprise-card py-2 px-4 rounded-xl flex flex-wrap items-center justify-between gap-3 relative z-30 text-content-primary shadow-lg flex-shrink-0 border-canvas-card">
       {/* Left: Operational Modes */}
       <div className="flex items-center gap-1.5">
         <button 
@@ -514,7 +514,7 @@ const AppContent: React.FC = () => {
           className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
             viewMode === 'POS' 
               ? 'bg-indigo-600 text-white shadow-sm' 
-              : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+              : 'text-content-secondary hover:text-white hover:bg-canvas-card/60'
           }`}
         >
           <LayoutGrid size={15} /> POS Terminal
@@ -525,13 +525,13 @@ const AppContent: React.FC = () => {
           className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
             viewMode === 'SALES_RECORD' 
               ? 'bg-indigo-600 text-white shadow-sm' 
-              : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+              : 'text-content-secondary hover:text-white hover:bg-canvas-card/60'
           }`}
         >
           <History size={15} /> Sales Records
         </button>
 
-        <div className="h-4 w-[1px] bg-slate-800 mx-1.5" />
+        <div className="h-4 w-[1px] bg-canvas-card mx-1.5" />
 
         {/* Admin and Manager exclusive tabs */}
         {(currentUser.role === 'Admin' || currentUser.role === 'Manager') && (
@@ -544,7 +544,7 @@ const AppContent: React.FC = () => {
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 relative cursor-pointer ${
                 viewMode === 'INVENTORY' 
                   ? 'bg-indigo-600 text-white shadow-sm' 
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                  : 'text-content-secondary hover:text-white hover:bg-canvas-card/60'
               }`}
             >
               <PackageOpen size={15} /> Inventory
@@ -555,7 +555,7 @@ const AppContent: React.FC = () => {
                     setLowStockOnlyView(true);
                     setViewMode('INVENTORY');
                   }}
-                  className="ml-1 px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 transition-colors cursor-pointer"
+                  className="ml-1 px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-status-amber/20 text-status-amber border border-status-amber/40 hover:bg-status-amber/30 transition-colors cursor-pointer"
                   title={`${lowStockCount} items have low stock (≤ 5 units). Click to view.`}
                 >
                   {lowStockCount} LOW
@@ -567,7 +567,7 @@ const AppContent: React.FC = () => {
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
                 viewMode === 'CUSTOMERS' 
                   ? 'bg-indigo-600 text-white shadow-sm' 
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                  : 'text-content-secondary hover:text-white hover:bg-canvas-card/60'
               }`}
             >
               <Users size={15} /> Customers & Khata
@@ -577,7 +577,7 @@ const AppContent: React.FC = () => {
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
                 viewMode === 'VENDORS' 
                   ? 'bg-indigo-600 text-white shadow-sm' 
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                  : 'text-content-secondary hover:text-white hover:bg-canvas-card/60'
               }`}
             >
               <Truck size={15} /> Vendors & POs
@@ -587,7 +587,7 @@ const AppContent: React.FC = () => {
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
                 viewMode === 'BARCODE_PRINT' 
                   ? 'bg-violet-600 text-white shadow-sm' 
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                  : 'text-content-secondary hover:text-white hover:bg-canvas-card/60'
               }`}
             >
               <Printer size={15} /> Barcode Printer
@@ -602,7 +602,7 @@ const AppContent: React.FC = () => {
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
               viewMode === 'ANALYTICS' 
                 ? 'bg-indigo-600 text-white shadow-sm' 
-                : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                : 'text-content-secondary hover:text-white hover:bg-canvas-card/60'
             }`}
           >
             <BarChart3 size={15} /> Financials
@@ -614,7 +614,7 @@ const AppContent: React.FC = () => {
           className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
             viewMode === 'EXPENSES' 
               ? 'bg-indigo-600 text-white shadow-sm' 
-              : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+              : 'text-content-secondary hover:text-white hover:bg-canvas-card/60'
           }`}
         >
           <DollarSign size={15} /> Expenses
@@ -626,7 +626,7 @@ const AppContent: React.FC = () => {
         {updateInfo?.status === 'downloaded' && (
           <button
             onClick={() => window.api.quitAndInstallUpdate()}
-            className="px-3 py-1.5 rounded-lg font-bold text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 flex items-center gap-1.5 animate-pulse cursor-pointer shadow-sm"
+            className="px-3 py-1.5 rounded-lg font-bold text-xs bg-status-emerald hover:brightness-110 text-canvas flex items-center gap-1.5 animate-pulse cursor-pointer shadow-sm"
             title="Click to restart and apply new version"
           >
             <Sparkles size={14} /> Restart POS ({updateInfo.version || 'New'})
@@ -664,7 +664,7 @@ const AppContent: React.FC = () => {
             }
           }}
           disabled={isCheckingUpdate}
-          className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/60 border border-transparent hover:border-slate-700 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+          className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-content-secondary hover:text-white hover:bg-canvas-card/60 border border-transparent hover:border-canvas-hover transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
           title="Check GitHub for newer version of MART POS"
         >
           <RefreshCw size={13} className={isCheckingUpdate ? 'animate-spin text-indigo-400' : ''} />
@@ -672,13 +672,13 @@ const AppContent: React.FC = () => {
         </button>
 
         {/* User Session & Logout */}
-        <div className="flex items-center gap-2 pl-2 border-l border-slate-800">
-          <span className="text-xs text-slate-400 font-medium hidden sm:inline">
-            <span className="text-slate-200 font-semibold">{currentUser.name}</span> ({currentUser.role})
+        <div className="flex items-center gap-2 pl-2 border-l border-canvas-card">
+          <span className="text-xs text-content-secondary font-medium hidden sm:inline">
+            <span className="text-content-primary font-semibold">{currentUser.name}</span> ({currentUser.role})
           </span>
           <button 
             onClick={() => setCurrentUser(null)} 
-            className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border border-rose-500/20 transition flex items-center gap-1.5 cursor-pointer"
+            className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-status-coral hover:text-status-coral hover:bg-status-coral/10 border border-status-coral/20 transition flex items-center gap-1.5 cursor-pointer"
             title="Lock POS / Logout Current User"
           >
             <Shield size={14} /> Lock
@@ -692,7 +692,7 @@ const AppContent: React.FC = () => {
   if (viewMode === 'BARCODE_PRINT') {
     return (
       <div className="h-screen w-full flex flex-col font-outfit bg-transparent p-2.5 gap-2 overflow-hidden">
-        <div className="flex-1 overflow-hidden min-h-0 enterprise-card rounded-xl border-slate-800">
+        <div className="flex-1 overflow-hidden min-h-0 enterprise-card rounded-xl border-canvas-card">
           <BarcodePrintManager />
         </div>
         {renderNavbar()}
@@ -781,12 +781,12 @@ const AppContent: React.FC = () => {
       <div className="flex flex-1 overflow-hidden gap-3 rounded-2xl">
         {/* Left side: Collapsible Product Catalog Panel */}
         {isCatalogOpen && (
-          <div className="w-[420px] flex flex-col enterprise-card rounded-xl overflow-hidden relative z-10 border-slate-800 animate-in slide-in-from-left-3 duration-200">
-            <header className="p-4 border-b border-slate-800 bg-slate-900/80 backdrop-blur-md flex justify-between items-center">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-200">{t('Product Catalog')}</h2>
+          <div className="w-[420px] flex flex-col enterprise-card rounded-xl overflow-hidden relative z-10 border-canvas-card animate-in slide-in-from-left-3 duration-200">
+            <header className="p-4 border-b border-canvas-card bg-canvas-subtle/80 backdrop-blur-md flex justify-between items-center">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-content-primary">{t('Product Catalog')}</h2>
               <button 
                 onClick={() => setIsCatalogOpen(false)}
-                className="text-xs text-slate-400 hover:text-white font-medium"
+                className="text-xs text-content-secondary hover:text-white font-medium"
               >
                 {t('Close')}
               </button>
@@ -796,26 +796,26 @@ const AppContent: React.FC = () => {
         )}
 
         {/* Center: Streamlined active scanned order list (Primary Panel) */}
-        <div className="flex-1 flex flex-col enterprise-card rounded-xl overflow-hidden relative z-10 border-slate-800">
-          <header className="p-4 border-b border-slate-800 bg-slate-900/80 sticky top-0 z-20 flex justify-between items-center backdrop-blur-md">
+        <div className="flex-1 flex flex-col enterprise-card rounded-xl overflow-hidden relative z-10 border-canvas-card">
+          <header className="p-4 border-b border-canvas-card bg-canvas-subtle/80 sticky top-0 z-20 flex justify-between items-center backdrop-blur-md">
             <div className="flex items-center gap-3">
-              <img src={logoImg} alt="SS Mart Logo" className="w-10 h-10 rounded-lg border border-slate-700 object-cover shadow-sm" />
+              <img src={logoImg} alt="SS Mart Logo" className="w-10 h-10 rounded-lg border border-canvas-hover object-cover shadow-sm" />
               <div>
                 <div className="flex items-center gap-2">
                   <h1 className="text-base font-bold tracking-tight text-white">{t('SS MART POS')}</h1>
                   {/* Cloud Status Indicator */}
                   <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold tracking-wider border uppercase ${
                     isOnline
-                      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                      : 'bg-rose-500/10 text-rose-400 border-rose-500/30 animate-pulse'
+                      ? 'bg-status-emerald/10 text-status-emerald border-status-emerald/30'
+                      : 'bg-status-coral/10 text-status-coral border-status-coral/30 animate-pulse'
                   }`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${
-                      isOnline ? 'bg-emerald-400' : 'bg-rose-400'
+                      isOnline ? 'bg-status-emerald' : 'bg-status-coral'
                     }`} />
                     {isOnline ? 'Online' : 'Offline'}
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-400 font-mono mt-0.5">Terminal ID: #01 • Cashier: {currentUser.name}</p>
+                <p className="text-[11px] text-content-secondary font-mono mt-0.5">Terminal ID: #01 • Cashier: {currentUser.name}</p>
               </div>
             </div>
 
@@ -835,7 +835,7 @@ const AppContent: React.FC = () => {
                 className={`px-3.5 py-1.5 rounded-lg font-medium transition-all flex items-center gap-2 text-xs cursor-pointer ${
                   isCatalogOpen 
                     ? 'bg-indigo-600 text-white shadow-sm'
-                    : 'text-slate-300 hover:text-white bg-slate-800/80 border border-slate-700 hover:border-slate-600'
+                    : 'text-content-secondary hover:text-white bg-canvas-card/80 border border-canvas-hover hover:border-canvas-hover'
                 }`}
               >
                 <LayoutGrid size={15} /> {isCatalogOpen ? 'Close Catalog' : 'Catalog (F4)'}
@@ -844,7 +844,7 @@ const AppContent: React.FC = () => {
               {/* Live Interactive Catalog Search & Barcode Scan Bar */}
               <div ref={searchWrapperRef} className="relative group w-72">
                 <form onSubmit={handleManualAdd}>
-                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400 group-focus-within:text-indigo-400 transition-colors">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-content-secondary group-focus-within:text-indigo-400 transition-colors">
                     <PackageSearch size={16} />
                   </div>
                   <input 
@@ -878,10 +878,10 @@ const AppContent: React.FC = () => {
 
                 {/* Live Catalog Search Dropdown Menu */}
                 {isSearchDropdownOpen && matchingProducts.length > 0 && (
-                  <div className="absolute left-0 right-0 top-full mt-1.5 bg-slate-900/95 backdrop-blur-md border border-slate-700/80 rounded-xl shadow-2xl z-50 overflow-hidden max-h-72 overflow-y-auto divide-y divide-slate-800/60 animate-in fade-in zoom-in-95 duration-100">
-                    <div className="px-3 py-1.5 bg-slate-950/60 text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex justify-between items-center">
+                  <div className="absolute left-0 right-0 top-full mt-1.5 bg-canvas-subtle/95 backdrop-blur-md border border-canvas-hover/80 rounded-xl shadow-2xl z-50 overflow-hidden max-h-72 overflow-y-auto divide-y divide-canvas-card/60 animate-in fade-in zoom-in-95 duration-100">
+                    <div className="px-3 py-1.5 bg-canvas/60 text-[10px] font-semibold text-content-secondary uppercase tracking-wider flex justify-between items-center">
                       <span>Catalog Matches ({matchingProducts.length})</span>
-                      <span className="text-[9px] font-mono text-slate-500">↑↓ select • Enter adds</span>
+                      <span className="text-[9px] font-mono text-content-muted">↑↓ select • Enter adds</span>
                     </div>
                     {matchingProducts.map((p, idx) => (
                       <div
@@ -897,19 +897,19 @@ const AppContent: React.FC = () => {
                         className={`p-2.5 flex items-center justify-between cursor-pointer transition-colors ${
                           searchSelectedIndex === idx 
                             ? 'bg-indigo-600/25 border-l-2 border-indigo-500 text-white' 
-                            : 'hover:bg-slate-800/50 text-slate-200'
+                            : 'hover:bg-canvas-card/50 text-content-primary'
                         }`}
                       >
                         <div className="flex-1 min-w-0 pr-2">
                           <div className="text-xs font-semibold truncate leading-snug">{p.name}</div>
-                          <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-slate-400 font-mono">
-                            <span className="px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 border border-slate-700/60 text-[9px]">{p.category}</span>
+                          <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-content-secondary font-mono">
+                            <span className="px-1.5 py-0.2 rounded bg-canvas-card text-content-secondary border border-canvas-hover/60 text-[9px]">{p.category}</span>
                             <span>{p.barcode || `#${p.id}`}</span>
                           </div>
                         </div>
                         <div className="text-right shrink-0">
                           <div className="text-xs font-bold font-mono text-indigo-300">Rs. {p.price.toFixed(2)}</div>
-                          <div className={`text-[10px] font-medium font-mono ${p.stock <= 5 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                          <div className={`text-[10px] font-medium font-mono ${p.stock <= 5 ? 'text-status-amber' : 'text-status-emerald'}`}>
                             {p.stock <= 0 ? 'Out of stock' : `${p.stock} in stock`}
                           </div>
                         </div>
@@ -924,13 +924,13 @@ const AppContent: React.FC = () => {
           {/* Notifications block */}
           <div className="px-5 pt-3 flex-shrink-0 empty:hidden">
             {error && (
-              <div className="mb-2 p-3 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-lg text-xs flex items-start gap-2">
+              <div className="mb-2 p-3 bg-status-coral/10 border border-status-coral/20 text-status-coral rounded-lg text-xs flex items-start gap-2">
                 <div className="mt-0.5">⚠️</div>
                 <div>{error}</div>
               </div>
             )}
             {success && (
-              <div className="mb-2 p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg text-xs flex items-start gap-2">
+              <div className="mb-2 p-3 bg-status-emerald/10 border border-status-emerald/20 text-status-emerald rounded-lg text-xs flex items-start gap-2">
                 <CheckCircle size={15} className="mt-0.5 shrink-0" />
                 <div>{success}</div>
               </div>
@@ -941,8 +941,8 @@ const AppContent: React.FC = () => {
         </div>
 
         {/* Right side: Checkout Summary Panel */}
-        <div className="w-[380px] flex flex-col enterprise-card rounded-xl overflow-hidden relative z-20 border-slate-800">
-          <header className="p-4 border-b border-slate-800 bg-slate-900/80 backdrop-blur-md">
+        <div className="w-[380px] flex flex-col enterprise-card rounded-xl overflow-hidden relative z-20 border-canvas-card">
+          <header className="p-4 border-b border-canvas-card bg-canvas-subtle/80 backdrop-blur-md">
             <h2 className="text-sm font-bold flex items-center gap-2 text-white">
               <ShoppingCart size={16} className="text-indigo-400" /> Checkout Summary
             </h2>
@@ -958,8 +958,8 @@ const AppContent: React.FC = () => {
 
           {/* Quick Discount Selector */}
           {cart.length > 0 && (
-            <div className="px-4 py-2.5 border-t border-slate-800 bg-slate-950/40 flex-shrink-0">
-              <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block mb-1.5">{t('Quick Promo / Discount')}</span>
+            <div className="px-4 py-2.5 border-t border-canvas-card bg-canvas/40 flex-shrink-0">
+              <span className="text-[10px] text-content-secondary font-semibold uppercase tracking-wider block mb-1.5">{t('Quick Promo / Discount')}</span>
               <div className="flex gap-1.5 overflow-x-auto scrollbar-none pb-0.5">
                 {[
                   { label: '5%', type: 'pct', value: 0.05 },
@@ -979,7 +979,7 @@ const AppContent: React.FC = () => {
                       className={`px-2.5 py-1 rounded text-[11px] font-mono font-medium whitespace-nowrap border transition-all cursor-pointer ${
                         isActive
                           ? 'bg-indigo-600 text-white border-indigo-500 shadow-sm'
-                          : 'bg-slate-800/80 border-slate-700 text-slate-300 hover:text-white hover:border-slate-600'
+                          : 'bg-canvas-card/80 border-canvas-hover text-content-secondary hover:text-white hover:border-canvas-hover'
                       }`}
                     >
                       {promo.label}
@@ -989,7 +989,7 @@ const AppContent: React.FC = () => {
                 {discount > 0 && (
                   <button
                     onClick={() => setDiscount(0)}
-                    className="px-2 py-1 rounded text-[10px] font-bold uppercase whitespace-nowrap bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20 transition-all cursor-pointer"
+                    className="px-2 py-1 rounded text-[10px] font-bold uppercase whitespace-nowrap bg-status-coral/10 border border-status-coral/20 text-status-coral hover:bg-status-coral/20 transition-all cursor-pointer"
                   >
                     {t('Clear')}
                   </button>
@@ -998,27 +998,27 @@ const AppContent: React.FC = () => {
             </div>
           )}
 
-          <div className="p-5 border-t border-slate-800 bg-slate-950/70 flex-1 flex flex-col justify-end">
+          <div className="p-5 border-t border-canvas-card bg-canvas/70 flex-1 flex flex-col justify-end">
             <div className="space-y-2.5 mb-5 relative z-10">
-              <div className="flex justify-between items-center text-xs text-slate-400 font-medium">
+              <div className="flex justify-between items-center text-xs text-content-secondary font-medium">
                 <span>{t('Line Items')}</span>
-                <span className="text-slate-200 font-mono">{totalItems}</span>
+                <span className="text-content-primary font-mono">{totalItems}</span>
               </div>
-              <div className="flex justify-between items-center text-xs text-slate-400 font-medium">
+              <div className="flex justify-between items-center text-xs text-content-secondary font-medium">
                 <span>{t('Subtotal')}</span>
-                <span className="text-slate-200 font-mono tabular-nums">Rs. {subtotal.toFixed(2)}</span>
+                <span className="text-content-primary font-mono tabular-nums">Rs. {subtotal.toFixed(2)}</span>
               </div>
               {activeDiscount > 0 && (
-                <div className="flex justify-between items-center text-xs text-amber-400 font-medium">
+                <div className="flex justify-between items-center text-xs text-status-amber font-medium">
                   <span>{t('Promo Discount')}</span>
                   <span className="font-mono tabular-nums">-Rs. {activeDiscount.toFixed(2)}</span>
                 </div>
               )}
 
-              <div className="flex justify-between items-baseline pt-3 mt-2 border-t border-slate-800">
+              <div className="flex justify-between items-baseline pt-3 mt-2 border-t border-canvas-card">
                 <div>
-                  <span className="text-xs uppercase tracking-wider text-slate-400 font-bold block">{t('Amount Due')}</span>
-                  <span className="text-[10px] text-slate-500 font-mono">Tax Incl.</span>
+                  <span className="text-xs uppercase tracking-wider text-content-secondary font-bold block">{t('Amount Due')}</span>
+                  <span className="text-[10px] text-content-muted font-mono">Tax Incl.</span>
                 </div>
                 <span className="text-2xl font-bold font-mono tabular-nums tracking-tight text-white">Rs. {totalAmount.toFixed(2)}</span>
               </div>
@@ -1034,7 +1034,7 @@ const AppContent: React.FC = () => {
                 });
               }}
               disabled={cart.length === 0}
-              className="w-full py-3 rounded-lg font-semibold text-white bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 disabled:text-slate-500 transition-all flex justify-center items-center gap-2 cursor-pointer disabled:cursor-not-allowed shadow-sm active:scale-[0.99]"
+              className="w-full py-3 rounded-lg font-semibold text-white bg-indigo-600 hover:bg-indigo-500 disabled:bg-canvas-card disabled:text-content-muted transition-all flex justify-center items-center gap-2 cursor-pointer disabled:cursor-not-allowed shadow-sm active:scale-[0.99]"
             >
               <Printer size={18} />
               <span className="tracking-wide text-xs uppercase font-bold">{t('CHECKOUT (F1 / Space)')}</span>
@@ -1044,16 +1044,16 @@ const AppContent: React.FC = () => {
       </div>
 
       {/* Cashier POS Keyboard Shortcuts Bar */}
-      <div className="flex items-center justify-center gap-6 text-[11px] font-medium text-slate-400 bg-slate-900/80 border border-slate-800 py-1.5 px-4 rounded-lg self-center">
-        <span className="flex items-center gap-1.5"><kbd className="px-1.5 py-0.5 bg-slate-800 text-slate-200 rounded font-mono border border-slate-700 text-[10px]">F1</kbd> or <kbd className="px-1.5 py-0.5 bg-slate-800 text-slate-200 rounded font-mono border border-slate-700 text-[10px]">Space</kbd> Pay</span>
-        <span className="text-slate-700">•</span>
-        <span className="flex items-center gap-1.5"><kbd className="px-1.5 py-0.5 bg-slate-800 text-slate-200 rounded font-mono border border-slate-700 text-[10px]">F2</kbd> Hold/Resume</span>
-        <span className="text-slate-700">•</span>
-        <span className="flex items-center gap-1.5"><kbd className="px-1.5 py-0.5 bg-slate-800 text-slate-200 rounded font-mono border border-slate-700 text-[10px]">F3</kbd> Custom Item</span>
-        <span className="text-slate-700">•</span>
-        <span className="flex items-center gap-1.5"><kbd className="px-1.5 py-0.5 bg-slate-800 text-slate-200 rounded font-mono border border-slate-700 text-[10px]">F4</kbd> Catalog</span>
-        <span className="text-slate-700">•</span>
-        <span className="flex items-center gap-1.5"><kbd className="px-1.5 py-0.5 bg-slate-800 text-slate-200 rounded font-mono border border-slate-700 text-[10px]">Esc</kbd> Void / Close</span>
+      <div className="flex items-center justify-center gap-6 text-[11px] font-medium text-content-secondary bg-canvas-subtle/80 border border-canvas-card py-1.5 px-4 rounded-lg self-center">
+        <span className="flex items-center gap-1.5"><kbd className="px-1.5 py-0.5 bg-canvas-card text-content-primary rounded font-mono border border-canvas-hover text-[10px]">F1</kbd> or <kbd className="px-1.5 py-0.5 bg-canvas-card text-content-primary rounded font-mono border border-canvas-hover text-[10px]">Space</kbd> Pay</span>
+        <span className="text-status-slate">•</span>
+        <span className="flex items-center gap-1.5"><kbd className="px-1.5 py-0.5 bg-canvas-card text-content-primary rounded font-mono border border-canvas-hover text-[10px]">F2</kbd> Hold/Resume</span>
+        <span className="text-status-slate">•</span>
+        <span className="flex items-center gap-1.5"><kbd className="px-1.5 py-0.5 bg-canvas-card text-content-primary rounded font-mono border border-canvas-hover text-[10px]">F3</kbd> Custom Item</span>
+        <span className="text-status-slate">•</span>
+        <span className="flex items-center gap-1.5"><kbd className="px-1.5 py-0.5 bg-canvas-card text-content-primary rounded font-mono border border-canvas-hover text-[10px]">F4</kbd> Catalog</span>
+        <span className="text-status-slate">•</span>
+        <span className="flex items-center gap-1.5"><kbd className="px-1.5 py-0.5 bg-canvas-card text-content-primary rounded font-mono border border-canvas-hover text-[10px]">Esc</kbd> Void / Close</span>
       </div>
       
       {/* Navigation Bar at Bottom */}

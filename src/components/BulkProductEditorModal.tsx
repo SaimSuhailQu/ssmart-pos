@@ -156,7 +156,7 @@ export const BulkProductEditorModal: React.FC<BulkProductEditorModalProps> = ({ 
         <header className="p-6 border-b border-white/10 flex justify-between items-center bg-black/40">
           <div>
             <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-              <Filter className="text-emerald-400" size={24} />
+              <Filter className="text-status-emerald" size={24} />
               Bulk Price & Stock Editor
             </h2>
             <p className="text-xs text-gray-400 uppercase tracking-widest mt-1">
@@ -236,7 +236,7 @@ export const BulkProductEditorModal: React.FC<BulkProductEditorModalProps> = ({ 
         {/* Message Banner */}
         {message && (
           <div className={`p-3 text-xs font-bold flex items-center justify-center gap-2 ${
-            message.type === 'success' ? 'bg-emerald-500/20 text-emerald-300 border-b border-emerald-500/30' : 'bg-red-500/20 text-red-300 border-b border-red-500/30'
+            message.type === 'success' ? 'bg-status-emerald/20 text-status-emerald border-b border-status-emerald/30' : 'bg-status-coral/20 text-status-coral border-b border-status-coral/30'
           }`}>
             {message.type === 'success' ? <CheckCircle size={16} /> : <AlertTriangle size={16} />}
             {message.text}
@@ -275,7 +275,7 @@ export const BulkProductEditorModal: React.FC<BulkProductEditorModalProps> = ({ 
                         min="0"
                         value={item.cost_price}
                         onChange={e => handleFieldChange(p.id, 'cost_price', e.target.value)}
-                        className="w-28 text-right glass-input rounded-lg px-2 py-1 text-xs text-white bg-black/40 border-white/10 focus:border-emerald-400"
+                        className="w-28 text-right glass-input rounded-lg px-2 py-1 text-xs text-white bg-black/40 border-white/10 focus:border-status-emerald"
                       />
                     </td>
                     <td className="p-3 text-right">
@@ -285,7 +285,7 @@ export const BulkProductEditorModal: React.FC<BulkProductEditorModalProps> = ({ 
                         min="0"
                         value={item.price}
                         onChange={e => handleFieldChange(p.id, 'price', e.target.value)}
-                        className="w-28 text-right glass-input rounded-lg px-2 py-1 text-xs font-bold text-emerald-300 bg-black/40 border-emerald-500/30 focus:border-emerald-400"
+                        className="w-28 text-right glass-input rounded-lg px-2 py-1 text-xs font-bold text-status-emerald bg-black/40 border-status-emerald/30 focus:border-status-emerald"
                       />
                     </td>
                     <td className="p-3 text-right">
@@ -294,7 +294,7 @@ export const BulkProductEditorModal: React.FC<BulkProductEditorModalProps> = ({ 
                         min="0"
                         value={item.stock}
                         onChange={e => handleFieldChange(p.id, 'stock', e.target.value)}
-                        className="w-24 text-right glass-input rounded-lg px-2 py-1 text-xs text-white bg-black/40 border-white/10 focus:border-emerald-400"
+                        className="w-24 text-right glass-input rounded-lg px-2 py-1 text-xs text-white bg-black/40 border-white/10 focus:border-status-emerald"
                       />
                     </td>
                   </tr>

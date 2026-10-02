@@ -17,6 +17,13 @@ module.exports = {
           border: '#1e293b',
           hover: '#24304c',
         },
+        // Text content scale (matches the --text-* variables in index.css)
+        content: {
+          primary: '#f8fafc',   // headings, key figures
+          secondary: '#cbd5e1', // body copy
+          muted: '#94a3b8',     // labels, captions
+          faint: '#64748b',     // disabled, decorative
+        },
         // Primary Brand & System Accent (Trustworthy Deep Indigo / Slate Blue)
         brand: {
           50: '#eef2ff',

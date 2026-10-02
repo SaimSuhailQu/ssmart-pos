@@ -29,8 +29,20 @@ license cache encryption, and a documented path for the multi-app redesign.
 - `src/core/format.ts` — the single source of truth for money and date
   formatting (`money`, `moneyCompact`, `moneyWithPrefix`, `dateTime`,
   `isoDate`), replacing 133 hand-rolled `toLocaleString` call sites.
+- `content` color tokens in `tailwind.config.js` (`content-primary` through
+  `content-faint`) giving text a semantic scale that mirrors the `--text-*`
+  CSS variables.
 
 ### Changed
+- **Design-system tokens are now actually used.** The `canvas.*`, `status.*`
+  and new `content.*` tokens in `tailwind.config.js` existed but had zero
+  adoption — components hardcoded ~1,100 raw Tailwind palette classes
+  (`bg-slate-900`, `text-emerald-400`, `bg-red-500`, …). All mapped families
+  (`slate` surfaces, `emerald`/`amber`/`red`/`rose` semantics, `neutral`
+  text) now resolve through the semantic tokens, so retheming is a config
+  edit instead of a 19-file hunt. Intentional exclusions: gradient stops
+  (decorative) and the thermal-receipt preview's paper-white surface in
+  `PaymentModal` (gray utilities kept deliberately for print fidelity).
 - Migrated the highest-traffic money surfaces to the shared formatters:
   `AnalyticsDashboard` (revenue, refunds, expenses, profit, report timestamp),
   `PaymentModal` (customer balances, new total due) and `SalesRecordManager`
