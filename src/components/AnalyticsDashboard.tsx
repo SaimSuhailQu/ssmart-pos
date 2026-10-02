@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { TrendingUp, DollarSign, ShoppingBag, Receipt, RefreshCw, Star, ArrowUpRight, ArrowDownRight, Activity, Download } from 'lucide-react';
 import { rowsToCsv, downloadCsv, exportTimestamp } from '../lib/csv';
+import { money, dateTime } from '../core/format';
 
 interface AnalyticsData {
   summary: {
@@ -36,7 +37,7 @@ export const AnalyticsDashboard: React.FC = () => {
     if (!data) return;
     const rows: (string | number | null | undefined)[][] = [
       ['SS MART POS — Financial Analytics Export'],
-      ['Generated', new Date().toLocaleString()],
+      ['Generated', dateTime()],
       [],
       ['SCOPE FINANCIALS', 'Revenue', 'Refunds', 'Cost', 'Expenses', 'Profit', 'Orders'],
     ];
@@ -232,7 +233,7 @@ export const AnalyticsDashboard: React.FC = () => {
               </div>
             </div>
             <div className="text-2xl font-bold text-slate-100 font-mono tabular-nums tracking-tight">
-              Rs. {scope.revenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              Rs. {money(scope.revenue)}
             </div>
             <div className="text-[11px] text-slate-400 mt-2 flex items-center gap-1.5 font-medium">
               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">GROSS</span>
@@ -249,7 +250,7 @@ export const AnalyticsDashboard: React.FC = () => {
               </div>
             </div>
             <div className="text-2xl font-bold text-rose-400 font-mono tabular-nums tracking-tight">
-              Rs. {scope.refunds.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              Rs. {money(scope.refunds)}
             </div>
             <div className="text-[11px] text-rose-400/80 mt-2 flex items-center gap-1.5 font-medium">
               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-500/15 text-rose-300 border border-rose-500/30">VOID</span>
@@ -266,7 +267,7 @@ export const AnalyticsDashboard: React.FC = () => {
               </div>
             </div>
             <div className="text-2xl font-bold text-amber-400 font-mono tabular-nums tracking-tight">
-              Rs. {scope.expenses.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              Rs. {money(scope.expenses)}
             </div>
             <div className="text-[11px] text-amber-400/80 mt-2 flex items-center gap-1.5 font-medium">
               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">OPEX</span>
@@ -283,7 +284,7 @@ export const AnalyticsDashboard: React.FC = () => {
               </div>
             </div>
             <div className={`text-2xl font-bold font-mono tabular-nums tracking-tight ${scope.profit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-              Rs. {scope.profit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              Rs. {money(scope.profit)}
             </div>
             <div className="text-[11px] text-slate-400 mt-2 flex items-center gap-1.5 font-medium">
               <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold border ${scope.profit >= 0 ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' : 'bg-rose-500/15 text-rose-300 border-rose-500/30'}`}>

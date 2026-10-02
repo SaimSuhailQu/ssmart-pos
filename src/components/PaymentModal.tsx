@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { PaymentData, PaymentEntry, CartItem, Customer } from '../types';
 import { X, DollarSign, CreditCard, Smartphone, Gift, Delete, Plus, Printer, BookOpen, UserCheck, Search, Save } from 'lucide-react';
+import { moneyCompact } from '../core/format';
 
 interface PaymentModalProps {
   total: number;
@@ -301,7 +302,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax
                           <div className="text-right">
                             <span className="text-[10px] text-slate-400 block">Prev Udhaar</span>
                             <span className="text-xs font-mono tabular-nums font-bold text-amber-400">
-                              Rs. {(c.balance || 0).toLocaleString()}
+                              Rs. {moneyCompact(c.balance || 0)}
                             </span>
                           </div>
                         </div>
@@ -312,7 +313,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax
                   {selectedCustomer && (
                     <div className="flex items-center justify-between bg-slate-950/60 p-2 rounded-lg border border-amber-500/30 text-xs">
                       <span className="text-amber-200">
-                        Total New Due: <strong className="font-mono tabular-nums">Rs. {((selectedCustomer.balance || 0) + remaining).toLocaleString()}</strong>
+                        Total New Due: <strong className="font-mono tabular-nums">Rs. {moneyCompact((selectedCustomer.balance || 0) + remaining)}</strong>
                       </span>
                       <button
                         onClick={handleAddPayment}

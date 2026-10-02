@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Sale, SaleItemDetails } from '../types';
 import { Search, Receipt, Calendar, User, Undo2, CheckCircle, ArrowRightLeft, DollarSign, X, ShoppingBag, Printer, Copy, Sparkles, PlusCircle, Trash2, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import { rowsToCsv, downloadCsv, exportTimestamp } from '../lib/csv';
+import { money } from '../core/format';
 
 export const SalesRecordManager: React.FC = () => {
   const [sales, setSales] = useState<Sale[]>([]);
@@ -264,13 +265,13 @@ export const SalesRecordManager: React.FC = () => {
       `⏰ *Time Recorded:* ${timeFormatted}\n` +
       `──────────────────────\n` +
       `📦 *Total Orders Completed:* ${todayOrders}\n` +
-      `💵 *Gross Daily Sales:* Rs. ${todayGross.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n` +
-      `↩️ *Total Refunds/Returns:* Rs. ${todayRefunds.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n` +
-      `✨ *NET DAILY SALES:* Rs. ${todayNet.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n` +
+      `💵 *Gross Daily Sales:* Rs. ${money(todayGross)}\n` +
+      `↩️ *Total Refunds/Returns:* Rs. ${money(todayRefunds)}\n` +
+      `✨ *NET DAILY SALES:* Rs. ${money(todayNet)}\n` +
       `──────────────────────\n` +
       `💳 *PAYMENT BREAKDOWN:*\n` +
-      `• Cash in Drawer: Rs. ${todayCash.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n` +
-      `• Online / Bank / Card: Rs. ${todayOnline.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n` +
+      `• Cash in Drawer: Rs. ${money(todayCash)}\n` +
+      `• Online / Bank / Card: Rs. ${money(todayOnline)}\n` +
       `• Khata / Credit: Rs. ${todayKhata.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n` +
       `──────────────────────\n` +
       `✅ *Generated via SS Mart POS*`;
