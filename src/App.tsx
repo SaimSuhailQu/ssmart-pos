@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useScanner } from './hooks/useScanner';
-import { CartItem, Product, PaymentData } from './types';
-import { ShoppingCart, PackageSearch, Printer, CheckCircle, LayoutGrid, PackageOpen, Users, Shield, BarChart3, History, DollarSign, Truck, RefreshCw, Sparkles, PlusCircle } from 'lucide-react';
+import { usePosShortcuts } from './hooks/usePosShortcuts';
+import { Product, PaymentData } from './types';
+import { usePos, posActions, posStore } from './state/posStore';
+import { toast } from './state/toast';
+import { fromMinor } from './core/money';
+import { ShoppingCart, PackageSearch, Printer, LayoutGrid, PackageOpen, Users, Shield, BarChart3, History, DollarSign, Truck, RefreshCw, Sparkles, PlusCircle } from 'lucide-react';
 import { ProductGrid } from './components/ProductGrid';
 import { Cart } from './components/Cart';
 import { OrderControls } from './components/OrderControls';
@@ -17,23 +21,26 @@ import { SalesRecordManager } from './components/SalesRecordManager';
 import { ExpenseManager } from './components/ExpenseManager';
 import { BarcodePrintManager } from './components/BarcodePrintManager';
 import { LicenseGate } from './components/LicenseGate';
+import { ToastHost } from './components/ui/Toast';
+import { ConfirmDialog } from './components/ui/ConfirmDialog';
+import { PrintQueueBadge } from './components/pos/PrintQueueBadge';
 import logoImg from './assets/ss_mart_logo.png';
 
-const TAX_RATE = 0.0; // Tax removed
 const t = (str: string) => str;
 
-type ViewMode = 'POS' | 'INVENTORY' | 'CUSTOMERS' | 'ANALYTICS' | 'SALES_RECORD' | 'EXPENSES' | 'VENDORS' | 'BARCODE_PRINT';
-
 const AppContent: React.FC = () => {
-  const [currentUser, setCurrentUser] = useState<{ id: number; name: string; role: string } | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>('POS');
-  
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [heldCart, setHeldCart] = useState<CartItem[] | null>(null);
+  // POS domain state lives in posStore (single source of truth, integer
+  // money, pure cart rules). Local useState is only for view-local UI.
+  const currentUser = usePos((s) => s.user);
+  const viewMode = usePos((s) => s.view);
+  const cart = usePos((s) => s.cart);
+  const heldCart = usePos((s) => s.heldCart);
+  const totals = usePos((s) => s.totals);
+  const discountMinor = usePos((s) => s.discountMinor);
+  const discount = discountMinor / 100;
+
   const [products, setProducts] = useState<Product[]>([]);
-  
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+
   const [manualBarcode, setManualBarcode] = useState('');
   
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
@@ -47,21 +54,18 @@ const AppContent: React.FC = () => {
   const [nextSaleId, setNextSaleId] = useState<number>(1);
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [syncStatus, setSyncStatus] = useState<string>('ONLINE');
-  const [discount, setDiscount] = useState<number>(0);
   const [isNetworkOnline, setIsNetworkOnline] = useState<boolean>(navigator.onLine);
   const [updateInfo, setUpdateInfo] = useState<{ status: string; version?: string } | null>(null);
   const [isCheckingUpdate, setIsCheckingUpdate] = useState<boolean>(false);
 
-  // Enforce strict Role-Based Access Control view bounds
-  useEffect(() => {
-    if (!currentUser) return;
-    if (viewMode === 'ANALYTICS' && currentUser.role !== 'Admin') {
-      setViewMode('POS');
-    }
-    if ((viewMode === 'INVENTORY' || viewMode === 'CUSTOMERS' || viewMode === 'VENDORS' || viewMode === 'BARCODE_PRINT') && currentUser.role === 'Cashier') {
-      setViewMode('POS');
-    }
-  }, [viewMode, currentUser]);
+  // Calculations — integer paisa from the store (no float drift).
+  const totalItems = totals.itemCount;
+  const subtotal = totals.subtotal.minor / 100;
+  const activeDiscount = Math.min(discount, subtotal);
+  const totalAmount = totals.total.minor / 100;
+
+  // Role-based view bounds are enforced inside posStore (setUser/setView),
+  // so no effect is needed here.
 
   // Always refresh products in memory when switching back to POS
   useEffect(() => {
@@ -92,11 +96,11 @@ const AppContent: React.FC = () => {
         setIsCheckingUpdate(false);
         if (info.status === 'downloaded' || info.status === 'available') {
           setUpdateInfo(info);
-          setSuccess(`Update found: ${info.version || 'New version'}. Downloading in background...`);
+          toast.info(`Update found: ${info.version || 'New version'}. Downloading in background...`);
         } else if (info.status === 'up-to-date') {
-          setSuccess('MART POS is already on the latest version!');
+          toast.success('MART POS is already on the latest version!');
         } else if (info.status === 'error') {
-          setError(info.error ? `Update check error: ${info.error}` : 'Could not check for updates.');
+          toast.error(info.error ? `Update check error: ${info.error}` : 'Could not check for updates.');
         }
       });
     }
@@ -127,23 +131,7 @@ const AppContent: React.FC = () => {
     }
   }, [currentUser]);
 
-  // Notifications clearer
-  useEffect(() => {
-    if (error || success) {
-      const timer = setTimeout(() => {
-        setError(null);
-        setSuccess(null);
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [error, success]);
-
-  // Calculations
-  const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
-  const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-  const activeDiscount = Math.min(discount, subtotal); 
-  const tax = Math.max(0, subtotal - activeDiscount) * TAX_RATE;
-  const totalAmount = Math.max(0, subtotal + tax - activeDiscount);
+  // Toast notifications auto-dismiss via ToastHost; no manual clearer needed.
 
   // Pre-index products by barcode for 0ms instant scan lookup
   const productMap = useMemo(() => {
@@ -160,8 +148,7 @@ const AppContent: React.FC = () => {
     if (viewMode !== 'POS') return; 
     if (isPaymentOpen) return; 
     
-    setError(null);
-    setSuccess(null);
+    // (toasts auto-dismiss; nothing to clear)
     const clean = barcode.trim();
     if (!clean) return;
 
@@ -175,8 +162,7 @@ const AppContent: React.FC = () => {
 
     if (cachedProduct) {
       console.log('[POS Scanner] Found in memory cache:', cachedProduct.name);
-      addToCart(cachedProduct);
-      setSuccess(`Added "${cachedProduct.name}" to cart`);
+      if (addToCart(cachedProduct)) toast.success(`Added "${cachedProduct.name}" to cart`);
       return;
     }
 
@@ -184,8 +170,7 @@ const AppContent: React.FC = () => {
       const product = await window.api.getProduct(clean);
       if (product) {
         console.log('[POS Scanner] Found via SQLite getProduct:', product.name);
-        addToCart(product);
-        setSuccess(`Added "${product.name}" to cart`);
+        if (addToCart(product)) toast.success(`Added "${product.name}" to cart`);
       } else {
         console.warn('[POS Scanner] Barcode not found, opening quick-add modal:', clean);
         // Automatically open Add Product modal immediately with scanned barcode!
@@ -203,7 +188,7 @@ const AppContent: React.FC = () => {
     } catch (err: unknown) {
       const errMessage = err instanceof Error ? err.message : String(err);
       console.error('[POS Scanner] Error fetching product:', err);
-      setError(errMessage || 'Error scanning product');
+      toast.error(errMessage || 'Error scanning product');
     }
   }, [viewMode, isPaymentOpen, currentUser, productMap, products]);
 
@@ -223,40 +208,19 @@ const AppContent: React.FC = () => {
 
   useScanner(handleScan, validBarcodes, viewMode);
 
-  const addToCart = (product: Product, qtyToAdd = 1) => {
-    setCart(prev => {
-      const existing = prev.find(p => p.id === product.id);
-      if (existing) {
-        if (existing.qty + qtyToAdd > product.stock) {
-          setError(`Cannot add ${qtyToAdd} more "${product.name}". Only ${product.stock} items are in stock!`);
-          return prev;
-        }
-        return prev.map(p => p.id === product.id ? { ...p, qty: p.qty + qtyToAdd } : p);
-      }
-      if (product.stock < qtyToAdd) {
-        setError(`"${product.name}" has only ${product.stock} in stock!`);
-        return prev;
-      }
-      return [...prev, { ...product, qty: qtyToAdd }];
-    });
+  const addToCart = (product: Product, qtyToAdd = 1): boolean => {
+    // Domain rules (stock caps) + error toasts live in posActions.
+    return posActions.addToCart(product, qtyToAdd);
   };
 
   const updateQty = (id: number, delta: number) => {
-    setCart(prev => prev.map(item => {
-      if (item.id === id) {
-        const newQty = Math.max(0, item.qty + delta);
-        if (newQty > item.stock) {
-          setError(`Cannot exceed available inventory limit of ${item.stock} items for "${item.name}"!`);
-          return item;
-        }
-        return { ...item, qty: newQty };
-      }
-      return item;
-    }).filter(item => item.qty > 0));
+    const line = cart.find((l) => l.productId === id);
+    if (!line) return;
+    posActions.setQty(id, line.qty + delta);
   };
 
   const removeItem = (id: number) => {
-    setCart(prev => prev.filter(item => item.id !== id));
+    posActions.removeItem(id);
   };
 
   const handleManualAdd = (e: React.FormEvent) => {
@@ -270,8 +234,7 @@ const AppContent: React.FC = () => {
       products.find(p => p.barcode?.trim() === query || String(p.id) === query);
 
     if (exactMatch) {
-      addToCart(exactMatch);
-      setSuccess(`Added "${exactMatch.name}" to cart`);
+      if (addToCart(exactMatch)) toast.success(`Added "${exactMatch.name}" to cart`);
       setManualBarcode('');
       setIsSearchDropdownOpen(false);
       return;
@@ -281,8 +244,7 @@ const AppContent: React.FC = () => {
     if (isSearchDropdownOpen && matchingProducts.length > 0) {
       const selected = matchingProducts[Math.min(searchSelectedIndex, matchingProducts.length - 1)];
       if (selected) {
-        addToCart(selected);
-        setSuccess(`Added "${selected.name}" to cart`);
+        if (addToCart(selected)) toast.success(`Added "${selected.name}" to cart`);
         setManualBarcode('');
         setIsSearchDropdownOpen(false);
         return;
@@ -317,11 +279,10 @@ const AppContent: React.FC = () => {
       };
 
       await loadProducts();
-      addToCart(newProduct, item.qty);
-      setSuccess(`Added custom item "${item.name}" (x${item.qty}) to cart!`);
+      if (addToCart(newProduct, item.qty)) toast.success(`Added custom item "${item.name}" (x${item.qty}) to cart!`);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      setError(msg || 'Failed to add custom item.');
+      toast.error(msg || 'Failed to add custom item.');
     }
   };
 
@@ -354,24 +315,18 @@ const AppContent: React.FC = () => {
   }, []);
 
   const handleHold = () => {
-    setHeldCart(cart);
-    setCart([]);
-    setDiscount(0);
-    setSuccess('Order placed on hold.');
+    posActions.holdCart();
   };
 
   const handleResume = () => {
-    setCart(heldCart || []);
-    setHeldCart(null);
-    setDiscount(0);
-    setSuccess('Order resumed.');
+    posActions.resumeHeldCart();
   };
 
+  const [clearOrderConfirmOpen, setClearOrderConfirmOpen] = useState(false);
+
   const handleClear = () => {
-    if (window.confirm("Are you sure you want to void this order?")) {
-      setCart([]);
-      setDiscount(0);
-    }
+    posActions.clearCart();
+    setClearOrderConfirmOpen(false);
   };
 
   const handleSaveQuickProduct = async (productData: Omit<Product, 'id'>) => {
@@ -382,35 +337,46 @@ const AppContent: React.FC = () => {
         ...productData
       };
       await loadProducts();
-      addToCart(createdProduct);
-      setSuccess(`Product "${createdProduct.name}" registered and added to cart!`);
+      if (addToCart(createdProduct)) {
+        toast.success(`Product "${createdProduct.name}" registered and added to cart!`);
+      }
       setIsQuickAddOpen(false);
       setScannedNewProduct(null);
     } catch (err: unknown) {
       const errMessage = err instanceof Error ? err.message : String(err);
-      setError(errMessage || 'Failed to add scanned product.');
+      toast.error(errMessage || 'Failed to add scanned product.');
     }
   };
 
   const handleCheckoutConfirm = async (paymentData: PaymentData) => {
     if (!currentUser) return;
     try {
-      const res = await window.api.checkout({ 
-        items: cart, 
-        paymentData, 
+      // Bridge the domain cart to the legacy checkout payload (saveSale
+      // expects the CartItem shape with major-unit prices).
+      const legacyItems = cart.map((l) => ({
+        id: l.productId,
+        name: l.name,
+        barcode: l.barcode,
+        price: l.unitPrice.minor / 100,
+        qty: l.qty,
+        stock: l.stock,
+        category: l.category,
+      }));
+      const res = await window.api.checkout({
+        items: legacyItems,
+        paymentData,
         userId: currentUser.id,
-        cashierName: currentUser.name 
+        cashierName: currentUser.name
       });
       if (res.success) {
-        setSuccess(`Sale #${res.saleId} completed!`);
-        setCart([]);
-        setDiscount(0);
+        toast.success(`Sale #${res.saleId} completed!`);
+        posActions.clearCart();
         setIsPaymentOpen(false);
-        loadProducts(); 
+        loadProducts();
       }
     } catch (err: unknown) {
       const errMessage = err instanceof Error ? err.message : String(err);
-      setError(errMessage || 'Checkout failed');
+      toast.error(errMessage || 'Checkout failed');
     }
   };
 
@@ -423,85 +389,54 @@ const AppContent: React.FC = () => {
     [products]
   );
 
-  // State references for instantaneous keyboard shortcut responses without stale closures or re-attachment lag
-  const cartRef = useRef(cart);
-  cartRef.current = cart;
-  const heldCartRef = useRef(heldCart);
-  heldCartRef.current = heldCart;
-  const isPaymentOpenRef = useRef(isPaymentOpen);
-  isPaymentOpenRef.current = isPaymentOpen;
-  const isCatalogOpenRef = useRef(isCatalogOpen);
-  isCatalogOpenRef.current = isCatalogOpen;
-  const viewModeRef = useRef(viewMode);
-  viewModeRef.current = viewMode;
-  const currentUserRef = useRef(currentUser);
-  currentUserRef.current = currentUser;
+  // Desktop keyboard shortcuts (F1/Space tender, F2 hold/resume, F3 custom
+  // item, F4 catalog, F5 refresh, Esc close). The hook ref-forwards handlers
+  // so the listener never goes stale — no manual ref mirroring needed.
+  const openTender = useCallback(() => {
+    const s = posStore.getState();
+    if (s.view !== 'POS' || s.cart.length === 0 || isPaymentOpen) return;
+    setIsPaymentOpen(true);
+    window.api.getNextSaleId().then(setNextSaleId).catch((err) => {
+      console.warn('Failed to fetch next sale id:', err);
+    });
+  }, [isPaymentOpen]);
 
-  // Ultra-responsive zero-latency POS Keyboard Shortcuts Engine
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!currentUserRef.current) return;
-      
-      const targetTag = (e.target as HTMLElement)?.tagName?.toLowerCase();
-      const isInputFocused = targetTag === 'input' || targetTag === 'textarea' || targetTag === 'select';
-
-      if (e.key === 'Escape') {
-        if (isSearchDropdownOpen) {
-          setIsSearchDropdownOpen(false);
-        } else if (isCustomItemOpen) {
-          setIsCustomItemOpen(false);
-        } else if (isPaymentOpenRef.current) {
-          setIsPaymentOpen(false);
-        } else if (isCatalogOpenRef.current) {
-          setIsCatalogOpen(false);
-        } else if (viewModeRef.current === 'POS' && cartRef.current.length > 0) {
-          handleClear();
+  usePosShortcuts(
+    {
+      onTender: openTender,
+      onHoldResume: () => {
+        const s = posStore.getState();
+        if (s.view !== 'POS') return;
+        if (s.heldCart) posActions.resumeHeldCart();
+        else posActions.holdCart();
+      },
+      onCustomItem: () => {
+        if (posStore.getState().view !== 'POS') return;
+        setIsCustomItemOpen((prev) => !prev);
+      },
+      onToggleCatalog: () => {
+        if (posStore.getState().view !== 'POS') return;
+        setIsCatalogOpen((prev) => !prev);
+      },
+      onRefreshCatalog: () => {
+        loadProducts();
+      },
+      onEscape: () => {
+        if (isSearchDropdownOpen) setIsSearchDropdownOpen(false);
+        else if (isCustomItemOpen) setIsCustomItemOpen(false);
+        else if (isPaymentOpen) setIsPaymentOpen(false);
+        else if (isCatalogOpen) setIsCatalogOpen(false);
+        else if (posStore.getState().view === 'POS' && posStore.getState().cart.length > 0) {
+          setClearOrderConfirmOpen(true);
         }
-        return;
-      }
-
-      if (viewModeRef.current !== 'POS') return;
-
-      // F1 or Space (Space only when not typing inside an input) for Checkout / Payment
-      if (e.key === 'F1' || (e.key === ' ' && !isInputFocused)) {
-        e.preventDefault();
-        if (cartRef.current.length > 0 && !isPaymentOpenRef.current) {
-          setIsPaymentOpen(true);
-          window.api.getNextSaleId().then(nextId => {
-            setNextSaleId(nextId);
-          }).catch(err => {
-            console.warn('Failed to fetch next sale id:', err);
-          });
-        }
-      } 
-      // F2 for Hold / Resume
-      else if (e.key === 'F2') {
-        e.preventDefault();
-        if (heldCartRef.current !== null) {
-          handleResume();
-        } else if (cartRef.current.length > 0) {
-          handleHold();
-        }
-      }
-      // F3 for Custom Item Add
-      else if (e.key === 'F3') {
-        e.preventDefault();
-        setIsCustomItemOpen(prev => !prev);
-      }
-      // F4 for Product Search / Catalog Toggle
-      else if (e.key === 'F4') {
-        e.preventDefault();
-        setIsCatalogOpen(prev => !prev);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+      },
+    },
+    !!currentUser,
+  );
 
   // If no user is logged in, show PinLogin security overlay
   if (!currentUser) {
-    return <PinLogin onLoginSuccess={(user) => setCurrentUser(user)} />;
+    return <PinLogin onLoginSuccess={(user) => posActions.setUser(user)} />;
   }
 
   // Navigation Panel JSX helper
@@ -510,7 +445,7 @@ const AppContent: React.FC = () => {
       {/* Left: Operational Modes */}
       <div className="flex items-center gap-1.5">
         <button 
-          onClick={() => setViewMode('POS')} 
+          onClick={() => posActions.setView('POS')} 
           className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
             viewMode === 'POS' 
               ? 'bg-indigo-600 text-white shadow-sm' 
@@ -521,7 +456,7 @@ const AppContent: React.FC = () => {
         </button>
 
         <button 
-          onClick={() => setViewMode('SALES_RECORD')} 
+          onClick={() => posActions.setView('SALES_RECORD')} 
           className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
             viewMode === 'SALES_RECORD' 
               ? 'bg-indigo-600 text-white shadow-sm' 
@@ -539,7 +474,7 @@ const AppContent: React.FC = () => {
             <button 
               onClick={() => {
                 setLowStockOnlyView(false);
-                setViewMode('INVENTORY');
+                posActions.setView('INVENTORY');
               }} 
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 relative cursor-pointer ${
                 viewMode === 'INVENTORY' 
@@ -553,7 +488,7 @@ const AppContent: React.FC = () => {
                   onClick={(e) => {
                     e.stopPropagation();
                     setLowStockOnlyView(true);
-                    setViewMode('INVENTORY');
+                    posActions.setView('INVENTORY');
                   }}
                   className="ml-1 px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-status-amber/20 text-status-amber border border-status-amber/40 hover:bg-status-amber/30 transition-colors cursor-pointer"
                   title={`${lowStockCount} items have low stock (≤ 5 units). Click to view.`}
@@ -563,7 +498,7 @@ const AppContent: React.FC = () => {
               )}
             </button>
             <button 
-              onClick={() => setViewMode('CUSTOMERS')} 
+              onClick={() => posActions.setView('CUSTOMERS')} 
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
                 viewMode === 'CUSTOMERS' 
                   ? 'bg-indigo-600 text-white shadow-sm' 
@@ -573,7 +508,7 @@ const AppContent: React.FC = () => {
               <Users size={15} /> Customers & Khata
             </button>
             <button 
-              onClick={() => setViewMode('VENDORS')} 
+              onClick={() => posActions.setView('VENDORS')} 
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
                 viewMode === 'VENDORS' 
                   ? 'bg-indigo-600 text-white shadow-sm' 
@@ -583,7 +518,7 @@ const AppContent: React.FC = () => {
               <Truck size={15} /> Vendors & POs
             </button>
             <button 
-              onClick={() => setViewMode('BARCODE_PRINT')} 
+              onClick={() => posActions.setView('BARCODE_PRINT')} 
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
                 viewMode === 'BARCODE_PRINT' 
                   ? 'bg-violet-600 text-white shadow-sm' 
@@ -598,7 +533,7 @@ const AppContent: React.FC = () => {
         {/* Admin exclusive tabs */}
         {currentUser.role === 'Admin' && (
           <button 
-            onClick={() => setViewMode('ANALYTICS')} 
+            onClick={() => posActions.setView('ANALYTICS')} 
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
               viewMode === 'ANALYTICS' 
                 ? 'bg-indigo-600 text-white shadow-sm' 
@@ -610,7 +545,7 @@ const AppContent: React.FC = () => {
         )}
 
         <button 
-          onClick={() => setViewMode('EXPENSES')} 
+          onClick={() => posActions.setView('EXPENSES')} 
           className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
             viewMode === 'EXPENSES' 
               ? 'bg-indigo-600 text-white shadow-sm' 
@@ -638,17 +573,17 @@ const AppContent: React.FC = () => {
           onClick={async () => {
             if (isCheckingUpdate) return;
             setIsCheckingUpdate(true);
-            setError(null);
+            // (toasts auto-dismiss; nothing to clear)
             // Safety net: never leave the button stuck spinning if the updater
             // produces no status event (offline / unsupported platform).
             const resetTimer = setTimeout(() => setIsCheckingUpdate(false), 30000);
             try {
               const res = await window.api.checkForUpdates();
               if (res.message) {
-                setSuccess(res.message);
+                toast.success(res.message);
               }
               if (res.error) {
-                setError(res.error);
+                toast.error(res.error);
               }
               // Progress streams through onUpdaterStatus; stop the spinner now
               // when the check could not even start.
@@ -659,7 +594,7 @@ const AppContent: React.FC = () => {
             } catch (err: unknown) {
               clearTimeout(resetTimer);
               const errMessage = err instanceof Error ? err.message : String(err);
-              setError(errMessage || 'Failed to check for updates.');
+              toast.error(errMessage || 'Failed to check for updates.');
               setIsCheckingUpdate(false);
             }
           }}
@@ -677,7 +612,7 @@ const AppContent: React.FC = () => {
             <span className="text-content-primary font-semibold">{currentUser.name}</span> ({currentUser.role})
           </span>
           <button 
-            onClick={() => setCurrentUser(null)} 
+            onClick={() => { window.api.logout().catch(() => undefined); posActions.setUser(null); }} 
             className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-status-coral hover:text-status-coral hover:bg-status-coral/10 border border-status-coral/20 transition flex items-center gap-1.5 cursor-pointer"
             title="Lock POS / Logout Current User"
           >
@@ -814,6 +749,8 @@ const AppContent: React.FC = () => {
                     }`} />
                     {isOnline ? 'Online' : 'Offline'}
                   </span>
+                  {/* Print spooler queue status */}
+                  <PrintQueueBadge />
                 </div>
                 <p className="text-[11px] text-content-secondary font-mono mt-0.5">Terminal ID: #01 • Cashier: {currentUser.name}</p>
               </div>
@@ -888,8 +825,7 @@ const AppContent: React.FC = () => {
                         key={p.id}
                         onMouseDown={e => {
                           e.preventDefault(); // prevent blur before click registers
-                          addToCart(p);
-                          setSuccess(`Added "${p.name}" to cart`);
+                          if (addToCart(p)) toast.success(`Added "${p.name}" to cart`);
                           setManualBarcode('');
                           setIsSearchDropdownOpen(false);
                         }}
@@ -921,21 +857,7 @@ const AppContent: React.FC = () => {
             </div>
           </header>
 
-          {/* Notifications block */}
-          <div className="px-5 pt-3 flex-shrink-0 empty:hidden">
-            {error && (
-              <div className="mb-2 p-3 bg-status-coral/10 border border-status-coral/20 text-status-coral rounded-lg text-xs flex items-start gap-2">
-                <div className="mt-0.5">⚠️</div>
-                <div>{error}</div>
-              </div>
-            )}
-            {success && (
-              <div className="mb-2 p-3 bg-status-emerald/10 border border-status-emerald/20 text-status-emerald rounded-lg text-xs flex items-start gap-2">
-                <CheckCircle size={15} className="mt-0.5 shrink-0" />
-                <div>{success}</div>
-              </div>
-            )}
-          </div>
+          {/* Notifications are rendered by ToastHost (mounted at the App root). */}
 
           <Cart cart={cart} onUpdateQty={updateQty} onRemoveItem={removeItem} />
         </div>
@@ -951,7 +873,7 @@ const AppContent: React.FC = () => {
           <OrderControls 
             onHold={handleHold} 
             onResume={handleResume} 
-            onClear={handleClear} 
+            onClear={() => setClearOrderConfirmOpen(true)} 
             isOrderHeld={heldCart !== null} 
             cartIsEmpty={cart.length === 0} 
           />
@@ -974,7 +896,7 @@ const AppContent: React.FC = () => {
                     <button
                       key={idx}
                       onClick={() => {
-                        setDiscount(calculatedVal);
+                        posActions.setDiscountMajor(calculatedVal);
                       }}
                       className={`px-2.5 py-1 rounded text-[11px] font-mono font-medium whitespace-nowrap border transition-all cursor-pointer ${
                         isActive
@@ -988,7 +910,7 @@ const AppContent: React.FC = () => {
                 })}
                 {discount > 0 && (
                   <button
-                    onClick={() => setDiscount(0)}
+                    onClick={() => posActions.setDiscountMajor(0)}
                     className="px-2 py-1 rounded text-[10px] font-bold uppercase whitespace-nowrap bg-status-coral/10 border border-status-coral/20 text-status-coral hover:bg-status-coral/20 transition-all cursor-pointer"
                   >
                     {t('Clear')}
@@ -1061,11 +983,11 @@ const AppContent: React.FC = () => {
 
       {/* Payment Modal Overlay */}
       {isPaymentOpen && (
-        <PaymentModal 
-          subtotal={subtotal}
-          tax={tax}
-          discount={activeDiscount}
-          total={totalAmount}
+        <PaymentModal
+          subtotal={totals.subtotal}
+          tax={totals.tax}
+          discount={fromMinor(discountMinor)}
+          total={totals.total}
           items={cart}
           onClose={() => setIsPaymentOpen(false)}
           onConfirm={handleCheckoutConfirm}
@@ -1093,6 +1015,14 @@ const AppContent: React.FC = () => {
           onSave={handleSaveQuickProduct}
         />
       )}
+      <ConfirmDialog
+        open={clearOrderConfirmOpen}
+        onClose={() => setClearOrderConfirmOpen(false)}
+        onConfirm={handleClear}
+        title="Void order"
+        message="Are you sure you want to void this order?"
+        confirmLabel="Void order"
+      />
     </div>
   );
 };
@@ -1101,6 +1031,7 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => (
   <LicenseGate>
     <AppContent />
+    <ToastHost />
   </LicenseGate>
 );
 

@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { LicenseState } from '../types';
-import { ShieldAlert, ShieldX, ShieldCheck, Copy, RefreshCw } from 'lucide-react';
+import { ShieldAlert, ShieldX, ShieldCheck, Copy, RefreshCw, KeyRound } from 'lucide-react';
+import { LicenseActivationModal } from './LicenseActivationModal';
+import { ToastHost } from './ui/Toast';
 
 interface LicenseGateProps {
   children: React.ReactNode;
@@ -20,6 +22,7 @@ export const LicenseGate: React.FC<LicenseGateProps> = ({ children }) => {
   const [fingerprint, setFingerprint] = useState<string>('');
   const [copied, setCopied] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(Date.now());
+  const [activationOpen, setActivationOpen] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
@@ -91,6 +94,7 @@ export const LicenseGate: React.FC<LicenseGateProps> = ({ children }) => {
         : 'Your free trial period has ended.';
 
     return (
+      <>
       <div className="h-screen w-full flex items-center justify-center bg-canvas p-6 font-sans">
         <div className="w-full max-w-lg bg-canvas-subtle border border-status-coral/30 rounded-2xl p-8 shadow-2xl text-center">
           <div className="w-16 h-16 mx-auto rounded-2xl bg-status-coral/10 border border-status-coral/30 flex items-center justify-center mb-5">
@@ -128,8 +132,24 @@ export const LicenseGate: React.FC<LicenseGateProps> = ({ children }) => {
           >
             <RefreshCw size={13} /> Recheck Activation
           </button>
+
+          <button
+            onClick={() => setActivationOpen(true)}
+            className="w-full mt-2.5 py-2.5 rounded-xl bg-indigo-600/20 border border-indigo-500/40 text-indigo-200 text-xs font-bold uppercase tracking-wider hover:bg-indigo-600/30 transition flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <KeyRound size={13} /> Enter Product Key
+          </button>
         </div>
       </div>
+      <ToastHost />
+      <LicenseActivationModal
+        open={activationOpen}
+        onClose={() => setActivationOpen(false)}
+        deviceCode={fullFingerprint}
+        fingerprint={fingerprint}
+        onActivated={(state) => setLicense(state)}
+      />
+    </>
     );
   }
 
