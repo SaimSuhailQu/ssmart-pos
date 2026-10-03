@@ -24,6 +24,7 @@ import 'package:ssmart_pos_admin/features/dashboard/widgets/store_ops_strip.dart
 import 'package:ssmart_pos_admin/services/auth_service.dart';
 import 'package:ssmart_pos_admin/services/firebase_service.dart';
 import 'package:ssmart_pos_admin/widgets/error_widget.dart';
+import 'package:ssmart_pos_admin/widgets/license_banner.dart';
 import 'package:ssmart_pos_admin/widgets/loading_indicator.dart';
 import 'package:ssmart_pos_admin/widgets/manual_closing_dialog.dart';
 
@@ -252,9 +253,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ),
       ),
-      body: RefreshIndicator(
-        onRefresh: _handleRefresh,
-        child: StreamBuilder<List<Sale>>(
+      body: Column(
+        children: [
+          // License status lives in the layout flow (never a floating
+          // overlay) so it can't collide with the FAB or cover cards.
+          const LicenseBanner(),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _handleRefresh,
+              child: StreamBuilder<List<Sale>>(
           initialData: firebaseService.cachedSales,
           stream: firebaseService.getSalesStream(),
           builder: (context, snapshot) {
@@ -295,8 +302,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
             );
           },
         ),
-      ),
-    );
+        ),
+        ),
+          ],
+        ),
+      );
   }
 
   Widget _buildDashboardContent({

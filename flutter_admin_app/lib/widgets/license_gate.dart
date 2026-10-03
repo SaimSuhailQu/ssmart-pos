@@ -21,6 +21,10 @@ class MobileLicenseGate extends StatefulWidget {
     required this.licenseService,
   });
 
+  /// Returns the current [LicenseState] from the nearest gate,
+  /// or null while the license is still being verified.
+  static LicenseState? of(BuildContext context) => _LicenseScope.of(context);
+
   @override
   State<MobileLicenseGate> createState() => _MobileLicenseGateState();
 }
@@ -397,106 +401,27 @@ class _MobileLicenseGateState extends State<MobileLicenseGate> {
       );
     }
 
-    // ---- Trial / grace banner ---- //
-    if (license.status == LicenseStatus.trial) {
-      final inGrace = license.inGrace;
-      final accent =
-          inGrace ? AppTheme.errorRed : AppTheme.warningOrange;
-      return Stack(
-        children: [
-          widget.child,
-          Positioned(
-            bottom: 12,
-            left: 16,
-            right: 16,
-            child: SafeArea(
-              child: Center(
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: accent.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: accent.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        CupertinoIcons.shield,
-                        size: 13,
-                        color: accent,
-                      ),
-                      const SizedBox(width: 6),
-                      Flexible(
-                        child: Text(
-                          inGrace
-                              ? 'Trial expired — grace period ends soon. Activate now to avoid lockout.'
-                              : 'Free Trial — ${license.daysRemaining ?? 0} day${(license.daysRemaining ?? 0) == 1 ? '' : 's'} remaining',
-                          style: AppTheme.labelSmall.copyWith(
-                            color: accent,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      );
-    }
-
-    // ---- Licensed — subtle badge ---- //
-    return Stack(
-      children: [
-        widget.child,
-        Positioned(
-          bottom: 12,
-          left: 16,
-          right: 16,
-          child: SafeArea(
-            child: Center(
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: AppTheme.successGreen.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(
-                    color: AppTheme.successGreen.withValues(alpha: 0.3),
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      CupertinoIcons.checkmark_shield,
-                      size: 13,
-                      color: AppTheme.successGreen,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      license.isMaster
-                          ? 'Master Access'
-                          : 'Licensed${license.licensedTo != null ? ' — ${license.licensedTo}' : ''}',
-                      style: AppTheme.labelSmall.copyWith(
-                        color: AppTheme.successGreen,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
+    // Trial and licensed states render their UI in the layout flow
+    // (see LicenseBanner): no floating overlays, so nothing can collide
+    // with the FAB or cover dashboard content.
+    return _LicenseScope(
+      license: license,
+      child: widget.child,
     );
   }
+}
+
+/// Exposes the gate's current [LicenseState] to the wrapped app so screens
+/// can render license UI in the layout flow (e.g. [LicenseBanner]).
+class _LicenseScope extends InheritedWidget {
+  final LicenseState? license;
+
+  const _LicenseScope({required this.license, required super.child});
+
+  static LicenseState? of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<_LicenseScope>()?.license;
+
+  @override
+  bool updateShouldNotify(_LicenseScope oldWidget) =>
+      oldWidget.license != license;
 }

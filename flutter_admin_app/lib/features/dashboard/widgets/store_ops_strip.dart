@@ -106,32 +106,49 @@ class _StoreOpsStripState extends State<StoreOpsStrip> {
             child: hasAlerts
                 ? Column(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          _badge('${outOfStock.length}', AppTheme.errorRed),
-                          const SizedBox(width: 6),
-                          _badge('${lowStock.length}', AppTheme.warningOrange),
-                          const SizedBox(width: 6),
                           const Icon(
                             CupertinoIcons.exclamationmark_triangle_fill,
                             size: 13,
                             color: AppTheme.warningOrange,
                           ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Stock Alerts',
+                            style: AppTheme.labelSmall.copyWith(
+                              color: AppTheme.textSecondary,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.4,
+                            ),
+                          ),
                         ],
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Items need restocking',
-                        style: AppTheme.labelSmall.copyWith(
-                          color: AppTheme.textSecondary,
-                          fontSize: 10,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          _labeledStat(
+                            count: '${outOfStock.length}',
+                            label: 'Out of stock',
+                            color: AppTheme.errorRed,
+                          ),
+                          Container(
+                            width: 1,
+                            height: 30,
+                            color:
+                                AppTheme.borderColor.withValues(alpha: 0.6),
+                          ),
+                          _labeledStat(
+                            count: '${lowStock.length}',
+                            label: 'Low stock',
+                            color: AppTheme.warningOrange,
+                          ),
+                        ],
                       ),
                     ],
                   )
@@ -243,23 +260,35 @@ class _StoreOpsStripState extends State<StoreOpsStrip> {
     );
   }
 
-  Widget _badge(String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withValues(alpha: 0.4)),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w800,
-          color: color,
-          fontFeatures: const [FontFeature.tabularFigures()],
+  /// Big count with a small caption underneath, e.g. "797 / Out of stock".
+  Widget _labeledStat({
+    required String count,
+    required String label,
+    required Color color,
+  }) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          count,
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w800,
+            color: color,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
         ),
-      ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: AppTheme.labelSmall.copyWith(
+            fontSize: 10,
+            color: AppTheme.textSecondary,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
     );
   }
 }
