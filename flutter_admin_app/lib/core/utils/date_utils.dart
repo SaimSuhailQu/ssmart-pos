@@ -152,8 +152,11 @@ class AppDateUtils {
   /// Format currency amount
   /// Example: "PKR 1,234.56"
   static String formatCurrency(double amount, {String symbol = 'PKR'}) {
+    // NumberFormat concatenates the symbol directly ("PKR0.00"); always
+    // separate it with a space for a professional readout.
+    final spacedSymbol = symbol.endsWith(' ') ? symbol : '$symbol ';
     final formatter = NumberFormat.currency(
-      symbol: symbol,
+      symbol: spacedSymbol,
       decimalDigits: 2,
       locale: 'en_PK',
     );
