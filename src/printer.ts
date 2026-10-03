@@ -37,6 +37,21 @@ export interface PrintReceiptOptions {
 const RECEIPT_WIDTH = 48;
 export { RECEIPT_WIDTH };
 
+/**
+ * Escape a user-controlled string for interpolation into receipt/label HTML.
+ * Product names, cashier names and barcodes come from user input or the
+ * catalog — without escaping, a value like `<img onerror=…>` would execute
+ * in the hidden print window.
+ */
+function esc(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function generateReceiptHtml(
   items: Array<{ name?: string; qty?: number; price?: number }>,
   payment: PrintReceiptOptions,
@@ -68,7 +83,7 @@ function generateReceiptHtml(
 
     return `
       <div style="margin-bottom: 3px; padding-bottom: 1px;">
-        <div style="font-weight: 700; font-size: 11.5px; text-transform: uppercase; word-break: break-word;">${item.name || 'Item'}</div>
+        <div style="font-weight: 700; font-size: 11.5px; text-transform: uppercase; word-break: break-word;">${esc(item.name || 'Item')}</div>
         <div style="display: flex; justify-content: space-between; font-size: 10.5px; font-weight: 500; margin-top: 1px;">
           <span>${origPrice.toFixed(2)} x ${qty}</span>
           <span style="font-weight: 700;">${itemDiscPercent > 0 ? `(-${itemDiscPercent.toFixed(0)}%) ` : ''}${lineFinalTotal.toFixed(2)}</span>
@@ -156,7 +171,7 @@ function generateReceiptHtml(
           <div class="header-sub">Ph: 0316-5915787</div>
           <div class="divider"></div>
           <div class="row" style="font-size: 9.5px;"><span>Inv #: <strong>${saleId ? String(saleId).padStart(5, '0') : 'WALK-IN'}</strong></span><span>Date: ${dateStr}</span></div>
-          <div class="row" style="font-size: 9.5px;"><span>Cashier: <strong>${cashier}</strong></span><span>Time: ${timeStr}</span></div>
+          <div class="row" style="font-size: 9.5px;"><span>Cashier: <strong>${esc(cashier)}</strong></span><span>Time: ${timeStr}</span></div>
         </div>
 
         <div style="margin: 3px 0;">
@@ -189,7 +204,7 @@ function generateReceiptHtml(
         <div style="margin-top: 3px;">
           ${payments.map(p => `
             <div class="row" style="font-size: 10px; margin-bottom: 1px;">
-              <span>Paid via ${p.method}:</span>
+              <span>Paid via ${esc(p.method)}:</span>
               <span class="bold">Rs. ${p.amount.toFixed(2)}</span>
             </div>
           `).join('')}
@@ -432,7 +447,7 @@ function generateCode128Svg(text: string): string {
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalWidth} ${height + 16}" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" style="shape-rendering: crispEdges;">
       <rect width="${totalWidth}" height="${height + 16}" fill="#fff"/>
       ${rects.join('')}
-      <text x="${totalWidth / 2}" y="${height + 13}" text-anchor="middle" font-family="'Courier New', Courier, monospace" font-size="12" font-weight="bold" fill="#000">${clean}</text>
+      <text x="${totalWidth / 2}" y="${height + 13}" text-anchor="middle" font-family="'Courier New', Courier, monospace" font-size="12" font-weight="bold" fill="#000">${esc(clean)}</text>
     </svg>
   `;
 }
@@ -459,7 +474,7 @@ export function printBarcode(
         </svg>
       </div>
       <div class="store-header">SS MART</div>
-      <div class="product-title">${productName}</div>
+      <div class="product-title">${esc(productName)}</div>
       <div class="price-tag">Rs. ${price}</div>
       <div class="barcode-box">
         ${barcodeSvg}
@@ -751,7 +766,7 @@ export function printBarcodesBatchA4(
           cells.push(`
             <td class="label-cell">
               <div class="barcode-label">
-                <div class="product-title">${label.name}</div>
+                <div class="product-title">${esc(label.name)}</div>
                 <div class="barcode-box">
                   ${label.svg}
                 </div>

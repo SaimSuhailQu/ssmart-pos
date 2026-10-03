@@ -3,6 +3,8 @@ import path from 'path';
 import fs from 'fs';
 import { app } from 'electron';
 import { Product, CartItem, PaymentEntry, Payment, Sale, SaleItem, Customer, CustomerKhataEntry, PurchaseOrder, PurchaseOrderItem, VendorPayment, VendorOrderEntry } from './types';
+import { hashPin, authenticatePin, toSafeUser, isHashed } from './main/security/pinAuth';
+import { validatePin } from './core/validation';
 
 // Setup database in user data directory
 const userDataPath = app.getPath('userData');
@@ -88,7 +90,8 @@ export function initDb() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       pin TEXT UNIQUE NOT NULL,
       name TEXT NOT NULL,
-      role TEXT NOT NULL DEFAULT 'Cashier' -- Cashier, Manager, Admin
+      role TEXT NOT NULL DEFAULT 'Cashier', -- Cashier, Manager, Admin
+      must_change_pin INTEGER NOT NULL DEFAULT 0 -- 1 = force rotation on next login (seeded defaults)
     );
 
     CREATE TABLE IF NOT EXISTS shifts (
@@ -187,13 +190,35 @@ export function initDb() {
     CREATE INDEX IF NOT EXISTS idx_cke_timestamp ON customer_khata_entries(timestamp);
     CREATE INDEX IF NOT EXISTS idx_vendor_payments_po_id ON vendor_payments(po_id);
     CREATE INDEX IF NOT EXISTS idx_vendor_order_entries_po_id ON vendor_order_entries(po_id);
+
+    -- Simple key/value store for terminal settings (printer transport, etc.)
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
   `);
 
-  // Seed default admin and cashier if users table is empty
+  // Migration: force-PIN-rotation flag for seeded default accounts (v2.1.0).
+  // Existing installs get the column; new installs get it from CREATE TABLE above.
+  const userCols = db.prepare(`PRAGMA table_info(users)`).all() as Array<{ name: string }>;
+  if (!userCols.some((c) => c.name === 'must_change_pin')) {
+    db.exec('ALTER TABLE users ADD COLUMN must_change_pin INTEGER NOT NULL DEFAULT 0');
+  }
+
+  // Seed default admin and cashier if users table is empty.
+  // PINs are scrypt-hashed at rest and MUST be rotated on first login.
   const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number };
   if (userCount.count === 0) {
-    db.prepare('INSERT INTO users (pin, name, role) VALUES (?, ?, ?)').run('1234', 'Default Cashier', 'Cashier');
-    db.prepare('INSERT INTO users (pin, name, role) VALUES (?, ?, ?)').run('9999', 'Admin Manager', 'Admin');
+    db.prepare('INSERT INTO users (pin, name, role, must_change_pin) VALUES (?, ?, ?, 1)').run(hashPin('1234'), 'Default Cashier', 'Cashier');
+    db.prepare('INSERT INTO users (pin, name, role, must_change_pin) VALUES (?, ?, ?, 1)').run(hashPin('9999'), 'Admin Manager', 'Admin');
+  } else {
+    // Existing installs: any account still on a legacy default PIN gets flagged.
+    const legacyDefaults = db.prepare(`SELECT id, pin FROM users WHERE must_change_pin = 0`).all() as Array<{ id: number; pin: string }>;
+    for (const row of legacyDefaults) {
+      if (!isHashed(row.pin) && (row.pin === '1234' || row.pin === '9999' || row.pin === '0000')) {
+        db.prepare('UPDATE users SET must_change_pin = 1 WHERE id = ?').run(row.id);
+      }
+    }
   }
 
   // Seed some dummy customers
@@ -942,8 +967,26 @@ export function deleteCustomerKhataBySyncId(syncId: string) {
 }
 
 // --- User & Shift Data Access ---
+/**
+ * Verify a PIN using scrypt hashes. Legacy plaintext PINs are verified with a
+ * constant-time compare and transparently re-hashed on first successful login.
+ * Never returns the PIN (or its hash) to the caller.
+ */
 export function verifyUserPin(pin: string) {
-  return db.prepare('SELECT id, name, role FROM users WHERE pin = ?').get(pin);
+  const rows = db
+    .prepare('SELECT id, name, role, pin, must_change_pin FROM users')
+    .all() as Array<Record<string, unknown>>;
+  const res = authenticatePin(rows, pin);
+  if (!res.ok) return undefined;
+  const { user, userId, needsMigration } = res.value;
+  if (needsMigration) {
+    db.prepare('UPDATE users SET pin = ? WHERE id = ?').run(hashPin(pin), userId);
+  }
+  const row = rows.find((r) => Number(r.id) === userId);
+  return {
+    ...toSafeUser({ id: userId, name: user.name, role: user.role }),
+    mustChangePin: Number(row?.must_change_pin ?? 0) === 1,
+  };
 }
 
 export function clockIn(userId: number) {
@@ -1907,19 +1950,66 @@ export function getSalesAnalytics() {
   };
 }
 
+// --- Terminal settings (key/value) ---
+export function getSetting(key: string): string | null {
+  const row = db.prepare('SELECT value FROM settings WHERE key = ?').get(key) as { value: string } | undefined;
+  return row?.value ?? null;
+}
+
+export function setSetting(key: string, value: string): void {
+  db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').run(key, value);
+}
+
+// v2.2.0 money migration (prepared, NOT auto-run — see moneyMigration.ts).
+// Run once from a maintenance console during the v2.2.0 window via
+// runMoneyMigration(). Rollback = restore the .paisa-backup-* file.
+import {
+  migrateMoneyColumnsToPaisa,
+  MONEY_COLUMNS,
+  MoneyMigrationReport,
+} from './main/db/moneyMigration';
+export { MONEY_COLUMNS };
+export type { MoneyMigrationReport };
+export function runMoneyMigration(): MoneyMigrationReport {
+  return migrateMoneyColumnsToPaisa(db, dbPath);
+}
+
 // --- In-App User/PIN Dashboard APIs ---
+/** All users WITHOUT PIN material — secrets never cross IPC. */
 export function getAllUsers() {
-  return db.prepare('SELECT id, name, pin, role FROM users').all();
+  return db.prepare('SELECT id, name, role, must_change_pin FROM users').all() as Array<{
+    id: number; name: string; role: string; must_change_pin: number;
+  }>;
+}
+
+function requireValidPin(pin: unknown): string {
+  const res = validatePin(pin);
+  if (!res.ok) {
+    throw new Error(res.error.map((e) => e.message).join(' '));
+  }
+  return res.value;
 }
 
 export function addUser(user: { name: string, pin: string, role: string }) {
+  const cleanPin = requireValidPin(user.pin);
   const insert = db.prepare('INSERT INTO users (name, pin, role) VALUES (?, ?, ?)');
-  return insert.run(user.name, user.pin, user.role).lastInsertRowid;
+  return insert.run(user.name, hashPin(cleanPin), user.role).lastInsertRowid;
 }
 
 export function updateUser(id: number, user: { name: string, pin: string, role: string }) {
+  // Accept plaintext (hash it) or an already-hashed value (store as-is, never double-hash).
+  const storedPin = isHashed(user.pin) ? user.pin : hashPin(requireValidPin(user.pin));
   const update = db.prepare('UPDATE users SET name = ?, pin = ?, role = ? WHERE id = ?');
-  return update.run(user.name, user.pin, user.role, id).changes > 0;
+  return update.run(user.name, storedPin, user.role, id).changes > 0;
+}
+
+/** Rotate a user's PIN (used by the forced-rotation flow and PIN change UI). */
+export function changeUserPin(userId: number, newPin: string): boolean {
+  const cleanPin = requireValidPin(newPin);
+  const changes = db
+    .prepare('UPDATE users SET pin = ?, must_change_pin = 0 WHERE id = ?')
+    .run(hashPin(cleanPin), userId).changes;
+  return changes > 0;
 }
 
 export function deleteUser(id: number) {
