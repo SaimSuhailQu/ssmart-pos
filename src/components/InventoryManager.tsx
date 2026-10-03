@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Product } from '../types';
+import { ConfirmDialog } from './ui/ConfirmDialog';
+import { toast } from '../state/toast';
 import { Plus, Edit2, Trash2, Printer, Search, PackageOpen, Sliders, AlertTriangle, Upload, Layers, Package, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ProductFormModal } from './ProductFormModal';
 import { BulkProductEditorModal } from './BulkProductEditorModal';
@@ -24,6 +26,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
   const [isBulkAddOpen, setIsBulkAddOpen] = useState(false);
   const [isBulkEditorOpen, setIsBulkEditorOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [pendingDeleteProduct, setPendingDeleteProduct] = useState<{ id: number; name: string } | null>(null);
   
   // Barcode Printing State
   const [barcodeProduct, setBarcodeProduct] = useState<Product | null>(null);
@@ -76,11 +79,12 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
     loadProducts();
   };
 
-  const handleDelete = async (id: number, name: string) => {
-    if (window.confirm(`Are you sure you want to delete "${name}"?`)) {
-      await window.api.deleteProduct(id);
-      loadProducts();
-    }
+  const handleDelete = async () => {
+    const target = pendingDeleteProduct;
+    if (target == null) return;
+    await window.api.deleteProduct(target.id);
+    setPendingDeleteProduct(null);
+    loadProducts();
   };
 
   const handleOpenBarcodeModal = (product: Product) => {
@@ -95,13 +99,13 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
       const count = Math.max(1, Math.min(Number(barcodeQty) || 1, 500));
       const success = await window.api.printBarcode(barcodeProduct, count);
       if (!success) {
-        alert("Failed to print barcode. Check printer connection.");
+        toast.error("Failed to print barcode. Check printer connection.");
       } else {
         setBarcodeProduct(null);
       }
     } catch (err) {
       console.error('Print barcode error:', err);
-      alert("Error while sending print job.");
+      toast.error("Error while sending print job.");
     } finally {
       setIsPrintingBarcode(false);
     }
@@ -194,7 +198,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                       const text = event.target?.result as string;
                       const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
                       if (lines.length < 2) {
-                        alert('CSV file is empty or invalid.');
+                        toast.error('CSV file is empty or invalid.');
                         return;
                       }
 
@@ -257,10 +261,10 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                       }
 
                       await loadProducts();
-                      alert(`Successfully imported and updated products from CSV!`);
+                      toast.success(`Successfully imported and updated products from CSV!`);
                     } catch (err: unknown) {
                       const msg = err instanceof Error ? err.message : String(err);
-                      alert(`Error importing CSV: ${msg}`);
+                      toast.error(`Error importing CSV: ${msg}`);
                     }
                   };
                   reader.readAsText(file);
@@ -367,7 +371,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                           <Edit2 size={15} />
                         </button>
                         <button 
-                          onClick={() => handleDelete(p.id, p.name)}
+                          onClick={() => setPendingDeleteProduct({ id: p.id, name: p.name })}
                           className="p-1.5 text-status-coral hover:text-status-coral hover:bg-status-coral/15 rounded-md transition-colors"
                           title="Delete Product"
                         >
@@ -568,6 +572,18 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
           </div>
         </div>
       )}
+      <ConfirmDialog
+        open={pendingDeleteProduct !== null}
+        onClose={() => setPendingDeleteProduct(null)}
+        onConfirm={handleDelete}
+        title="Delete product"
+        message={
+          pendingDeleteProduct
+            ? `Are you sure you want to delete "${pendingDeleteProduct.name}"?`
+            : ''
+        }
+        confirmLabel="Delete"
+      />
     </div>
   );
 };

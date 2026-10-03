@@ -96,3 +96,4 @@ out/
 *.db
 *.sqlite-wal
 *.sqlite-shm
+.env.production

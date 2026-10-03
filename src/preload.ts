@@ -3,7 +3,7 @@
 
 import { contextBridge, ipcRenderer } from 'electron';
 import { 
-  CartItem, 
+  CheckoutItem, 
   PaymentData, 
   Product, 
   Customer, 
@@ -18,18 +18,21 @@ contextBridge.exposeInMainWorld('api', {
   // Licensing
   getLicenseState: () => ipcRenderer.invoke('get-license-state'),
   getDeviceFingerprint: () => ipcRenderer.invoke('get-device-fingerprint'),
+  activateProductKey: (key: string) => ipcRenderer.invoke('license:activate-key', key),
+  getDeviceCode: () => ipcRenderer.invoke('license:get-device-code'),
+  deactivateProductKey: () => ipcRenderer.invoke('license:deactivate-key'),
 
   getAllProducts: () => ipcRenderer.invoke('get-all-products'),
   getProduct: (barcode: string) => ipcRenderer.invoke('get-product', barcode),
   getNextSaleId: () => ipcRenderer.invoke('get-next-sale-id'),
-  checkout: (data: { items: CartItem[]; paymentData: PaymentData; userId?: number; cashierName?: string }) => ipcRenderer.invoke('checkout', data),
+  checkout: (data: { items: CheckoutItem[]; paymentData: PaymentData; userId?: number; cashierName?: string }) => ipcRenderer.invoke('checkout', data),
   addManualDailyClosingSale: (data: { total: number; cashAmount?: number; onlineAmount?: number; notes?: string; date?: string; cashierName?: string }) => ipcRenderer.invoke('add-manual-closing-sale', data),
   addProduct: (product: Omit<Product, 'id'>) => ipcRenderer.invoke('add-product', product),
   bulkAddProducts: (productsList: Array<Omit<Product, 'id'>>) => ipcRenderer.invoke('bulk-add-products', productsList),
   updateProduct: (id: number, product: Omit<Product, 'id'>) => ipcRenderer.invoke('update-product', id, product),
   bulkUpdateProducts: (updates: Array<{ id: number; cost_price: number; price: number; stock: number; category?: string }>) => ipcRenderer.invoke('bulk-update-products', updates),
   deleteProduct: (id: number) => ipcRenderer.invoke('delete-product', id),
-  printReceipt: (data: { items: CartItem[]; paymentData: PaymentData; saleId?: number; cashierName?: string }) => ipcRenderer.invoke('print-receipt', data),
+  printReceipt: (data: { items: CheckoutItem[]; paymentData: PaymentData; saleId?: number; cashierName?: string }) => ipcRenderer.invoke('print-receipt', data),
   printBarcode: (product: Product, count?: number) => ipcRenderer.invoke('print-barcode', product, count),
   printBarcodesBatchA4: (items: Array<{ name: string; barcode: string; price: number | string; count: number }>) => ipcRenderer.invoke('print-barcodes-batch-a4', items),
   getAllCustomers: () => ipcRenderer.invoke('get-all-customers'),
@@ -44,6 +47,8 @@ contextBridge.exposeInMainWorld('api', {
   deleteCustomerKhataEntry: (id: number) => ipcRenderer.invoke('delete-customer-khata-entry', id),
   clearAllKhata: () => ipcRenderer.invoke('clear-all-khata'),
   verifyUserPin: (pin: string) => ipcRenderer.invoke('verify-user-pin', pin),
+  changeUserPin: (userId: number, newPin: string) => ipcRenderer.invoke('change-user-pin', userId, newPin),
+  logout: () => ipcRenderer.invoke('logout'),
   clockIn: (userId: number) => ipcRenderer.invoke('clock-in', userId),
   clockOut: (shiftId: number) => ipcRenderer.invoke('clock-out', shiftId),
   getActiveShift: (userId: number) => ipcRenderer.invoke('get-active-shift', userId),
@@ -79,12 +84,12 @@ contextBridge.exposeInMainWorld('api', {
   getAllPurchaseOrders: () => ipcRenderer.invoke('get-all-purchase-orders'),
   createPurchaseOrder: (vendorId: number, items: POItemInput[], customTotalCost?: number, notes?: string, billUrl?: string) => ipcRenderer.invoke('create-purchase-order', vendorId, items, customTotalCost, notes, billUrl),
   receivePurchaseOrder: (poId: number) => ipcRenderer.invoke('receive-purchase-order', poId),
-  deletePurchaseOrder: (poId: number, bypassTimeCheck?: boolean) => ipcRenderer.invoke('delete-purchase-order', poId, bypassTimeCheck),
+  deletePurchaseOrder: (poId: number) => ipcRenderer.invoke('delete-purchase-order', poId),
   addVendorPayment: (payment: { poId: number; vendorId: number; amount: number; paymentMethod?: string; notes?: string; receiptUrl?: string }) => ipcRenderer.invoke('add-vendor-payment', payment),
-  deleteVendorPayment: (paymentId: number, bypassTimeCheck?: boolean) => ipcRenderer.invoke('delete-vendor-payment', paymentId, bypassTimeCheck),
-  updateVendorPayment: (paymentId: number, updateData: { amount: number; paymentMethod?: string; notes?: string; receiptUrl?: string }, bypassTimeCheck?: boolean) => ipcRenderer.invoke('update-vendor-payment', paymentId, updateData, bypassTimeCheck),
-  deleteVendorOrderEntry: (entryId: number, bypassTimeCheck?: boolean) => ipcRenderer.invoke('delete-vendor-order-entry', entryId, bypassTimeCheck),
-  updateVendorOrderEntry: (entryId: number, updateData: { amount: number; notes?: string; billUrl?: string }, bypassTimeCheck?: boolean) => ipcRenderer.invoke('update-vendor-order-entry', entryId, updateData, bypassTimeCheck),
+  deleteVendorPayment: (paymentId: number) => ipcRenderer.invoke('delete-vendor-payment', paymentId),
+  updateVendorPayment: (paymentId: number, updateData: { amount: number; paymentMethod?: string; notes?: string; receiptUrl?: string }) => ipcRenderer.invoke('update-vendor-payment', paymentId, updateData),
+  deleteVendorOrderEntry: (entryId: number) => ipcRenderer.invoke('delete-vendor-order-entry', entryId),
+  updateVendorOrderEntry: (entryId: number, updateData: { amount: number; notes?: string; billUrl?: string }) => ipcRenderer.invoke('update-vendor-order-entry', entryId, updateData),
   getVendorPayments: (vendorId?: number) => ipcRenderer.invoke('get-vendor-payments', vendorId),
   getVendorOrderEntries: (vendorId?: number) => ipcRenderer.invoke('get-vendor-order-entries', vendorId),
 
@@ -108,6 +113,19 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.on('license-revoked', handler);
     return () => {
       ipcRenderer.removeListener('license-revoked', handler);
+    };
+  },
+
+  // Print spooler
+  getPrintQueueStatus: () => ipcRenderer.invoke('get-print-queue-status'),
+  retryPrintQueue: () => ipcRenderer.invoke('retry-print-queue'),
+  getPrinterSettings: () => ipcRenderer.invoke('get-printer-settings'),
+  savePrinterSettings: (settings: { transport?: string; storeName?: string }) => ipcRenderer.invoke('save-printer-settings', settings),
+  onPrintQueueChanged: (callback: (status: { queued: number; failed: number; sending: number }) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, status: { queued: number; failed: number; sending: number }) => callback(status);
+    ipcRenderer.on('print-queue-changed', handler);
+    return () => {
+      ipcRenderer.removeListener('print-queue-changed', handler);
     };
   }
 });

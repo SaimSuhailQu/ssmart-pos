@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Customer, CustomerKhataEntry } from '../types';
+import { ConfirmDialog } from './ui/ConfirmDialog';
+import { toast } from '../state/toast';
 import { Search, Edit2, Trash2, Award, UserPlus, Phone, Mail, BookOpen, Send, History, ArrowUpRight, ArrowDownLeft, UserCheck, Clock } from 'lucide-react';
 
 export const CustomerManager: React.FC = () => {
@@ -23,6 +25,9 @@ export const CustomerManager: React.FC = () => {
   const [editKhataNotes, setEditKhataNotes] = useState('');
   const [editKhataPaymentMethod, setEditKhataPaymentMethod] = useState('Cash');
   const [editKhataError, setEditKhataError] = useState('');
+  const [pendingDeleteCustomerId, setPendingDeleteCustomerId] = useState<number | null>(null);
+  const [clearAllKhataConfirmOpen, setClearAllKhataConfirmOpen] = useState(false);
+  const [pendingDeleteKhataEntry, setPendingDeleteKhataEntry] = useState<CustomerKhataEntry | null>(null);
 
   // Form Fields
   const [name, setName] = useState('');
@@ -97,24 +102,23 @@ export const CustomerManager: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (window.confirm('Delete this customer profile and their khata history?')) {
-      await window.api.deleteCustomer(id);
-      loadCustomers();
-    }
+  const handleDelete = async () => {
+    if (pendingDeleteCustomerId == null) return;
+    await window.api.deleteCustomer(pendingDeleteCustomerId);
+    setPendingDeleteCustomerId(null);
+    loadCustomers();
   };
 
   const handleClearAllKhata = async () => {
-    if (window.confirm('Are you sure you want to clear all Khata records and reset all customer balances to Rs. 0 in local & cloud database? This cannot be undone.')) {
-      try {
-        await window.api.clearAllKhata();
-        await loadCustomers();
-        if (selectedCustomerForKhata) {
-          loadCustomerKhata(selectedCustomerForKhata.id);
-        }
-      } catch (err) {
-        console.error('Failed to clear khata:', err);
+    setClearAllKhataConfirmOpen(false);
+    try {
+      await window.api.clearAllKhata();
+      await loadCustomers();
+      if (selectedCustomerForKhata) {
+        loadCustomerKhata(selectedCustomerForKhata.id);
       }
+    } catch (err) {
+      console.error('Failed to clear khata:', err);
     }
   };
 
@@ -165,7 +169,7 @@ export const CustomerManager: React.FC = () => {
     const entryTime = new Date(entry.timestamp).getTime();
     const diffMins = (Date.now() - entryTime) / (1000 * 60);
     if (diffMins > 30) {
-      alert('This Khata entry was created more than 30 minutes ago and cannot be modified.');
+      toast.warning('This Khata entry was created more than 30 minutes ago and cannot be modified.');
       return;
     }
     setEditingKhataEntry(entry);
@@ -201,18 +205,18 @@ export const CustomerManager: React.FC = () => {
     }
   };
 
-  const handleDeleteKhataEntry = async (entry: CustomerKhataEntry) => {
-    const isLoan = entry.type === 'LOAN';
-    const confirmMsg = `Are you sure you want to permanently delete this ${isLoan ? 'Loan' : 'Repayment'} entry of Rs. ${entry.amount.toLocaleString()}?\n\nThis will adjust the customer's balance permanently.`;
-    if (!window.confirm(confirmMsg)) return;
-
+  const handleDeleteKhataEntry = async () => {
+    const entry = pendingDeleteKhataEntry;
+    if (!entry) return;
     try {
       await window.api.deleteCustomerKhataEntry(entry.id);
       await loadCustomers();
     } catch (err: unknown) {
       console.error('Failed to delete khata entry:', err);
       const msg = err instanceof Error ? err.message : String(err);
-      alert(`Failed to delete khata entry: ${msg}`);
+      toast.error(`Failed to delete khata entry: ${msg}`);
+    } finally {
+      setPendingDeleteKhataEntry(null);
     }
   };
 
@@ -257,7 +261,7 @@ export const CustomerManager: React.FC = () => {
     // Attempt silent direct Meta WhatsApp Cloud API send first
     window.api.sendWhatsAppMessage(cleanPhone, message).then((res) => {
       if (res.success) {
-        alert(`✅ WhatsApp Statement sent silently & automatically to ${customer.name} (${customer.phone})!`);
+        toast.success(`✅ WhatsApp Statement sent silently & automatically to ${customer.name} (${customer.phone})!`);
       } else {
         // If Meta Cloud API credentials are not set up, seamlessly open wa.me as fallback
         const encoded = encodeURIComponent(message);
@@ -314,7 +318,7 @@ export const CustomerManager: React.FC = () => {
             </div>
 
             <button
-              onClick={handleClearAllKhata}
+              onClick={() => setClearAllKhataConfirmOpen(true)}
               className="px-4 py-3 bg-status-coral/10 hover:bg-status-coral/20 border border-status-coral/30 text-status-coral font-bold rounded-xl transition flex items-center gap-2 cursor-pointer active:scale-95 text-sm"
               title="Reset all customer Khata loan/payment transactions and zero balances"
             >
@@ -410,7 +414,7 @@ export const CustomerManager: React.FC = () => {
                         <Edit2 size={15} />
                       </button>
                       <button
-                        onClick={() => handleDelete(c.id)}
+                        onClick={() => setPendingDeleteCustomerId(c.id)}
                         className="p-2 text-status-coral bg-status-coral/10 border border-status-coral/20 rounded-lg hover:bg-status-coral/20 transition cursor-pointer"
                         title="Delete profile"
                       >
@@ -568,7 +572,7 @@ export const CustomerManager: React.FC = () => {
                             </button>
                           )}
                           <button
-                            onClick={() => handleDeleteKhataEntry(entry)}
+                            onClick={() => setPendingDeleteKhataEntry(entry)}
                             className="p-1.5 rounded-lg bg-status-coral/15 hover:bg-status-coral/30 text-status-coral hover:text-status-coral transition flex items-center gap-1 text-[11px] font-semibold cursor-pointer"
                             title="Delete this entry and recalculate balance"
                           >
@@ -891,6 +895,34 @@ export const CustomerManager: React.FC = () => {
           </div>
         </div>
       )}
+      <ConfirmDialog
+        open={pendingDeleteCustomerId !== null}
+        onClose={() => setPendingDeleteCustomerId(null)}
+        onConfirm={handleDelete}
+        title="Delete customer"
+        message="Delete this customer profile and their khata history?"
+        confirmLabel="Delete"
+      />
+      <ConfirmDialog
+        open={clearAllKhataConfirmOpen}
+        onClose={() => setClearAllKhataConfirmOpen(false)}
+        onConfirm={handleClearAllKhata}
+        title="Reset khata"
+        message="Are you sure you want to clear all Khata records and reset all customer balances to Rs. 0 in local & cloud database? This cannot be undone."
+        confirmLabel="Clear all"
+      />
+      <ConfirmDialog
+        open={pendingDeleteKhataEntry !== null}
+        onClose={() => setPendingDeleteKhataEntry(null)}
+        onConfirm={handleDeleteKhataEntry}
+        title="Delete khata entry"
+        message={
+          pendingDeleteKhataEntry
+            ? `Are you sure you want to permanently delete this ${pendingDeleteKhataEntry.type === 'LOAN' ? 'Loan' : 'Repayment'} entry of Rs. ${pendingDeleteKhataEntry.amount.toLocaleString()}?\n\nThis will adjust the customer's balance permanently.`
+            : ''
+        }
+        confirmLabel="Delete"
+      />
     </div>
   );
 };

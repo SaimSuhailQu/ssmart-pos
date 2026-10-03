@@ -1,23 +1,44 @@
-import React, { useState, useEffect } from 'react';
-import { PaymentData, PaymentEntry, CartItem, Customer } from '../types';
-import { X, DollarSign, CreditCard, Smartphone, Gift, Delete, Plus, Printer, BookOpen, UserCheck, Search, Save } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { PaymentData, Customer } from '../types';
+import { X, CreditCard, Printer, BookOpen, UserCheck, Search, Save } from 'lucide-react';
 import { moneyCompact } from '../core/format';
+import { Money, fromMinor, add, sub } from '../core/money';
+import { CartState } from '../domain/cart';
+import { TenderPadBody, TenderLine, TENDER_METHODS, TenderMethod } from './pos/QuickTenderPad';
 
 interface PaymentModalProps {
-  total: number;
-  subtotal: number;
-  tax: number;
-  discount: number;
-  items: CartItem[];
+  total: Money;
+  subtotal: Money;
+  tax: Money;
+  discount: Money;
+  items: CartState;
   onClose: () => void;
   onConfirm: (data: PaymentData) => Promise<void>;
   nextSaleId?: number;
 }
 
-export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax, discount, items, onClose, onConfirm, nextSaleId = 1 }) => {
-  const [method, setMethod] = useState<string>('Cash');
-  const [tenderedStr, setTenderedStr] = useState<string>('');
-  const [payments, setPayments] = useState<PaymentEntry[]>([]);
+const KHATA_METHOD: TenderMethod = { id: 'Credit / Loan', label: 'Khata', icon: <BookOpen size={18} /> };
+const PAYMENT_METHODS: TenderMethod[] = [...TENDER_METHODS, KHATA_METHOD];
+
+/**
+ * Terminal settlement modal.
+ *
+ * Tender math runs on the shared TenderPadBody (integer paisa — no float
+ * drift). The khata/customer flow and thermal receipt preview are kept
+ * around it: when any payment line uses Credit/Loan, a customer must be
+ * selected before the sale can complete.
+ */
+export const PaymentModal: React.FC<PaymentModalProps> = ({
+  total,
+  subtotal,
+  tax,
+  discount,
+  items,
+  onClose,
+  onConfirm,
+  nextSaleId = 1,
+}) => {
+  const [lines, setLines] = useState<TenderLine[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
 
   // Customer loan / Khata selection
@@ -29,388 +50,207 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax
     window.api.getAllCustomers().then(setCustomers).catch(console.error);
   }, []);
 
-  const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
+  const selectedCustomer = customers.find((c) => c.id === selectedCustomerId);
 
-  const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
-  const remaining = Math.max(0, total - totalPaid);
+  const tendered: Money = useMemo(
+    () => lines.reduce((sum, l) => add(sum, l.amount), fromMinor(0)),
+    [lines],
+  );
+  const remaining = useMemo(() => sub(total, tendered), [total, tendered]);
+  const change: Money = useMemo(
+    () => (remaining.minor < 0 ? fromMinor(-remaining.minor) : fromMinor(0)),
+    [remaining],
+  );
 
-  const currentTenderedAmount = method === 'Cash' 
-    ? (tenderedStr ? parseFloat(tenderedStr) : 0)
-    : remaining; // Default to remaining balance for digital or credit methods
+  const hasKhata = lines.some((l) => l.method === KHATA_METHOD.id);
+  const isEnough =
+    remaining.minor <= 0 && lines.length > 0 && (!hasKhata || !!selectedCustomerId);
 
-  const change = Math.max(0, totalPaid + currentTenderedAmount - total);
-  
-  // Is enough: if Credit/Loan, customer must be selected
-  const isCreditLoan = method === 'Credit / Loan' || payments.some(p => p.method === 'Credit / Loan');
-  const isEnough = (totalPaid + currentTenderedAmount >= total) && (!isCreditLoan || !!selectedCustomerId);
-
-  // Keyboard shortcut listener for Payment Modal (Enter to pay, Esc to close, digits for cash)
-  React.useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (isProcessing) return;
-      
-      // If user is typing in a search or text input field, don't hijack alphanumeric keys
-      const activeTag = (document.activeElement?.tagName || '').toLowerCase();
-      const isInputFocused = activeTag === 'input' || activeTag === 'textarea';
-
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        onClose();
-      } else if (e.key === 'Enter') {
-        e.preventDefault();
-        if (isEnough) {
-          handlePay();
-        }
-      } else if (method === 'Cash' && !isInputFocused) {
-        if ((e.key >= '0' && e.key <= '9') || e.key === '.') {
-          handleKeypad(e.key);
-        } else if (e.key === 'Backspace') {
-          setTenderedStr(prev => prev.slice(0, -1));
-        } else if (e.key === 'c' || e.key === 'C') {
-          setTenderedStr('');
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isProcessing, isEnough, method, tenderedStr, payments, currentTenderedAmount, total, subtotal, tax, discount, selectedCustomerId]);
-
-  const handleKeypad = (num: string) => {
-    if (num === 'C') {
-      setTenderedStr('');
-    } else if (num === '.') {
-      if (!tenderedStr.includes('.')) setTenderedStr(tenderedStr + '.');
-    } else {
-      if (tenderedStr.includes('.')) {
-        const decimals = tenderedStr.split('.')[1];
-        if (decimals && decimals.length >= 2) return;
-      }
-      setTenderedStr(tenderedStr + num);
-    }
-  };
-
-  const handleQuickAdd = (amount: number) => {
-    setTenderedStr(amount.toString());
-  };
-
-  const handleAddPayment = () => {
-    if (currentTenderedAmount <= 0) return;
-    setPayments([...payments, { method, amount: currentTenderedAmount }]);
-    setTenderedStr('');
-  };
-
-  const removePayment = (index: number) => {
-    const newPayments = [...payments];
-    newPayments.splice(index, 1);
-    setPayments(newPayments);
-  };
+  const toMajor = (m: Money): number => m.minor / 100;
 
   const handlePay = async (skipReceipt = false) => {
     if (!isEnough || isProcessing) return;
     setIsProcessing(true);
     try {
-      const finalPayments = [...payments];
-      if (currentTenderedAmount > 0 && totalPaid < total) {
-        finalPayments.push({ method, amount: currentTenderedAmount });
-      }
-      
       await onConfirm({
-        subtotal,
-        tax,
-        discount,
-        total,
-        payments: finalPayments,
-        change,
+        subtotal: toMajor(subtotal),
+        tax: toMajor(tax),
+        discount: toMajor(discount),
+        total: toMajor(total),
+        payments: lines.map((l) => ({ method: l.method, amount: toMajor(l.amount) })),
+        change: toMajor(change),
         customerId: selectedCustomerId || undefined,
-        skipReceipt
+        skipReceipt,
       });
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const QUICK_CASH = [100, 500, 1000, 5000];
+  // Esc closes; Enter pays (when enough). Digits are owned by the tender pad.
+  // Re-subscribes every render — cheap for a modal and always uses fresh state.
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (isProcessing) return;
+      const activeTag = (document.activeElement?.tagName || '').toLowerCase();
+      const isInputFocused = activeTag === 'input' || activeTag === 'textarea';
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      } else if (e.key === 'Enter' && !isInputFocused) {
+        e.preventDefault();
+        if (isEnough) void handlePay(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  });
 
-  const filteredCustomers = customers.filter(c => 
-    c.name.toLowerCase().includes(customerSearch.toLowerCase()) || 
-    (c.phone && c.phone.includes(customerSearch))
+  const filteredCustomers = customers.filter(
+    (c) =>
+      c.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
+      (c.phone && c.phone.includes(customerSearch)),
   );
 
   // Tactical torn edge for receipt bottom
-  const receiptClipPath = 'polygon(0% 0%, 100% 0%, 100% 98%, 98% 100%, 96% 98%, 94% 100%, 92% 98%, 90% 100%, 88% 98%, 86% 100%, 84% 98%, 82% 100%, 80% 98%, 78% 100%, 76% 98%, 74% 100%, 72% 98%, 70% 100%, 68% 98%, 66% 100%, 64% 98%, 62% 100%, 60% 98%, 58% 100%, 56% 98%, 54% 100%, 52% 98%, 50% 100%, 48% 98%, 46% 100%, 44% 98%, 42% 100%, 40% 98%, 38% 100%, 36% 98%, 34% 100%, 32% 98%, 30% 100%, 28% 98%, 26% 100%, 24% 98%, 22% 100%, 20% 98%, 18% 100%, 16% 98%, 14% 100%, 12% 98%, 10% 100%, 8% 98%, 6% 100%, 4% 98%, 2% 100%, 0% 98%)';
+  const receiptClipPath =
+    'polygon(0% 0%, 100% 0%, 100% 98%, 98% 100%, 96% 98%, 94% 100%, 92% 98%, 90% 100%, 88% 98%, 86% 100%, 84% 98%, 82% 100%, 80% 98%, 78% 100%, 76% 98%, 74% 100%, 72% 98%, 70% 100%, 68% 98%, 66% 100%, 64% 98%, 62% 100%, 60% 98%, 58% 100%, 56% 98%, 54% 100%, 52% 98%, 50% 100%, 48% 98%, 46% 100%, 44% 98%, 42% 100%, 40% 98%, 38% 100%, 36% 98%, 34% 100%, 32% 98%, 30% 100%, 28% 98%, 26% 100%, 24% 98%, 22% 100%, 20% 98%, 18% 100%, 16% 98%, 14% 100%, 12% 98%, 10% 100%, 8% 98%, 6% 100%, 4% 98%, 2% 100%, 0% 98%)';
+
+  const discountMajor = toMajor(discount);
+  const subtotalMajor = toMajor(subtotal);
+  const totalMajor = toMajor(total);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-canvas/80 backdrop-blur-sm animate-in fade-in duration-150 p-4 overflow-y-auto">
       <div className="enterprise-card w-full max-w-6xl max-h-[95vh] flex rounded-2xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 border-canvas-hover">
-        
-        {/* Left 56%: Checkout Summary, Methods, & Keypad */}
-        <div className="w-[56%] border-r border-canvas-card p-5 flex flex-col justify-between relative overflow-y-auto bg-canvas-subtle/90">
-          
-          <div className="relative z-10 flex-1 flex flex-col gap-3.5">
-            {/* Modal Title */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5 text-white">
-                <div className="w-8 h-8 rounded-lg bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
-                  <CreditCard size={18} />
-                </div>
-                <div>
-                  <h2 className="text-base font-bold tracking-tight">TERMINAL SETTLEMENT</h2>
-                  <p className="text-[11px] text-content-secondary font-mono">Sale Order ID: #{nextSaleId}</p>
-                </div>
+
+        {/* Left 56%: Tender pad + Khata */}
+        <div className="w-[56%] border-r border-canvas-card p-5 flex flex-col gap-3.5 relative overflow-y-auto bg-canvas-subtle/90">
+          {/* Modal Title */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5 text-white">
+              <div className="w-8 h-8 rounded-lg bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+                <CreditCard size={18} />
               </div>
-              <button 
-                onClick={onClose} 
-                className="w-7 h-7 rounded-lg text-content-secondary hover:text-white hover:bg-canvas-card flex items-center justify-center transition-colors"
-              >
-                <X size={16} />
-              </button>
+              <div>
+                <h2 className="text-base font-bold tracking-tight">TERMINAL SETTLEMENT</h2>
+                <p className="text-[11px] text-content-secondary font-mono">Sale Order ID: #{nextSaleId}</p>
+              </div>
             </div>
+            <button
+              onClick={onClose}
+              className="w-7 h-7 rounded-lg text-content-secondary hover:text-white hover:bg-canvas-card flex items-center justify-center transition-colors"
+            >
+              <X size={16} />
+            </button>
+          </div>
 
-            {/* Method Tabs */}
-            <div className="grid grid-cols-5 gap-1.5">
-              {(['Cash', 'Card', 'Mobile', 'Gift Card', 'Credit / Loan'] as const).map(m => (
-                <button
-                  key={m}
-                  onClick={() => { setMethod(m); setTenderedStr(''); }}
-                  className={`py-2 px-1 rounded-lg font-medium text-xs transition-all flex flex-col items-center justify-center gap-1 cursor-pointer ${
-                    method === m
-                      ? m === 'Credit / Loan'
-                        ? 'bg-status-amber/20 text-status-amber border border-status-amber/50 shadow-sm'
-                        : 'bg-indigo-600 text-white shadow-sm'
-                      : 'bg-canvas/60 border border-canvas-card text-content-secondary hover:text-content-primary hover:border-canvas-hover'
-                  }`}
-                >
-                  {m === 'Cash' && <DollarSign size={14} />}
-                  {m === 'Card' && <CreditCard size={14} />}
-                  {m === 'Mobile' && <Smartphone size={14} />}
-                  {m === 'Gift Card' && <Gift size={14} />}
-                  {m === 'Credit / Loan' && <BookOpen size={14} />}
-                  <span className="text-[10px]">{m === 'Credit / Loan' ? 'Khata/Loan' : m}</span>
-                </button>
-              ))}
-            </div>
+          {/* Integer-money tender pad (shared with fast/mobile checkout) */}
+          <TenderPadBody total={total} lines={lines} onLinesChange={setLines} methods={PAYMENT_METHODS} />
 
-            {/* Main Interactive Control Area */}
-            <div className="flex-1 flex flex-col justify-center">
-              {method === 'Cash' ? (
-                <div className="flex flex-col gap-2.5">
-                  <div className="flex justify-between items-center bg-canvas/80 p-3 rounded-xl border border-canvas-card">
-                    <span className="text-[11px] font-semibold text-content-secondary uppercase tracking-wider">Cash Tendered</span>
-                    <div className="text-2xl font-bold text-white font-mono tabular-nums tracking-tight">
-                      Rs. {tenderedStr || '0.00'}
-                    </div>
+          {/* Khata customer picker — required when any line is Credit/Loan */}
+          {hasKhata && (
+            <div className="flex flex-col gap-2.5 animate-in fade-in zoom-in-95 duration-150 bg-status-amber/20 border border-status-amber/30 p-3 rounded-xl">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-status-amber uppercase tracking-wider flex items-center gap-1.5">
+                  <BookOpen size={14} />
+                  Select Customer For Khata / Loan
+                </span>
+              </div>
+
+              <div className="relative">
+                <Search className="absolute left-3 top-2.5 text-content-muted" size={13} />
+                <input
+                  type="text"
+                  placeholder="Search customer by name or phone..."
+                  value={customerSearch}
+                  onChange={(e) => setCustomerSearch(e.target.value)}
+                  className="w-full pl-8 pr-3 py-1.5 glass-input rounded-lg text-xs"
+                />
+              </div>
+
+              <div className="max-h-28 overflow-y-auto space-y-1 pr-1 scrollbar-thin">
+                {filteredCustomers.length === 0 ? (
+                  <div className="text-center py-3 text-xs text-content-muted">
+                    No customers found. Please add customer in Customers tab first.
                   </div>
-
-                  {/* Quick Cash row */}
-                  <div className="grid grid-cols-5 gap-1.5">
-                    {QUICK_CASH.map(amount => (
-                      <button
-                        key={amount}
-                        onClick={() => handleQuickAdd(amount)}
-                        className="py-2 rounded-lg font-mono tabular-nums text-xs font-semibold text-content-primary bg-canvas-card/80 border border-canvas-hover hover:bg-canvas-hover transition-all cursor-pointer"
-                      >
-                        +Rs. {amount}
-                      </button>
-                    ))}
-                    <button
-                      onClick={() => handleQuickAdd(Math.ceil(remaining))}
-                      className="py-2 rounded-lg text-xs font-bold text-status-emerald bg-status-emerald/15 border border-status-emerald/30 hover:bg-status-emerald/25 transition-all cursor-pointer"
-                    >
-                      Exact Cash
-                    </button>
-                  </div>
-
-                  {/* Keypad */}
-                  <div className="grid grid-cols-4 gap-1.5">
-                    <div className="col-span-3 grid grid-cols-3 gap-1.5">
-                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, '.', 0].map(num => (
-                        <button
-                          key={num}
-                          onClick={() => handleKeypad(num.toString())}
-                          className="h-10 rounded-lg text-base font-mono font-bold text-content-primary bg-canvas-card/80 border border-canvas-hover hover:bg-canvas-hover hover:text-white transition-all cursor-pointer"
-                        >
-                          {num}
-                        </button>
-                      ))}
-                      <button
-                        onClick={() => handleKeypad('C')}
-                        className="h-10 rounded-lg flex items-center justify-center text-status-coral bg-canvas-card/80 border border-canvas-hover hover:bg-status-coral/20 transition-all cursor-pointer"
-                      >
-                        <Delete size={16} />
-                      </button>
-                    </div>
-                    
-                    <button 
-                      onClick={handleAddPayment}
-                      disabled={currentTenderedAmount <= 0}
-                      className="col-span-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-indigo-200 font-semibold flex flex-col items-center justify-center gap-1 transition disabled:opacity-30 disabled:pointer-events-none active:scale-95 cursor-pointer"
-                    >
-                      <Plus size={16} />
-                      <span className="text-[10px] uppercase font-bold tracking-wider">Split Add</span>
-                    </button>
-                  </div>
-                </div>
-              ) : method === 'Credit / Loan' ? (
-                <div className="flex flex-col gap-2.5 animate-in fade-in zoom-in-95 duration-150 bg-status-amber/20 border border-status-amber/30 p-3 rounded-xl">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-status-amber uppercase tracking-wider flex items-center gap-1.5">
-                      <BookOpen size={14} />
-                      Select Customer For Khata / Loan
-                    </span>
-                    <span className="text-xs font-mono tabular-nums font-bold text-status-amber">
-                      Amount: Rs. {remaining.toFixed(2)}
-                    </span>
-                  </div>
-
-                  {/* Customer search filter */}
-                  <div className="relative">
-                    <Search className="absolute left-3 top-2.5 text-content-muted" size={13} />
-                    <input 
-                      type="text"
-                      placeholder="Search customer by name or phone..."
-                      value={customerSearch}
-                      onChange={e => setCustomerSearch(e.target.value)}
-                      className="w-full pl-8 pr-3 py-1.5 glass-input rounded-lg text-xs"
-                    />
-                  </div>
-
-                  {/* Customer selection list */}
-                  <div className="max-h-28 overflow-y-auto space-y-1 pr-1 scrollbar-thin">
-                    {filteredCustomers.length === 0 ? (
-                      <div className="text-center py-3 text-xs text-content-muted">
-                        No customers found. Please add customer in Customers tab first.
-                      </div>
-                    ) : (
-                      filteredCustomers.map(c => (
-                        <div 
-                          key={c.id}
-                          onClick={() => setSelectedCustomerId(c.id)}
-                          className={`p-2 rounded-lg border flex justify-between items-center cursor-pointer transition-all ${
-                            selectedCustomerId === c.id
-                              ? 'bg-status-amber/20 border-status-amber/60'
-                              : 'bg-canvas/60 border-canvas-card hover:border-canvas-hover'
-                          }`}
-                        >
-                          <div>
-                            <div className="text-xs font-semibold text-content-primary flex items-center gap-1.5">
-                              {c.name}
-                              {selectedCustomerId === c.id && <UserCheck size={13} className="text-status-amber" />}
-                            </div>
-                            <div className="text-[10px] text-content-secondary font-mono">{c.phone || 'No phone'}</div>
-                          </div>
-                          <div className="text-right">
-                            <span className="text-[10px] text-content-secondary block">Prev Udhaar</span>
-                            <span className="text-xs font-mono tabular-nums font-bold text-status-amber">
-                              Rs. {moneyCompact(c.balance || 0)}
-                            </span>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-
-                  {selectedCustomer && (
-                    <div className="flex items-center justify-between bg-canvas/60 p-2 rounded-lg border border-status-amber/30 text-xs">
-                      <span className="text-status-amber">
-                        Total New Due: <strong className="font-mono tabular-nums">Rs. {moneyCompact((selectedCustomer.balance || 0) + remaining)}</strong>
-                      </span>
-                      <button
-                        onClick={handleAddPayment}
-                        disabled={remaining <= 0}
-                        className="px-3 py-1 rounded bg-status-amber/20 hover:bg-status-amber/30 border border-status-amber/40 text-status-amber font-semibold text-xs active:scale-95 transition cursor-pointer"
-                      >
-                        Add to Udhaar
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center text-center py-4 animate-in fade-in zoom-in-95 duration-150">
-                  <div className="w-14 h-14 mb-2.5 rounded-full bg-indigo-600/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
-                    {method === 'Card' && <CreditCard size={24} />}
-                    {method === 'Mobile' && <Smartphone size={24} />}
-                    {method === 'Gift Card' && <Gift size={24} />}
-                  </div>
-                  <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-0.5">Process {method}</h3>
-                  <p className="text-xs text-content-secondary">Tender charge: <strong className="text-white font-mono tabular-nums">Rs. {remaining.toFixed(2)}</strong></p>
-                  
-                  <button 
-                    onClick={handleAddPayment}
-                    disabled={remaining <= 0}
-                    className="mt-3 px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs tracking-wider transition disabled:opacity-40 active:scale-95 cursor-pointer shadow-sm"
-                  >
-                    Confirm & Complete
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Split Payments Tracker Table */}
-            <div className="bg-canvas/60 rounded-xl border border-canvas-card p-2.5 flex flex-col gap-1.5">
-              <span className="text-[10px] text-content-secondary font-semibold uppercase tracking-wider">Settled Splits</span>
-              <div className="max-h-20 overflow-y-auto pr-1 space-y-1 scrollbar-none">
-                {payments.length === 0 ? (
-                  <div className="text-center py-1 text-xs text-content-muted italic">No payments logged yet</div>
                 ) : (
-                  payments.map((p, idx) => (
-                    <div key={idx} className="flex justify-between items-center px-2 py-1.5 bg-canvas-subtle border border-canvas-card rounded-lg">
-                      <div className="flex items-center gap-2 text-content-secondary text-xs font-medium">
-                        {p.method === 'Cash' && <DollarSign size={13} />}
-                        {p.method === 'Card' && <CreditCard size={13} />}
-                        {p.method === 'Mobile' && <Smartphone size={13} />}
-                        {p.method === 'Gift Card' && <Gift size={13} />}
-                        {p.method === 'Credit / Loan' && <BookOpen size={13} className="text-status-amber" />}
-                        <span>{p.method}</span>
+                  filteredCustomers.map((c) => (
+                    <div
+                      key={c.id}
+                      onClick={() => setSelectedCustomerId(c.id)}
+                      className={`p-2 rounded-lg border flex justify-between items-center cursor-pointer transition-all ${
+                        selectedCustomerId === c.id
+                          ? 'bg-status-amber/20 border-status-amber/60'
+                          : 'bg-canvas/60 border-canvas-card hover:border-canvas-hover'
+                      }`}
+                    >
+                      <div>
+                        <div className="text-xs font-semibold text-content-primary flex items-center gap-1.5">
+                          {c.name}
+                          {selectedCustomerId === c.id && <UserCheck size={13} className="text-status-amber" />}
+                        </div>
+                        <div className="text-[10px] text-content-secondary font-mono">{c.phone || 'No phone'}</div>
                       </div>
-                      <div className="flex items-center gap-3 text-xs">
-                        <span className="text-white font-mono tabular-nums font-bold">Rs. {p.amount.toFixed(2)}</span>
-                        <button onClick={() => removePayment(idx)} className="text-status-coral hover:text-status-coral transition cursor-pointer">
-                          <X size={13} />
-                        </button>
+                      <div className="text-right">
+                        <span className="text-[10px] text-content-secondary block">Prev Udhaar</span>
+                        <span className="text-xs font-mono tabular-nums font-bold text-status-amber">
+                          Rs. {moneyCompact(c.balance || 0)}
+                        </span>
                       </div>
                     </div>
                   ))
                 )}
               </div>
+
+              {selectedCustomer && (
+                <div className="flex items-center justify-between bg-canvas/60 p-2 rounded-lg border border-status-amber/30 text-xs">
+                  <span className="text-status-amber">
+                    Total New Due:{' '}
+                    <strong className="font-mono tabular-nums">
+                      Rs. {moneyCompact((selectedCustomer.balance || 0) + totalMajor)}
+                    </strong>
+                  </span>
+                </div>
+              )}
             </div>
+          )}
 
-            {/* Main Action buttons row */}
-            <div className="flex flex-col gap-2 mt-1">
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => handlePay(false)}
-                  disabled={isProcessing || !isEnough}
-                  className="py-2.5 rounded-lg font-bold text-xs text-white bg-indigo-600 hover:bg-indigo-500 disabled:bg-canvas-card disabled:text-content-muted transition-all flex justify-center items-center gap-2 cursor-pointer disabled:cursor-not-allowed shadow-sm"
-                  title="Save bill and send receipt to thermal printer"
-                >
-                  {isProcessing ? (
-                    <span className="tracking-widest animate-pulse uppercase">PROCESSING...</span>
-                  ) : (
-                    <span className="tracking-wider uppercase flex items-center gap-1.5">
-                      <Printer size={15} /> {isEnough ? 'SAVE & PRINT (Enter)' : `NEED Rs. ${remaining.toFixed(2)}`}
-                    </span>
-                  )}
-                </button>
-
-                <button
-                  onClick={() => handlePay(true)}
-                  disabled={isProcessing || !isEnough}
-                  className="py-2.5 rounded-lg font-bold text-xs text-status-emerald bg-status-emerald/20 hover:bg-status-emerald/30 border border-status-emerald/40 disabled:border-canvas-card disabled:bg-canvas-card/40 disabled:text-content-muted transition-all flex justify-center items-center gap-2 cursor-pointer disabled:cursor-not-allowed shadow-sm"
-                  title="Save bill to database and ledger without printing paper receipt"
-                >
-                  <Save size={15} />
-                  <span className="tracking-wider uppercase">SAVE (NO PRINT)</span>
-                </button>
-              </div>
-
-              <button 
-                onClick={onClose}
-                className="w-full py-2 rounded-lg font-medium text-xs text-content-secondary hover:text-white bg-canvas-card/80 border border-canvas-hover hover:bg-canvas-hover transition cursor-pointer"
+          {/* Main Action buttons row */}
+          <div className="flex flex-col gap-2 mt-1">
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => handlePay(false)}
+                disabled={isProcessing || !isEnough}
+                className="py-2.5 rounded-lg font-bold text-xs text-white bg-indigo-600 hover:bg-indigo-500 disabled:bg-canvas-card disabled:text-content-muted transition-all flex justify-center items-center gap-2 cursor-pointer disabled:cursor-not-allowed shadow-sm"
+                title="Save bill and send receipt to thermal printer"
               >
-                CANCEL (Esc)
+                {isProcessing ? (
+                  <span className="tracking-widest animate-pulse uppercase">PROCESSING...</span>
+                ) : (
+                  <span className="tracking-wider uppercase flex items-center gap-1.5">
+                    <Printer size={15} /> {isEnough ? 'SAVE & PRINT (Enter)' : `NEED Rs. ${Math.max(0, remaining.minor / 100).toFixed(2)}`}
+                  </span>
+                )}
+              </button>
+
+              <button
+                onClick={() => handlePay(true)}
+                disabled={isProcessing || !isEnough}
+                className="py-2.5 rounded-lg font-bold text-xs text-status-emerald bg-status-emerald/20 hover:bg-status-emerald/30 border border-status-emerald/40 disabled:border-canvas-card disabled:bg-canvas-card/40 disabled:text-content-muted transition-all flex justify-center items-center gap-2 cursor-pointer disabled:cursor-not-allowed shadow-sm"
+                title="Save bill to database and ledger without printing paper receipt"
+              >
+                <Save size={15} />
+                <span className="tracking-wider uppercase">SAVE (NO PRINT)</span>
               </button>
             </div>
+
+            <button
+              onClick={onClose}
+              className="w-full py-2 rounded-lg font-medium text-xs text-content-secondary hover:text-white bg-canvas-card/80 border border-canvas-hover hover:bg-canvas-hover transition cursor-pointer"
+            >
+              CANCEL (Esc)
+            </button>
           </div>
         </div>
 
@@ -424,18 +264,17 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax
           </div>
 
           {/* Thermal Receipt Body */}
-          <div 
+          <div
             style={{ clipPath: receiptClipPath }}
             className="flex-1 w-full max-w-[320px] bg-[#f8f9fa] text-gray-800 p-4 mt-2 shadow-md relative flex flex-col justify-between select-none border-t-4 border-white/80 min-h-[380px] overflow-hidden"
           >
-            
             {/* Header */}
             <div className="text-center font-mono border-b border-gray-400 pb-2 flex flex-col items-center">
               <span className="font-black text-sm text-canvas tracking-wider">SS MART</span>
               <span className="text-[8px] text-gray-600 font-medium">Old Lakar Mandi</span>
               <span className="text-[8px] text-gray-600 font-medium">Opposite Railway Station, Havelian</span>
               <span className="text-[8px] text-gray-600 font-medium">Ph: 0316-5915787</span>
-              
+
               <div className="w-full text-left text-[8px] text-gray-700 mt-2 flex justify-between">
                 <span>Invoice # {nextSaleId}</span>
                 <span>Date: {new Date().toLocaleDateString('en-GB')}</span>
@@ -457,15 +296,16 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax
 
             {/* Cart Items List */}
             <div className="font-mono text-[8px] flex-1 py-1 overflow-y-auto border-b border-gray-400 scrollbar-none max-h-48 divide-y divide-gray-200">
-              {items && items.map((item, idx) => {
-                const itemDiscPercent = discount > 0 && subtotal > 0 ? (discount / subtotal) * 100 : 0;
-                const finalPrice = item.price * (1 - itemDiscPercent / 100);
+              {items.map((item, idx) => {
+                const unitMajor = item.unitPrice.minor / 100;
+                const itemDiscPercent = discountMajor > 0 && subtotalMajor > 0 ? (discountMajor / subtotalMajor) * 100 : 0;
+                const finalPrice = unitMajor * (1 - itemDiscPercent / 100);
                 return (
                   <div key={idx} className="py-1">
                     <div className="font-bold text-canvas leading-tight mb-0.5">{item.name}</div>
                     <div className="grid grid-cols-6 text-right text-gray-700">
                       <span className="col-span-2"></span>
-                      <span>{item.price.toFixed(2)}</span>
+                      <span>{unitMajor.toFixed(2)}</span>
                       <span>{itemDiscPercent > 0 ? itemDiscPercent.toFixed(1) + '%' : '0.0%'}</span>
                       <span>{item.qty}</span>
                       <span className="font-bold text-canvas">{(finalPrice * item.qty).toFixed(2)}</span>
@@ -478,24 +318,24 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax
             {/* Sub Total / Totals */}
             <div className="font-mono text-[8px] py-1 border-b border-gray-400 flex flex-col gap-0.5">
               <div className="flex justify-between font-bold text-canvas">
-                <span>Sub Total {subtotal.toFixed(2)}</span>
-                <span>{total.toFixed(2)}</span>
+                <span>Sub Total {subtotalMajor.toFixed(2)}</span>
+                <span>{totalMajor.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-gray-800">
                 <span>Cash Received</span>
-                <span>{(currentTenderedAmount > 0 ? Math.max(totalPaid + currentTenderedAmount, totalPaid) : totalPaid).toFixed(2)}</span>
+                <span>{(tendered.minor / 100).toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-gray-800">
                 <span>Balance</span>
-                <span>{change.toFixed(2)}</span>
+                <span>{(change.minor / 100).toFixed(2)}</span>
               </div>
             </div>
 
             {/* Discount Box */}
-            {discount > 0 && (
+            {discountMajor > 0 && (
               <div className="font-mono text-[8px] my-1 py-1 border-y border-gray-900 bg-gray-200 flex justify-between font-bold px-2 text-canvas">
                 <span>Total Discount</span>
-                <span>{discount.toFixed(2)}</span>
+                <span>{discountMajor.toFixed(2)}</span>
               </div>
             )}
 
@@ -515,16 +355,21 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax
               onClick={() => {
                 if (window.api && window.api.printReceipt) {
                   window.api.printReceipt({
-                    items,
+                    items: items.map((l) => ({
+                      id: l.productId,
+                      name: l.name,
+                      qty: l.qty,
+                      price: l.unitPrice.minor / 100,
+                    })),
                     paymentData: {
-                      subtotal,
-                      tax,
-                      discount,
-                      total,
-                      payments: payments.length > 0 ? payments : [{ method, amount: currentTenderedAmount }],
-                      change
+                      subtotal: subtotalMajor,
+                      tax: tax.minor / 100,
+                      discount: discountMajor,
+                      total: totalMajor,
+                      payments: lines.map((l) => ({ method: l.method, amount: l.amount.minor / 100 })),
+                      change: change.minor / 100,
                     },
-                    saleId: nextSaleId
+                    saleId: nextSaleId,
                   });
                 } else {
                   window.print();
@@ -535,11 +380,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ total, subtotal, tax
               <Printer size={13} /> Print Bill
             </button>
           </div>
-
         </div>
-
       </div>
     </div>
   );
 };
-

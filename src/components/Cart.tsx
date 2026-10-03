@@ -1,9 +1,9 @@
 import React from 'react';
 import { ShoppingCart, Plus, Minus, Trash2 } from 'lucide-react';
-import { CartItem } from '../types';
+import { CartState } from '../domain/cart';
 
 interface CartProps {
-  cart: CartItem[];
+  cart: CartState;
   onUpdateQty: (id: number, delta: number) => void;
   onRemoveItem: (id: number) => void;
 }
@@ -34,7 +34,7 @@ export const Cart: React.FC<CartProps> = ({ cart, onUpdateQty, onRemoveItem }) =
             </thead>
             <tbody className="divide-y divide-canvas-card/60">
               {cart.map(item => (
-                <tr key={item.id} className="hover:bg-canvas-card/30 transition-colors group">
+                <tr key={item.productId} className="hover:bg-canvas-card/30 transition-colors group">
                   <td className="py-3 px-4 pl-6">
                     <div className="font-semibold text-content-primary text-sm leading-tight">{item.name}</div>
                     <div className="text-[11px] text-content-secondary font-mono tracking-tight mt-0.5">{item.barcode}</div>
@@ -45,12 +45,12 @@ export const Cart: React.FC<CartProps> = ({ cart, onUpdateQty, onRemoveItem }) =
                     </span>
                   </td>
                   <td className="py-3 px-4 text-right font-mono text-xs tabular-nums text-content-secondary">
-                    Rs. {item.price.toFixed(2)}
+                    Rs. {(item.unitPrice.minor / 100).toFixed(2)}
                   </td>
                   <td className="py-3 px-4 text-center">
                     <div className="inline-flex items-center gap-1.5 bg-canvas-subtle rounded-lg p-1 border border-canvas-hover/60">
                       <button 
-                        onClick={() => onUpdateQty(item.id, -1)}
+                        onClick={() => onUpdateQty(item.productId, -1)}
                         className="w-6 h-6 flex items-center justify-center rounded hover:bg-canvas-card text-content-secondary transition-colors cursor-pointer"
                         title="Decrease quantity"
                       >
@@ -58,7 +58,7 @@ export const Cart: React.FC<CartProps> = ({ cart, onUpdateQty, onRemoveItem }) =
                       </button>
                       <span className="w-7 text-center font-mono font-bold text-content-primary text-xs tabular-nums">{item.qty}</span>
                       <button 
-                        onClick={() => onUpdateQty(item.id, 1)}
+                        onClick={() => onUpdateQty(item.productId, 1)}
                         className="w-6 h-6 flex items-center justify-center rounded bg-indigo-600/80 hover:bg-indigo-600 text-white transition-colors cursor-pointer shadow-xs"
                         title="Increase quantity"
                       >
@@ -67,11 +67,11 @@ export const Cart: React.FC<CartProps> = ({ cart, onUpdateQty, onRemoveItem }) =
                     </div>
                   </td>
                   <td className="py-3 px-4 text-right font-mono font-bold text-sm text-content-primary tabular-nums">
-                    Rs. {(item.price * item.qty).toFixed(2)}
+                    Rs. {((item.unitPrice.minor * item.qty) / 100).toFixed(2)}
                   </td>
                   <td className="py-3 px-4 pr-6 text-center">
                     <button 
-                      onClick={() => onRemoveItem(item.id)}
+                      onClick={() => onRemoveItem(item.productId)}
                       className="p-1.5 text-content-muted hover:text-status-coral hover:bg-status-coral/10 rounded-md transition-colors border border-transparent hover:border-status-coral/20 cursor-pointer"
                       title="Remove Item"
                     >

@@ -77,3 +77,51 @@ export function resultMessage<T, E>(r: Result<T, E>, fallback = 'Unknown error')
   if (e instanceof Error) return e.message || fallback;
   return String(e) || fallback;
 }
+
+/** Lift a promise into a Result without try/catch at the call site. */
+export function fromPromise<T>(promise: Promise<T>): Promise<Result<T, Error>> {
+  return promise.then(
+    (value) => ok(value),
+    (e: unknown) => err(normalizeError(e)),
+  );
+}
+
+/** Transform the error side; success passes through untouched. */
+export function mapErr<T, E, F>(r: Result<T, E>, fn: (e: E) => F): Result<T, F> {
+  return r.ok ? r : err(fn(r.error));
+}
+
+/** Run a side effect on success and return the result unchanged. */
+export function tap<T, E>(r: Result<T, E>, fn: (v: T) => void): Result<T, E> {
+  if (r.ok) fn(r.value);
+  return r;
+}
+
+/**
+ * Sequence a list of Results: first failure short-circuits,
+ * otherwise all values in order. Useful for validating forms.
+ */
+export function all<T, E>(results: Array<Result<T, E>>): Result<T[], E> {
+  const values: T[] = [];
+  for (const r of results) {
+    if (!r.ok) return err(r.error);
+    values.push(r.value);
+  }
+  return ok(values);
+}
+
+/**
+ * Sequence async Results in order (not parallel).
+ * Use when order matters, e.g. migrations.
+ */
+export async function allSeries<T, E>(
+  fns: Array<() => Promise<Result<T, E>>>,
+): Promise<Result<T[], E>> {
+  const values: T[] = [];
+  for (const fn of fns) {
+    const r = await fn();
+    if (!r.ok) return err(r.error);
+    values.push(r.value);
+  }
+  return ok(values);
+}

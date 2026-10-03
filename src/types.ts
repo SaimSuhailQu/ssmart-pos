@@ -41,6 +41,21 @@ export interface CartItem extends Product {
   qty: number;
 }
 
+/**
+ * Minimal line shape accepted by the checkout / print IPC. The domain cart
+ * (CartLine) maps to this at the App boundary; the main process validates
+ * every field before it reaches SQLite.
+ */
+export interface CheckoutItem {
+  id: number;
+  name: string;
+  barcode?: string;
+  price: number;
+  qty: number;
+  stock?: number;
+  category?: string;
+}
+
 export interface PaymentEntry {
   method: string;
   amount: number;
@@ -257,14 +272,14 @@ declare global {
       getAllProducts: () => Promise<Product[]>;
       getProduct: (barcode: string) => Promise<Product | undefined>;
       getNextSaleId: () => Promise<number>;
-      checkout: (data: { items: CartItem[]; paymentData: PaymentData; userId?: number; cashierName?: string }) => Promise<{ success: boolean; saleId: number }>;
+      checkout: (data: { items: CheckoutItem[]; paymentData: PaymentData; userId?: number; cashierName?: string }) => Promise<{ success: boolean; saleId: number }>;
       addManualDailyClosingSale: (data: { total: number; cashAmount?: number; onlineAmount?: number; notes?: string; date?: string; cashierName?: string }) => Promise<{ success: boolean; saleId: number }>;
       addProduct: (product: Omit<Product, 'id'>) => Promise<number>;
       bulkAddProducts: (productsList: Array<Omit<Product, 'id'>>) => Promise<number>;
       updateProduct: (id: number, product: Omit<Product, 'id'>) => Promise<boolean>;
       bulkUpdateProducts: (updates: Array<{ id: number; cost_price: number; price: number; stock: number; category?: string }>) => Promise<boolean>;
       deleteProduct: (id: number) => Promise<boolean>;
-      printReceipt: (data: { items: CartItem[]; paymentData: PaymentData; saleId?: number; cashierName?: string }) => Promise<boolean>;
+      printReceipt: (data: { items: CheckoutItem[]; paymentData: PaymentData; saleId?: number; cashierName?: string }) => Promise<boolean>;
       printBarcode: (product: Product, count?: number) => Promise<boolean>;
       printBarcodesBatchA4: (items: Array<{ name: string; barcode: string; price: number | string; count: number }>) => Promise<boolean>;
       
@@ -287,7 +302,9 @@ declare global {
       clearAllKhata: () => Promise<{ success: boolean; message?: string; error?: string }>;
 
       // Users & Shifts
-      verifyUserPin: (pin: string) => Promise<{ id: number; name: string; role: string } | undefined>;
+      verifyUserPin: (pin: string) => Promise<{ id: number; name: string; role: string; mustChangePin: boolean } | undefined>;
+      changeUserPin: (userId: number, newPin: string) => Promise<boolean>;
+      logout: () => Promise<boolean>;
       clockIn: (userId: number) => Promise<number>;
       clockOut: (shiftId: number) => Promise<boolean>;
       getActiveShift: (userId: number) => Promise<Shift | undefined>;
@@ -300,8 +317,8 @@ declare global {
       updateExpense: (id: number, expense: { amount: number; description: string; category: string; loggedBy: string }) => Promise<boolean>;
       deleteExpense: (id: number) => Promise<boolean>;
       
-      // User Management
-      getAllUsers: () => Promise<User[]>;
+      // User Management — getAllUsers never returns PIN material
+      getAllUsers: () => Promise<Array<{ id: number; name: string; role: string; must_change_pin: number }>>;
       addUser: (user: Omit<User, 'id'>) => Promise<number>;
       updateUser: (id: number, user: Omit<User, 'id'>) => Promise<boolean>;
       deleteUser: (id: number) => Promise<boolean>;
@@ -314,12 +331,12 @@ declare global {
       getAllPurchaseOrders: () => Promise<PurchaseOrder[]>;
       createPurchaseOrder: (vendorId: number, items: POItemInput[], customTotalCost?: number, notes?: string, billUrl?: string) => Promise<number>;
       receivePurchaseOrder: (poId: number) => Promise<boolean>;
-      deletePurchaseOrder: (poId: number, bypassTimeCheck?: boolean) => Promise<boolean>;
+      deletePurchaseOrder: (poId: number) => Promise<boolean>;
       addVendorPayment: (payment: { poId: number; vendorId: number; amount: number; paymentMethod?: string; notes?: string; receiptUrl?: string }) => Promise<boolean>;
-      deleteVendorPayment: (paymentId: number, bypassTimeCheck?: boolean) => Promise<boolean>;
-      updateVendorPayment: (paymentId: number, updateData: { amount: number; paymentMethod?: string; notes?: string; receiptUrl?: string }, bypassTimeCheck?: boolean) => Promise<boolean>;
-      deleteVendorOrderEntry: (entryId: number, bypassTimeCheck?: boolean) => Promise<boolean>;
-      updateVendorOrderEntry: (entryId: number, updateData: { amount: number; notes?: string; billUrl?: string }, bypassTimeCheck?: boolean) => Promise<boolean>;
+      deleteVendorPayment: (paymentId: number) => Promise<boolean>;
+      updateVendorPayment: (paymentId: number, updateData: { amount: number; paymentMethod?: string; notes?: string; receiptUrl?: string }) => Promise<boolean>;
+      deleteVendorOrderEntry: (entryId: number) => Promise<boolean>;
+      updateVendorOrderEntry: (entryId: number, updateData: { amount: number; notes?: string; billUrl?: string }) => Promise<boolean>;
       getVendorPayments: (vendorId?: number) => Promise<VendorPayment[]>;
       getVendorOrderEntries: (vendorId?: number) => Promise<VendorOrderEntry[]>;
 
@@ -335,6 +352,23 @@ declare global {
       getLicenseState: () => Promise<LicenseState>;
       getDeviceFingerprint: () => Promise<string>;
       onLicenseRevoked: (callback: () => void) => () => void;
+
+      // Licensing — offline product keys (Ed25519) & device codes
+      /** Activate with an Ed25519 product key. Resolves to the new license state. */
+      activateProductKey?: (key: string) => Promise<LicenseState>;
+      /** Short human-readable device code for manual activation. */
+      getDeviceCode?: () => Promise<string>;
+      /** Remove the locally activated product key (support flow). */
+      deactivateProductKey?: () => Promise<boolean>;
+
+      // Print spooler (fail-safe ESC/POS queue)
+      getPrintQueueStatus: () => Promise<{ queued: number; failed: number; sending: number }>;
+      retryPrintQueue: () => Promise<number>;
+      getPrinterSettings: () => Promise<{ transport: string; storeName: string }>;
+      savePrinterSettings: (settings: { transport?: string; storeName?: string }) => Promise<boolean>;
+      onPrintQueueChanged: (
+        callback: (status: { queued: number; failed: number; sending: number }) => void,
+      ) => () => void;
     };
   }
 }
