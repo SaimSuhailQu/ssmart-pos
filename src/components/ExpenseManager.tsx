@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Expense } from '../types';
+import { ConfirmDialog } from './ui/ConfirmDialog';
 import { DollarSign, Receipt, Calendar, User, PlusCircle, Trash2, Edit2, Search, Filter, Sparkles, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 interface ExpenseManagerProps {
@@ -28,6 +29,7 @@ export const ExpenseManager: React.FC<ExpenseManagerProps> = ({ currentUser }) =
   
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [pendingDeleteExpense, setPendingDeleteExpense] = useState<{ id: number; amt: number } | null>(null);
 
   const loadExpenses = async () => {
     try {
@@ -113,21 +115,15 @@ export const ExpenseManager: React.FC<ExpenseManagerProps> = ({ currentUser }) =
     }
   };
 
-  const handleDelete = async (id: number, amt: number) => {
-    if (currentUser?.role === 'Cashier') {
-      setError('Unauthorized: Only Managers and Admins can delete logged expenses.');
-      return;
-    }
-
-    if (!window.confirm(`Are you sure you want to delete the expense entry of Rs. ${amt.toFixed(2)}?`)) {
-      return;
-    }
+  const handleDelete = async () => {
+    const target = pendingDeleteExpense;
+    if (target == null) return;
 
     setError(null);
     setSuccess(null);
 
     try {
-      const successVal = await window.api.deleteExpense(id);
+      const successVal = await window.api.deleteExpense(target.id);
       if (successVal) {
         setSuccess('Expense entry successfully deleted from register ledger.');
         await loadExpenses();
@@ -135,6 +131,8 @@ export const ExpenseManager: React.FC<ExpenseManagerProps> = ({ currentUser }) =
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to delete expense.';
       setError(msg);
+    } finally {
+      setPendingDeleteExpense(null);
     }
   };
 
@@ -434,7 +432,13 @@ export const ExpenseManager: React.FC<ExpenseManagerProps> = ({ currentUser }) =
                           <Edit2 size={12} />
                         </button>
                         <button
-                          onClick={() => handleDelete(exp.id, exp.amount)}
+                          onClick={() => {
+                            if (currentUser?.role === 'Cashier') {
+                              setError('Unauthorized: Only Managers and Admins can delete logged expenses.');
+                              return;
+                            }
+                            setPendingDeleteExpense({ id: exp.id, amt: exp.amount });
+                          }}
                           className="p-2 bg-status-coral/10 hover:bg-status-coral/20 text-status-coral rounded-lg border border-status-coral/20 hover:border-status-coral/40 opacity-40 hover:opacity-100 transition-all flex items-center justify-center cursor-pointer"
                           title={currentUser?.role === 'Cashier' ? 'Cashiers cannot delete entries' : 'Delete entry'}
                         >
@@ -468,6 +472,18 @@ export const ExpenseManager: React.FC<ExpenseManagerProps> = ({ currentUser }) =
 
       </div>
 
+      <ConfirmDialog
+        open={pendingDeleteExpense !== null}
+        onClose={() => setPendingDeleteExpense(null)}
+        onConfirm={handleDelete}
+        title="Delete expense"
+        message={
+          pendingDeleteExpense
+            ? `Are you sure you want to delete the expense entry of Rs. ${pendingDeleteExpense.amt.toFixed(2)}?`
+            : ''
+        }
+        confirmLabel="Delete"
+      />
     </div>
   );
 };

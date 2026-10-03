@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Sale, SaleItemDetails } from '../types';
+import { ConfirmDialog } from './ui/ConfirmDialog';
+import { toast } from '../state/toast';
 import { Search, Receipt, Calendar, User, Undo2, CheckCircle, ArrowRightLeft, DollarSign, X, ShoppingBag, Printer, Copy, Sparkles, PlusCircle, Trash2, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import { rowsToCsv, downloadCsv, exportTimestamp } from '../lib/csv';
 import { money } from '../core/format';
@@ -19,6 +21,8 @@ export const SalesRecordManager: React.FC = () => {
 
   // Manual Daily Closing Sale Modal state
   const [showManualClosingModal, setShowManualClosingModal] = useState(false);
+  const [returnAllConfirmOpen, setReturnAllConfirmOpen] = useState(false);
+  const [pendingDeleteSaleId, setPendingDeleteSaleId] = useState<number | null>(null);
   const [closingTotal, setClosingTotal] = useState('');
   const [closingCash, setClosingCash] = useState('');
   const [closingOnline, setClosingOnline] = useState('');
@@ -88,6 +92,7 @@ export const SalesRecordManager: React.FC = () => {
     if (!selectedSale || !selectedSale.items) return;
     setError(null);
     setSuccess(null);
+    setReturnAllConfirmOpen(false);
 
     const returnsList = selectedSale.items
       .map(item => {
@@ -98,10 +103,6 @@ export const SalesRecordManager: React.FC = () => {
 
     if (returnsList.length === 0) {
       setError('All items have already been fully returned.');
-      return;
-    }
-
-    if (!window.confirm(`Are you sure you want to process a full return for Order #${selectedSale.id}? This will restock all remaining items.`)) {
       return;
     }
 
@@ -117,18 +118,20 @@ export const SalesRecordManager: React.FC = () => {
     }
   };
 
-  const handleDeleteSale = async (saleId: number) => {
-    if (window.confirm(`Are you sure you want to delete Sale #${saleId}? This will remove it from history.`)) {
-      try {
-        await window.api.deleteSale(saleId);
-        if (selectedSale && selectedSale.id === saleId) {
-          setSelectedSale(null);
-        }
-        await loadSales();
-      } catch (err: unknown) {
-        const errMessage = err instanceof Error ? err.message : String(err);
-        setError(errMessage || 'Failed to delete sale.');
+  const handleDeleteSale = async () => {
+    const saleId = pendingDeleteSaleId;
+    if (saleId == null) return;
+    try {
+      await window.api.deleteSale(saleId);
+      if (selectedSale && selectedSale.id === saleId) {
+        setSelectedSale(null);
       }
+      await loadSales();
+    } catch (err: unknown) {
+      const errMessage = err instanceof Error ? err.message : String(err);
+      setError(errMessage || 'Failed to delete sale.');
+    } finally {
+      setPendingDeleteSaleId(null);
     }
   };
 
@@ -517,7 +520,7 @@ export const SalesRecordManager: React.FC = () => {
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleDeleteSale(s.id);
+                          setPendingDeleteSaleId(s.id);
                         }}
                         className="p-1 text-content-muted hover:text-status-coral hover:bg-status-coral/10 rounded transition-colors cursor-pointer"
                         title="Delete Sale"
@@ -627,7 +630,7 @@ export const SalesRecordManager: React.FC = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleDeleteSale(selectedSale.id)}
+                  onClick={() => setPendingDeleteSaleId(selectedSale.id)}
                   className="px-3.5 py-1.5 bg-status-coral/20 hover:bg-status-coral/30 text-status-coral border border-status-coral/40 font-semibold rounded-lg text-xs uppercase tracking-wider flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all shadow-sm"
                   title="Permanently Delete Transaction"
                 >
@@ -691,7 +694,7 @@ export const SalesRecordManager: React.FC = () => {
                   <h3 className="text-xs font-bold text-content-secondary uppercase tracking-wider">Ordered Products</h3>
                   {selectedSale.status !== 'Returned' && (
                     <button
-                      onClick={handleReturnAll}
+                      onClick={() => setReturnAllConfirmOpen(true)}
                       className="px-3 py-1 bg-status-coral/10 border border-status-coral/20 hover:bg-status-coral/20 text-status-coral text-[10px] font-bold tracking-wider uppercase rounded-md transition-all cursor-pointer"
                     >
                       Return Remaining Items
@@ -821,7 +824,7 @@ export const SalesRecordManager: React.FC = () => {
                 e.preventDefault();
                 const totalNum = parseFloat(closingTotal) || (parseFloat(closingCash) || 0) + (parseFloat(closingOnline) || 0);
                 if (totalNum <= 0) {
-                  alert('Please enter a valid closing sales amount greater than 0');
+                  toast.warning('Please enter a valid closing sales amount greater than 0');
                   return;
                 }
 
@@ -843,7 +846,7 @@ export const SalesRecordManager: React.FC = () => {
                   await loadSales();
                 } catch (err: unknown) {
                   const errMessage = err instanceof Error ? err.message : String(err);
-                  alert(`Failed to add closing sale: ${errMessage}`);
+                  toast.error(`Failed to add closing sale: ${errMessage}`);
                 } finally {
                   setIsSubmittingClosing(false);
                 }
@@ -941,6 +944,30 @@ export const SalesRecordManager: React.FC = () => {
         </div>
       )}
 
+      <ConfirmDialog
+        open={returnAllConfirmOpen}
+        onClose={() => setReturnAllConfirmOpen(false)}
+        onConfirm={handleReturnAll}
+        title="Full return"
+        message={
+          selectedSale
+            ? `Are you sure you want to process a full return for Order #${selectedSale.id}? This will restock all remaining items.`
+            : ''
+        }
+        confirmLabel="Return all"
+      />
+      <ConfirmDialog
+        open={pendingDeleteSaleId !== null}
+        onClose={() => setPendingDeleteSaleId(null)}
+        onConfirm={handleDeleteSale}
+        title="Delete sale"
+        message={
+          pendingDeleteSaleId !== null
+            ? `Are you sure you want to delete Sale #${pendingDeleteSaleId}? This will remove it from history.`
+            : ''
+        }
+        confirmLabel="Delete"
+      />
     </div>
   );
 };

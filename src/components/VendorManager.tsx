@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Vendor, PurchaseOrder, Product, VendorPayment, VendorOrderEntry } from '../types';
+import { ConfirmDialog } from './ui/ConfirmDialog';
+import { toast } from '../state/toast';
 import { Search, Plus, Edit2, Trash2, Truck, FileText, CheckCircle, Calendar, Package, ArrowLeft, PlusCircle, CreditCard, History, Clock, FileSpreadsheet, Eye, Send, Upload, Image as ImageIcon, Printer, ZoomIn, ZoomOut, RotateCw, Download, X, Paperclip } from 'lucide-react';
 
 export const VendorManager: React.FC = () => {
@@ -15,6 +17,11 @@ export const VendorManager: React.FC = () => {
   const [vendorName, setVendorName] = useState('');
   const [vendorContact, setVendorContact] = useState('');
   const [vendorCategory, setVendorCategory] = useState('');
+  const [pendingDeletePaymentId, setPendingDeletePaymentId] = useState<number | null>(null);
+  const [pendingDeleteOrderEntryId, setPendingDeleteOrderEntryId] = useState<number | null>(null);
+  const [pendingDeleteVendorId, setPendingDeleteVendorId] = useState<number | null>(null);
+  const [pendingReceivePoId, setPendingReceivePoId] = useState<number | null>(null);
+  const [pendingDeletePoId, setPendingDeletePoId] = useState<number | null>(null);
 
   // Purchase Orders State
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
@@ -192,8 +199,10 @@ export const VendorManager: React.FC = () => {
     setIsPaymentModalOpen(true);
   };
 
-  const handleDeletePayment = async (paymentId: number) => {
-    if (!window.confirm('Remove this payment installment? (Allowed within 30-minute grace period)')) return;
+  const handleDeletePayment = async () => {
+    const paymentId = pendingDeletePaymentId;
+    if (paymentId == null) return;
+    setPendingDeletePaymentId(null);
     try {
       await window.api.deleteVendorPayment(paymentId);
       setSuccess('Payment record removed and vendor PO balance restored.');
@@ -302,8 +311,10 @@ export const VendorManager: React.FC = () => {
     }
   };
 
-  const handleDeleteOrderEntry = async (entryId: number) => {
-    if (!window.confirm('Remove this order entry? (Allowed within 30-minute grace period)')) return;
+  const handleDeleteOrderEntry = async () => {
+    const entryId = pendingDeleteOrderEntryId;
+    if (entryId == null) return;
+    setPendingDeleteOrderEntryId(null);
     try {
       await window.api.deleteVendorOrderEntry(entryId);
       setSuccess('Order entry removed and vendor PO total cost adjusted.');
@@ -355,15 +366,16 @@ export const VendorManager: React.FC = () => {
     }
   };
 
-  const handleDeleteVendor = async (id: number) => {
-    if (window.confirm('Are you sure you want to delete this vendor?')) {
-      try {
-        await window.api.deleteVendor(id);
-        setSuccess('Vendor deleted.');
-        loadVendors();
-      } catch (err) {
-        setError('Failed to delete vendor. It might be referenced by purchase orders.');
-      }
+  const handleDeleteVendor = async () => {
+    const id = pendingDeleteVendorId;
+    if (id == null) return;
+    setPendingDeleteVendorId(null);
+    try {
+      await window.api.deleteVendor(id);
+      setSuccess('Vendor deleted.');
+      loadVendors();
+    } catch (err) {
+      setError('Failed to delete vendor. It might be referenced by purchase orders.');
     }
   };
 
@@ -470,32 +482,34 @@ export const VendorManager: React.FC = () => {
     }
   };
 
-  const handleReceivePO = async (poId: number) => {
-    if (window.confirm('Receive shipment for this Purchase Order? This will automatically add items to your active inventory stock!')) {
-      try {
-        await window.api.receivePurchaseOrder(poId);
-        setSuccess('Purchase order marked as RECEIVED. Inventory stock levels updated!');
-        loadPurchaseOrders();
-        loadCatalogProducts();
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : 'Failed to receive purchase order.';
-        setError(msg);
-      }
+  const handleReceivePO = async () => {
+    const poId = pendingReceivePoId;
+    if (poId == null) return;
+    setPendingReceivePoId(null);
+    try {
+      await window.api.receivePurchaseOrder(poId);
+      setSuccess('Purchase order marked as RECEIVED. Inventory stock levels updated!');
+      loadPurchaseOrders();
+      loadCatalogProducts();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to receive purchase order.';
+      setError(msg);
     }
   };
 
-  const handleDeletePO = async (poId: number) => {
-    if (window.confirm('Are you sure you want to delete this purchase order record? All associated payment ledgers and order entries will also be removed.')) {
-      try {
-        await window.api.deletePurchaseOrder(poId);
-        setSuccess('Purchase order and associated ledger history deleted.');
-        await loadPurchaseOrders();
-        await loadPayments();
-        await loadOrderEntries();
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : 'Failed to delete purchase order.';
-        setError(msg);
-      }
+  const handleDeletePO = async () => {
+    const poId = pendingDeletePoId;
+    if (poId == null) return;
+    setPendingDeletePoId(null);
+    try {
+      await window.api.deletePurchaseOrder(poId);
+      setSuccess('Purchase order and associated ledger history deleted.');
+      await loadPurchaseOrders();
+      await loadPayments();
+      await loadOrderEntries();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to delete purchase order.';
+      setError(msg);
     }
   };
 
@@ -983,7 +997,7 @@ export const VendorManager: React.FC = () => {
                                   <Edit2 size={16} />
                                 </button>
                                 <button
-                                  onClick={() => handleDeleteVendor(v.id)}
+                                  onClick={() => setPendingDeleteVendorId(v.id)}
                                   className="p-2 text-status-coral bg-status-coral/10 border border-status-coral/20 rounded-lg hover:bg-status-coral/20 transition-colors"
                                 >
                                   <Trash2 size={16} />
@@ -1058,7 +1072,7 @@ export const VendorManager: React.FC = () => {
                                 if (isEditable) {
                                   return (
                                     <button
-                                      onClick={() => handleDeletePO(po.id)}
+                                      onClick={() => setPendingDeletePoId(po.id)}
                                       className="px-2 py-1 text-[10px] font-bold bg-status-coral/10 hover:bg-status-coral/20 text-status-coral border border-status-coral/20 rounded-lg transition-colors flex items-center gap-1 ml-1"
                                       title={`Created ${Math.floor(diffMins)}m ago. Allowed to remove within 30 mins.`}
                                     >
@@ -1144,7 +1158,7 @@ export const VendorManager: React.FC = () => {
 
                               {po.status === 'Pending' && (
                                 <button
-                                  onClick={() => handleReceivePO(po.id)}
+                                  onClick={() => setPendingReceivePoId(po.id)}
                                   className="flex-1 py-2.5 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 border border-yellow-500/40 rounded-xl font-bold text-xs tracking-wider uppercase transition flex justify-center items-center gap-1.5 shadow-[0_0_12px_rgba(234,179,8,0.1)] cursor-pointer active:scale-95"
                                 >
                                   <CheckCircle size={14} /> Receive Stock
@@ -1246,7 +1260,7 @@ export const VendorManager: React.FC = () => {
                                       <Edit2 size={12} /> Edit
                                     </button>
                                     <button
-                                      onClick={() => handleDeletePayment(pay.id)}
+                                      onClick={() => setPendingDeletePaymentId(pay.id)}
                                       className="p-1.5 px-2 bg-status-coral/10 hover:bg-status-coral/20 text-status-coral rounded-lg text-[10px] font-bold flex items-center gap-1 transition cursor-pointer"
                                       title={`Undo payment (${remainingMins}m remaining)`}
                                     >
@@ -1342,7 +1356,7 @@ export const VendorManager: React.FC = () => {
                                       <Edit2 size={12} /> Edit
                                     </button>
                                     <button
-                                      onClick={() => handleDeleteOrderEntry(entry.id)}
+                                      onClick={() => setPendingDeleteOrderEntryId(entry.id)}
                                       className="p-1.5 px-2 bg-status-coral/10 hover:bg-status-coral/20 text-status-coral rounded-lg text-[10px] font-bold flex items-center gap-1 transition"
                                       title={`Undo invoice entry (${remainingMins}m remaining)`}
                                     >
@@ -1775,7 +1789,7 @@ export const VendorManager: React.FC = () => {
                     // Attempt direct silent Meta Cloud API send first
                     window.api.sendWhatsAppMessage(cleanContact, message).then((res) => {
                       if (res.success) {
-                        alert(`✅ WhatsApp Statement sent silently & automatically to ${selectedPOForDetails.vendor_name}!`);
+                        toast.success(`✅ WhatsApp Statement sent silently & automatically to ${selectedPOForDetails.vendor_name}!`);
                       } else {
                         const encoded = encodeURIComponent(message);
                         const waUrl = cleanContact 
@@ -1877,7 +1891,7 @@ export const VendorManager: React.FC = () => {
                                   Edit
                                 </button>
                                 <button
-                                  onClick={() => handleDeleteOrderEntry(entry.id)}
+                                  onClick={() => setPendingDeleteOrderEntryId(entry.id)}
                                   className="p-1 px-2 bg-status-coral/10 hover:bg-status-coral/20 text-status-coral rounded-lg text-[10px] font-bold transition cursor-pointer"
                                   title={`Remove (${remainingMins}m left)`}
                                 >
@@ -1991,7 +2005,7 @@ export const VendorManager: React.FC = () => {
                                   Edit
                                 </button>
                                 <button
-                                  onClick={() => handleDeletePayment(pay.id)}
+                                  onClick={() => setPendingDeletePaymentId(pay.id)}
                                   className="p-1 px-2 bg-status-coral/10 hover:bg-status-coral/20 text-status-coral rounded-lg text-[10px] font-bold transition cursor-pointer"
                                   title={`Remove payment (${remainingMins}m left)`}
                                 >
@@ -2064,7 +2078,7 @@ export const VendorManager: React.FC = () => {
                   // Attempt direct silent Meta Cloud API send first
                   window.api.sendWhatsAppMessage(cleanContact, message).then((res) => {
                     if (res.success) {
-                      alert(`✅ WhatsApp Statement sent silently & automatically to ${selectedPOForDetails.vendor_name}!`);
+                      toast.success(`✅ WhatsApp Statement sent silently & automatically to ${selectedPOForDetails.vendor_name}!`);
                     } else {
                       const encoded = encodeURIComponent(message);
                       const waUrl = cleanContact 
@@ -2230,6 +2244,47 @@ export const VendorManager: React.FC = () => {
           </div>
         </div>
       )}
+      <ConfirmDialog
+        open={pendingDeletePaymentId !== null}
+        onClose={() => setPendingDeletePaymentId(null)}
+        onConfirm={handleDeletePayment}
+        title="Remove payment"
+        message="Remove this payment installment? (Allowed within 30-minute grace period)"
+        confirmLabel="Remove"
+      />
+      <ConfirmDialog
+        open={pendingDeleteOrderEntryId !== null}
+        onClose={() => setPendingDeleteOrderEntryId(null)}
+        onConfirm={handleDeleteOrderEntry}
+        title="Remove order entry"
+        message="Remove this order entry? (Allowed within 30-minute grace period)"
+        confirmLabel="Remove"
+      />
+      <ConfirmDialog
+        open={pendingDeleteVendorId !== null}
+        onClose={() => setPendingDeleteVendorId(null)}
+        onConfirm={handleDeleteVendor}
+        title="Delete vendor"
+        message="Are you sure you want to delete this vendor?"
+        confirmLabel="Delete"
+      />
+      <ConfirmDialog
+        open={pendingReceivePoId !== null}
+        onClose={() => setPendingReceivePoId(null)}
+        onConfirm={handleReceivePO}
+        title="Receive purchase order"
+        message="Receive shipment for this Purchase Order? This will automatically add items to your active inventory stock!"
+        confirmLabel="Receive"
+        tone="primary"
+      />
+      <ConfirmDialog
+        open={pendingDeletePoId !== null}
+        onClose={() => setPendingDeletePoId(null)}
+        onConfirm={handleDeletePO}
+        title="Delete purchase order"
+        message="Are you sure you want to delete this purchase order record? All associated payment ledgers and order entries will also be removed."
+        confirmLabel="Delete"
+      />
     </div>
   );
 };
