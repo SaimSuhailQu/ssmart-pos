@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:ssmart_pos_admin/core/licensing/license_state.dart';
 import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
 import 'package:ssmart_pos_admin/services/license_service.dart';
 
@@ -57,6 +58,114 @@ class _MobileLicenseGateState extends State<MobileLicenseGate> {
     setState(() => _copied = true);
     await Future.delayed(const Duration(seconds: 2));
     if (mounted) setState(() => _copied = false);
+  }
+
+  /// "Enter Product Key" bottom sheet — offline Ed25519 activation.
+  void _showProductKeySheet() {
+    final ctrl = TextEditingController();
+    bool activating = false;
+    String? error;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppTheme.cardBackground,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 20,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Enter Product Key', style: AppTheme.titleLarge),
+              const SizedBox(height: 6),
+              Text(
+                'Paste the key from your reseller. It is verified offline and locked to this device.',
+                style: AppTheme.bodySmall,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: ctrl,
+                autocorrect: false,
+                enableSuggestions: false,
+                textCapitalization: TextCapitalization.characters,
+                maxLines: 3,
+                style: AppTheme.bodySmall.copyWith(
+                  fontFamily: 'monospace',
+                  color: AppTheme.primaryCyan,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'SSM1-XXXX-XXXX-…',
+                  hintStyle: AppTheme.bodySmall.copyWith(
+                    color: AppTheme.textTertiary,
+                  ),
+                  filled: true,
+                  fillColor: AppTheme.backgroundLight,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppTheme.borderColor),
+                  ),
+                  errorText: error,
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: activating
+                      ? null
+                      : () async {
+                          final key = ctrl.text.trim();
+                          if (key.length < 16) {
+                            setSheetState(() =>
+                                error = 'Paste the complete product key.');
+                            return;
+                          }
+                          setSheetState(() {
+                            activating = true;
+                            error = null;
+                          });
+                          try {
+                            await widget.licenseService
+                                .activateProductKey(key);
+                            if (ctx.mounted) Navigator.of(ctx).pop();
+                            _checkLicense();
+                          } catch (e) {
+                            setSheetState(() {
+                              activating = false;
+                              error = e.toString().replaceFirst(
+                                  'LicenseVerificationError: ', '');
+                            });
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryCyan,
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: activating
+                      ? const CupertinoActivityIndicator(radius: 10)
+                      : Text('Activate License',
+                          style: AppTheme.labelLarge
+                              .copyWith(color: Colors.black)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -254,6 +363,32 @@ class _MobileLicenseGateState extends State<MobileLicenseGate> {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 12),
+
+                  // Product-key activation (offline)
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: _showProductKeySheet,
+                      icon: const Icon(CupertinoIcons.lock_shield, size: 14),
+                      label: Text(
+                        'Enter Product Key',
+                        style: AppTheme.labelLarge,
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.primaryCyan,
+                        side: BorderSide(
+                          color:
+                              AppTheme.primaryCyan.withValues(alpha: 0.4),
+                        ),
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -262,8 +397,11 @@ class _MobileLicenseGateState extends State<MobileLicenseGate> {
       );
     }
 
-    // ---- Trial banner ---- //
+    // ---- Trial / grace banner ---- //
     if (license.status == LicenseStatus.trial) {
+      final inGrace = license.inGrace;
+      final accent =
+          inGrace ? AppTheme.errorRed : AppTheme.warningOrange;
       return Stack(
         children: [
           widget.child,
@@ -277,26 +415,31 @@ class _MobileLicenseGateState extends State<MobileLicenseGate> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
-                    color: AppTheme.warningOrange.withValues(alpha: 0.15),
+                    color: accent.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(
-                      color: AppTheme.warningOrange.withValues(alpha: 0.3),
+                      color: accent.withValues(alpha: 0.3),
                     ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(
+                      Icon(
                         CupertinoIcons.shield,
                         size: 13,
-                        color: AppTheme.warningOrange,
+                        color: accent,
                       ),
                       const SizedBox(width: 6),
-                      Text(
-                        'Free Trial — ${license.daysRemaining ?? 0} day${(license.daysRemaining ?? 0) == 1 ? '' : 's'} remaining',
-                        style: AppTheme.labelSmall.copyWith(
-                          color: AppTheme.warningOrange,
-                          fontWeight: FontWeight.w600,
+                      Flexible(
+                        child: Text(
+                          inGrace
+                              ? 'Trial expired — grace period ends soon. Activate now to avoid lockout.'
+                              : 'Free Trial — ${license.daysRemaining ?? 0} day${(license.daysRemaining ?? 0) == 1 ? '' : 's'} remaining',
+                          style: AppTheme.labelSmall.copyWith(
+                            color: accent,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          textAlign: TextAlign.center,
                         ),
                       ),
                     ],
