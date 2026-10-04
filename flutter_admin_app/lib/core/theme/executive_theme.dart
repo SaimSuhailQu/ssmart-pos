@@ -90,6 +90,90 @@ class ExecutiveTheme {
         color: ink,
       );
 
+  static TextStyle get captionGold => GoogleFonts.inter(
+        fontSize: 11,
+        fontWeight: FontWeight.w600,
+        color: gold,
+        letterSpacing: 0.4,
+      );
+
+  static TextStyle get overlineGold => GoogleFonts.inter(
+        fontSize: 10,
+        fontWeight: FontWeight.w700,
+        color: gold,
+        letterSpacing: 1.8,
+      );
+
+  // --- Screen ambience ---
+  /// Deep navy screen base for executive surfaces.
+  static const Color screenBase = Color(0xFF07090E);
+
+  /// Ambient gold aura stops for background meshes (top glow).
+  static List<Color> get auraTop => [
+        gold.withValues(alpha: 0.16),
+        goldDeep.withValues(alpha: 0.07),
+        Colors.transparent,
+      ];
+
+  /// Ambient gold aura stops for background meshes (bottom glow).
+  static List<Color> get auraBottom => [
+        goldDeep.withValues(alpha: 0.1),
+        Colors.transparent,
+      ];
+
+  // --- Components ---
+  /// Hairline gold divider.
+  static BoxDecoration get goldDivider => BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.transparent,
+            gold.withValues(alpha: 0.4),
+            Colors.transparent,
+          ],
+        ),
+      );
+
+  /// Outlined gold pill (chips, filters, payment badges).
+  static BoxDecoration pillDecoration({bool filled = false}) =>
+      BoxDecoration(
+        color: filled ? gold : goldFaint,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: gold.withValues(alpha: filled ? 0.0 : 0.45),
+        ),
+      );
+
+  static TextStyle pillText({bool filled = false}) =>
+      GoogleFonts.inter(
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        color: filled ? navyDeep : goldLight,
+      );
+
+  /// Gold glow shadow for primary buttons / FAB.
+  static List<BoxShadow> get goldGlow => [
+        BoxShadow(
+          color: gold.withValues(alpha: 0.38),
+          blurRadius: 18,
+          offset: const Offset(0, 6),
+        ),
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.4),
+          blurRadius: 12,
+          offset: const Offset(0, 4),
+        ),
+      ];
+
+  /// Shimmer sweep gradient for loading states.
+  static LinearGradient get shimmerGradient => LinearGradient(
+        colors: [
+          cardSurface,
+          gold.withValues(alpha: 0.14),
+          cardSurface,
+        ],
+        stops: const [0.35, 0.5, 0.65],
+      );
+
   // --- Shared decorations ---
   static BoxDecoration get cardDecoration => BoxDecoration(
         color: cardSurface,

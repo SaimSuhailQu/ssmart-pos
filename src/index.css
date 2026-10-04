@@ -4,22 +4,26 @@
 
 @layer base {
   :root {
-    --bg-canvas: #090d16;
-    --bg-card: #0f172a;
-    --border-subtle: rgba(255, 255, 255, 0.08);
-    --border-strong: rgba(255, 255, 255, 0.16);
-    --text-primary: #f8fafc;
-    --text-secondary: #94a3b8;
-    --text-muted: #64748b;
+    /* Executive Dark theme — matches the Flutter admin app (Option A) */
+    --bg-canvas: #0A0E1A;
+    --bg-card: #141B31;
+    --border-subtle: rgba(201, 169, 106, 0.14);
+    --border-strong: rgba(201, 169, 106, 0.28);
+    --text-primary: #F5F1E6;
+    --text-secondary: #9AA3B8;
+    --text-muted: #5B6376;
+    --gold: #C9A96A;
+    --gold-light: #E8C87A;
+    --gold-deep: #8A6D3B;
   }
 
   body {
     @apply text-slate-100 font-sans antialiased overflow-hidden select-none;
-    background-color: #090a0f;
-    background-image: 
-      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(255, 255, 255, 0.05), transparent),
-      radial-gradient(ellipse 60% 40% at 10% 20%, rgba(255, 255, 255, 0.025), transparent),
-      radial-gradient(ellipse 50% 50% at 90% 80%, rgba(255, 255, 255, 0.03), transparent);
+    background-color: #07090E;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(201, 169, 106, 0.08), transparent),
+      radial-gradient(ellipse 60% 40% at 10% 20%, rgba(201, 169, 106, 0.04), transparent),
+      radial-gradient(ellipse 50% 50% at 90% 80%, rgba(138, 109, 59, 0.06), transparent);
     background-attachment: fixed;
     min-height: 100vh;
   }

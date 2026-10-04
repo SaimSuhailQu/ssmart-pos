@@ -167,6 +167,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final firebaseService = context.read<FirebaseService>();
 
     return LiquidScaffold(
+      executiveAmbience: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
