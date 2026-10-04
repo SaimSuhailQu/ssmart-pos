@@ -115,7 +115,7 @@ class _MobileLicenseGateState extends State<MobileLicenseGate> {
                   fillColor: AppTheme.backgroundLight,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: AppTheme.borderColor),
+                    borderSide: const BorderSide(color: AppTheme.borderColor),
                   ),
                   errorText: error,
                 ),
@@ -129,8 +129,9 @@ class _MobileLicenseGateState extends State<MobileLicenseGate> {
                       : () async {
                           final key = ctrl.text.trim();
                           if (key.length < 16) {
-                            setSheetState(() =>
-                                error = 'Paste the complete product key.');
+                            setSheetState(
+                              () => error = 'Paste the complete product key.',
+                            );
                             return;
                           }
                           setSheetState(() {
@@ -146,7 +147,9 @@ class _MobileLicenseGateState extends State<MobileLicenseGate> {
                             setSheetState(() {
                               activating = false;
                               error = e.toString().replaceFirst(
-                                  'LicenseVerificationError: ', '');
+                                    'LicenseVerificationError: ',
+                                    '',
+                                  );
                             });
                           }
                         },
@@ -160,9 +163,12 @@ class _MobileLicenseGateState extends State<MobileLicenseGate> {
                   ),
                   child: activating
                       ? const CupertinoActivityIndicator(radius: 10)
-                      : Text('Activate License',
-                          style: AppTheme.labelLarge
-                              .copyWith(color: Colors.black)),
+                      : Text(
+                          'Activate License',
+                          style: AppTheme.labelLarge.copyWith(
+                            color: Colors.black,
+                          ),
+                        ),
                 ),
               ),
             ],

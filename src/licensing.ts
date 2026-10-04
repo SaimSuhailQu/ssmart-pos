@@ -472,7 +472,24 @@ async function evaluateTrialFromCache(
 
   if (cached?.fingerprint === base.fingerprint && cached.status === 'trial' && cached.expiresAt) {
     const exp = new Date(cached.expiresAt).getTime();
+    const lastChecked = cached.checkedAt ? new Date(cached.checkedAt).getTime() : 0;
+
+    // Anti-tamper: if system clock was rolled backwards behind the last validated timestamp, invalidate trial
+    if (lastChecked > 0 && now < lastChecked - 3600000) {
+      return {
+        ...base,
+        ...routing,
+        status: 'expired',
+        mode: 'expired',
+        expiresAt: cached.expiresAt,
+        daysRemaining: 0,
+        error: 'clock_rollback_detected',
+      };
+    }
+
     if (Number.isFinite(exp) && exp > now) {
+      // Advance checkedAt heartbeat
+      writeCache({ ...cached, checkedAt: base.checkedAt }, base.fingerprint);
       return {
         ...base,
         ...routing,

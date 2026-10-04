@@ -1,5 +1,6 @@
 /// License state model — shared by [LicenseService], [SecureLicenseStore]
 /// and [MobileLicenseGate]. Kept in its own module to avoid import cycles.
+library;
 
 /// License states — mirrors the desktop `LicenseState`.
 enum LicenseStatus { licensed, trial, expired }

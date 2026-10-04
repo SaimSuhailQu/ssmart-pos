@@ -23,10 +23,10 @@ class LicenseService {
   static const int _trialGraceDays = 3;
 
   /// Compile-time public key: `--dart-define=SSPOS_LICENSE_PUBLIC_KEY=<base64>`.
-  /// When unset, product-key activation fails closed (Firebase flow unaffected).
+  /// Embedded fallback ensures offline product key verification works out of the box.
   static const String _publicKey = String.fromEnvironment(
     'SSPOS_LICENSE_PUBLIC_KEY',
-    defaultValue: '',
+    defaultValue: 'MCowBQYDK2VwAyEAi5Xepc/uZULn5HPaBvAR3PRNDGDlSTfPO3oWBiBRpg0=',
   );
 
   final FirebaseDatabase _db;
@@ -74,12 +74,10 @@ class LicenseService {
       licensedTo: 'Licensed terminal',
       licenseKey: '${key.trim().toUpperCase().substring(0, 12)}…',
       expiresAt: payload.expiresAt?.toIso8601String(),
-      daysRemaining: payload.expiresAt == null
-          ? null
-          : payload.expiresAt!
-              .difference(DateTime.now())
-              .inDays
-              .clamp(0, 9999),
+      daysRemaining: payload.expiresAt
+          ?.difference(DateTime.now())
+          .inDays
+          .clamp(0, 9999),
       tier: tier,
       maxTerminals: payload.maxTerminals,
       isMaster: tier == LicenseTier.enterprise,
@@ -215,12 +213,10 @@ class LicenseService {
       licensedTo: 'Licensed terminal',
       licenseKey: '${key.substring(0, 12)}…',
       expiresAt: payload.expiresAt?.toIso8601String(),
-      daysRemaining: payload.expiresAt == null
-          ? null
-          : payload.expiresAt!
-              .difference(DateTime.now())
-              .inDays
-              .clamp(0, 9999),
+      daysRemaining: payload.expiresAt
+          ?.difference(DateTime.now())
+          .inDays
+          .clamp(0, 9999),
       tier: tier,
       maxTerminals: payload.maxTerminals,
       isMaster: tier == LicenseTier.enterprise,
@@ -243,7 +239,7 @@ class LicenseService {
       final exp = DateTime.tryParse(cached.expiresAt!);
       if (exp != null) {
         final graceUntil =
-            exp.add(Duration(days: _trialGraceDays));
+            exp.add(const Duration(days: _trialGraceDays));
         final inGrace =
             DateTime.now().isAfter(exp) && DateTime.now().isBefore(graceUntil);
 

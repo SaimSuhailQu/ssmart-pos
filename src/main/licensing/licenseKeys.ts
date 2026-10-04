@@ -187,4 +187,5 @@ export function resolvePublicKey(): string | null {
  * Replaced at release time by scripts/issue-license.mjs --embed-public-key.
  * If it still contains REPLACE_ME, offline key activation fails closed.
  */
-export const FALLBACK_PUBLIC_KEY = 'REPLACE_ME_WITH_BASE64_ED25519_SPKI_PUBLIC_KEY';
+export const FALLBACK_PUBLIC_KEY = 'MCowBQYDK2VwAyEAi5Xepc/uZULn5HPaBvAR3PRNDGDlSTfPO3oWBiBRpg0=';
+

@@ -97,3 +97,16 @@ out/
 *.sqlite-wal
 *.sqlite-shm
 .env.production
+
+# Flutter build artifacts and tool dirs
+.dart_tool/
+**/flutter_admin_app_iphone7/.dart_tool/
+**/flutter_admin_app_iphone7/pubspec.lock
+
+# Licensing private keys
+license-private.key
+*.key
+device-uuid.txt
+license-cache.bin
+
+

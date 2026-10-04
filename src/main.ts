@@ -717,6 +717,7 @@ ipcMain.handle('get-device-fingerprint', () => {
   return computeFingerprint();
 });
 
-app.on('will-quit', () => {
-  shutdownLicensing().catch(() => undefined);
+app.on('will-quit', (): void => {
+  void shutdownLicensing().catch(() => undefined);
 });
+

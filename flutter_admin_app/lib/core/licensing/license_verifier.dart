@@ -7,6 +7,7 @@
 ///
 /// The public key is compiled in via `--dart-define=SSPOS_LICENSE_PUBLIC_KEY=<base64>`
 /// (see [LicenseService.resolvePublicKey]).
+library;
 
 import 'dart:convert';
 import 'dart:typed_data';
@@ -73,7 +74,8 @@ Future<LicensePayload> verifyLicenseKey(
   const payloadLen = 49, sigLen = 64;
   if (raw.length != payloadLen + sigLen) {
     throw const LicenseVerificationError(
-        'Product key has an invalid length — check for typos.');
+      'Product key has an invalid length — check for typos.',
+    );
   }
 
   final body = raw.sublist(0, payloadLen);
@@ -89,7 +91,8 @@ Future<LicensePayload> verifyLicenseKey(
   );
   if (!ok) {
     throw const LicenseVerificationError(
-        'Signature invalid — this key was not issued by SSmart POS.');
+      'Signature invalid — this key was not issued by SSmart POS.',
+    );
   }
 
   final data = ByteData.sublistView(body);
@@ -129,7 +132,8 @@ Future<LicensePayload> verifyLicenseKeyForDevice(
       payload.deviceBind!.toLowerCase() !=
           deviceFingerprintHex.toLowerCase()) {
     throw const LicenseVerificationError(
-        'This key is bound to a different device.');
+      'This key is bound to a different device.',
+    );
   }
   return payload;
 }

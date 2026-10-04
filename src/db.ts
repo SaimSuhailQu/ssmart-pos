@@ -2060,11 +2060,11 @@ export function upsertCloudPurchaseOrder(cloudPo: Record<string, unknown>) {
     }
 
     // Ingest vendor_order_entries non-destructively if present
-    let orderEntriesList: any[] = [];
+    let orderEntriesList: Record<string, unknown>[] = [];
     if (Array.isArray(cloudPo.order_entries)) {
-      orderEntriesList = cloudPo.order_entries;
+      orderEntriesList = cloudPo.order_entries as Record<string, unknown>[];
     } else if (cloudPo.order_entries && typeof cloudPo.order_entries === 'object') {
-      orderEntriesList = Object.values(cloudPo.order_entries);
+      orderEntriesList = Object.values(cloudPo.order_entries) as Record<string, unknown>[];
     }
 
     if (orderEntriesList.length > 0) {
@@ -2073,9 +2073,9 @@ export function upsertCloudPurchaseOrder(cloudPo: Record<string, unknown>) {
       for (const entry of orderEntriesList) {
         if (!entry) continue;
         const amt = Number(entry.amount) || 0;
-        const entryNotes = entry.notes || '';
+        const entryNotes = String(entry.notes || '');
         const entryBillUrl = (entry.bill_url as string) || null;
-        const entryTime = entry.timestamp || timestamp;
+        const entryTime = String(entry.timestamp || timestamp);
         const exists = existingEntries.some(e => Math.abs(e.amount - amt) < 0.01 && (e.timestamp === entryTime || (entryNotes && e.notes === entryNotes)));
         if (!exists) {
           insertEntry.run(poId, vendorId, amt, entryNotes, entryBillUrl, entryTime);
@@ -2084,11 +2084,11 @@ export function upsertCloudPurchaseOrder(cloudPo: Record<string, unknown>) {
     }
 
     // Ingest vendor_payments non-destructively if present
-    let paymentsList: any[] = [];
+    let paymentsList: Record<string, unknown>[] = [];
     if (Array.isArray(cloudPo.payments)) {
-      paymentsList = cloudPo.payments;
+      paymentsList = cloudPo.payments as Record<string, unknown>[];
     } else if (cloudPo.payments && typeof cloudPo.payments === 'object') {
-      paymentsList = Object.values(cloudPo.payments);
+      paymentsList = Object.values(cloudPo.payments) as Record<string, unknown>[];
     }
 
     if (paymentsList.length > 0) {
