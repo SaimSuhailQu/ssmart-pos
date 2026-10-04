@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
 
 /// quickLiquid material density levels based on Apple Liquid Glass design specifications
@@ -242,6 +243,7 @@ class _GlassCardState extends State<GlassCard> with SingleTickerProviderStateMix
             onTapDown: (_) => _pressController.forward(),
             onTapUp: (_) {
               _pressController.reverse();
+              HapticFeedback.lightImpact();
               widget.onTap!();
             },
             onTapCancel: () => _pressController.reverse(),

@@ -4,13 +4,16 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:ssmart_pos_admin/core/constants/firebase_constants.dart';
 import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
+import 'package:ssmart_pos_admin/core/theme/executive_theme.dart';
 import 'package:ssmart_pos_admin/core/utils/date_utils.dart';
-import 'package:ssmart_pos_admin/core/widgets/glass_card.dart';
+import 'package:ssmart_pos_admin/core/widgets/haptics.dart';
 import 'package:ssmart_pos_admin/core/widgets/liquid_scaffold.dart';
+import 'package:ssmart_pos_admin/core/widgets/staggered_entrance.dart';
 import 'package:ssmart_pos_admin/features/dashboard/screens/daily_closings_screen.dart';
-import 'package:ssmart_pos_admin/features/dashboard/widgets/metric_card.dart';
+import 'package:ssmart_pos_admin/features/dashboard/widgets/executive_hero_card.dart';
+import 'package:ssmart_pos_admin/features/dashboard/widgets/executive_metric_card.dart';
+import 'package:ssmart_pos_admin/features/dashboard/widgets/executive_sales_chart.dart';
 import 'package:ssmart_pos_admin/features/dashboard/widgets/recent_transactions.dart';
-import 'package:ssmart_pos_admin/features/dashboard/widgets/sales_chart.dart';
 import 'package:ssmart_pos_admin/features/licensing/screens/license_manager_screen.dart';
 import 'package:ssmart_pos_admin/features/pos/screens/mobile_checkout_screen.dart';
 import 'package:ssmart_pos_admin/features/transactions/screens/transactions_screen.dart';
@@ -28,7 +31,12 @@ import 'package:ssmart_pos_admin/widgets/license_banner.dart';
 import 'package:ssmart_pos_admin/widgets/loading_indicator.dart';
 import 'package:ssmart_pos_admin/widgets/manual_closing_dialog.dart';
 
-/// Main dashboard screen showing sales metrics and recent transactions
+/// Executive Dark dashboard — "Option A" premium redesign.
+///
+/// Every section arrives in a staggered cascade, numbers count up, and the
+/// whole screen speaks the haptic vocabulary: taps tick, primary actions
+/// knock, the chart scrubs, and a long-press on the hero copies the daily
+/// closing summary.
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
@@ -37,10 +45,18 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+  /// Bumped on every successful refresh so entrance animations replay.
+  int _refreshCycle = 0;
+
   Future<void> _handleRefresh() async {
     try {
       final firebaseService = context.read<FirebaseService>();
-      await firebaseService.getSalesStream().first.timeout(const Duration(seconds: 4));
+      await firebaseService
+          .getSalesStream()
+          .first
+          .timeout(const Duration(seconds: 4));
+      await Haptics.success();
+      if (mounted) setState(() => _refreshCycle++);
     } catch (_) {
       // Stream timeout or network fallback, state remains stable
     }
@@ -60,7 +76,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           CupertinoDialogAction(
             isDestructiveAction: true,
             onPressed: () async {
-              Navigator.pop(context);
+              await Haptics.medium();
+              if (context.mounted) Navigator.pop(context);
               await context.read<AuthService>().signOut();
             },
             child: const Text('Sign Out'),
@@ -68,6 +85,80 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ],
       ),
     );
+  }
+
+  /// Yesterday's revenue, for the hero delta pill.
+  double _yesterdayRevenue(List<Sale> sales) {
+    final now = DateTime.now();
+    final start = DateTime(now.year, now.month, now.day - 1);
+    final end = DateTime(now.year, now.month, now.day);
+    double total = 0;
+    for (final s in sales) {
+      final ts = AppDateUtils.parseDateTime(s.timestamp);
+      if (ts == null) continue;
+      final local = ts.isUtc ? ts.toLocal() : ts;
+      if (!local.isBefore(start) && local.isBefore(end)) total += s.total;
+    }
+    return total;
+  }
+
+  /// Shared by the hero long-press and the Copy Note button.
+  Future<void> _copyDailySummary(DashboardMetrics m) async {
+    final now = DateTime.now();
+    final dateFormatted = '${now.day}/${now.month}/${now.year}';
+    final timeFormatted =
+        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+
+    final cashRev = m.revenueByPaymentMethod.entries
+        .where((e) => e.key.toLowerCase().contains('cash'))
+        .fold<double>(0.0, (sum, e) => sum + e.value);
+    final onlineRev = m.revenueByPaymentMethod.entries
+        .where((e) =>
+            e.key.toLowerCase().contains('online') ||
+            e.key.toLowerCase().contains('bank') ||
+            e.key.toLowerCase().contains('card') ||
+            e.key.toLowerCase().contains('jazz') ||
+            e.key.toLowerCase().contains('easy'))
+        .fold<double>(0.0, (sum, e) => sum + e.value);
+    final khataRev = m.revenueByPaymentMethod.entries
+        .where((e) =>
+            e.key.toLowerCase().contains('khata') ||
+            e.key.toLowerCase().contains('credit'))
+        .fold<double>(0.0, (sum, e) => sum + e.value);
+
+    final text = '🏪 *SS MART*\n'
+        '📅 *DAILY CLOSING SALES NOTE*\n'
+        '──────────────────────\n'
+        '🗓️ *Date:* $dateFormatted\n'
+        '⏰ *Time Recorded:* $timeFormatted\n'
+        '──────────────────────\n'
+        '📦 *Total Orders Completed:* ${m.transactionCount}\n'
+        '✨ *NET DAILY SALES:* Rs. ${m.totalRevenue.toStringAsFixed(2)}\n'
+        '──────────────────────\n'
+        '💳 *PAYMENT BREAKDOWN:*\n'
+        '• Cash in Drawer: Rs. ${cashRev.toStringAsFixed(2)}\n'
+        '• Online / Bank / Card: Rs. ${onlineRev.toStringAsFixed(2)}\n'
+        '• Khata / Credit: Rs. ${khataRev.toStringAsFixed(2)}\n'
+        '──────────────────────\n'
+        '✅ *Generated via SS MART Admin Mobile*';
+
+    await Clipboard.setData(ClipboardData(text: text));
+    await Haptics.success();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('✅ Daily closing note copied to clipboard!'),
+        backgroundColor: ExecutiveTheme.goldDeep,
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  String _greeting() {
+    final h = DateTime.now().hour;
+    if (h < 12) return 'Good morning';
+    if (h < 17) return 'Good afternoon';
+    return 'Good evening';
   }
 
   @override
@@ -81,17 +172,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
         elevation: 0,
         title: Row(
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.asset(
-                'assets/images/ss_mart_logo.png',
-                height: 32,
-                width: 32,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => const Icon(
-                  CupertinoIcons.chart_bar_square_fill,
-                  size: 28,
-                  color: AppTheme.primaryCyan,
+            Container(
+              height: 34,
+              width: 34,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                gradient: const LinearGradient(
+                  colors: [ExecutiveTheme.goldLight, ExecutiveTheme.goldDeep],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: ExecutiveTheme.gold.withValues(alpha: 0.35),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              alignment: Alignment.center,
+              child: const Text(
+                'SS',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
+                  color: ExecutiveTheme.navyDeep,
                 ),
               ),
             ),
@@ -99,19 +204,54 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('SS MART Admin', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                const Text(
+                  'SS MART',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.6,
+                    color: ExecutiveTheme.ink,
+                  ),
+                ),
                 StreamBuilder<ConnectionStatus>(
                   stream: firebaseService.connectionStatusStream,
                   builder: (context, snapshot) {
-                    final status = snapshot.data ?? ConnectionStatus.connecting;
-                    return Text(
-                      status.displayName,
-                      style: AppTheme.labelSmall.copyWith(
-                        fontSize: 10,
-                        color: status.isOnline
-                            ? AppTheme.successGreen
-                            : AppTheme.textSecondary,
-                      ),
+                    final status =
+                        snapshot.data ?? ConnectionStatus.connecting;
+                    final online = status.isOnline;
+                    return Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: online
+                                ? ExecutiveTheme.successMint
+                                : ExecutiveTheme.slateDim,
+                            boxShadow: online
+                                ? [
+                                    BoxShadow(
+                                      color: ExecutiveTheme.successMint
+                                          .withValues(alpha: 0.8),
+                                      blurRadius: 6,
+                                    )
+                                  ]
+                                : null,
+                          ),
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          status.displayName,
+                          style: AppTheme.labelSmall.copyWith(
+                            fontSize: 10,
+                            color: online
+                                ? ExecutiveTheme.successMint
+                                : ExecutiveTheme.slate,
+                          ),
+                        ),
+                      ],
                     );
                   },
                 ),
@@ -120,56 +260,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(CupertinoIcons.cart_badge_plus, color: AppTheme.primaryCyan),
+          _appBarAction(
+            icon: CupertinoIcons.cart_badge_plus,
             tooltip: 'Mobile POS Billing',
-            onPressed: () {
-              Navigator.push(
-                context,
-                CupertinoPageRoute(
-                  builder: (context) => const MobileCheckoutScreen(),
-                ),
-              );
-            },
+            onTap: () => _go(const MobileCheckoutScreen()),
           ),
-          IconButton(
-            icon: const Icon(CupertinoIcons.calendar_badge_plus, color: AppTheme.successGreen),
+          _appBarAction(
+            icon: CupertinoIcons.calendar_badge_plus,
             tooltip: 'Daily Closing Sales',
-            onPressed: () {
-              Navigator.push(
-                context,
-                CupertinoPageRoute(
-                  builder: (context) => const DailyClosingsScreen(),
-                ),
-              );
-            },
+            onTap: () => _go(const DailyClosingsScreen()),
           ),
-          IconButton(
-            icon: const Icon(CupertinoIcons.square_grid_2x2_fill),
+          _appBarAction(
+            icon: CupertinoIcons.square_grid_2x2_fill,
             tooltip: 'Items Catalog',
-            onPressed: () {
-              Navigator.push(
-                context,
-                CupertinoPageRoute(
-                  builder: (context) => const CatalogScreen(),
-                ),
-              );
-            },
+            onTap: () => _go(const CatalogScreen()),
           ),
-          // User info and logout
           PopupMenuButton<String>(
-            icon: const Icon(CupertinoIcons.person_circle),
+            icon: const Icon(CupertinoIcons.person_circle,
+                color: ExecutiveTheme.gold),
             offset: const Offset(0, 50),
-            onSelected: (value) {
+            onSelected: (value) async {
+              await Haptics.tap();
+              if (!context.mounted) return;
               if (value == 'logout') {
                 _handleLogout();
               } else if (value == 'licenses') {
-                Navigator.push(
-                  context,
-                  CupertinoPageRoute(
-                    builder: (context) => const LicenseManagerScreen(),
-                  ),
-                );
+                _go(const LicenseManagerScreen());
               }
             },
             itemBuilder: (context) => [
@@ -178,15 +294,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      authService.userDisplayName,
-                      style: AppTheme.titleMedium,
-                    ),
+                    Text(authService.userDisplayName,
+                        style: AppTheme.titleMedium),
                     if (authService.userEmail != null)
-                      Text(
-                        authService.userEmail!,
-                        style: AppTheme.bodySmall,
-                      ),
+                      Text(authService.userEmail!,
+                          style: AppTheme.bodySmall),
                   ],
                 ),
               ),
@@ -195,7 +307,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 value: 'licenses',
                 child: Row(
                   children: [
-                    Icon(CupertinoIcons.shield, size: 18, color: AppTheme.primaryCyan),
+                    Icon(CupertinoIcons.shield,
+                        size: 18, color: ExecutiveTheme.gold),
                     SizedBox(width: 8),
                     Text('License Manager'),
                   ],
@@ -216,517 +329,615 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ],
       ),
-      floatingActionButton: GlassCard(
-        onTap: () {
-          Navigator.push(
-            context,
-            CupertinoPageRoute(
-              builder: (context) => const MobileCheckoutScreen(),
-            ),
-          );
+      floatingActionButton: GestureDetector(
+        onTap: () async {
+          await Haptics.medium();
+          if (context.mounted) _go(const MobileCheckoutScreen());
         },
-        material: LiquidMaterial.clear,
-        borderRadius: 24,
-        enableGlow: true,
-        glowColor: AppTheme.primaryCyan,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        gradient: const LinearGradient(
-          colors: [
-            Color(0xFFFFFFFF),
-            Color(0xFFE2E8F0),
-          ],
-        ),
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(CupertinoIcons.cart_fill, color: Colors.black, size: 20),
-            SizedBox(width: 8),
-            Text(
-              'Make Bill / POS',
-              style: TextStyle(
-                color: Colors.black,
-                fontWeight: FontWeight.w800,
-                fontSize: 15,
-                letterSpacing: 0.2,
-              ),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            gradient: const LinearGradient(
+              colors: [ExecutiveTheme.goldLight, ExecutiveTheme.goldDeep],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-          ],
+            boxShadow: [
+              BoxShadow(
+                color: ExecutiveTheme.gold.withValues(alpha: 0.4),
+                blurRadius: 18,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(CupertinoIcons.cart_fill,
+                  color: ExecutiveTheme.navyDeep, size: 19),
+              SizedBox(width: 8),
+              Text(
+                'Make Bill / POS',
+                style: TextStyle(
+                  color: ExecutiveTheme.navyDeep,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 15,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
       body: Column(
         children: [
-          // License status lives in the layout flow (never a floating
-          // overlay) so it can't collide with the FAB or cover cards.
           const LicenseBanner(),
           Expanded(
             child: RefreshIndicator(
               onRefresh: _handleRefresh,
+              color: ExecutiveTheme.gold,
               child: StreamBuilder<List<Sale>>(
-          initialData: firebaseService.cachedSales,
-          stream: firebaseService.getSalesStream(),
-          builder: (context, snapshot) {
-            // Loading state - only display full-screen loading spinner if there is no data at all yet
-            if (snapshot.connectionState == ConnectionState.waiting && (!snapshot.hasData || snapshot.data == null)) {
-              return const AppLoadingIndicator(
-                message: 'Loading dashboard...',
-              );
-            }
+                initialData: firebaseService.cachedSales,
+                stream: firebaseService.getSalesStream(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState ==
+                          ConnectionState.waiting &&
+                      (!snapshot.hasData || snapshot.data == null)) {
+                    return const AppLoadingIndicator(
+                      message: 'Loading dashboard...',
+                    );
+                  }
+                  if (snapshot.hasError &&
+                      (!snapshot.hasData || snapshot.data == null)) {
+                    return AppErrorWidget(
+                      message: 'Failed to load sales data',
+                      error: snapshot.error.toString(),
+                      onRetry: _handleRefresh,
+                    );
+                  }
+                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return _buildEmptyState();
+                  }
 
-            // Error state - only display error if we don't already have data to show
-            if (snapshot.hasError && (!snapshot.hasData || snapshot.data == null)) {
-              return AppErrorWidget(
-                message: 'Failed to load sales data',
-                error: snapshot.error.toString(),
-                onRetry: _handleRefresh,
-              );
-            }
+                  final allSales = snapshot.data!;
+                  final todaysMetrics =
+                      DashboardMetrics.todayFromSales(allSales);
+                  final weekMetrics = DashboardMetrics.fromSales(
+                    allSales,
+                    daysHistory: AppConstants.chartDaysHistory,
+                  );
+                  final yesterdayRev = _yesterdayRevenue(allSales);
 
-            // Empty state
-            if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return _buildEmptyState();
-            }
+                  return _buildDashboardContent(
+                    todaysMetrics: todaysMetrics,
+                    weekMetrics: weekMetrics,
+                    yesterdayRevenue: yesterdayRev,
+                    recentTransactions: allSales
+                        .take(AppConstants.recentTransactionsLimit)
+                        .toList(),
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-            final allSales = snapshot.data!;
-            final todaysMetrics = DashboardMetrics.todayFromSales(allSales);
-            final weekMetrics = DashboardMetrics.fromSales(
-              allSales,
-              daysHistory: AppConstants.chartDaysHistory,
-            );
+  Widget _appBarAction({
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback onTap,
+  }) {
+    return IconButton(
+      icon: Icon(icon, color: ExecutiveTheme.gold),
+      tooltip: tooltip,
+      onPressed: () async {
+        await Haptics.tap();
+        onTap();
+      },
+    );
+  }
 
-            return _buildDashboardContent(
-              todaysMetrics: todaysMetrics,
-              weekMetrics: weekMetrics,
-              recentTransactions: allSales.take(
-                AppConstants.recentTransactionsLimit,
-              ).toList(),
-            );
-          },
-        ),
-        ),
-        ),
-          ],
-        ),
-      );
+  void _go(Widget screen) {
+    Navigator.push(
+      context,
+      CupertinoPageRoute(builder: (_) => screen),
+    );
   }
 
   Widget _buildDashboardContent({
     required DashboardMetrics todaysMetrics,
     required DashboardMetrics weekMetrics,
+    required double yesterdayRevenue,
     required List<Sale> recentTransactions,
   }) {
+    final deltaPct = yesterdayRevenue > 0
+        ? (todaysMetrics.totalRevenue - yesterdayRevenue) /
+            yesterdayRevenue *
+            100
+        : 0.0;
+    final now = DateTime.now();
+    final dateLabel =
+        '${_weekday(now.weekday)}, ${now.day} ${_month(now.month)}';
+
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingM),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Quick Navigation Hub
+          // Greeting
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _buildQuickNavCard(
-                    title: 'New Bill',
-                    subtitle: 'Mobile POS',
-                    icon: CupertinoIcons.cart_fill,
-                    color: AppTheme.primaryCyan,
-                    onTap: () => Navigator.push(
-                      context,
-                      CupertinoPageRoute(builder: (_) => const MobileCheckoutScreen()),
+            padding:
+                const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
+            child: StaggeredEntrance(
+              delay: Duration.zero,
+              repeatKey: _refreshCycle,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${_greeting()}, ${context.read<AuthService>().userDisplayName.split(' ').first}',
+                    style: ExecutiveTheme.bodyGold.copyWith(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                ),
-                const SizedBox(width: AppTheme.spacingXS),
-                Expanded(
-                  child: _buildQuickNavCard(
-                    title: 'Khata',
-                    subtitle: 'CRM & Udhaar',
-                    icon: CupertinoIcons.book_fill,
-                    color: Colors.amber.shade700,
-                    onTap: () => Navigator.push(
-                      context,
-                      CupertinoPageRoute(builder: (_) => const CustomersKhataScreen()),
-                    ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Here\'s your store today · $dateLabel',
+                    style: ExecutiveTheme.metricLabel,
                   ),
-                ),
-                const SizedBox(width: AppTheme.spacingXS),
-                Expanded(
-                  child: _buildQuickNavCard(
-                    title: 'Expenses',
-                    subtitle: 'Cost Ledger',
-                    icon: CupertinoIcons.money_dollar_circle_fill,
-                    color: Colors.redAccent,
-                    onTap: () => Navigator.push(
-                      context,
-                      CupertinoPageRoute(builder: (_) => const ExpensesScreen()),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: AppTheme.spacingXS),
-                Expanded(
-                  child: _buildQuickNavCard(
-                    title: 'Vendors',
-                    subtitle: 'POs & Stocks',
-                    icon: CupertinoIcons.cube_box_fill,
-                    color: Colors.purpleAccent,
-                    onTap: () => Navigator.push(
-                      context,
-                      CupertinoPageRoute(builder: (_) => const VendorsScreen()),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppTheme.spacingL),
-
-          // Live store operations: stock alerts + today's expenses
-          StoreOpsStrip(
-            cachedExpenses: context.read<FirebaseService>().cachedExpenses ?? const [],
-            productStream: context.read<FirebaseService>().getProductsStream(),
-          ),
-
-          const SizedBox(height: AppTheme.spacingL),
-
-          // Today's metrics header
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Today\'s Performance',
-                  style: AppTheme.titleLarge,
-                ),
-                Text(
-                  '${todaysMetrics.transactionCount} Orders',
-                  style: AppTheme.labelSmall.copyWith(
-                    color: AppTheme.primaryCyan,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           const SizedBox(height: AppTheme.spacingM),
 
-          // Daily Sales Closing Note Card with Frosted Glass & 1-Click Copy
+          // Hero — animated revenue, long-press copies summary
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
-            child: GlassCard(
-              padding: const EdgeInsets.all(AppTheme.spacingM),
-              borderColor: AppTheme.successGreen.withValues(alpha: 0.35),
-              enableGlow: true,
-              glowColor: AppTheme.successGreen,
-              gradient: const LinearGradient(
-                colors: [
-                  Color(0xCC0F2E22),
-                  Color(0xEE141722),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+            padding:
+                const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
+            child: StaggeredEntrance(
+              delay: const Duration(milliseconds: 70),
+              repeatKey: _refreshCycle,
+              child: ExecutiveHeroCard(
+                revenue: todaysMetrics.totalRevenue,
+                orderCount: todaysMetrics.transactionCount,
+                averageOrder: todaysMetrics.averageTransactionValue,
+                deltaPct: deltaPct,
+                dateLabel: dateLabel,
+                onCopySummary: () => _copyDailySummary(todaysMetrics),
               ),
+            ),
+          ),
+          const SizedBox(height: AppTheme.spacingL),
+
+          // Quick actions
+          Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
+            child: StaggeredEntrance(
+              delay: const Duration(milliseconds: 140),
+              repeatKey: _refreshCycle,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Wrap(
-                    alignment: WrapAlignment.spaceBetween,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    spacing: 8,
-                    runSpacing: 8,
+                  Text('QUICK ACTIONS', style: ExecutiveTheme.sectionLabel),
+                  const SizedBox(height: 10),
+                  Row(
                     children: [
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: AppTheme.successGreen.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(
-                              CupertinoIcons.sparkles,
-                              color: AppTheme.successGreen,
-                              size: 16,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Daily Closing Note',
-                            style: AppTheme.titleMedium.copyWith(
-                              color: AppTheme.successGreen,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children: [
-                          OutlinedButton.icon(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                CupertinoPageRoute(builder: (_) => const DailyClosingsScreen()),
-                              );
-                            },
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: AppTheme.primaryCyan,
-                              side: const BorderSide(color: AppTheme.primaryCyan, width: 1),
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              minimumSize: Size.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            icon: const Icon(CupertinoIcons.calendar, size: 12, color: AppTheme.primaryCyan),
-                            label: const Text(
-                              'View All',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
-                            ),
-                          ),
-                          OutlinedButton.icon(
-                            onPressed: () => ManualClosingDialog.show(context),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: AppTheme.successGreen,
-                              side: const BorderSide(color: AppTheme.successGreen, width: 1),
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              minimumSize: Size.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            icon: const Icon(CupertinoIcons.plus, size: 12, color: AppTheme.successGreen),
-                            label: const Text(
-                              'Add Closing',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
-                            ),
-                          ),
-                          ElevatedButton.icon(
-                            onPressed: () {
-                              final now = DateTime.now();
-                              final dateFormatted = '${now.day}/${now.month}/${now.year}';
-                              final timeFormatted = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
-                              
-                              // Payment breakdown
-                              final cashRev = todaysMetrics.revenueByPaymentMethod.entries
-                                  .where((e) => e.key.toLowerCase().contains('cash'))
-                                  .fold<double>(0.0, (sum, e) => sum + e.value);
-                              final onlineRev = todaysMetrics.revenueByPaymentMethod.entries
-                                  .where((e) => e.key.toLowerCase().contains('online') || e.key.toLowerCase().contains('bank') || e.key.toLowerCase().contains('card') || e.key.toLowerCase().contains('jazz') || e.key.toLowerCase().contains('easy'))
-                                  .fold<double>(0.0, (sum, e) => sum + e.value);
-                              final khataRev = todaysMetrics.revenueByPaymentMethod.entries
-                                  .where((e) => e.key.toLowerCase().contains('khata') || e.key.toLowerCase().contains('credit'))
-                                  .fold<double>(0.0, (sum, e) => sum + e.value);
-
-                              final text = '🏪 *SS MART*\n'
-                                  '📅 *DAILY CLOSING SALES NOTE*\n'
-                                  '──────────────────────\n'
-                                  '🗓️ *Date:* $dateFormatted\n'
-                                  '⏰ *Time Recorded:* $timeFormatted\n'
-                                  '──────────────────────\n'
-                                  '📦 *Total Orders Completed:* ${todaysMetrics.transactionCount}\n'
-                                  '✨ *NET DAILY SALES:* Rs. ${todaysMetrics.totalRevenue.toStringAsFixed(2)}\n'
-                                  '──────────────────────\n'
-                                  '💳 *PAYMENT BREAKDOWN:*\n'
-                                  '• Cash in Drawer: Rs. ${cashRev.toStringAsFixed(2)}\n'
-                                  '• Online / Bank / Card: Rs. ${onlineRev.toStringAsFixed(2)}\n'
-                                  '• Khata / Credit: Rs. ${khataRev.toStringAsFixed(2)}\n'
-                                  '──────────────────────\n'
-                                  '✅ *Generated via SS MART Admin Mobile*';
-
-                              Clipboard.setData(ClipboardData(text: text));
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('✅ Daily closing note copied to clipboard!'),
-                                  backgroundColor: AppTheme.successGreen,
-                                  duration: Duration(seconds: 2),
-                                ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.successGreen,
-                              foregroundColor: Colors.black,
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              minimumSize: Size.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            icon: const Icon(CupertinoIcons.doc_on_clipboard, size: 12, color: Colors.black),
-                            label: const Text(
-                              'Copy Note',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    alignment: WrapAlignment.spaceBetween,
-                    crossAxisAlignment: WrapCrossAlignment.end,
-                    spacing: 12,
-                    runSpacing: 8,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'Today\'s Total Closing Sales',
-                            style: AppTheme.bodySmall.copyWith(color: AppTheme.textSecondary),
-                          ),
-                          const SizedBox(height: 2),
-                          FittedBox(
-                            fit: BoxFit.scaleDown,
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              AppDateUtils.formatCurrency(todaysMetrics.totalRevenue),
-                              style: AppTheme.titleLarge.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w900,
-                                fontSize: 22,
-                                fontFeatures: const [FontFeature.tabularFigures()],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.black45,
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: Colors.white12),
+                      Expanded(
+                        child: _quickAction(
+                          'New Bill',
+                          'POS',
+                          CupertinoIcons.cart_fill,
+                          () => _go(const MobileCheckoutScreen()),
                         ),
-                        child: Text(
-                          '${todaysMetrics.transactionCount} Bills Recorded',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: AppTheme.textSecondary,
-                            fontWeight: FontWeight.bold,
-                          ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _quickAction(
+                          'Khata',
+                          'Udhaar',
+                          CupertinoIcons.book_fill,
+                          () => _go(const CustomersKhataScreen()),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _quickAction(
+                          'Expenses',
+                          'Ledger',
+                          CupertinoIcons.money_dollar_circle_fill,
+                          () => _go(const ExpensesScreen()),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _quickAction(
+                          'Vendors',
+                          'Stock',
+                          CupertinoIcons.cube_box_fill,
+                          () => _go(const VendorsScreen()),
                         ),
                       ),
                     ],
                   ),
-                  if (todaysMetrics.revenueByPaymentMethod.isNotEmpty) ...[
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: todaysMetrics.revenueByPaymentMethod.entries.map((entry) {
-                        return Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: Colors.black38,
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: Colors.white10),
-                          ),
-                          child: Text(
-                            '${entry.key}: Rs. ${entry.value.toInt()}',
-                            style: const TextStyle(fontSize: 10, color: AppTheme.textSecondary),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ],
                 ],
               ),
             ),
           ),
           const SizedBox(height: AppTheme.spacingL),
 
-          // Metrics grid with defensive aspect ratio
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                // Ensure small devices (like iPhone 7 with 375px) have plenty of height to avoid overflow
-                final ratio = constraints.maxWidth < 360
-                    ? 1.30
-                    : constraints.maxWidth < 400
-                        ? 1.35
-                        : 1.45;
-                return GridView.count(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisCount: 2,
-                  mainAxisSpacing: AppTheme.spacingM,
-                  crossAxisSpacing: AppTheme.spacingM,
-                  childAspectRatio: ratio,
-                  children: [
-                    MetricCard(
-                      label: 'Total Revenue',
-                      value: AppDateUtils.formatCurrency(todaysMetrics.totalRevenue),
-                      icon: CupertinoIcons.money_dollar_circle_fill,
-                      color: AppTheme.successGreen,
-                      subtitle: 'Today',
-                    ),
-                    MetricCard(
-                      label: 'Transactions',
-                      value: AppDateUtils.formatNumber(
-                        todaysMetrics.transactionCount,
-                      ),
-                      icon: CupertinoIcons.doc_text_fill,
-                      color: AppTheme.primaryBlue,
-                      subtitle: 'Completed',
-                    ),
-                    MetricCard(
-                      label: 'Average Sale',
-                      value: AppDateUtils.formatCurrency(
-                        todaysMetrics.averageTransactionValue,
-                      ),
-                      icon: CupertinoIcons.chart_bar_fill,
-                      color: AppTheme.secondaryBlue,
-                      subtitle: 'Per transaction',
-                    ),
-                    MetricCard(
-                      label: 'Top Method',
-                      value: todaysMetrics.mostPopularPaymentMethod,
-                      icon: CupertinoIcons.creditcard_fill,
-                      color: AppTheme.warningOrange,
-                      subtitle: 'Payment method',
-                    ),
-                  ],
-                );
-              },
+          // Store ops strip (stock alerts + expenses)
+          StaggeredEntrance(
+            delay: const Duration(milliseconds: 210),
+            repeatKey: _refreshCycle,
+            child: StoreOpsStrip(
+              cachedExpenses:
+                  context.read<FirebaseService>().cachedExpenses ?? const [],
+              productStream:
+                  context.read<FirebaseService>().getProductsStream(),
             ),
           ),
-
           const SizedBox(height: AppTheme.spacingL),
 
-          // Sales trend chart
+          // Metrics grid
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
-            child: SalesChart(dailyRevenue: weekMetrics.dailyRevenue),
+            padding:
+                const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
+            child: StaggeredEntrance(
+              delay: const Duration(milliseconds: 280),
+              repeatKey: _refreshCycle,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('PERFORMANCE',
+                          style: ExecutiveTheme.sectionLabel),
+                      Text(
+                        '${todaysMetrics.transactionCount} orders',
+                        style: ExecutiveTheme.deltaUp.copyWith(
+                          color: ExecutiveTheme.gold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  GridView.count(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 10,
+                    crossAxisSpacing: 10,
+                    childAspectRatio: 1.32,
+                    children: [
+                      ExecutiveMetricCard(
+                        label: 'Revenue',
+                        value: AppDateUtils.formatCurrency(
+                            todaysMetrics.totalRevenue),
+                        delta:
+                            '${deltaPct >= 0 ? '▲' : '▼'} ${deltaPct.abs().toStringAsFixed(1)}% vs yesterday',
+                        deltaPositive: deltaPct >= 0,
+                        icon: CupertinoIcons.money_dollar_circle_fill,
+                        onTap: () => _go(const TransactionsScreen()),
+                      ),
+                      ExecutiveMetricCard(
+                        label: 'Orders',
+                        value: '${todaysMetrics.transactionCount}',
+                        delta: 'completed today',
+                        icon: CupertinoIcons.doc_text_fill,
+                        onTap: () => _go(const TransactionsScreen()),
+                      ),
+                      ExecutiveMetricCard(
+                        label: 'Avg order',
+                        value: AppDateUtils.formatCurrency(
+                            todaysMetrics.averageTransactionValue),
+                        delta: 'per transaction',
+                        icon: CupertinoIcons.chart_bar_fill,
+                      ),
+                      ExecutiveMetricCard(
+                        label: 'Top method',
+                        value: todaysMetrics.mostPopularPaymentMethod,
+                        delta: 'payment method',
+                        icon: CupertinoIcons.creditcard_fill,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ),
+          const SizedBox(height: AppTheme.spacingL),
 
+          // Weekly chart
+          Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
+            child: StaggeredEntrance(
+              delay: const Duration(milliseconds: 350),
+              repeatKey: _refreshCycle,
+              child: ExecutiveSalesChart(
+                  dailyRevenue: weekMetrics.dailyRevenue),
+            ),
+          ),
+          const SizedBox(height: AppTheme.spacingL),
+
+          // Daily closing card
+          Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
+            child: StaggeredEntrance(
+              delay: const Duration(milliseconds: 420),
+              repeatKey: _refreshCycle,
+              child: _closingCard(todaysMetrics),
+            ),
+          ),
           const SizedBox(height: AppTheme.spacingL),
 
           // Recent transactions
-          RecentTransactions(
-            transactions: recentTransactions,
-            onViewAll: () {
-              Navigator.push(
-                context,
-                CupertinoPageRoute(
-                  builder: (context) => const TransactionsScreen(),
-                ),
-              );
-            },
+          StaggeredEntrance(
+            delay: const Duration(milliseconds: 490),
+            repeatKey: _refreshCycle,
+            child: RecentTransactions(
+              transactions: recentTransactions,
+              onViewAll: () async {
+                await Haptics.tap();
+                if (context.mounted) _go(const TransactionsScreen());
+              },
+            ),
           ),
-
           const SizedBox(height: AppTheme.spacingL),
         ],
+      ),
+    );
+  }
+
+  /// Executive-styled daily closing card (gold accents, haptic buttons).
+  Widget _closingCard(DashboardMetrics m) {
+    return Container(
+      decoration: ExecutiveTheme.cardDecoration.copyWith(
+        border: Border.all(
+          color: ExecutiveTheme.gold.withValues(alpha: 0.35),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: ExecutiveTheme.gold.withValues(alpha: 0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(AppTheme.spacingM),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  color: ExecutiveTheme.goldFaint,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: ExecutiveTheme.gold.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: const Icon(
+                  CupertinoIcons.doc_on_clipboard_fill,
+                  color: ExecutiveTheme.gold,
+                  size: 16,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                'Daily Closing',
+                style: ExecutiveTheme.bodyGold.copyWith(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
+                ),
+              ),
+              const Spacer(),
+              _closingBtn(
+                'View All',
+                CupertinoIcons.calendar,
+                ExecutiveTheme.gold,
+                () => _go(const DailyClosingsScreen()),
+              ),
+              const SizedBox(width: 6),
+              _closingBtn(
+                'Add',
+                CupertinoIcons.plus,
+                ExecutiveTheme.successMint,
+                () => ManualClosingDialog.show(context),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('NET DAILY SALES',
+                        style: ExecutiveTheme.metricLabel),
+                    const SizedBox(height: 4),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        AppDateUtils.formatCurrency(m.totalRevenue),
+                        style: ExecutiveTheme.metricValue.copyWith(
+                          fontSize: 24,
+                          color: ExecutiveTheme.goldLight,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              GestureDetector(
+                onTap: () async {
+                  await Haptics.medium();
+                  _copyDailySummary(m);
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 9),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [
+                        ExecutiveTheme.goldLight,
+                        ExecutiveTheme.goldDeep
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(CupertinoIcons.doc_on_clipboard,
+                          size: 14, color: ExecutiveTheme.navyDeep),
+                      SizedBox(width: 6),
+                      Text(
+                        'Copy Note',
+                        style: TextStyle(
+                          color: ExecutiveTheme.navyDeep,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (m.revenueByPaymentMethod.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: m.revenueByPaymentMethod.entries.map((e) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 9, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: ExecutiveTheme.cardSurface,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: ExecutiveTheme.cardBorder),
+                  ),
+                  child: Text(
+                    '${e.key}: Rs. ${e.value.toInt()}',
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: ExecutiveTheme.slate,
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _closingBtn(
+      String label, IconData icon, Color color, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: () async {
+        await Haptics.tap();
+        onTap();
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(9),
+          border: Border.all(color: color.withValues(alpha: 0.5)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 12, color: color),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.w700,
+                fontSize: 11,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _quickAction(
+    String title,
+    String subtitle,
+    IconData icon,
+    VoidCallback onTap,
+  ) {
+    return GestureDetector(
+      onTap: () async {
+        await Haptics.tap();
+        onTap();
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 4),
+        decoration: ExecutiveTheme.cardDecoration.copyWith(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: ExecutiveTheme.goldFaint,
+                borderRadius: BorderRadius.circular(13),
+                border: Border.all(
+                  color: ExecutiveTheme.gold.withValues(alpha: 0.25),
+                ),
+              ),
+              child: Icon(icon, color: ExecutiveTheme.gold, size: 19),
+            ),
+            const SizedBox(height: 8),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: ExecutiveTheme.ink,
+                ),
+                maxLines: 1,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              style: const TextStyle(
+                fontSize: 9,
+                color: ExecutiveTheme.slateDim,
+              ),
+              maxLines: 1,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -738,29 +949,70 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              CupertinoIcons.chart_bar_square,
-              size: 80,
-              color: AppTheme.textTertiary,
+            Container(
+              width: 96,
+              height: 96,
+              decoration: BoxDecoration(
+                color: ExecutiveTheme.goldFaint,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: ExecutiveTheme.gold.withValues(alpha: 0.3),
+                ),
+              ),
+              child: const Icon(
+                CupertinoIcons.chart_bar_square,
+                size: 44,
+                color: ExecutiveTheme.gold,
+              ),
             ),
             const SizedBox(height: AppTheme.spacingL),
-            Text(
-              'No Sales Data Yet',
-              style: AppTheme.headlineMedium,
-            ),
+            Text('No Sales Data Yet',
+                style: ExecutiveTheme.bodyGold.copyWith(
+                  fontSize: 19,
+                  fontWeight: FontWeight.w700,
+                )),
             const SizedBox(height: AppTheme.spacingS),
             Text(
               'Sales from your POS system will appear here in real-time.',
               style: AppTheme.bodyMedium.copyWith(
-                color: AppTheme.textSecondary,
+                color: ExecutiveTheme.slate,
               ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppTheme.spacingL),
-            ElevatedButton.icon(
-              onPressed: _handleRefresh,
-              icon: const Icon(CupertinoIcons.refresh),
-              label: const Text('Refresh'),
+            GestureDetector(
+              onTap: () async {
+                await Haptics.medium();
+                _handleRefresh();
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 22, vertical: 12),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [
+                      ExecutiveTheme.goldLight,
+                      ExecutiveTheme.goldDeep
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(CupertinoIcons.refresh,
+                        color: ExecutiveTheme.navyDeep, size: 16),
+                    SizedBox(width: 8),
+                    Text(
+                      'Refresh',
+                      style: TextStyle(
+                        color: ExecutiveTheme.navyDeep,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
@@ -768,58 +1020,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildQuickNavCard({
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return GlassCard(
-      onTap: onTap,
-      borderRadius: AppTheme.radiusM,
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-      borderColor: color.withValues(alpha: 0.28),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(7),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.15),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: color, size: 18),
-          ),
-          const SizedBox(height: 6),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              title,
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.textPrimary,
-              ),
-              maxLines: 1,
-              textAlign: TextAlign.center,
-            ),
-          ),
-          const SizedBox(height: 2),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              subtitle,
-              style: const TextStyle(
-                fontSize: 9,
-                color: AppTheme.textSecondary,
-              ),
-              maxLines: 1,
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ],
-      ),
-    );
+  String _weekday(int w) {
+    const d = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    return d[w - 1];
+  }
+
+  String _month(int m) {
+    const mo = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    return mo[m - 1];
   }
 }
