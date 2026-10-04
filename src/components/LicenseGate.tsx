@@ -153,16 +153,36 @@ export const LicenseGate: React.FC<LicenseGateProps> = ({ children }) => {
     );
   }
 
-  // Trial banner floats above the app UI without affecting h-screen layout
+  // Trial banner floats above the app UI with direct one-click copy and product-key entry
   const trialBanner =
     license.status === 'trial' ? (
-      <div className="fixed bottom-3 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-2 px-4 py-1.5 rounded-full bg-status-amber/15 backdrop-blur-md border border-status-amber/30 text-status-amber text-[11px] font-semibold shadow-xl whitespace-nowrap">
-        <ShieldAlert size={12} className="shrink-0" />
+      <div className="fixed bottom-3 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-canvas-card/90 backdrop-blur-md border border-status-amber/40 text-status-amber text-[11px] font-semibold shadow-2xl whitespace-nowrap">
+        <ShieldAlert size={13} className="shrink-0 text-status-amber" />
         <span>
           Free Trial — {license.daysRemaining ?? 0} day{(license.daysRemaining ?? 0) === 1 ? '' : 's'} remaining.
-          {(license.daysRemaining ?? 0) <= 3 && ' Contact SS Mart POS Sales to activate.'}
         </span>
-        <span className="hidden lg:inline text-status-amber/60 font-mono">({fingerprintShort})</span>
+
+        {/* Copy Device Code Button */}
+        <button
+          type="button"
+          onClick={copyFingerprint}
+          className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-status-amber/20 hover:bg-status-amber/30 text-amber-200 border border-status-amber/40 transition-all font-mono text-[10px] cursor-pointer"
+          title="Click to copy your full device code to clipboard"
+        >
+          <Copy size={11} />
+          <span>{copied ? 'Copied!' : `${fingerprintShort}`}</span>
+        </button>
+
+        {/* Enter Product Key modal button */}
+        <button
+          type="button"
+          onClick={() => setActivationOpen(true)}
+          className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-200 border border-indigo-500/50 transition-all text-[10px] font-bold cursor-pointer"
+          title="Enter an offline product key or activate license"
+        >
+          <KeyRound size={11} />
+          <span>Activate</span>
+        </button>
       </div>
     ) : null;
 
