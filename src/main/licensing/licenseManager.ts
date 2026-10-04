@@ -28,6 +28,22 @@ import {
 import { readSecureCache, writeSecureCache, deleteSecureCache, okOrNull } from './secureCache';
 import { Result, ok, err } from '../../core/result';
 import { createLogger } from '../../core/logger';
+import {
+  BoundElsewhereError,
+  claimBinding,
+  clearLicenseRecord,
+  firebaseSignIn,
+  keyIdFor,
+  releaseBinding,
+  tenantIdForUid,
+  verifyBinding,
+} from './binding';
+import {
+  GoogleSession,
+  cachedGoogleEmail,
+  googleSilentAuth,
+  googleSignOut,
+} from './googleAuth';
 
 const log = createLogger('licensing:manager');
 
@@ -37,9 +53,15 @@ export const TRIAL_GRACE_DAYS = 3;
 
 interface ActivatedKeyRecord {
   key: string;
+  /** Public index of the key (sha256, truncated) — used for server binding. */
+  keyId: string;
   payload: LicensePayload;
   activatedAt: string;
   fingerprint: string;
+  /** Google account that activated the key (device-binding owner). */
+  ownerEmail?: string;
+  /** Per-user tenant id derived from the Google uid (own database path). */
+  tenantId?: string;
 }
 
 export interface TieredLicenseState extends LicenseState {
@@ -51,6 +73,10 @@ export interface TieredLicenseState extends LicenseState {
   graceUntil?: string;
   /** Enterprise: terminals allowed by the key. */
   maxTerminals?: number;
+  /** Google account the license is bound to (device-binding flow). */
+  ownerEmail?: string;
+  /** Set when the server says this key is now bound to another device. */
+  boundElsewhere?: { deviceName: string };
 }
 
 const tierLabel = (tier: LicenseTier): TieredLicenseState['tier'] =>
@@ -71,9 +97,17 @@ export function getActivatedKey(fingerprint: string): ActivatedKeyRecord | null 
 
 /**
  * Activate a product key on this device. Verifies the Ed25519 signature
- * offline, enforces device binding, then persists the encrypted record.
+ * offline, then — when a Google session is supplied and the network is up —
+ * claims the server-side device binding (the anti-sharing lock).
+ *
+ * Without a Google session the key still activates offline exactly as
+ * before (backwards compatible); the binding is claimed on the next
+ * Google sign-in via `claimPendingBinding()`.
  */
-export function activateProductKey(key: string): Result<TieredLicenseState> {
+export async function activateProductKey(
+  key: string,
+  googleSession?: GoogleSession | null,
+): Promise<Result<TieredLicenseState>> {
   const fingerprint = computeFingerprint();
   const publicKey = resolvePublicKey();
   if (!publicKey) {
@@ -94,8 +128,37 @@ export function activateProductKey(key: string): Result<TieredLicenseState> {
     return err(new Error('This key is a trial key — trials activate automatically.'));
   }
 
+  const keyId = keyIdFor(key);
+  let ownerEmail: string | undefined;
+  let tenantId: string | undefined;
+
+  // Server-side device binding (best-effort: offline activation still works).
+  if (googleSession) {
+    try {
+      const user = await firebaseSignIn(googleSession);
+      tenantId = tenantIdForUid(user.uid);
+      const claim = await claimBinding({
+        user,
+        keyId,
+        fingerprint,
+        tier: tierLabel(payload.tier),
+        tenantId,
+      });
+      if (claim.outcome === 'denied') {
+        return err(new BoundElsewhereError(claim.deviceName));
+      }
+      ownerEmail = user.email ?? googleSession.email;
+      log.info('device binding claimed', { keyId, outcome: claim.outcome });
+    } catch (e) {
+      // A definitive "bound elsewhere" is fatal; network hiccups are not.
+      if (e instanceof BoundElsewhereError) return err(e);
+      log.warn('binding claim failed — continuing offline', { error: String(e) });
+    }
+  }
+
   const record: ActivatedKeyRecord = {
     key: key.trim().toUpperCase(),
+    keyId,
     payload: {
       ...payload,
       issuedAt: payload.issuedAt,
@@ -103,6 +166,8 @@ export function activateProductKey(key: string): Result<TieredLicenseState> {
     },
     activatedAt: new Date().toISOString(),
     fingerprint,
+    ownerEmail,
+    tenantId,
   };
   // Dates survive JSON as ISO strings; revive them.
   const stored = JSON.parse(JSON.stringify(record)) as ActivatedKeyRecord;
@@ -112,8 +177,48 @@ export function activateProductKey(key: string): Result<TieredLicenseState> {
     return err(new Error('Could not save the activation. Disk write failed.'));
   }
 
-  log.info('product key activated', { tier: tierLabel(payload.tier) });
+  log.info('product key activated', { tier: tierLabel(payload.tier), bound: !!ownerEmail });
   return ok(keyStateToLicense(stored, fingerprint));
+}
+
+/**
+ * Claim the server binding for a key that was activated offline before
+ * the user signed in with Google. Called after googleSignIn().
+ */
+export async function claimPendingBinding(
+  googleSession: GoogleSession,
+): Promise<Result<TieredLicenseState>> {
+  const fingerprint = computeFingerprint();
+  const record = getActivatedKey(fingerprint);
+  if (!record) return err(new Error('No activated key on this device.'));
+  if (record.ownerEmail) {
+    return ok(keyStateToLicense(record, fingerprint)); // already bound
+  }
+  try {
+    const user = await firebaseSignIn(googleSession);
+    const tenantId = tenantIdForUid(user.uid);
+    const claim = await claimBinding({
+      user,
+      keyId: record.keyId,
+      fingerprint,
+      tier: tierLabel(record.payload.tier),
+      tenantId,
+    });
+    if (claim.outcome === 'denied') {
+      return err(new BoundElsewhereError(claim.deviceName));
+    }
+    const updated: ActivatedKeyRecord = {
+      ...record,
+      ownerEmail: user.email ?? googleSession.email,
+      tenantId,
+    };
+    writeSecureCache(ACTIVATED_KEY_CACHE, fingerprint, JSON.parse(JSON.stringify(updated)));
+    log.info('pending binding claimed', { keyId: record.keyId });
+    return ok(keyStateToLicense(updated, fingerprint));
+  } catch (e) {
+    if (e instanceof BoundElsewhereError) return err(e);
+    return err(e instanceof Error ? e : new Error(String(e)));
+  }
 }
 
 function keyStateToLicense(record: ActivatedKeyRecord, fingerprint: string): TieredLicenseState {
@@ -137,6 +242,8 @@ function keyStateToLicense(record: ActivatedKeyRecord, fingerprint: string): Tie
     lastValidated: new Date().toISOString(),
     role: payload.tier === LicenseTier.Enterprise ? 'master' : 'tenant',
     isMaster: payload.tier === LicenseTier.Enterprise,
+    ownerEmail: record.ownerEmail,
+    tenantId: record.tenantId,
   };
 }
 
@@ -192,7 +299,14 @@ export async function evaluateLicense(): Promise<TieredLicenseState> {
   // 1. Offline product key — highest priority, works without network.
   try {
     const keyed = evaluateActivatedKey(fingerprint);
-    if (keyed) return keyed;
+    if (keyed) {
+      // 1b. Server binding check (online only, definitive answers only).
+      // A key moved to another device, or released by its owner, dies here.
+      // Offline/timeout/no-record → local state stands (shop keeps selling).
+      const verified = await verifyKeyBinding(fingerprint);
+      if (verified) return verified;
+      return keyed;
+    }
   } catch (e) {
     log.warn('activated-key evaluation failed', { error: String(e) });
   }
@@ -219,9 +333,77 @@ export async function evaluateLicense(): Promise<TieredLicenseState> {
 }
 
 /** Remove the locally activated product key (support / transfer flow). */
-export function deactivateProductKey(): void {
+export async function deactivateProductKey(): Promise<void> {
+  const fingerprint = computeFingerprint();
+  const record = getActivatedKey(fingerprint);
+  // Release the server binding so the key can move to another device
+  // (after the anti-sharing cooldown). Best-effort: local deactivation
+  // always succeeds even offline.
+  if (record?.ownerEmail) {
+    try {
+      const session = await googleSilentAuth();
+      if (session) {
+        const user = await firebaseSignIn(session);
+        await releaseBinding({ user, keyId: record.keyId });
+      }
+      await clearLicenseRecord(fingerprint);
+    } catch (e) {
+      log.warn('binding release failed — local key still removed', {
+        error: String(e),
+      });
+    }
+    googleSignOut();
+  }
   deleteSecureCache(ACTIVATED_KEY_CACHE);
   log.info('product key deactivated on device');
+}
+
+/**
+ * Launch-time server verification for an activated key.
+ * Returns a replacement state only on DEFINITIVE server answers:
+ *  - 'revoked'        → binding released → local key is dead
+ *  - 'boundElsewhere' → key moved to another device → local key is dead
+ * Anything else (offline, timeout, no record yet) → null (keep local).
+ */
+async function verifyKeyBinding(
+  fingerprint: string,
+): Promise<TieredLicenseState | null> {
+  const record = getActivatedKey(fingerprint);
+  if (!record?.keyId) return null;
+  // Fast path: never bound to a Google account → nothing to verify.
+  if (!record.ownerEmail && !cachedGoogleEmail()) return null;
+  try {
+    // The binding read is auth-gated: establish the Firebase session first.
+    // Silent refresh fails offline → null → local state stands (safe).
+    const session = await googleSilentAuth();
+    if (!session) return null;
+    try {
+      await firebaseSignIn(session);
+    } catch {
+      return null;
+    }
+    const result = await verifyBinding({ keyId: record.keyId, fingerprint });
+    if (result.outcome === 'revoked' || result.outcome === 'boundElsewhere') {
+      log.warn('server revoked this device binding — dropping local key', {
+        outcome: result.outcome,
+      });
+      deleteSecureCache(ACTIVATED_KEY_CACHE);
+      return {
+        ...baseState(fingerprint),
+        status: 'trial',
+        mode: 'trial',
+        tier: 'trial',
+        boundElsewhere:
+          result.outcome === 'boundElsewhere'
+            ? { deviceName: result.deviceName }
+            : undefined,
+        error: result.outcome === 'revoked' ? 'license_released' : 'license_moved',
+      };
+    }
+    return null; // 'ok' | 'unknown' → local state stands
+  } catch {
+    return null;
+  }
 }
 
 export function getDeviceCode(): string {

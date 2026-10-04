@@ -1,0 +1,53 @@
+{
+  "rules": {
+    // ------------------------------------------------------------------
+    // SSmart POS security rules — Google device-binding edition.
+    //
+    // Deploy: Firebase Console → Realtime Database → Rules → paste → Publish.
+    // Or: firebase deploy --only database  (with firebase.json pointing here)
+    //
+    // Layout:
+    //   bindings/<keyId>      device binding for a product key (server lock)
+    //   licenses/<fingerprint> legacy per-device license record (reseller flow)
+    //   tenantOwners/<tenant>  uid that owns a tenant database path
+    //   tenants/<tenant>/...   per-user shop data (each Gmail = own database)
+    //   config/...             public config (trial days etc.)
+    // ------------------------------------------------------------------
+
+    "bindings": {
+      "$keyId": {
+        ".read": "auth != null",
+        ".write": "auth != null && (!data.exists() || data.child('ownerUid').val() === auth.uid)"
+      }
+    },
+
+    "licenses": {
+      "$fingerprint": {
+        // Kept readable for the legacy device-code / reseller flow.
+        ".read": true,
+        ".write": "auth != null && (!data.exists() || data.child('ownerUid').val() === auth.uid)"
+      }
+    },
+
+    "tenantOwners": {
+      "$tenantId": {
+        ".read": "auth != null",
+        ".write": "auth != null && (!data.exists() || data.val() === auth.uid)"
+      }
+    },
+
+    "tenants": {
+      "$tenantId": {
+        // Each user's shop data: only the owning Google account may
+        // read/write it. This is what makes "each Gmail its own database".
+        ".read": "auth != null && root.child('tenantOwners').child($tenantId).val() === auth.uid",
+        ".write": "auth != null && root.child('tenantOwners').child($tenantId).val() === auth.uid"
+      }
+    },
+
+    "config": {
+      ".read": true,
+      ".write": false
+    }
+  }
+}

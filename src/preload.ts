@@ -21,6 +21,9 @@ contextBridge.exposeInMainWorld('api', {
   activateProductKey: (key: string) => ipcRenderer.invoke('license:activate-key', key),
   getDeviceCode: () => ipcRenderer.invoke('license:get-device-code'),
   deactivateProductKey: () => ipcRenderer.invoke('license:deactivate-key'),
+  googleSignIn: () => ipcRenderer.invoke('license:google-signin') as Promise<{ email: string; boundState: unknown }>,
+  googleSignOut: () => ipcRenderer.invoke('license:google-signout'),
+  getGoogleUser: () => ipcRenderer.invoke('license:google-user') as Promise<string | null>,
 
   getAllProducts: () => ipcRenderer.invoke('get-all-products'),
   getProduct: (barcode: string) => ipcRenderer.invoke('get-product', barcode),

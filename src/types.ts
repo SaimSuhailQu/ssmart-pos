@@ -360,6 +360,15 @@ declare global {
       getDeviceCode?: () => Promise<string>;
       /** Remove the locally activated product key (support flow). */
       deactivateProductKey?: () => Promise<boolean>;
+      /**
+       * Google sign-in for device binding. Opens the consent page; resolves
+       * with the verified email. Binds any offline-activated key.
+       */
+      googleSignIn?: () => Promise<{ email: string; boundState: unknown }>;
+      /** Forget the Google session on this device. */
+      googleSignOut?: () => Promise<boolean>;
+      /** Cached Google email for this device, if ever signed in. */
+      getGoogleUser?: () => Promise<string | null>;
 
       // Print spooler (fail-safe ESC/POS queue)
       getPrintQueueStatus: () => Promise<{ queued: number; failed: number; sending: number }>;

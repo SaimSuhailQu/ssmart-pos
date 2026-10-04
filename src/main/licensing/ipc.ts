@@ -20,11 +20,19 @@
 import { ipcMain } from 'electron';
 import {
   activateProductKey,
+  claimPendingBinding,
   deactivateProductKey,
   evaluateLicense,
   getDeviceCode,
   TieredLicenseState,
 } from './licenseManager';
+import {
+  cachedGoogleEmail,
+  getUsableSession,
+  googleSignIn,
+  googleSignOut,
+  setActiveSession,
+} from './googleAuth';
 import { createLogger } from '../../core/logger';
 
 const log = createLogger('licensing:ipc');
@@ -64,7 +72,16 @@ export function registerLicensingIpc(
     if (typeof key !== 'string' || key.trim().length < 16) {
       throw new Error('Enter the full product key.');
     }
-    const res = activateProductKey(key);
+    // Claim the server device binding if the user signed in with Google
+    // (fresh interactive session, else silent refresh). Offline → the key
+    // still activates; binding is claimed on next sign-in.
+    let session = null;
+    try {
+      session = await getUsableSession();
+    } catch {
+      session = null;
+    }
+    const res = await activateProductKey(key, session);
     if (!res.ok) throw res.error;
     await notify();
     return res.value;
@@ -73,9 +90,38 @@ export function registerLicensingIpc(
   ipcMain.handle('license:get-device-code', () => getDeviceCode());
 
   ipcMain.handle('license:deactivate-key', async () => {
-    deactivateProductKey();
+    await deactivateProductKey();
     await notify();
     return true;
+  });
+
+  // --- Google sign-in + device binding ---------------------------------
+
+  ipcMain.handle('license:google-signin', async () => {
+    const res = await googleSignIn();
+    if (!res.ok) throw res.error;
+    setActiveSession(res.value);
+    // Bind any already-activated (offline) key to this Google account.
+    let boundState: TieredLicenseState | null = null;
+    try {
+      const claim = await claimPendingBinding(res.value);
+      if (claim.ok) boundState = claim.value;
+    } catch (e) {
+      log.warn('pending binding claim failed', { error: String(e) });
+    }
+    await notify();
+    return { email: res.value.email, boundState };
+  });
+
+  ipcMain.handle('license:google-signout', async () => {
+    setActiveSession(null);
+    googleSignOut();
+    await notify();
+    return true;
+  });
+
+  ipcMain.handle('license:google-user', () => {
+    return cachedGoogleEmail();
   });
 }
 

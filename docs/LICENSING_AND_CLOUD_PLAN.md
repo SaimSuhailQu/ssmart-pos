@@ -252,3 +252,83 @@ tenant_map/<buyer-device-code> : { "tenant": "store_ali", "role": "tenant" }
    extend) reading the same `licenses` node.
 3. **Multi-tenant scoping** per §3 Option B when you cross ~5 stores.
 4. **Stripe/easypaisa payment links** in the dashboard for renewals.
+
+---
+
+## 8. Google sign-in + server device binding (IMPLEMENTED)
+
+The product key proves the *key* is genuine (Ed25519, offline). The new
+binding layer proves the key belongs to *this device*, with the buyer’s
+Gmail as the identity — so each Gmail gets its own isolated database and
+a key cannot be shared between machines.
+
+### One-time setup (~20 min)
+
+1. **Google Cloud Console** → your Firebase project → *APIs & Services →
+   Credentials* → *Create Credentials → OAuth client ID* → application
+   type **Desktop app**. Copy the client ID.
+2. Bake it into the build: set `VITE_GOOGLE_OAUTH_CLIENT_ID` in your
+   `.env` before `npm run build` (or `SSPOS_GOOGLE_OAUTH_CLIENT_ID` at
+   runtime). Without it, the Google button shows a "not configured" error
+   and the old key-only flow keeps working.
+3. **Firebase Console → Realtime Database → Rules**: paste the contents of
+   `database.rules.json` (repo root) and Publish. This is what enforces
+   "each Gmail its own database" (`tenants/<tenantId>` readable/writable
+   only by the owning Google account) and protects `bindings/`.
+4. In the same Firebase project, enable **Authentication → Sign-in method
+   → Google** (required for `signInWithCredential`).
+
+### How it works
+
+```
+Buyer flow (in the activation modal):
+  1. "Sign in with Google" → consent page → verified Gmail on the device
+  2. Paste product key → Activate
+     → Ed25519 verifies offline (unchanged)
+     → Firebase Auth session from the Google id_token
+     → claimBinding(): writes bindings/<keyId> = {
+           fingerprint, ownerUid, ownerEmail, deviceName,
+           tier, tenantId, boundAt, lastSeenAt, bindCount }
+     → tenantId = "u_" + sha256(uid) → buyer's own database path
+
+Launch (every start, online only):
+  - Silent Google re-auth via the encrypted refresh token
+  - verifyBinding(): same fingerprint → heartbeat, nothing changes
+  - DEFINITIVE server answers only can downgrade the device:
+      * key now bound to a different fingerprint → local key deleted,
+        app falls back to trial ("license moved")
+      * binding released → local key deleted
+  - Offline / timeout / no record → local license stands. The shop
+    keeps selling through internet outages (non-negotiable).
+```
+
+### Anti-sharing mechanics
+
+- **First activation binds.** Same key on a second PC → hard deny:
+  *"This product key is already active on 'SHOP-PC'. Release it there
+  (or ask your reseller) before activating here."*
+- **Owner release:** deactivating in the app (signed in as the owner)
+  marks `releasedAt`; the key can bind a new device after a **24h
+  cooldown** — long enough to kill casual key-passing, short enough for
+  genuine PC replacements.
+- **Reseller override:** delete `bindings/<keyId>` in the console to
+  free a key instantly (e.g. customer’s PC died).
+- **Why not the MAC address:** MACs are spoofable in seconds and change
+  with USB dongles/VPNs. The binding uses the hardened device
+  fingerprint (Windows MachineGuid / macOS IOPlatformUUID / Linux
+  machine-id → SHA-256) — stable across network changes, not
+  user-tweakable without an OS reinstall.
+
+### Files
+
+- `src/main/licensing/googleAuth.ts` — Electron loopback OAuth, encrypted
+  refresh-token storage, silent re-auth
+- `src/main/licensing/binding.ts` — Firebase Auth, claim/verify/release,
+  keyId + tenantId derivation
+- `src/main/licensing/licenseManager.ts` — async activation with binding,
+  launch-time verification, deactivation releases the binding
+- `src/main/licensing/ipc.ts`, `src/preload.ts`, `src/types.ts` — new
+  `license:google-*` IPC surface
+- `src/components/LicenseActivationModal.tsx` — Step 1 (Google) + Step 2
+  (product key) UI
+- `database.rules.json` — RTDB rules for bindings/tenants
