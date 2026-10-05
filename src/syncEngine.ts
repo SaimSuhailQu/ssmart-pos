@@ -450,8 +450,12 @@ export async function syncCustomerKhataToCloud(silent = false) {
       localHashes.set(cloudKey, hashValue(payloads.get(cloudKey)));
     }
 
-    // Compare against cloud state (fetch once per cycle is acceptable here because
-    // tombstones above already require a read; hash comparison keeps writes minimal)
+    const nodeHash = combineHashes(localHashes);
+    if (lastPushedNodeHash.get('khata') === nodeHash && lastPushedItemHashes.has('khata')) {
+      return { success: true, status: "ONLINE" };
+    }
+
+    // Compare against cloud state (fetch once per cycle when local hashes changed)
     const khataSnap = await get(ref(dbInstance, cp('customer_khata')));
     const cloudHashes = new Map<string, number>();
     if (khataSnap.exists() && khataSnap.val() && typeof khataSnap.val() === 'object') {
@@ -483,6 +487,8 @@ export async function syncCustomerKhataToCloud(silent = false) {
       console.log(`[khata] Delta sync pushed ${keys.length} change(s).`);
     }
 
+    lastPushedItemHashes.set('khata', localHashes);
+    lastPushedNodeHash.set('khata', nodeHash);
     return { success: true, status: "ONLINE" };
   } catch (err) {
     console.error("Sync customer khata failed:", err);

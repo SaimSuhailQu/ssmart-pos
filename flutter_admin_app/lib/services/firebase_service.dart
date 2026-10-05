@@ -1470,7 +1470,8 @@ class FirebaseService {
     });
     if (!result.committed) {
       throw Exception(
-          'Purchase Order #$poId could not be updated (it changed during the write). Please retry.');
+        'Purchase Order #$poId could not be updated (it changed during the write). Please retry.',
+      );
     }
   }
 
@@ -1553,7 +1554,7 @@ class FirebaseService {
       double verifiedPaid = 0.0;
       for (final p in currentPayments) {
         if (p is Map) {
-          verifiedPaid += _poNum((p as Map)['amount']);
+          verifiedPaid += _poNum(p['amount']);
         }
       }
       if (verifiedPaid <= 0) {
@@ -1586,7 +1587,8 @@ class FirebaseService {
     }
     final prePayments = _poList(preData['payments']);
     final preIdx = prePayments.indexWhere(
-        (p) => p is Map && p['id']?.toString() == paymentId.toString());
+      (p) => p is Map && p['id']?.toString() == paymentId.toString(),
+    );
     if (preIdx == -1) {
       throw Exception('Payment record not found on PO #$poId');
     }
@@ -1598,14 +1600,16 @@ class FirebaseService {
       final parsedTime = DateTime.tryParse(timeStr) ?? DateTime.now();
       if (DateTime.now().difference(parsedTime).inMinutes > 30) {
         throw Exception(
-            'This payment was recorded more than 30 minutes ago and is now permanent.');
+          'This payment was recorded more than 30 minutes ago and is now permanent.',
+        );
       }
     }
 
     await _transactPurchaseOrder(poId, (poData) {
       final List<dynamic> currentPayments = _poList(poData['payments']);
       final payIndex = currentPayments.indexWhere(
-          (p) => p is Map && p['id']?.toString() == paymentId.toString());
+        (p) => p is Map && p['id']?.toString() == paymentId.toString(),
+      );
       if (payIndex == -1) return null; // vanished concurrently -> abort, retry
 
       final Map<String, dynamic> targetPay = currentPayments[payIndex] is Map
@@ -1625,7 +1629,7 @@ class FirebaseService {
           _poNum(poData['total_cost'] ?? poData['total_amount']);
       double verifiedPaid = 0.0;
       for (final p in currentPayments) {
-        if (p is Map) verifiedPaid += _poNum((p as Map)['amount']);
+        if (p is Map) verifiedPaid += _poNum(p['amount']);
       }
 
       final updated = Map<String, dynamic>.from(poData);
@@ -1654,7 +1658,8 @@ class FirebaseService {
     }
     final prePayments = _poList(preData['payments']);
     final preIdx = prePayments.indexWhere(
-        (p) => p is Map && p['id']?.toString() == paymentId.toString());
+      (p) => p is Map && p['id']?.toString() == paymentId.toString(),
+    );
     if (preIdx == -1) {
       throw Exception('Payment record not found on PO #$poId');
     }
@@ -1666,14 +1671,16 @@ class FirebaseService {
       final parsedTime = DateTime.tryParse(timeStr) ?? DateTime.now();
       if (DateTime.now().difference(parsedTime).inMinutes > 30) {
         throw Exception(
-            'This payment was recorded more than 30 minutes ago and is now permanent.');
+          'This payment was recorded more than 30 minutes ago and is now permanent.',
+        );
       }
     }
 
     await _transactPurchaseOrder(poId, (poData) {
       final List<dynamic> currentPayments = _poList(poData['payments']);
       final payIndex = currentPayments.indexWhere(
-          (p) => p is Map && p['id']?.toString() == paymentId.toString());
+        (p) => p is Map && p['id']?.toString() == paymentId.toString(),
+      );
       if (payIndex == -1) return null;
 
       final Map<String, dynamic> targetPay = currentPayments[payIndex] is Map
@@ -1694,7 +1701,7 @@ class FirebaseService {
           _poNum(poData['total_cost'] ?? poData['total_amount']);
       double verifiedPaid = 0.0;
       for (final p in currentPayments) {
-        if (p is Map) verifiedPaid += _poNum((p as Map)['amount']);
+        if (p is Map) verifiedPaid += _poNum(p['amount']);
       }
 
       final updated = Map<String, dynamic>.from(poData);
@@ -1720,7 +1727,8 @@ class FirebaseService {
     }
     final preEntries = _poList(preData['order_entries']);
     final preIdx = preEntries.indexWhere(
-        (e) => e is Map && e['id']?.toString() == entryId.toString());
+      (e) => e is Map && e['id']?.toString() == entryId.toString(),
+    );
     if (preIdx == -1) {
       throw Exception('Order entry record not found on PO #$poId');
     }
@@ -1732,14 +1740,16 @@ class FirebaseService {
       final parsedTime = DateTime.tryParse(timeStr) ?? DateTime.now();
       if (DateTime.now().difference(parsedTime).inMinutes > 30) {
         throw Exception(
-            'This order entry was recorded more than 30 minutes ago and is now permanent.');
+          'This order entry was recorded more than 30 minutes ago and is now permanent.',
+        );
       }
     }
 
     await _transactPurchaseOrder(poId, (poData) {
       final List<dynamic> currentEntries = _poList(poData['order_entries']);
       final entryIndex = currentEntries.indexWhere(
-          (e) => e is Map && e['id']?.toString() == entryId.toString());
+        (e) => e is Map && e['id']?.toString() == entryId.toString(),
+      );
       if (entryIndex == -1) return null;
 
       final Map<String, dynamic> targetEntry = currentEntries[entryIndex] is Map
@@ -1757,7 +1767,7 @@ class FirebaseService {
       // corrupted by a stale read; floor at zero.
       double newTotalCost = 0.0;
       for (final e in currentEntries) {
-        if (e is Map) newTotalCost += _poNum((e as Map)['amount']);
+        if (e is Map) newTotalCost += _poNum(e['amount']);
       }
 
       final double currentPaid = _poNum(poData['paid_amount']);
