@@ -546,7 +546,7 @@ export async function syncVendorsToCloud(silent = false) {
         contact: v.contact || '',
         category: v.category || ''
       }),
-      { deleteMissing: true }
+      { deleteMissing: false }
     );
 
     const pos = getAllPurchaseOrders() as PurchaseOrder[];
@@ -573,7 +573,7 @@ export async function syncVendorsToCloud(silent = false) {
         payments: po.payments || [],
         order_entries: po.order_entries || []
       }),
-      { deleteMissing: true }
+      { deleteMissing: false }
     );
 
     return { success: true, status: "ONLINE" };
