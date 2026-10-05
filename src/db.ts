@@ -2108,12 +2108,23 @@ export function upsertCloudPurchaseOrder(cloudPo: Record<string, unknown>) {
       }
     }
 
+    // Self-heal total_cost: the merged local order entries are the authoritative
+    // ledger. Every local mutation keeps total_cost in lockstep with entries
+    // via atomic SQL, so a total lower than the entries' sum can only mean the
+    // cloud node was clobbered by a stale write (e.g. a mobile read-modify-write
+    // that computed totals from zero). Never let the total regress below it.
+    const entriesSumRow = db.prepare(
+      'SELECT COALESCE(SUM(amount), 0) AS s FROM vendor_order_entries WHERE po_id = ?'
+    ).get(poId) as { s: number };
+    const entriesSum = Number(entriesSumRow?.s) || 0;
+    const healedTotal = Math.max(totalCost, entriesSum);
+
     // Always recalculate true total paid amount from all payments
     const sumResult = db.prepare('SELECT SUM(amount) as total FROM vendor_payments WHERE po_id = ?').get(poId) as { total: number | null };
     const actualPaid = sumResult && sumResult.total !== null ? sumResult.total : paidAmount;
     const finalPaid = Math.max(actualPaid, paidAmount);
-    const finalStatus = finalPaid >= totalCost && totalCost > 0 ? 'Paid' : (finalPaid > 0 ? 'Partially Paid' : 'Unpaid');
-    db.prepare('UPDATE purchase_orders SET paid_amount = ?, payment_status = ? WHERE id = ?').run(finalPaid, finalStatus, poId);
+    const finalStatus = finalPaid >= healedTotal && healedTotal > 0 ? 'Paid' : (finalPaid > 0 ? 'Partially Paid' : 'Unpaid');
+    db.prepare('UPDATE purchase_orders SET total_cost = ?, paid_amount = ?, payment_status = ? WHERE id = ?').run(healedTotal, finalPaid, finalStatus, poId);
   })();
 
   return true;
