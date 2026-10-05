@@ -383,11 +383,17 @@ export async function syncCustomersToCloud(silent = false) {
   }
 }
 
+const inFlightSyncs = new Set<string>();
+
 export async function syncCustomerKhataToCloud(silent = false) {
   if (!dbInstance) {
     if (!silent) console.log("Sync skipped: Firebase DB offline (No .env credentials).");
     return { success: false, status: "OFFLINE" };
   }
+  if (inFlightSyncs.has('khata')) {
+    return { success: true, status: "ONLINE" };
+  }
+  inFlightSyncs.add('khata');
   try {
     const entries = getAllCustomerKhataEntries() as (CustomerKhataEntry & { sync_id?: string })[];
 
@@ -481,6 +487,8 @@ export async function syncCustomerKhataToCloud(silent = false) {
   } catch (err) {
     console.error("Sync customer khata failed:", err);
     return { success: false, status: "OFFLINE" };
+  } finally {
+    inFlightSyncs.delete('khata');
   }
 }
 
