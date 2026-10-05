@@ -7,12 +7,43 @@
     // Or: firebase deploy --only database  (with firebase.json pointing here)
     //
     // Layout:
-    //   bindings/<keyId>      device binding for a product key (server lock)
-    //   licenses/<fingerprint> legacy per-device license record (reseller flow)
-    //   tenantOwners/<tenant>  uid that owns a tenant database path
-    //   tenants/<tenant>/...   per-user shop data (each Gmail = own database)
-    //   config/...             public config (trial days etc.)
+    //   sales/, products/, customers/, customer_khata/, ...   MASTER (root)
+    //       business data. The desktop POS master device syncs here
+    //       UNAUTHENTICATED (see src/syncEngine.ts — it never signs in), and
+    //       the mobile admin app reads/writes the same root paths. These must
+    //       stay public read/write or master sync breaks. Isolation for sold
+    //       copies is provided by the tenants/ subtree below, NOT by locking
+    //       the root.
+    //   tenants/<tenantId>/...   per-Google-account shop data (each Gmail =
+    //       its own isolated database for sold copies).
+    //   tenantOwners/<tenant>    uid that owns a tenant path.
+    //   tenant_map/<fingerprint> device → tenant routing (desktop + mobile
+    //       reseller flow).
+    //   licenses/<fingerprint>   legacy per-device license record (reseller
+    //       flow + the owner's self-provisioned master record).
+    //   bindings/<keyId>         device binding for a product key (server lock).
+    //   config/...               public config (trial days etc.).
     // ------------------------------------------------------------------
+
+    // ---- Master (root) business data — must remain open for the desktop POS
+    // ---- sync engine, which authenticates at the database level, not with
+    // ---- Firebase Auth. List every collection used by src/syncEngine.ts and
+    // ---- flutter_admin_app/lib/services/firebase_service.dart.
+    "sales":           { ".read": true, ".write": true },
+    "products":        { ".read": true, ".write": true },
+    "customers":       { ".read": true, ".write": true },
+    "customer_khata":  { ".read": true, ".write": true },
+    "deleted_khata_entries": { ".read": true, ".write": true },
+    "expenses":        { ".read": true, ".write": true },
+    "vendors":         { ".read": true, ".write": true },
+    "purchase_orders": { ".read": true, ".write": true },
+    "daily_closings":  { ".read": true, ".write": true },
+    "cashier_sessions": { ".read": true, ".write": true },
+    "users":           { ".read": true, ".write": true },
+
+    // Ephemeral command queue: mobile POS asks the desktop printer to print.
+    // Lives at the ROOT regardless of tenant (see startSyncWorker()).
+    "print_requests":  { ".read": true, ".write": true },
 
     "bindings": {
       "$keyId": {
@@ -23,9 +54,17 @@
 
     "licenses": {
       "$fingerprint": {
-        // Kept readable for the legacy device-code / reseller flow.
+        // Kept readable for the legacy device-code / reseller flow and so the
+        // owner app can self-provision its master record.
         ".read": true,
         ".write": "auth != null && (!data.exists() || data.child('ownerUid').val() === auth.uid)"
+      }
+    },
+
+    "tenant_map": {
+      "$fingerprint": {
+        ".read": true,
+        ".write": "auth != null"
       }
     },
 

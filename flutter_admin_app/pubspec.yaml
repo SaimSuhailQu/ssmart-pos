@@ -1,7 +1,7 @@
 name: ssmart_pos_admin
 description: iOS Admin Dashboard for SSmart POS - Real-time sales monitoring and analytics
 publish_to: 'none'
-version: 2.2.1+29
+version: 2.3.0+30
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -14,6 +14,9 @@ dependencies:
   firebase_core: ^4.10.0
   firebase_database: ^12.4.2
   firebase_auth: ^6.5.2
+
+  # Google Sign-In (owner master login) — v7 API: initialize() + authenticate()
+  google_sign_in: ^7.2.0
 
   # State Management
   provider: ^6.1.1

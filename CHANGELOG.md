@@ -4,6 +4,39 @@ All notable changes to SSmart POS are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [2.3.0] — 2026-10-05
+
+Owner/master mobile release: Google Sign-In for the admin app, guaranteed
+master licensing (never a trial), and sync rules hardening.
+
+### Mobile admin app (flutter_admin_app) — 2.3.0+30
+- **Google Sign-In** on the login screen: official Google "G" button, v7
+  `google_sign_in` flow (`initialize()` → `authenticate()` → Firebase
+  `id_token` credential). iOS OAuth client + reversed client ID are injected
+  at build time by CI from the existing `GOOGLE_SERVICE_INFO_PLIST` secret.
+- **Master app licensing**: the admin app is the OWNER app — any signed-in
+  account is treated as the seller's master device. It never shows the trial
+  banner, never enters grace/lockout (even offline or if the remote record is
+  revoked), and self-provisions its `licenses/<fingerprint>` record with
+  `role: "master"` so the desktop and the reseller license dashboard agree.
+- New friendly auth errors for `operation-not-allowed` (Google provider
+  disabled) and `account-exists-with-different-credential`.
+
+### Sync / rules (desktop + mobile)
+- `database.rules.json` rewritten so every root business path the master
+  devices actually use (sales, products, customers, customer_khata,
+  deleted_khata_entries, expenses, vendors, purchase_orders, daily_closings,
+  cashier_sessions, users, print_requests) is explicitly public — the previous
+  draft relied on RTDB's deny-by-default fallback for them, which would have
+  broken master sync the moment it was published. Per-Google-account tenant
+  isolation (`tenants/` + `tenantOwners/`) is preserved, and the previously
+  missing `tenant_map` rule is added (mobile reseller flow writes it).
+
+### Release engineering
+- iOS workflow now substitutes `CLIENT_ID` / `REVERSED_CLIENT_ID` from the
+  plist secret into `Info.plist` placeholders at build time.
+- LiveContainer/AltStore source bumped to 2.3.0.
+
 ## [2.1.0] — 2026-10-03
 
 Production-hardening milestone: layered architecture, integer money math,

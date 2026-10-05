@@ -187,7 +187,7 @@ jobs:
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo ""
 
-          if [ -n "$GOOGLE_SERVICE_INFO_PLIST" ]; then
+          if [ "$GOOGLE_SERVICE_INFO_PLIST" ]; then
             echo "✓ Using GoogleService-Info.plist from GitHub Secrets"
             echo ""
 
@@ -221,6 +221,37 @@ jobs:
 
               echo "  Running setup_from_plist.sh script..."
               echo ""
+
+              # --- Google Sign-In configuration for the admin app ---
+              # Extract the iOS OAuth client id + reversed client id from the
+              # same plist secret and substitute them into Info.plist. The
+              # committed plist carries GOOGLE_OAUTH_CLIENT_ID_PLACEHOLDER /
+              # GOOGLE_REVERSED_CLIENT_ID_PLACEHOLDER.
+              extract_plist_key() {
+                local plist_file="$1"
+                local key="$2"
+                local val=""
+                if [ -x /usr/libexec/PlistBuddy ]; then
+                  val=$(/usr/libexec/PlistBuddy -c "Print :$key" "$plist_file" 2>/dev/null || true)
+                fi
+                if [ -z "$val" ]; then
+                  val=$(grep -A 1 "<key>$key</key>" "$plist_file" 2>/dev/null | grep "<string>" | sed 's/.*<string>\(.*\)<\/string>.*/\1/' | head -1 || true)
+                fi
+                echo "$val"
+              }
+              IOS_CLIENT_ID=$(extract_plist_key temp-plist.xml CLIENT_ID)
+              IOS_REVERSED_CLIENT_ID=$(extract_plist_key temp-plist.xml REVERSED_CLIENT_ID)
+              PLIST=ios/Runner/Info.plist
+              if [ -n "$IOS_CLIENT_ID" ] && [ -n "$IOS_REVERSED_CLIENT_ID" ]; then
+                sed -i.bak \
+                  -e "s|GOOGLE_OAUTH_CLIENT_ID_PLACEHOLDER|$IOS_CLIENT_ID|g" \
+                  -e "s|GOOGLE_REVERSED_CLIENT_ID_PLACEHOLDER|$IOS_REVERSED_CLIENT_ID|g" \
+                  "$PLIST"
+                rm -f "$PLIST.bak"
+                echo "✓ Info.plist configured with Google OAuth client id"
+              else
+                echo "⚠ CLIENT_ID / REVERSED_CLIENT_ID missing from the plist secret — Google sign-in will be disabled"
+              fi
 
               # Make script executable and run it
               chmod +x scripts/setup_from_plist.sh

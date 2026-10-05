@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:ssmart_pos_admin/core/licensing/license_state.dart';
@@ -29,6 +30,14 @@ class LicenseService {
     defaultValue: 'MCowBQYDK2VwAyEAi5Xepc/uZULn5HPaBvAR3PRNDGDlSTfPO3oWBiBRpg0=',
   );
 
+  /// The Firebase project root. This app is the OWNER/MASTER app: whoever is
+  /// signed in here is the seller's own Google account, so it always gets
+  /// master treatment — same semantics as the desktop master device (root
+  /// cloud paths, no trial, never locked out).
+  static String? get _ownerEmail => FirebaseAuth.instance.currentUser?.email;
+
+  static bool get _isOwner => (_ownerEmail ?? '').trim().isNotEmpty;
+
   final FirebaseDatabase _db;
   final SecureLicenseStore _store;
   LicenseState? _current;
@@ -37,6 +46,46 @@ class LicenseService {
       : _store = store ?? SecureLicenseStore();
 
   LicenseState? get current => _current;
+
+  /// Self-provision the master license record for the owner's device so the
+  /// reseller dashboard lists it and the desktop rules stay in sync.
+  /// Fire-and-forget (never awaited): the write is queued locally by the RTDB
+  /// SDK and must never block or fail the master flow.
+  void _provisionMasterLicense(String fingerprint) {
+    _db.ref('licenses/$fingerprint').update(<String, dynamic>{
+      'active': true,
+      'role': 'master',
+      'customerEmail': _ownerEmail,
+      'activatedFrom': 'mobile_admin_master',
+      'activatedAt': DateTime.now().toIso8601String(),
+    }).then((_) {}, onError: (_) {
+      // Rules/offline may block the write; local master state still applies.
+    });
+  }
+
+  /// Build the guaranteed master state for the signed-in owner.
+  LicenseState _masterLicense(
+    String fingerprint,
+    String platform,
+    String now, {
+    String? licensedTo,
+    String? licenseKey,
+  }) {
+    final state = LicenseState(
+      status: LicenseStatus.licensed,
+      fingerprint: fingerprint,
+      platform: platform,
+      checkedAt: now,
+      licensedTo: licensedTo ?? _ownerEmail ?? 'Owner (Master)',
+      licenseKey: licenseKey,
+      role: 'master',
+      isMaster: true,
+      tier: LicenseTier.enterprise,
+    );
+    _current = state;
+    _store.writeState(state);
+    return state;
+  }
 
   /// Activate an Ed25519 product key on this device. Fully offline.
   /// Throws [LicenseVerificationError] with a user-facing message on failure.
@@ -122,6 +171,21 @@ class LicenseService {
         final deactivated = remote['deactivated'] == true;
 
         if (!revoked && !deactivated && active != false) {
+          // OWNER/MASTER app: the signed-in account is the seller. Expiry and
+          // revocation flags never lock the owner out — mirror of the desktop
+          // master semantics. Self-provision the record so desktop + dashboard
+          // agree, and always return master.
+          if (_isOwner) {
+            _provisionMasterLicense(fingerprint);
+            return _masterLicense(
+              fingerprint,
+              platform,
+              now,
+              licensedTo: remote['customerName'] ?? _ownerEmail,
+              licenseKey: remote['licenseKey'],
+            );
+          }
+
           if (remote['expiresAt'] != null) {
             final exp = DateTime.tryParse(remote['expiresAt'].toString());
             if (exp != null && exp.isBefore(DateTime.now())) {
@@ -162,7 +226,11 @@ class LicenseService {
           return state;
         }
 
-        // Revoked or deactivated — fall through to trial/expired evaluation
+        // Revoked or deactivated — the owner/master app is never locked out.
+        if (_isOwner) {
+          _provisionMasterLicense(fingerprint);
+          return _masterLicense(fingerprint, platform, now);
+        }
         return await _evaluateTrial(
           fingerprint,
           platform,
@@ -171,9 +239,20 @@ class LicenseService {
         );
       }
 
+      // No record — the owner/master app self-provisions a master license.
+      if (_isOwner) {
+        _provisionMasterLicense(fingerprint);
+        return _masterLicense(fingerprint, platform, now);
+      }
+
       // No record — trial evaluation
       return await _evaluateTrial(fingerprint, platform, now);
     } catch (e) {
+      // The owner/master app never blocks on connectivity either.
+      if (_isOwner) {
+        return _masterLicense(fingerprint, platform, now);
+      }
+
       // Network error — use cached state
       final cached = await _store.readState();
       if (cached != null && cached.fingerprint == fingerprint) {

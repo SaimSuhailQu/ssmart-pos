@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 /// Service class for Firebase Authentication
 /// Handles user authentication, session management, and auth state
@@ -33,6 +34,62 @@ class AuthService {
       }
 
       return userCredential.user!;
+    } on FirebaseAuthException catch (e) {
+      throw _handleAuthException(e);
+    } catch (e) {
+      throw AuthException('An unexpected error occurred: $e');
+    }
+  }
+
+  /// Sign in with Google (owner / master account).
+  ///
+  /// v7 flow: `initialize()` → `authenticate()` → Firebase `id_token` sign-in.
+  /// The iOS/macOS client ID comes from Info.plist (`GIDClientID`), which is
+  /// injected in CI from the same GoogleService-Info.plist secret, so no
+  /// client ID needs to be hardcoded here. Android resolves its client ID
+  /// from `google-services.json` automatically (SHA-1 bound).
+  Future<User> signInWithGoogle() async {
+    try {
+      final GoogleSignIn signIn = GoogleSignIn.instance;
+      await signIn.initialize();
+
+      final GoogleSignInAccount account = await signIn.authenticate();
+      final idToken = account.authentication.idToken;
+
+      if (idToken == null || idToken.isEmpty) {
+        throw AuthException(
+          'Google sign-in did not return an identity token. '
+          'Verify the Google provider and OAuth client configuration.',
+          code: 'google-no-id-token',
+        );
+      }
+
+      final credential = GoogleAuthProvider.credential(idToken: idToken);
+      final userCredential = await _auth.signInWithCredential(credential);
+
+      final user = userCredential.user;
+      if (user == null) {
+        throw AuthException('Sign in failed: No user returned');
+      }
+
+      // Detach the Google session from the plugin so sign-out is driven
+      // entirely by FirebaseAuth (avoids silent re-auth on next launch).
+      try {
+        await signIn.disconnect();
+      } catch (_) {
+        // Non-fatal.
+      }
+
+      return user;
+    } on GoogleSignInException catch (e) {
+      final code = e.code;
+      if (code == GoogleSignInExceptionCode.canceled) {
+        throw AuthException('Google sign-in was canceled.', code: 'google-canceled');
+      }
+      throw AuthException(
+        'Google sign-in failed: ${e.description ?? code.name}',
+        code: 'google-sign-in-error',
+      );
     } on FirebaseAuthException catch (e) {
       throw _handleAuthException(e);
     } catch (e) {
@@ -140,6 +197,19 @@ class AuthService {
         break;
       case 'invalid-credential':
         message = 'Invalid email or password. Please check your credentials.';
+        break;
+      case 'account-exists-with-different-credential':
+        message =
+            'An account already exists with this email using a different sign-in method. '
+            'Sign in with email and password first.';
+        break;
+      case 'operation-not-allowed':
+        message =
+            'Google sign-in is not enabled for this Firebase project. '
+            'Enable the Google provider in the Firebase console.';
+        break;
+      case 'unauthorized-domain':
+        message = 'This app domain is not authorized for Google sign-in.';
         break;
       default:
         message = e.message ?? 'Authentication failed. Please try again.';
