@@ -117,17 +117,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
         .where((e) => e.key.toLowerCase().contains('cash'))
         .fold<double>(0.0, (sum, e) => sum + e.value);
     final onlineRev = m.revenueByPaymentMethod.entries
-        .where((e) =>
-            e.key.toLowerCase().contains('online') ||
-            e.key.toLowerCase().contains('bank') ||
-            e.key.toLowerCase().contains('card') ||
-            e.key.toLowerCase().contains('jazz') ||
-            e.key.toLowerCase().contains('easy'))
+        .where(
+          (e) =>
+              e.key.toLowerCase().contains('online') ||
+              e.key.toLowerCase().contains('bank') ||
+              e.key.toLowerCase().contains('card') ||
+              e.key.toLowerCase().contains('jazz') ||
+              e.key.toLowerCase().contains('easy'),
+        )
         .fold<double>(0.0, (sum, e) => sum + e.value);
     final khataRev = m.revenueByPaymentMethod.entries
-        .where((e) =>
-            e.key.toLowerCase().contains('khata') ||
-            e.key.toLowerCase().contains('credit'))
+        .where(
+          (e) =>
+              e.key.toLowerCase().contains('khata') ||
+              e.key.toLowerCase().contains('credit'),
+        )
         .fold<double>(0.0, (sum, e) => sum + e.value);
 
     final text = '🏪 *SS MART*\n'
@@ -185,7 +189,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 gradient: const LinearGradient(
                   colors: [
                     GraphiteTheme.platinumLight,
-                    GraphiteTheme.platinumDeep
+                    GraphiteTheme.platinumDeep,
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -245,7 +249,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       color: GraphiteTheme.platinumLight
                                           .withValues(alpha: 0.8),
                                       blurRadius: 6,
-                                    )
+                                    ),
                                   ]
                                 : null,
                           ),
@@ -285,8 +289,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
             onTap: () => _go(const CatalogScreen()),
           ),
           PopupMenuButton<String>(
-            icon: const Icon(CupertinoIcons.person_circle,
-                color: GraphiteTheme.platinumLight),
+            icon: const Icon(
+              CupertinoIcons.person_circle,
+              color: GraphiteTheme.platinumLight,
+            ),
             offset: const Offset(0, 50),
             onSelected: (value) async {
               await Haptics.tap();
@@ -303,11 +309,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(authService.userDisplayName,
-                        style: AppTheme.titleMedium),
+                    Text(
+                      authService.userDisplayName,
+                      style: AppTheme.titleMedium,
+                    ),
                     if (authService.userEmail != null)
-                      Text(authService.userEmail!,
-                          style: AppTheme.bodySmall),
+                      Text(
+                        authService.userEmail!,
+                        style: AppTheme.bodySmall,
+                      ),
                   ],
                 ),
               ),
@@ -354,11 +364,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(CupertinoIcons.cart_fill,
-                  color: GraphiteTheme.graphiteDeep, size: 19),
+              const Icon(
+                CupertinoIcons.cart_fill,
+                color: GraphiteTheme.graphiteDeep,
+                size: 19,
+              ),
               const SizedBox(width: 8),
-              Text('Make Bill / POS',
-                  style: GraphiteTheme.primaryButtonText),
+              Text(
+                'Make Bill / POS',
+                style: GraphiteTheme.primaryButtonText,
+              ),
             ],
           ),
         ),
@@ -610,7 +625,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       GraphiteMetricCard(
                         label: 'Revenue',
                         value: AppDateUtils.formatCurrency(
-                            todaysMetrics.totalRevenue),
+                          todaysMetrics.totalRevenue,
+                        ),
                         delta:
                             '${deltaPct >= 0 ? '▲' : '▼'} ${deltaPct.abs().toStringAsFixed(1)}% vs yesterday',
                         deltaPositive: deltaPct >= 0,
@@ -627,7 +643,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       GraphiteMetricCard(
                         label: 'Avg order',
                         value: AppDateUtils.formatCurrency(
-                            todaysMetrics.averageTransactionValue),
+                          todaysMetrics.averageTransactionValue,
+                        ),
                         delta: 'per transaction',
                         icon: CupertinoIcons.chart_bar_fill,
                       ),
@@ -653,7 +670,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               delay: const Duration(milliseconds: 350),
               repeatKey: _refreshCycle,
               child: GraphiteSalesChart(
-                  dailyRevenue: weekMetrics.dailyRevenue),
+                dailyRevenue: weekMetrics.dailyRevenue,
+              ),
             ),
           ),
           const SizedBox(height: AppTheme.spacingL),
@@ -757,8 +775,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('NET DAILY SALES',
-                        style: GraphiteTheme.metricLabel),
+                    Text(
+                      'NET DAILY SALES',
+                      style: GraphiteTheme.metricLabel,
+                    ),
                     const SizedBox(height: 4),
                     FittedBox(
                       fit: BoxFit.scaleDown,
@@ -781,12 +801,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 },
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 9),
+                    horizontal: 14,
+                    vertical: 9,
+                  ),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       colors: [
                         GraphiteTheme.platinumLight,
-                        GraphiteTheme.graphiteDeep
+                        GraphiteTheme.graphiteDeep,
                       ],
                     ),
                     borderRadius: BorderRadius.circular(12),
@@ -794,8 +816,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(CupertinoIcons.doc_on_clipboard,
-                          size: 14, color: GraphiteTheme.graphiteDeep),
+                      Icon(
+                        CupertinoIcons.doc_on_clipboard,
+                        size: 14,
+                        color: GraphiteTheme.graphiteDeep,
+                      ),
                       SizedBox(width: 6),
                       Text(
                         'Copy Note',
@@ -903,8 +928,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       .withValues(alpha: 0.25),
                 ),
               ),
-              child: Icon(icon,
-                  color: GraphiteTheme.platinumLight, size: 19),
+              child: Icon(
+                icon,
+                color: GraphiteTheme.platinumLight,
+                size: 19,
+              ),
             ),
             const SizedBox(height: 8),
             FittedBox(
@@ -959,11 +987,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
             const SizedBox(height: AppTheme.spacingL),
-            Text('No Sales Data Yet',
-                style: GraphiteTheme.bodyStrong.copyWith(
-                  fontSize: 19,
-                  fontWeight: FontWeight.w700,
-                )),
+            Text(
+              'No Sales Data Yet',
+              style: GraphiteTheme.bodyStrong.copyWith(
+                fontSize: 19,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
             const SizedBox(height: AppTheme.spacingS),
             Text(
               'Sales from your POS system will appear here in real-time.',
@@ -980,12 +1010,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
               },
               child: Container(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 22, vertical: 12),
+                  horizontal: 22,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
                     colors: [
                       GraphiteTheme.platinumLight,
-                      GraphiteTheme.graphiteDeep
+                      GraphiteTheme.graphiteDeep,
                     ],
                   ),
                   borderRadius: BorderRadius.circular(14),
@@ -993,8 +1025,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(CupertinoIcons.refresh,
-                        color: GraphiteTheme.graphiteDeep, size: 16),
+                    Icon(
+                      CupertinoIcons.refresh,
+                      color: GraphiteTheme.graphiteDeep,
+                      size: 16,
+                    ),
                     SizedBox(width: 8),
                     Text(
                       'Refresh',
