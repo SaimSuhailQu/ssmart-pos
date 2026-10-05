@@ -1,12 +1,13 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:ssmart_pos_admin/core/theme/executive_theme.dart';
+import 'package:ssmart_pos_admin/core/theme/graphite_theme.dart';
 import 'package:ssmart_pos_admin/core/widgets/haptics.dart';
 
-/// Executive metric tile: dark glass, gold icon medallion, tabular numeral.
+/// Noir Graphite metric tile: dark glass, platinum icon medallion, bold
+/// tabular numeral. Deltas are monochrome — white for up, dim gray for down.
 ///
 /// Gestures: tap gives a light haptic tick and fires [onTap] (drill-down).
-class ExecutiveMetricCard extends StatelessWidget {
+class GraphiteMetricCard extends StatelessWidget {
   final String label;
   final String value;
   final String delta;
@@ -14,7 +15,7 @@ class ExecutiveMetricCard extends StatelessWidget {
   final IconData icon;
   final VoidCallback? onTap;
 
-  const ExecutiveMetricCard({
+  const GraphiteMetricCard({
     super.key,
     required this.label,
     required this.value,
@@ -34,8 +35,8 @@ class ExecutiveMetricCard extends StatelessWidget {
               onTap!();
             },
       child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: ExecutiveTheme.cardDecoration,
+        padding: const EdgeInsets.all(15),
+        decoration: GraphiteTheme.cardDecoration,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
@@ -43,55 +44,58 @@ class ExecutiveMetricCard extends StatelessWidget {
             Row(
               children: [
                 Container(
-                  width: 30,
-                  height: 30,
+                  width: 32,
+                  height: 32,
                   decoration: BoxDecoration(
-                    color: ExecutiveTheme.goldFaint,
-                    borderRadius: BorderRadius.circular(10),
+                    color: GraphiteTheme.platinumFaint,
+                    borderRadius: BorderRadius.circular(11),
                     border: Border.all(
-                      color: ExecutiveTheme.gold.withValues(alpha: 0.3),
+                      color:
+                          GraphiteTheme.platinum.withValues(alpha: 0.28),
                     ),
                   ),
-                  child: Icon(icon, size: 15, color: ExecutiveTheme.gold),
+                  child: Icon(
+                      icon, size: 15, color: GraphiteTheme.platinumLight),
                 ),
                 const Spacer(),
                 if (onTap != null)
                   const Icon(
                     CupertinoIcons.chevron_right,
                     size: 13,
-                    color: ExecutiveTheme.slateDim,
+                    color: GraphiteTheme.slateDim,
                   ),
               ],
             ),
-            const SizedBox(height: 10),
-            Text(label.toUpperCase(), style: ExecutiveTheme.metricLabel),
-            const SizedBox(height: 4),
+            const SizedBox(height: 12),
+            Text(label.toUpperCase(), style: GraphiteTheme.metricLabel),
+            const SizedBox(height: 5),
             FittedBox(
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
-              child: Text(value, style: ExecutiveTheme.metricValue, maxLines: 1),
+              child:
+                  Text(value, style: GraphiteTheme.metricValue, maxLines: 1),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 5),
             Row(
               children: [
-                Icon(
-                  deltaPositive
-                      ? CupertinoIcons.arrow_up_right
-                      : CupertinoIcons.arrow_down_right,
-                  size: 11,
-                  color: deltaPositive
-                      ? ExecutiveTheme.successMint
-                      : const Color(0xFFF87171),
+                Text(
+                  deltaPositive ? '▲' : '▼',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    color: deltaPositive
+                        ? GraphiteTheme.platinum
+                        : GraphiteTheme.slateDim,
+                  ),
                 ),
-                const SizedBox(width: 3),
+                const SizedBox(width: 4),
                 Flexible(
                   child: Text(
                     delta,
-                    style: ExecutiveTheme.deltaUp.copyWith(
-                      color: deltaPositive
-                          ? ExecutiveTheme.successMint
-                          : const Color(0xFFF87171),
-                    ),
+                    style: (deltaPositive
+                            ? GraphiteTheme.deltaUp
+                            : GraphiteTheme.deltaDown)
+                        .copyWith(fontSize: 11),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),

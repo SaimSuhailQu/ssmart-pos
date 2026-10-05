@@ -5,11 +5,13 @@
  * and extend it with the non-color scales Tailwind can't express well:
  * spacing (4/8pt grid), radii, elevation, motion, and touch targets.
  *
- * EXECUTIVE DARK theme (champagne gold on deep navy — matches the Flutter
- * admin app "Option A"): the `brand` scale and the `indigo` utilities are
- * remapped to gold in tailwind.config.js, so `brand-*` and the ~80 legacy
- * `indigo-*` call sites all render executive gold. New code should prefer
- * the semantic `gold-*` / `brand-*` tokens over raw `indigo-*`.
+ * NOIR GRAPHITE theme (platinum on true black — matches the Flutter admin
+ * app "Option K refined"): the `brand` scale and the `indigo` utilities are
+ * remapped to platinum in tailwind.config.js, so `brand-*` and the ~80 legacy
+ * `indigo-*` call sites all render graphite platinum. New code should prefer
+ * the semantic `platinum-*` / `brand-*` tokens over raw `indigo-*`.
+ * Bold is the brand: display numerals and headings render extrabold
+ * (see `.font-display` in index.css).
  *
  * Rules for components:
  *  - Spacing: use multiples of 4 (8 for section rhythm). Never 3px/5px/7px.

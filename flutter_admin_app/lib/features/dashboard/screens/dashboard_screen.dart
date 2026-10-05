@@ -4,15 +4,15 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:ssmart_pos_admin/core/constants/firebase_constants.dart';
 import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
-import 'package:ssmart_pos_admin/core/theme/executive_theme.dart';
+import 'package:ssmart_pos_admin/core/theme/graphite_theme.dart';
 import 'package:ssmart_pos_admin/core/utils/date_utils.dart';
 import 'package:ssmart_pos_admin/core/widgets/haptics.dart';
 import 'package:ssmart_pos_admin/core/widgets/liquid_scaffold.dart';
 import 'package:ssmart_pos_admin/core/widgets/staggered_entrance.dart';
 import 'package:ssmart_pos_admin/features/dashboard/screens/daily_closings_screen.dart';
-import 'package:ssmart_pos_admin/features/dashboard/widgets/executive_hero_card.dart';
-import 'package:ssmart_pos_admin/features/dashboard/widgets/executive_metric_card.dart';
-import 'package:ssmart_pos_admin/features/dashboard/widgets/executive_sales_chart.dart';
+import 'package:ssmart_pos_admin/features/dashboard/widgets/graphite_hero_card.dart';
+import 'package:ssmart_pos_admin/features/dashboard/widgets/graphite_metric_card.dart';
+import 'package:ssmart_pos_admin/features/dashboard/widgets/graphite_sales_chart.dart';
 import 'package:ssmart_pos_admin/features/dashboard/widgets/recent_transactions.dart';
 import 'package:ssmart_pos_admin/features/licensing/screens/license_manager_screen.dart';
 import 'package:ssmart_pos_admin/features/pos/screens/mobile_checkout_screen.dart';
@@ -31,7 +31,9 @@ import 'package:ssmart_pos_admin/widgets/license_banner.dart';
 import 'package:ssmart_pos_admin/widgets/loading_indicator.dart';
 import 'package:ssmart_pos_admin/widgets/manual_closing_dialog.dart';
 
-/// Executive Dark dashboard — "Option A" premium redesign.
+/// Noir Graphite dashboard — "Option K (refined)" premium redesign.
+///
+/// Pure monochrome: platinum on true black. Bold type does the talking.
 ///
 /// Every section arrives in a staggered cascade, numbers count up, and the
 /// whole screen speaks the haptic vocabulary: taps tick, primary actions
@@ -148,7 +150,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('✅ Daily closing note copied to clipboard!'),
-        backgroundColor: ExecutiveTheme.goldDeep,
+        backgroundColor: GraphiteTheme.graphiteCard,
         duration: Duration(seconds: 2),
       ),
     );
@@ -167,7 +169,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final firebaseService = context.read<FirebaseService>();
 
     return LiquidScaffold(
-      executiveAmbience: true,
+      graphiteAmbience: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -179,14 +181,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(10),
                 gradient: const LinearGradient(
-                  colors: [ExecutiveTheme.goldLight, ExecutiveTheme.goldDeep],
+                  colors: [
+                    GraphiteTheme.platinumLight,
+                    GraphiteTheme.platinumDeep
+                  ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: ExecutiveTheme.gold.withValues(alpha: 0.35),
-                    blurRadius: 10,
+                    color: GraphiteTheme.platinum
+                        .withValues(alpha: 0.25),
+                    blurRadius: 12,
                     offset: const Offset(0, 3),
                   ),
                 ],
@@ -197,7 +203,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w900,
-                  color: ExecutiveTheme.navyDeep,
+                  color: GraphiteTheme.graphiteDeep,
                 ),
               ),
             ),
@@ -211,7 +217,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 0.6,
-                    color: ExecutiveTheme.ink,
+                    color: GraphiteTheme.ink,
                   ),
                 ),
                 StreamBuilder<ConnectionStatus>(
@@ -229,12 +235,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: online
-                                ? ExecutiveTheme.successMint
-                                : ExecutiveTheme.slateDim,
+                                ? GraphiteTheme.platinumLight
+                                : GraphiteTheme.slateDim,
                             boxShadow: online
                                 ? [
                                     BoxShadow(
-                                      color: ExecutiveTheme.successMint
+                                      color: GraphiteTheme.platinumLight
                                           .withValues(alpha: 0.8),
                                       blurRadius: 6,
                                     )
@@ -248,8 +254,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           style: AppTheme.labelSmall.copyWith(
                             fontSize: 10,
                             color: online
-                                ? ExecutiveTheme.successMint
-                                : ExecutiveTheme.slate,
+                                ? GraphiteTheme.platinumLight
+                                : GraphiteTheme.slate,
                           ),
                         ),
                       ],
@@ -278,7 +284,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           PopupMenuButton<String>(
             icon: const Icon(CupertinoIcons.person_circle,
-                color: ExecutiveTheme.gold),
+                color: GraphiteTheme.platinumLight),
             offset: const Offset(0, 50),
             onSelected: (value) async {
               await Haptics.tap();
@@ -308,8 +314,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 value: 'licenses',
                 child: Row(
                   children: [
-                    Icon(CupertinoIcons.shield,
-                        size: 18, color: ExecutiveTheme.gold),
+                    const Icon(CupertinoIcons.shield,
+                        size: 18, color: GraphiteTheme.platinumLight),
                     SizedBox(width: 8),
                     Text('License Manager'),
                   ],
@@ -337,36 +343,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
         },
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
-          decoration: BoxDecoration(
+          decoration: GraphiteTheme.primaryButtonDecoration.copyWith(
             borderRadius: BorderRadius.circular(24),
-            gradient: const LinearGradient(
-              colors: [ExecutiveTheme.goldLight, ExecutiveTheme.goldDeep],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: ExecutiveTheme.gold.withValues(alpha: 0.4),
-                blurRadius: 18,
-                offset: const Offset(0, 6),
-              ),
-            ],
           ),
-          child: const Row(
+          child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(CupertinoIcons.cart_fill,
-                  color: ExecutiveTheme.navyDeep, size: 19),
-              SizedBox(width: 8),
-              Text(
-                'Make Bill / POS',
-                style: TextStyle(
-                  color: ExecutiveTheme.navyDeep,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 15,
-                  letterSpacing: 0.2,
-                ),
-              ),
+              const Icon(CupertinoIcons.cart_fill,
+                  color: GraphiteTheme.graphiteDeep, size: 19),
+              const SizedBox(width: 8),
+              Text('Make Bill / POS',
+                  style: GraphiteTheme.primaryButtonText),
             ],
           ),
         ),
@@ -377,7 +364,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Expanded(
             child: RefreshIndicator(
               onRefresh: _handleRefresh,
-              color: ExecutiveTheme.gold,
+              color: GraphiteTheme.platinum,
               child: StreamBuilder<List<Sale>>(
                 initialData: firebaseService.cachedSales,
                 stream: firebaseService.getSalesStream(),
@@ -433,7 +420,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required VoidCallback onTap,
   }) {
     return IconButton(
-      icon: Icon(icon, color: ExecutiveTheme.gold),
+      icon: const Icon(icon, color: GraphiteTheme.platinumLight),
       tooltip: tooltip,
       onPressed: () async {
         await Haptics.tap();
@@ -482,7 +469,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 children: [
                   Text(
                     '${_greeting()}, ${context.read<AuthService>().userDisplayName.split(' ').first}',
-                    style: ExecutiveTheme.bodyGold.copyWith(
+                    style: GraphiteTheme.bodyStrong.copyWith(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                     ),
@@ -490,7 +477,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   const SizedBox(height: 2),
                   Text(
                     'Here\'s your store today · $dateLabel',
-                    style: ExecutiveTheme.metricLabel,
+                    style: GraphiteTheme.metricLabel,
                   ),
                 ],
               ),
@@ -505,7 +492,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: StaggeredEntrance(
               delay: const Duration(milliseconds: 70),
               repeatKey: _refreshCycle,
-              child: ExecutiveHeroCard(
+              child: GraphiteHeroCard(
                 revenue: todaysMetrics.totalRevenue,
                 orderCount: todaysMetrics.transactionCount,
                 averageOrder: todaysMetrics.averageTransactionValue,
@@ -527,7 +514,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('QUICK ACTIONS', style: ExecutiveTheme.sectionLabel),
+                  GraphiteTheme.sectionHeader('Quick actions'),
                   const SizedBox(height: 10),
                   Row(
                     children: [
@@ -597,18 +584,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('PERFORMANCE',
-                          style: ExecutiveTheme.sectionLabel),
-                      Text(
-                        '${todaysMetrics.transactionCount} orders',
-                        style: ExecutiveTheme.deltaUp.copyWith(
-                          color: ExecutiveTheme.gold,
-                        ),
+                  GraphiteTheme.sectionHeader(
+                    'Performance',
+                    trailing: Text(
+                      '${todaysMetrics.transactionCount} orders',
+                      style: GraphiteTheme.deltaUp.copyWith(
+                        color: GraphiteTheme.platinum,
                       ),
-                    ],
+                    ),
                   ),
                   const SizedBox(height: 10),
                   GridView.count(
@@ -619,7 +602,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     crossAxisSpacing: 10,
                     childAspectRatio: 1.32,
                     children: [
-                      ExecutiveMetricCard(
+                      GraphiteMetricCard(
                         label: 'Revenue',
                         value: AppDateUtils.formatCurrency(
                             todaysMetrics.totalRevenue),
@@ -629,21 +612,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         icon: CupertinoIcons.money_dollar_circle_fill,
                         onTap: () => _go(const TransactionsScreen()),
                       ),
-                      ExecutiveMetricCard(
+                      GraphiteMetricCard(
                         label: 'Orders',
                         value: '${todaysMetrics.transactionCount}',
                         delta: 'completed today',
                         icon: CupertinoIcons.doc_text_fill,
                         onTap: () => _go(const TransactionsScreen()),
                       ),
-                      ExecutiveMetricCard(
+                      GraphiteMetricCard(
                         label: 'Avg order',
                         value: AppDateUtils.formatCurrency(
                             todaysMetrics.averageTransactionValue),
                         delta: 'per transaction',
                         icon: CupertinoIcons.chart_bar_fill,
                       ),
-                      ExecutiveMetricCard(
+                      GraphiteMetricCard(
                         label: 'Top method',
                         value: todaysMetrics.mostPopularPaymentMethod,
                         delta: 'payment method',
@@ -664,7 +647,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: StaggeredEntrance(
               delay: const Duration(milliseconds: 350),
               repeatKey: _refreshCycle,
-              child: ExecutiveSalesChart(
+              child: GraphiteSalesChart(
                   dailyRevenue: weekMetrics.dailyRevenue),
             ),
           ),
@@ -700,17 +683,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  /// Executive-styled daily closing card (gold accents, haptic buttons).
+  /// Graphite-styled daily closing card (platinum accents, haptic buttons).
   Widget _closingCard(DashboardMetrics m) {
     return Container(
-      decoration: ExecutiveTheme.cardDecoration.copyWith(
+      decoration: GraphiteTheme.cardDecoration.copyWith(
         border: Border.all(
-          color: ExecutiveTheme.gold.withValues(alpha: 0.35),
+          color: GraphiteTheme.platinum.withValues(alpha: 0.3),
         ),
         boxShadow: [
           BoxShadow(
-            color: ExecutiveTheme.gold.withValues(alpha: 0.1),
-            blurRadius: 20,
+            color: GraphiteTheme.platinum.withValues(alpha: 0.07),
+            blurRadius: 22,
             offset: const Offset(0, 6),
           ),
         ],
@@ -724,22 +707,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Container(
                 padding: const EdgeInsets.all(7),
                 decoration: BoxDecoration(
-                  color: ExecutiveTheme.goldFaint,
+                  color: GraphiteTheme.platinumFaint,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: ExecutiveTheme.gold.withValues(alpha: 0.3),
+                    color: GraphiteTheme.platinum
+                        .withValues(alpha: 0.3),
                   ),
                 ),
                 child: const Icon(
                   CupertinoIcons.doc_on_clipboard_fill,
-                  color: ExecutiveTheme.gold,
+                  color: GraphiteTheme.platinumLight,
                   size: 16,
                 ),
               ),
               const SizedBox(width: 10),
               Text(
                 'Daily Closing',
-                style: ExecutiveTheme.bodyGold.copyWith(
+                style: GraphiteTheme.bodyStrong.copyWith(
                   fontWeight: FontWeight.w700,
                   fontSize: 15,
                 ),
@@ -748,14 +732,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
               _closingBtn(
                 'View All',
                 CupertinoIcons.calendar,
-                ExecutiveTheme.gold,
+                GraphiteTheme.platinum,
                 () => _go(const DailyClosingsScreen()),
               ),
               const SizedBox(width: 6),
               _closingBtn(
                 'Add',
                 CupertinoIcons.plus,
-                ExecutiveTheme.successMint,
+                GraphiteTheme.platinumLight,
                 () => ManualClosingDialog.show(context),
               ),
             ],
@@ -769,16 +753,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('NET DAILY SALES',
-                        style: ExecutiveTheme.metricLabel),
+                        style: GraphiteTheme.metricLabel),
                     const SizedBox(height: 4),
                     FittedBox(
                       fit: BoxFit.scaleDown,
                       alignment: Alignment.centerLeft,
                       child: Text(
                         AppDateUtils.formatCurrency(m.totalRevenue),
-                        style: ExecutiveTheme.metricValue.copyWith(
-                          fontSize: 24,
-                          color: ExecutiveTheme.goldLight,
+                        style: GraphiteTheme.metricValue.copyWith(
+                          fontSize: 26,
+                          color: GraphiteTheme.platinumLight,
                         ),
                       ),
                     ),
@@ -796,8 +780,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       colors: [
-                        ExecutiveTheme.goldLight,
-                        ExecutiveTheme.goldDeep
+                        GraphiteTheme.platinumLight,
+                        GraphiteTheme.graphiteDeep
                       ],
                     ),
                     borderRadius: BorderRadius.circular(12),
@@ -806,12 +790,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(CupertinoIcons.doc_on_clipboard,
-                          size: 14, color: ExecutiveTheme.navyDeep),
+                          size: 14, color: GraphiteTheme.graphiteDeep),
                       SizedBox(width: 6),
                       Text(
                         'Copy Note',
                         style: TextStyle(
-                          color: ExecutiveTheme.navyDeep,
+                          color: GraphiteTheme.graphiteDeep,
                           fontWeight: FontWeight.w800,
                           fontSize: 13,
                         ),
@@ -832,15 +816,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 9, vertical: 4),
                   decoration: BoxDecoration(
-                    color: ExecutiveTheme.cardSurface,
+                    color: GraphiteTheme.cardSurface,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: ExecutiveTheme.cardBorder),
+                    border: Border.all(color: GraphiteTheme.cardBorder),
                   ),
                   child: Text(
                     '${e.key}: Rs. ${e.value.toInt()}',
                     style: const TextStyle(
                       fontSize: 10,
-                      color: ExecutiveTheme.slate,
+                      color: GraphiteTheme.slate,
                     ),
                   ),
                 );
@@ -897,7 +881,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       },
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 4),
-        decoration: ExecutiveTheme.cardDecoration.copyWith(
+        decoration: GraphiteTheme.cardDecoration.copyWith(
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
@@ -907,13 +891,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: ExecutiveTheme.goldFaint,
+                color: GraphiteTheme.platinumFaint,
                 borderRadius: BorderRadius.circular(13),
                 border: Border.all(
-                  color: ExecutiveTheme.gold.withValues(alpha: 0.25),
+                  color: GraphiteTheme.platinum
+                      .withValues(alpha: 0.25),
                 ),
               ),
-              child: Icon(icon, color: ExecutiveTheme.gold, size: 19),
+              child: Icon(icon,
+                  color: GraphiteTheme.platinumLight, size: 19),
             ),
             const SizedBox(height: 8),
             FittedBox(
@@ -923,7 +909,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 style: const TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: ExecutiveTheme.ink,
+                  color: GraphiteTheme.ink,
                 ),
                 maxLines: 1,
               ),
@@ -933,7 +919,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               subtitle,
               style: const TextStyle(
                 fontSize: 9,
-                color: ExecutiveTheme.slateDim,
+                color: GraphiteTheme.slateDim,
               ),
               maxLines: 1,
             ),
@@ -954,21 +940,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
               width: 96,
               height: 96,
               decoration: BoxDecoration(
-                color: ExecutiveTheme.goldFaint,
+                color: GraphiteTheme.platinumFaint,
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: ExecutiveTheme.gold.withValues(alpha: 0.3),
+                  color: GraphiteTheme.platinum
+                      .withValues(alpha: 0.3),
                 ),
               ),
               child: const Icon(
                 CupertinoIcons.chart_bar_square,
                 size: 44,
-                color: ExecutiveTheme.gold,
+                color: GraphiteTheme.platinumLight,
               ),
             ),
             const SizedBox(height: AppTheme.spacingL),
             Text('No Sales Data Yet',
-                style: ExecutiveTheme.bodyGold.copyWith(
+                style: GraphiteTheme.bodyStrong.copyWith(
                   fontSize: 19,
                   fontWeight: FontWeight.w700,
                 )),
@@ -976,7 +963,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Text(
               'Sales from your POS system will appear here in real-time.',
               style: AppTheme.bodyMedium.copyWith(
-                color: ExecutiveTheme.slate,
+                color: GraphiteTheme.slate,
               ),
               textAlign: TextAlign.center,
             ),
@@ -992,8 +979,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
                     colors: [
-                      ExecutiveTheme.goldLight,
-                      ExecutiveTheme.goldDeep
+                      GraphiteTheme.platinumLight,
+                      GraphiteTheme.graphiteDeep
                     ],
                   ),
                   borderRadius: BorderRadius.circular(14),
@@ -1002,12 +989,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(CupertinoIcons.refresh,
-                        color: ExecutiveTheme.navyDeep, size: 16),
+                        color: GraphiteTheme.graphiteDeep, size: 16),
                     SizedBox(width: 8),
                     Text(
                       'Refresh',
                       style: TextStyle(
-                        color: ExecutiveTheme.navyDeep,
+                        color: GraphiteTheme.graphiteDeep,
                         fontWeight: FontWeight.w800,
                       ),
                     ),

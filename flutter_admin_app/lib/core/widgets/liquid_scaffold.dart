@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:ssmart_pos_admin/core/theme/executive_theme.dart';
+import 'package:ssmart_pos_admin/core/theme/graphite_theme.dart';
 
 /// A wrapper that applies Apple Liquid Glassmesh radial glow underlays behind screens,
 /// giving BackdropFilter and GlassCard elements vivid refraction, specular rim sheen, and true glass depth.
 ///
-/// Set [executiveAmbience] for the Executive Dark look: deep navy base with
-/// champagne-gold auras instead of the default indigo/cyan/emerald mesh.
+/// Set [graphiteAmbience] for the Noir Graphite look: true-black base with
+/// platinum auras instead of the default indigo/cyan/emerald mesh.
 class LiquidScaffold extends StatelessWidget {
   final PreferredSizeWidget? appBar;
   final Widget body;
   final Widget? floatingActionButton;
   final Widget? bottomNavigationBar;
   final bool extendBodyBehindAppBar;
-  final bool executiveAmbience;
+  final bool graphiteAmbience;
 
   const LiquidScaffold({
     super.key,
@@ -21,13 +21,13 @@ class LiquidScaffold extends StatelessWidget {
     this.floatingActionButton,
     this.bottomNavigationBar,
     this.extendBodyBehindAppBar = false,
-    this.executiveAmbience = false,
+    this.graphiteAmbience = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final base = executiveAmbience
-        ? ExecutiveTheme.screenBase
+    final base = graphiteAmbience
+        ? GraphiteTheme.screenBase
         : const Color(0xFF07090E);
     return Scaffold(
       backgroundColor: base,
@@ -42,8 +42,8 @@ class LiquidScaffold extends StatelessWidget {
             child: IgnorePointer(
               child: DecoratedBox(
                 decoration: BoxDecoration(color: base),
-                child: executiveAmbience
-                    ? _executiveMesh()
+                child: graphiteAmbience
+                    ? _graphiteMesh()
                     : _defaultMesh(),
               ),
             ),
@@ -57,11 +57,11 @@ class LiquidScaffold extends StatelessWidget {
     );
   }
 
-  /// Champagne-gold auras on deep navy — the Executive Dark ambience.
-  Widget _executiveMesh() {
+  /// Platinum auras on true black — the Noir Graphite ambience.
+  Widget _graphiteMesh() {
     return Stack(
       children: [
-        // Top-center gold aura
+        // Top-center platinum aura
         Positioned(
           top: -120,
           left: -50,
@@ -71,13 +71,13 @@ class LiquidScaffold extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: RadialGradient(
-                colors: ExecutiveTheme.auraTop,
+                colors: GraphiteTheme.auraTop,
                 stops: const [0.0, 0.5, 1.0],
               ),
             ),
           ),
         ),
-        // Mid-left deep gold refraction orb
+        // Mid-left deep platinum refraction orb
         Positioned(
           top: 260,
           left: -100,
@@ -88,14 +88,14 @@ class LiquidScaffold extends StatelessWidget {
               shape: BoxShape.circle,
               gradient: RadialGradient(
                 colors: [
-                  ExecutiveTheme.goldDeep.withValues(alpha: 0.12),
+                  GraphiteTheme.platinumDeep.withValues(alpha: 0.10),
                   Colors.transparent,
                 ],
               ),
             ),
           ),
         ),
-        // Bottom-right soft gold glow
+        // Bottom-right soft platinum glow
         Positioned(
           bottom: -80,
           right: -80,
@@ -105,7 +105,7 @@ class LiquidScaffold extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: RadialGradient(
-                colors: ExecutiveTheme.auraBottom,
+                colors: GraphiteTheme.auraBottom,
               ),
             ),
           ),

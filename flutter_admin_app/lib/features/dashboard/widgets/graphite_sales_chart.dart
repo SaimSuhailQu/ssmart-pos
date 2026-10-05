@@ -1,24 +1,25 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:ssmart_pos_admin/core/theme/executive_theme.dart';
+import 'package:ssmart_pos_admin/core/theme/graphite_theme.dart';
 import 'package:ssmart_pos_admin/core/utils/date_utils.dart';
 import 'package:ssmart_pos_admin/core/widgets/haptics.dart';
 import 'package:ssmart_pos_admin/models/dashboard_metrics.dart';
 
-/// Executive weekly chart: champagne-gold bars on dark glass.
+/// Noir Graphite weekly chart: platinum-gradient bars on dark glass, today's
+/// bar in solid white with a glow. Monochrome tooltips.
 ///
 /// Gestures: tap / drag across bars — each touched bar gives a selection
-/// haptic and shows its day + revenue in a gold tooltip.
-class ExecutiveSalesChart extends StatefulWidget {
+/// haptic and shows its day + revenue in a platinum tooltip.
+class GraphiteSalesChart extends StatefulWidget {
   final List<DailyRevenue> dailyRevenue;
 
-  const ExecutiveSalesChart({super.key, required this.dailyRevenue});
+  const GraphiteSalesChart({super.key, required this.dailyRevenue});
 
   @override
-  State<ExecutiveSalesChart> createState() => _ExecutiveSalesChartState();
+  State<GraphiteSalesChart> createState() => _GraphiteSalesChartState();
 }
 
-class _ExecutiveSalesChartState extends State<ExecutiveSalesChart> {
+class _GraphiteSalesChartState extends State<GraphiteSalesChart> {
   int _touchedIndex = -1;
 
   @override
@@ -29,19 +30,20 @@ class _ExecutiveSalesChartState extends State<ExecutiveSalesChart> {
         0, (m, d) => d.revenue > m ? d.revenue : m);
 
     return Container(
-      decoration: ExecutiveTheme.cardDecoration,
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
+      decoration: GraphiteTheme.cardDecoration,
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Text('THIS WEEK',
-                  style: ExecutiveTheme.sectionLabel.copyWith(fontSize: 11)),
+              Text('LAST 7 DAYS',
+                  style: GraphiteTheme.sectionLabel
+                      .copyWith(fontSize: 10)),
               const Spacer(),
               Text(
-                'PKR ${_compact(widget.dailyRevenue.fold<double>(0, (s, d) => s + d.revenue))} total',
-                style: ExecutiveTheme.metricLabel,
+                'Rs ${_compact(widget.dailyRevenue.fold<double>(0, (s, d) => s + d.revenue))} total',
+                style: GraphiteTheme.metricLabel.copyWith(fontSize: 10),
               ),
             ],
           ),
@@ -54,7 +56,8 @@ class _ExecutiveSalesChartState extends State<ExecutiveSalesChart> {
                 barTouchData: BarTouchData(
                   enabled: true,
                   touchCallback: (event, response) {
-                    final idx = response?.spot?.touchedBarGroupIndex ?? -1;
+                    final idx =
+                        response?.spot?.touchedBarGroupIndex ?? -1;
                     if (idx != _touchedIndex && idx >= 0) {
                       Haptics.select();
                       setState(() => _touchedIndex = idx);
@@ -64,13 +67,13 @@ class _ExecutiveSalesChartState extends State<ExecutiveSalesChart> {
                   },
                   touchTooltipData: BarTouchTooltipData(
                     getTooltipColor: (_) =>
-                        ExecutiveTheme.gold.withValues(alpha: 0.95),
+                        GraphiteTheme.platinum.withValues(alpha: 0.96),
                     getTooltipItem: (group, _, rod, __) {
                       final day = widget.dailyRevenue[group.x.toInt()];
                       return BarTooltipItem(
                         '${day.dayLabel}\n${AppDateUtils.formatCurrency(day.revenue)}',
                         const TextStyle(
-                          color: ExecutiveTheme.navyDeep,
+                          color: GraphiteTheme.graphiteDeep,
                           fontWeight: FontWeight.w800,
                           fontSize: 12,
                         ),
@@ -100,12 +103,14 @@ class _ExecutiveSalesChartState extends State<ExecutiveSalesChart> {
                           padding: const EdgeInsets.only(top: 8),
                           child: Text(
                             widget.dailyRevenue[i].dayLabel[0],
-                            style: ExecutiveTheme.metricLabel.copyWith(
+                            style:
+                                GraphiteTheme.metricLabel.copyWith(
                               color: hot
-                                  ? ExecutiveTheme.gold
-                                  : ExecutiveTheme.slateDim,
-                              fontWeight:
-                                  hot ? FontWeight.w800 : FontWeight.w600,
+                                  ? GraphiteTheme.platinumLight
+                                  : GraphiteTheme.slateDim,
+                              fontWeight: hot
+                                  ? FontWeight.w800
+                                  : FontWeight.w600,
                             ),
                           ),
                         );
@@ -119,6 +124,7 @@ class _ExecutiveSalesChartState extends State<ExecutiveSalesChart> {
                   final i = e.key;
                   final isToday = i == widget.dailyRevenue.length - 1;
                   final hot = i == _touchedIndex;
+                  final highlighted = isToday || hot;
                   return BarChartGroupData(
                     x: i,
                     barRods: [
@@ -131,16 +137,17 @@ class _ExecutiveSalesChartState extends State<ExecutiveSalesChart> {
                         gradient: LinearGradient(
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
-                          colors: (isToday || hot)
+                          colors: highlighted
                               ? [
-                                  ExecutiveTheme.goldLight,
-                                  ExecutiveTheme.goldDeep
+                                  GraphiteTheme.platinumLight,
+                                  GraphiteTheme.platinumDeep
+                                      .withValues(alpha: 0.55),
                                 ]
                               : [
-                                  ExecutiveTheme.gold
-                                      .withValues(alpha: 0.38),
-                                  ExecutiveTheme.goldDeep
-                                      .withValues(alpha: 0.38),
+                                  GraphiteTheme.platinum
+                                      .withValues(alpha: 0.42),
+                                  GraphiteTheme.platinumDeep
+                                      .withValues(alpha: 0.22),
                                 ],
                         ),
                       ),
@@ -163,16 +170,16 @@ class _ExecutiveSalesChartState extends State<ExecutiveSalesChart> {
 
   Widget _empty() {
     return Container(
-      decoration: ExecutiveTheme.cardDecoration,
+      decoration: GraphiteTheme.cardDecoration,
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
           const Icon(Icons.show_chart,
-              size: 40, color: ExecutiveTheme.slateDim),
+              size: 40, color: GraphiteTheme.slateDim),
           const SizedBox(height: 10),
           Text('No sales data yet',
-              style: ExecutiveTheme.bodyGold
-                  .copyWith(color: ExecutiveTheme.slate)),
+              style: GraphiteTheme.body
+                  .copyWith(color: GraphiteTheme.slate)),
         ],
       ),
     );
