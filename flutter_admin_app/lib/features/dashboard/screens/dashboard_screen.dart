@@ -79,8 +79,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
             isDestructiveAction: true,
             onPressed: () async {
               await Haptics.medium();
-              if (context.mounted) Navigator.pop(context);
-              await context.read<AuthService>().signOut();
+              if (!context.mounted) return;
+              final auth = context.read<AuthService>();
+              Navigator.pop(context);
+              await auth.signOut();
             },
             child: const Text('Sign Out'),
           ),
@@ -314,8 +316,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 value: 'licenses',
                 child: Row(
                   children: [
-                    const Icon(CupertinoIcons.shield,
-                        size: 18, color: GraphiteTheme.platinumLight),
+                    Icon(
+                      CupertinoIcons.shield,
+                      size: 18,
+                      color: GraphiteTheme.platinumLight,
+                    ),
                     SizedBox(width: 8),
                     Text('License Manager'),
                   ],
@@ -420,7 +425,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required VoidCallback onTap,
   }) {
     return IconButton(
-      icon: const Icon(icon, color: GraphiteTheme.platinumLight),
+      icon: Icon(icon, color: GraphiteTheme.platinumLight),
       tooltip: tooltip,
       onPressed: () async {
         await Haptics.tap();

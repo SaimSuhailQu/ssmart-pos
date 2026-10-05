@@ -27,7 +27,9 @@ class _GraphiteSalesChartState extends State<GraphiteSalesChart> {
     if (widget.dailyRevenue.isEmpty) return _empty();
 
     final maxY = widget.dailyRevenue.fold<double>(
-        0, (m, d) => d.revenue > m ? d.revenue : m);
+      0,
+      (m, d) => d.revenue > m ? d.revenue : m,
+    );
 
     return Container(
       decoration: GraphiteTheme.cardDecoration,
@@ -37,9 +39,10 @@ class _GraphiteSalesChartState extends State<GraphiteSalesChart> {
         children: [
           Row(
             children: [
-              Text('LAST 7 DAYS',
-                  style: GraphiteTheme.sectionLabel
-                      .copyWith(fontSize: 10)),
+              Text(
+                'LAST 7 DAYS',
+                style: GraphiteTheme.sectionLabel.copyWith(fontSize: 10),
+              ),
               const Spacer(),
               Text(
                 'Rs ${_compact(widget.dailyRevenue.fold<double>(0, (s, d) => s + d.revenue))} total',
@@ -84,11 +87,14 @@ class _GraphiteSalesChartState extends State<GraphiteSalesChart> {
                 titlesData: FlTitlesData(
                   show: true,
                   topTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false)),
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
                   rightTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false)),
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
                   leftTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false)),
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
@@ -174,12 +180,16 @@ class _GraphiteSalesChartState extends State<GraphiteSalesChart> {
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
-          const Icon(Icons.show_chart,
-              size: 40, color: GraphiteTheme.slateDim),
+          const Icon(
+            Icons.show_chart,
+            size: 40,
+            color: GraphiteTheme.slateDim,
+          ),
           const SizedBox(height: 10),
-          Text('No sales data yet',
-              style: GraphiteTheme.body
-                  .copyWith(color: GraphiteTheme.slate)),
+          Text(
+            'No sales data yet',
+            style: GraphiteTheme.body.copyWith(color: GraphiteTheme.slate),
+          ),
         ],
       ),
     );

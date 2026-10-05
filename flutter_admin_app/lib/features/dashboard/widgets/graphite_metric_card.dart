@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:ssmart_pos_admin/core/theme/graphite_theme.dart';
 import 'package:ssmart_pos_admin/core/widgets/haptics.dart';
 
@@ -55,7 +54,10 @@ class GraphiteMetricCard extends StatelessWidget {
                     ),
                   ),
                   child: Icon(
-                      icon, size: 15, color: GraphiteTheme.platinumLight),
+                    icon,
+                    size: 15,
+                    color: GraphiteTheme.platinumLight,
+                  ),
                 ),
                 const Spacer(),
                 if (onTap != null)

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
 
 /// Noir Graphite theme — the "Option K (refined)" premium dashboard identity.
 /// Pure monochrome: platinum on true black. No color at all — restraint as
