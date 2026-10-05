@@ -218,7 +218,7 @@ export const CustomItemModal: React.FC<CustomItemModalProps> = ({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg transition shadow-md shadow-indigo-600/30 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              className="px-4 py-2 text-xs font-extrabold text-canvas bg-brand-200 hover:bg-brand-100 rounded-lg transition shadow-md shadow-brand-200/25 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
               <PlusCircle size={14} />
               {isSubmitting ? 'Adding...' : 'Add to Bill'}

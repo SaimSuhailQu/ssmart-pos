@@ -222,7 +222,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               <button
                 onClick={() => handlePay(false)}
                 disabled={isProcessing || !isEnough}
-                className="py-2.5 rounded-lg font-bold text-xs text-white bg-indigo-600 hover:bg-indigo-500 disabled:bg-canvas-card disabled:text-content-muted transition-all flex justify-center items-center gap-2 cursor-pointer disabled:cursor-not-allowed shadow-sm"
+                className="py-2.5 rounded-lg font-extrabold text-xs text-canvas bg-brand-200 hover:bg-brand-100 disabled:bg-canvas-card disabled:text-content-muted transition-all flex justify-center items-center gap-2 cursor-pointer disabled:cursor-not-allowed shadow-[0_4px_14px_rgba(237,237,234,0.2)]"
                 title="Save bill and send receipt to thermal printer"
               >
                 {isProcessing ? (

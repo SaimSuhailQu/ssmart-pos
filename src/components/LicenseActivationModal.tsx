@@ -119,7 +119,7 @@ export const LicenseActivationModal: React.FC<LicenseActivationModalProps> = ({
             onClick={() => setTab(t.id)}
             className={`py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition cursor-pointer ${
               tab === t.id
-                ? 'bg-brand-600 text-white shadow'
+                ? 'bg-brand-200 text-canvas shadow'
                 : 'text-content-muted hover:text-content-primary'
             }`}
           >

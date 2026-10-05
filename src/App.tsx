@@ -448,7 +448,7 @@ const AppContent: React.FC = () => {
           onClick={() => posActions.setView('POS')} 
           className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
             viewMode === 'POS' 
-              ? 'bg-indigo-600 text-white shadow-sm' 
+              ? 'bg-brand-200 text-canvas shadow-sm' 
               : 'text-content-secondary hover:text-white hover:bg-canvas-card/60'
           }`}
         >
@@ -459,7 +459,7 @@ const AppContent: React.FC = () => {
           onClick={() => posActions.setView('SALES_RECORD')} 
           className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
             viewMode === 'SALES_RECORD' 
-              ? 'bg-indigo-600 text-white shadow-sm' 
+              ? 'bg-brand-200 text-canvas shadow-sm' 
               : 'text-content-secondary hover:text-white hover:bg-canvas-card/60'
           }`}
         >
@@ -478,7 +478,7 @@ const AppContent: React.FC = () => {
               }} 
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 relative cursor-pointer ${
                 viewMode === 'INVENTORY' 
-                  ? 'bg-indigo-600 text-white shadow-sm' 
+                  ? 'bg-brand-200 text-canvas shadow-sm' 
                   : 'text-content-secondary hover:text-white hover:bg-canvas-card/60'
               }`}
             >
@@ -501,7 +501,7 @@ const AppContent: React.FC = () => {
               onClick={() => posActions.setView('CUSTOMERS')} 
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
                 viewMode === 'CUSTOMERS' 
-                  ? 'bg-indigo-600 text-white shadow-sm' 
+                  ? 'bg-brand-200 text-canvas shadow-sm' 
                   : 'text-content-secondary hover:text-white hover:bg-canvas-card/60'
               }`}
             >
@@ -511,7 +511,7 @@ const AppContent: React.FC = () => {
               onClick={() => posActions.setView('VENDORS')} 
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
                 viewMode === 'VENDORS' 
-                  ? 'bg-indigo-600 text-white shadow-sm' 
+                  ? 'bg-brand-200 text-canvas shadow-sm' 
                   : 'text-content-secondary hover:text-white hover:bg-canvas-card/60'
               }`}
             >
@@ -536,7 +536,7 @@ const AppContent: React.FC = () => {
             onClick={() => posActions.setView('ANALYTICS')} 
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
               viewMode === 'ANALYTICS' 
-                ? 'bg-indigo-600 text-white shadow-sm' 
+                ? 'bg-brand-200 text-canvas shadow-sm' 
                 : 'text-content-secondary hover:text-white hover:bg-canvas-card/60'
             }`}
           >
@@ -548,7 +548,7 @@ const AppContent: React.FC = () => {
           onClick={() => posActions.setView('EXPENSES')} 
           className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
             viewMode === 'EXPENSES' 
-              ? 'bg-indigo-600 text-white shadow-sm' 
+              ? 'bg-brand-200 text-canvas shadow-sm' 
               : 'text-content-secondary hover:text-white hover:bg-canvas-card/60'
           }`}
         >
@@ -771,7 +771,7 @@ const AppContent: React.FC = () => {
                 onClick={() => setIsCatalogOpen(!isCatalogOpen)}
                 className={`px-3.5 py-1.5 rounded-lg font-medium transition-all flex items-center gap-2 text-xs cursor-pointer ${
                   isCatalogOpen 
-                    ? 'bg-indigo-600 text-white shadow-sm'
+                    ? 'bg-brand-200 text-canvas shadow-sm'
                     : 'text-content-secondary hover:text-white bg-canvas-card/80 border border-canvas-hover hover:border-canvas-hover'
                 }`}
               >
@@ -900,7 +900,7 @@ const AppContent: React.FC = () => {
                       }}
                       className={`px-2.5 py-1 rounded text-[11px] font-mono font-medium whitespace-nowrap border transition-all cursor-pointer ${
                         isActive
-                          ? 'bg-indigo-600 text-white border-indigo-500 shadow-sm'
+                          ? 'bg-brand-200 text-canvas border-brand-300 shadow-sm'
                           : 'bg-canvas-card/80 border-canvas-hover text-content-secondary hover:text-white hover:border-canvas-hover'
                       }`}
                     >
@@ -942,7 +942,10 @@ const AppContent: React.FC = () => {
                   <span className="text-xs uppercase tracking-wider text-content-secondary font-bold block">{t('Amount Due')}</span>
                   <span className="text-[10px] text-content-muted font-mono">Tax Incl.</span>
                 </div>
-                <span className="text-2xl font-bold font-mono tabular-nums tracking-tight text-white">Rs. {totalAmount.toFixed(2)}</span>
+                <span className="tabular-nums tracking-tight text-white whitespace-nowrap">
+                  <span className="text-[11px] font-bold tracking-[0.25em] text-content-muted align-middle mr-2">RS</span>
+                  <span className="text-[32px] leading-none font-display">{totalAmount.toFixed(2)}</span>
+                </span>
               </div>
             </div>
             
@@ -956,7 +959,7 @@ const AppContent: React.FC = () => {
                 });
               }}
               disabled={cart.length === 0}
-              className="w-full py-3 rounded-lg font-semibold text-white bg-indigo-600 hover:bg-indigo-500 disabled:bg-canvas-card disabled:text-content-muted transition-all flex justify-center items-center gap-2 cursor-pointer disabled:cursor-not-allowed shadow-sm active:scale-[0.99]"
+              className="w-full py-3 rounded-lg font-extrabold text-canvas bg-brand-200 hover:bg-brand-100 disabled:bg-canvas-card disabled:text-content-muted transition-all flex justify-center items-center gap-2 cursor-pointer disabled:cursor-not-allowed shadow-[0_4px_16px_rgba(237,237,234,0.22)] active:scale-[0.99]"
             >
               <Printer size={18} />
               <span className="tracking-wide text-xs uppercase font-bold">{t('CHECKOUT (F1 / Space)')}</span>

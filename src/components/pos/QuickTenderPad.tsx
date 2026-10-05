@@ -97,8 +97,8 @@ export const TenderPadBody: React.FC<TenderPadBodyProps> = ({
       {/* Left: totals + split lines */}
       <div>
         <div className="rounded-xl bg-canvas border border-canvas-border p-4 mb-4">
-          <p className="text-[10px] uppercase tracking-widest text-content-faint font-bold mb-1">Total due</p>
-          <p className="text-4xl font-extrabold text-content-primary tabular-nums">{formatMoneyWithPrefix(total)}</p>
+          <p className="text-[10px] uppercase tracking-[0.25em] text-content-faint font-bold mb-1">Total due</p>
+          <p className="text-4xl font-display text-content-primary tabular-nums">{formatMoneyWithPrefix(total)}</p>
           <div className="flex justify-between mt-3 text-sm">
             <span className="text-content-muted">Tendered</span>
             <span className="text-status-emerald font-bold tabular-nums">{formatMoneyWithPrefix(tenderedMoney)}</span>
@@ -126,15 +126,17 @@ export const TenderPadBody: React.FC<TenderPadBodyProps> = ({
           ) : null}
         </div>
 
-        <div className="grid grid-cols-5 gap-2">
+        {/* Segmented tender-method control — graphite style: hairline
+            container, active segment in platinum with black text. */}
+        <div className="flex rounded-xl border border-canvas-border overflow-hidden divide-x divide-canvas-border bg-canvas-card">
           {methods.map((m) => (
             <button
               key={m.id}
               onClick={() => setMethod(m.id)}
-              className={`flex flex-col items-center gap-1 py-2.5 rounded-xl border text-[10px] font-bold uppercase tracking-wide transition cursor-pointer active:scale-95 ${
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-1 text-[10px] font-bold uppercase tracking-wide transition cursor-pointer active:scale-[0.98] ${
                 method === m.id
-                  ? 'bg-brand-600/20 border-brand-500/50 text-brand-300'
-                  : 'bg-canvas-card border-canvas-border text-content-muted hover:text-content-primary'
+                  ? 'bg-brand-200 text-canvas'
+                  : 'text-content-muted hover:text-content-primary hover:bg-canvas-hover/60'
               }`}
             >
               {m.icon}

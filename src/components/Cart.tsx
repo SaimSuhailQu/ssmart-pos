@@ -59,7 +59,7 @@ export const Cart: React.FC<CartProps> = ({ cart, onUpdateQty, onRemoveItem }) =
                       <span className="w-7 text-center font-mono font-bold text-content-primary text-xs tabular-nums">{item.qty}</span>
                       <button 
                         onClick={() => onUpdateQty(item.productId, 1)}
-                        className="w-6 h-6 flex items-center justify-center rounded bg-indigo-600/80 hover:bg-indigo-600 text-white transition-colors cursor-pointer shadow-xs"
+                        className="w-6 h-6 flex items-center justify-center rounded bg-brand-200/90 hover:bg-brand-200 text-canvas transition-colors cursor-pointer shadow-xs"
                         title="Increase quantity"
                       >
                         <Plus size={12} />
