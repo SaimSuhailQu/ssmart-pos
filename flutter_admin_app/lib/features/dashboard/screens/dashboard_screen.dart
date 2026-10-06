@@ -177,8 +177,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return LiquidScaffold(
       graphiteAmbience: true,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        // Opaque graphite bar: scrolled content is masked cleanly under the
+        // header instead of being chopped mid-glyph by the viewport edge.
+        backgroundColor: GraphiteTheme.screenBase,
         elevation: 0,
+        shape: const Border(
+          bottom: BorderSide(
+            color: GraphiteTheme.cardBorder,
+          ),
+        ),
         title: Row(
           children: [
             Container(
@@ -349,33 +356,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ],
       ),
-      floatingActionButton: GestureDetector(
-        onTap: () async {
-          await Haptics.medium();
-          if (context.mounted) _go(const MobileCheckoutScreen());
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
-          decoration: GraphiteTheme.primaryButtonDecoration.copyWith(
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                CupertinoIcons.cart_fill,
-                color: GraphiteTheme.graphiteDeep,
-                size: 19,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Make Bill / POS',
-                style: GraphiteTheme.primaryButtonText,
-              ),
-            ],
-          ),
-        ),
-      ),
+      // Primary action + quick actions live in a bottom-docked bar so they
+      // never float over (or get overlapped by) dashboard content.
+      bottomNavigationBar: _buildBottomActionBar(),
       body: Column(
         children: [
           const LicenseBanner(),
@@ -494,6 +477,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   Text(
                     'Here\'s your store today · $dateLabel',
                     style: GraphiteTheme.metricLabel,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
@@ -519,65 +504,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           const SizedBox(height: AppTheme.spacingL),
 
-          // Quick actions
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
-            child: StaggeredEntrance(
-              delay: const Duration(milliseconds: 140),
-              repeatKey: _refreshCycle,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  GraphiteTheme.sectionHeader('Quick actions'),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _quickAction(
-                          'New Bill',
-                          'POS',
-                          CupertinoIcons.cart_fill,
-                          () => _go(const MobileCheckoutScreen()),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _quickAction(
-                          'Khata',
-                          'Udhaar',
-                          CupertinoIcons.book_fill,
-                          () => _go(const CustomersKhataScreen()),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _quickAction(
-                          'Expenses',
-                          'Ledger',
-                          CupertinoIcons.money_dollar_circle_fill,
-                          () => _go(const ExpensesScreen()),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _quickAction(
-                          'Vendors',
-                          'Stock',
-                          CupertinoIcons.cube_box_fill,
-                          () => _go(const VendorsScreen()),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: AppTheme.spacingL),
-
           // Store ops strip (stock alerts + expenses)
           StaggeredEntrance(
-            delay: const Duration(milliseconds: 210),
+            delay: const Duration(milliseconds: 140),
             repeatKey: _refreshCycle,
             child: StoreOpsStrip(
               cachedExpenses:
@@ -592,7 +521,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
             child: StaggeredEntrance(
-              delay: const Duration(milliseconds: 280),
+              delay: const Duration(milliseconds: 210),
               repeatKey: _refreshCycle,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -613,15 +542,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     crossAxisCount: 2,
                     mainAxisSpacing: 10,
                     crossAxisSpacing: 10,
-                    childAspectRatio: 1.32,
+                    childAspectRatio: 1.22,
                     children: [
+                      // Note: the card paints its own ▲/▼ marker, so the
+                      // delta string here carries the text only.
                       GraphiteMetricCard(
                         label: 'Revenue',
                         value: AppDateUtils.formatCurrency(
                           todaysMetrics.totalRevenue,
                         ),
-                        delta:
-                            '${deltaPct >= 0 ? '▲' : '▼'} ${deltaPct.abs().toStringAsFixed(1)}% vs yesterday',
+                        delta: '${deltaPct.abs().toStringAsFixed(1)}% vs yesterday',
                         deltaPositive: deltaPct >= 0,
                         icon: CupertinoIcons.money_dollar_circle_fill,
                         onTap: () => _go(const TransactionsScreen()),
@@ -659,7 +589,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
             child: StaggeredEntrance(
-              delay: const Duration(milliseconds: 350),
+              delay: const Duration(milliseconds: 280),
               repeatKey: _refreshCycle,
               child: GraphiteSalesChart(
                 dailyRevenue: weekMetrics.dailyRevenue,
@@ -672,7 +602,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
             child: StaggeredEntrance(
-              delay: const Duration(milliseconds: 420),
+              delay: const Duration(milliseconds: 350),
               repeatKey: _refreshCycle,
               child: _closingCard(todaysMetrics),
             ),
@@ -681,7 +611,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
           // Recent transactions
           StaggeredEntrance(
-            delay: const Duration(milliseconds: 490),
+            delay: const Duration(milliseconds: 420),
             repeatKey: _refreshCycle,
             child: RecentTransactions(
               transactions: recentTransactions,
@@ -894,64 +824,112 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _quickAction(
-    String title,
-    String subtitle,
-    IconData icon,
-    VoidCallback onTap,
-  ) {
-    return GestureDetector(
-      onTap: () async {
-        await Haptics.tap();
-        onTap();
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 4),
-        decoration: GraphiteTheme.cardDecoration.copyWith(
-          borderRadius: BorderRadius.circular(16),
+  /// Bottom-docked action bar: the primary Make Bill / POS pill plus the
+  /// Khata / Expenses / Vendors shortcuts, always within thumb reach and
+  /// never overlapping dashboard content.
+  Widget _buildBottomActionBar() {
+    void goCheckout() => _go(const MobileCheckoutScreen());
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: GraphiteTheme.screenBase,
+        border: Border(
+          top: BorderSide(color: GraphiteTheme.cardBorder),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: GraphiteTheme.platinumFaint,
-                borderRadius: BorderRadius.circular(13),
-                border: Border.all(
-                  color: GraphiteTheme.platinum.withValues(alpha: 0.25),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppTheme.spacingM,
+            10,
+            AppTheme.spacingM,
+            10,
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: () async {
+                    await Haptics.medium();
+                    if (mounted) goCheckout();
+                  },
+                  child: Container(
+                    height: 50,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration:
+                        GraphiteTheme.primaryButtonDecoration.copyWith(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    alignment: Alignment.center,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            CupertinoIcons.cart_fill,
+                            color: GraphiteTheme.graphiteDeep,
+                            size: 19,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Make Bill / POS',
+                            style: GraphiteTheme.primaryButtonText
+                                .copyWith(fontSize: 14.5),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ),
-              child: Icon(
-                icon,
-                color: GraphiteTheme.platinumLight,
-                size: 19,
+              const SizedBox(width: 10),
+              _barAction(
+                'Khata / Udhaar',
+                CupertinoIcons.book_fill,
+                () => _go(const CustomersKhataScreen()),
               ),
-            ),
-            const SizedBox(height: 8),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: GraphiteTheme.ink,
-                ),
-                maxLines: 1,
+              const SizedBox(width: 8),
+              _barAction(
+                'Expenses Ledger',
+                CupertinoIcons.money_dollar_circle_fill,
+                () => _go(const ExpensesScreen()),
               ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              subtitle,
-              style: const TextStyle(
-                fontSize: 9,
-                color: GraphiteTheme.slateDim,
+              const SizedBox(width: 8),
+              _barAction(
+                'Vendors / Stock',
+                CupertinoIcons.cube_box_fill,
+                () => _go(const VendorsScreen()),
               ),
-              maxLines: 1,
-            ),
-          ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Compact square shortcut tile used in the bottom action bar.
+  Widget _barAction(String tooltip, IconData icon, VoidCallback onTap) {
+    return Tooltip(
+      message: tooltip,
+      child: GestureDetector(
+        onTap: () async {
+          await Haptics.tap();
+          if (mounted) onTap();
+        },
+        child: Container(
+          width: 50,
+          height: 50,
+          decoration: GraphiteTheme.cardDecoration.copyWith(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          alignment: Alignment.center,
+          child: Icon(
+            icon,
+            size: 21,
+            color: GraphiteTheme.platinumLight,
+          ),
         ),
       ),
     );

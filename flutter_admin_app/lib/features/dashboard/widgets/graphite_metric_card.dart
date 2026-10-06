@@ -34,7 +34,7 @@ class GraphiteMetricCard extends StatelessWidget {
               onTap!();
             },
       child: Container(
-        padding: const EdgeInsets.all(15),
+        padding: const EdgeInsets.all(16),
         decoration: GraphiteTheme.cardDecoration,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -68,16 +68,21 @@ class GraphiteMetricCard extends StatelessWidget {
                   ),
               ],
             ),
-            const SizedBox(height: 12),
-            Text(label.toUpperCase(), style: GraphiteTheme.metricLabel),
-            const SizedBox(height: 5),
+            const SizedBox(height: 10),
+            Text(
+              label.toUpperCase(),
+              style: GraphiteTheme.metricLabel,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 4),
             FittedBox(
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
               child:
                   Text(value, style: GraphiteTheme.metricValue, maxLines: 1),
             ),
-            const SizedBox(height: 5),
+            const SizedBox(height: 4),
             Row(
               children: [
                 Text(

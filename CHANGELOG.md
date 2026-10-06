@@ -4,6 +4,35 @@ All notable changes to SSmart POS are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [2.3.3] — 2026-10-06
+
+Dashboard layout polish for the mobile admin app: every action is now docked
+at the bottom of the screen, and the clipped/overflowing text seen on small
+devices is fixed.
+
+### Fixed (mobile admin app)
+- **Bottom-docked action bar:** the floating "Make Bill / POS" pill no longer
+  hovers mid-screen over the Performance cards. It now sits in a permanent
+  action bar at the bottom, next to one-tap Khata, Expenses, and Vendors
+  shortcuts — always within thumb reach and never covering content.
+- **Header clipping:** the dashboard app bar is now opaque graphite with a
+  hairline rule, so scrolled content is masked cleanly under the header
+  instead of being chopped mid-glyph ("Here's your store today · Tue, 6 Oct").
+- **Hero numeral:** "RS 0" revenue numeral gets an explicit line height and a
+  scale-down guard, so Playfair's tall ascenders are never sliced and very
+  large amounts can no longer overflow the card.
+- **Metric cards:** removed the duplicated delta marker ("▲ ▲ 0.0% vs
+  yesterday" → single arrow from the card), roomier padding, taller tiles, and
+  ellipsis on labels.
+- **Khata detail sheet:** the WhatsApp / PDF / Add buttons in the balance bar
+  shrink to fit and can no longer push the amber "+" button off the right
+  edge; ledger titles stay on one line (payment method moved to a compact
+  chip) and the screen title no longer ellipsizes.
+
+### Changed (desktop + mobile)
+- Version bump to 2.3.3 (desktop `package.json`) and 2.3.3+33 (mobile
+  `pubspec.yaml`); LiveContainer source updated to v2.3.3.
+
 ## [2.3.2] — 2026-10-06
 
 Maintenance and autoupdate release for desktop POS and mobile admin app.

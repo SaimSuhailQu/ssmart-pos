@@ -114,24 +114,30 @@ class _GraphiteHeroCardState extends State<GraphiteHeroCard> {
                 children: [
                   Text('TODAY\'S COLLECTION', style: GraphiteTheme.eyebrow),
                   const SizedBox(height: 10),
-                  // Animated counting numeral
+                  // Animated counting numeral. FittedBox guards the card
+                  // against horizontal overflow on very large amounts.
                   TweenAnimationBuilder<double>(
                     tween: Tween(begin: _from, end: _to),
                     duration: const Duration(milliseconds: 1100),
                     curve: Curves.easeOutCubic,
                     builder: (context, value, _) {
-                      return RichText(
-                        text: TextSpan(
-                          children: [
-                            TextSpan(
-                              text: 'RS  ',
-                              style: GraphiteTheme.heroCurrency,
-                            ),
-                            TextSpan(
-                              text: _formatCompact(value),
-                              style: GraphiteTheme.heroAmount,
-                            ),
-                          ],
+                      return FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: RichText(
+                          text: TextSpan(
+                            style: GraphiteTheme.heroAmount,
+                            children: [
+                              TextSpan(
+                                text: 'RS  ',
+                                style: GraphiteTheme.heroCurrency,
+                              ),
+                              TextSpan(
+                                text: _formatCompact(value),
+                                style: GraphiteTheme.heroAmount,
+                              ),
+                            ],
+                          ),
                         ),
                       );
                     },

@@ -149,47 +149,72 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                           ),
                         ),
                         child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  hasCurrentDebt ? 'TOTAL UDHAAR (DUE BALANCE)' : 'ACCOUNT BALANCE',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 1.1,
-                                    color: hasCurrentDebt ? Colors.amber.shade200 : Colors.green.shade200,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'PKR ${displayBalance.toStringAsFixed(0)}',
-                                  style: TextStyle(
-                                    fontSize: 26,
-                                    fontWeight: FontWeight.w900,
-                                    color: hasCurrentDebt ? Colors.amber : AppTheme.successGreen,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Row(
-                              children: [
-                                if (customer.phone.isNotEmpty)
-                                  IconButton.filled(
-                                    style: IconButton.styleFrom(backgroundColor: const Color(0xFF25D366)),
-                                    icon: const Icon(CupertinoIcons.chat_bubble_2_fill, color: Colors.white, size: 20),
-                                    tooltip: 'Send WhatsApp Reminder',
-                                    onPressed: () => WhatsAppHelper.sendCustomerKhataReminder(
-                                      customer: customer.copyWith(balance: displayBalance),
+                            // Expanded so the amount column never squeezes
+                            // the action buttons off the right edge.
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(
+                                      hasCurrentDebt
+                                          ? 'TOTAL UDHAAR (DUE BALANCE)'
+                                          : 'ACCOUNT BALANCE',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 1.1,
+                                        color: hasCurrentDebt
+                                            ? Colors.amber.shade200
+                                            : Colors.green.shade200,
+                                      ),
                                     ),
                                   ),
-                                const SizedBox(width: 4),
-                                IconButton.filled(
-                                  style: IconButton.styleFrom(backgroundColor: AppTheme.primaryCyan),
-                                  icon: const Icon(CupertinoIcons.arrow_up_doc_fill, color: Colors.black, size: 20),
-                                  tooltip: 'Export PDF & Share (WhatsApp, Email…)',
+                                  const SizedBox(height: 4),
+                                  FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(
+                                      'PKR ${displayBalance.toStringAsFixed(0)}',
+                                      style: TextStyle(
+                                        fontSize: 26,
+                                        fontWeight: FontWeight.w900,
+                                        color: hasCurrentDebt
+                                            ? Colors.amber
+                                            : AppTheme.successGreen,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (customer.phone.isNotEmpty)
+                                  _sheetAction(
+                                    backgroundColor: const Color(0xFF25D366),
+                                    icon: const Icon(CupertinoIcons.chat_bubble_2_fill,
+                                        color: Colors.white, size: 19),
+                                    tooltip: 'Send WhatsApp Reminder',
+                                    onPressed: () => WhatsAppHelper
+                                        .sendCustomerKhataReminder(
+                                      customer: customer
+                                          .copyWith(balance: displayBalance),
+                                    ),
+                                  ),
+                                const SizedBox(width: 6),
+                                _sheetAction(
+                                  backgroundColor: AppTheme.primaryCyan,
+                                  icon: const Icon(CupertinoIcons.arrow_up_doc_fill,
+                                      color: Colors.black, size: 19),
+                                  tooltip:
+                                      'Export PDF & Share (WhatsApp, Email…)',
                                   onPressed: () async {
                                     try {
                                       await StatementPdfHelper.shareCustomerKhata(
@@ -202,7 +227,8 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                                       if (context.mounted) {
                                         ScaffoldMessenger.of(context).showSnackBar(
                                           SnackBar(
-                                            content: Text('Could not generate PDF: $err'),
+                                            content:
+                                                Text('Could not generate PDF: $err'),
                                             backgroundColor: AppTheme.errorRed,
                                           ),
                                         );
@@ -210,10 +236,11 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                                     }
                                   },
                                 ),
-                                const SizedBox(width: 8),
-                                IconButton.filled(
-                                  style: IconButton.styleFrom(backgroundColor: Colors.amber.shade700),
-                                  icon: const Icon(CupertinoIcons.plus, color: Colors.black, size: 20),
+                                const SizedBox(width: 6),
+                                _sheetAction(
+                                  backgroundColor: Colors.amber.shade700,
+                                  icon: const Icon(CupertinoIcons.plus,
+                                      color: Colors.black, size: 19),
                                   tooltip: 'Add Khata Entry',
                                   onPressed: () {
                                     Navigator.pop(context);
@@ -416,13 +443,33 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                                                   runSpacing: 2,
                                                   children: [
                                                     Text(
-                                                      isPayment ? 'Wasool / Payment Recv ($paymentMethod)' : 'Udhaar Given (Loan)',
+                                                      isPayment ? 'Wasool / Payment Recv' : 'Udhaar Given (Loan)',
                                                       style: TextStyle(
                                                         color: isPayment ? AppTheme.successGreen : Colors.amber,
                                                         fontWeight: FontWeight.bold,
                                                         fontSize: 13,
                                                       ),
                                                     ),
+                                                    // Payment method shown as a
+                                                    // compact chip so the title
+                                                    // stays on a single line.
+                                                    if (isPayment)
+                                                      Container(
+                                                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                                        decoration: BoxDecoration(
+                                                          color: Colors.green.withValues(alpha: 0.12),
+                                                          borderRadius: BorderRadius.circular(4),
+                                                          border: Border.all(color: Colors.green.withValues(alpha: 0.3), width: 0.5),
+                                                        ),
+                                                        child: Text(
+                                                          paymentMethod,
+                                                          style: const TextStyle(
+                                                            color: AppTheme.textSecondary,
+                                                            fontSize: 9,
+                                                            fontWeight: FontWeight.bold,
+                                                          ),
+                                                        ),
+                                                      ),
                                                     if (isEditable)
                                                       Container(
                                                         padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
@@ -517,6 +564,29 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  /// Compact filled action button (WhatsApp / PDF / Add) that shrink-wraps to
+  /// its icon so three of them always fit inside the balance bar.
+  static Widget _sheetAction({
+    required Color backgroundColor,
+    required Widget icon,
+    required String tooltip,
+    required VoidCallback onPressed,
+  }) {
+    return IconButton.filled(
+      style: IconButton.styleFrom(
+        backgroundColor: backgroundColor,
+        minimumSize: const Size(38, 38),
+        maximumSize: const Size(38, 38),
+        padding: EdgeInsets.zero,
+        visualDensity: VisualDensity.compact,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      icon: icon,
+      tooltip: tooltip,
+      onPressed: onPressed,
     );
   }
 

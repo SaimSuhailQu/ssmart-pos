@@ -36,7 +36,9 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
     return Scaffold(
       backgroundColor: AppTheme.backgroundLight,
       appBar: AppBar(
-        title: const Text('Customer Khata & CRM'),
+        // Short title: with the back button + two actions, the longer
+        // "Customer Khata & CRM" ellipsized at larger text scales.
+        title: const Text('Customer Khata'),
         actions: [
           IconButton(
             icon: const Icon(CupertinoIcons.person_add_solid, color: AppTheme.primaryTeal),

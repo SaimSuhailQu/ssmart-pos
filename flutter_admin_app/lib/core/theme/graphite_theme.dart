@@ -38,11 +38,14 @@ class GraphiteTheme {
 
   // --- Text styles: bold is the brand ---
   /// Big bold serif revenue numeral — the signature graphite look.
+  /// Explicit line height so Playfair's tall ascenders are never clipped by
+  /// the line box on any device.
   static TextStyle get heroAmount => GoogleFonts.playfairDisplay(
         fontSize: 48,
         fontWeight: FontWeight.w800,
         color: platinumLight,
         letterSpacing: -1.0,
+        height: 1.15,
         fontFeatures: const [FontFeature.tabularFigures()],
       );
 
