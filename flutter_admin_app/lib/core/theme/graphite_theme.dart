@@ -23,6 +23,7 @@ class GraphiteTheme {
 
   static const Color cardSurface = Color(0x08FFFFFF); // ~3% white cards
   static const Color cardBorder = Color(0x14FFFFFF); // ~8% white borders
+  static const Color cardBorderHi = Color(0x28FFFFFF); // ~16% white borders (highlight)
   static const Color platinumBorder = Color(0x21EDEDEA); // ~13% platinum border
 
   /// Functional-only colors. The theme itself is colorless; these exist solely
@@ -112,6 +113,19 @@ class GraphiteTheme {
         color: ink,
       );
 
+  static TextStyle get screenTitle => GoogleFonts.inter(
+        fontSize: 20,
+        fontWeight: FontWeight.w700,
+        color: ink,
+        letterSpacing: -0.4,
+      );
+
+  static TextStyle get caption => GoogleFonts.inter(
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
+        color: slate,
+      );
+
   static TextStyle get captionPlatinum => GoogleFonts.inter(
         fontSize: 11,
         fontWeight: FontWeight.w700,
@@ -124,6 +138,12 @@ class GraphiteTheme {
         fontWeight: FontWeight.w700,
         color: platinum,
         letterSpacing: 1.8,
+      );
+
+  static TextStyle get monoText => GoogleFonts.jetBrainsMono(
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
+        color: slate,
       );
 
   // --- Screen ambience ---
