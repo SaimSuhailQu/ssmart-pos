@@ -4,6 +4,19 @@ All notable changes to SSmart POS are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [2.3.6] — 2026-10-06
+
+Surface depth, ambient mesh lighting, elevated empty states & design polish for the mobile admin app.
+
+### Changed (mobile admin app)
+- **Ambient Lighting Mesh:** Enabled `graphiteAmbience` across all `LiquidScaffold` instances by default for smooth platinum lighting.
+- **Card Surface Depth & Highlights:** Added layered drop shadows, specular top edge hairline bevels (`specularCardDecoration`, `cardSpecularHighlight`), and soft luminous platinum edge glow.
+- **Elevated Empty States:** Added reusable `GraphiteEmptyState` with ambient glowing orbs, curated typography, and one-tap action buttons across Catalog, Transactions, Expenses, and Customers Khata screens.
+- **System Harmonization:** Aligned `AppErrorWidget` and `AppLoadingIndicator` with the Noir Graphite & Platinum theme.
+
+### Release engineering
+- Bumped version to 2.3.6 (desktop `package.json`), 2.3.6+36 (mobile `pubspec.yaml`), and updated LiveContainer source feed to v2.3.6.
+
 ## [2.3.5] — 2026-10-06
 
 Comprehensive app-wide visual unification into the **Noir Graphite & Platinum** identity.
