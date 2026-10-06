@@ -48,6 +48,25 @@ class FirebaseDefaultConfig {
   static const String measurementId = 'G-9LVJLM3R6H';
 }
 
+/// Owner / master account allowlist for the mobile admin app.
+///
+/// Only these accounts may sign in: anyone else is rejected at login and any
+/// other signed-in session is signed out on app start. This is what makes the
+/// admin app the OWNER app instead of "any Gmail can be admin" (with the
+/// Google provider enabled, Firebase would otherwise accept every account).
+/// Add more emails here only if you genuinely want co-owners.
+class OwnerConfig {
+  static const String ownerEmail = 'saim.suhail.5@gmail.com';
+
+  static const List<String> masterEmails = <String>[ownerEmail];
+
+  static bool isMasterEmail(String? email) {
+    if (email == null) return false;
+    final e = email.trim().toLowerCase();
+    return masterEmails.contains(e);
+  }
+}
+
 /// App-wide constants
 class AppConstants {
   // Pagination

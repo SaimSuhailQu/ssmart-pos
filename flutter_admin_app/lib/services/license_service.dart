@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:ssmart_pos_admin/core/constants/firebase_constants.dart';
 import 'package:ssmart_pos_admin/core/licensing/license_state.dart';
 import 'package:ssmart_pos_admin/core/licensing/license_verifier.dart';
 import 'package:ssmart_pos_admin/core/licensing/secure_license_store.dart';
@@ -30,13 +31,14 @@ class LicenseService {
     defaultValue: 'MCowBQYDK2VwAyEAi5Xepc/uZULn5HPaBvAR3PRNDGDlSTfPO3oWBiBRpg0=',
   );
 
-  /// The Firebase project root. This app is the OWNER/MASTER app: whoever is
-  /// signed in here is the seller's own Google account, so it always gets
-  /// master treatment — same semantics as the desktop master device (root
-  /// cloud paths, no trial, never locked out).
+  /// The Firebase project root. This app is the OWNER/MASTER app: only the
+  /// allow-listed owner account (see [OwnerConfig], saim.suhail.5@gmail.com)
+  /// gets master treatment — the same semantics as the desktop master device
+  /// (root cloud paths, no trial, never locked out). Every other account is
+  /// rejected at sign-in, so master state is owner-only by construction.
   static String? get _ownerEmail => FirebaseAuth.instance.currentUser?.email;
 
-  static bool get _isOwner => (_ownerEmail ?? '').trim().isNotEmpty;
+  static bool get _isOwner => OwnerConfig.isMasterEmail(_ownerEmail);
 
   final FirebaseDatabase _db;
   final SecureLicenseStore _store;

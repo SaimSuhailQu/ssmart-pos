@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:ssmart_pos_admin/core/constants/firebase_constants.dart';
 
 /// Service class for Firebase Authentication
 /// Handles user authentication, session management, and auth state
@@ -17,6 +18,21 @@ class AuthService {
   /// Get auth state changes stream
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
+  /// Reject any account that is not the owner (see [OwnerConfig]). The Google
+  /// provider accepts every Gmail, so the app itself must enforce the
+  /// allowlist at both sign-in entry points.
+  void _ensureOwnerAccount(User user) {
+    if (!OwnerConfig.isMasterEmail(user.email)) {
+      // Do not leave a non-owner session signed in.
+      _auth.signOut();
+      throw AuthException(
+        'This app is restricted to the owner account '
+        '(${OwnerConfig.ownerEmail}). Signed out.',
+        code: 'not-owner',
+      );
+    }
+  }
+
   /// Sign in with email and password
   /// Returns the authenticated user or throws an exception
   Future<User> signInWithEmailAndPassword({
@@ -29,11 +45,13 @@ class AuthService {
         password: password,
       );
 
-      if (userCredential.user == null) {
+      final user = userCredential.user;
+      if (user == null) {
         throw AuthException('Sign in failed: No user returned');
       }
+      _ensureOwnerAccount(user);
 
-      return userCredential.user!;
+      return user;
     } on FirebaseAuthException catch (e) {
       throw _handleAuthException(e);
     } catch (e) {
@@ -71,6 +89,7 @@ class AuthService {
       if (user == null) {
         throw AuthException('Sign in failed: No user returned');
       }
+      _ensureOwnerAccount(user);
 
       // Detach the Google session from the plugin so sign-out is driven
       // entirely by FirebaseAuth (avoids silent re-auth on next launch).

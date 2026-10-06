@@ -236,6 +236,16 @@ class SSMartPOSAdminApp extends StatelessWidget {
                 // Navigate based on auth state
                 final user = snapshot.data ?? authService.currentUser;
                 if (user != null) {
+                  // The admin app is the OWNER app: a session that is not the
+                  // owner account (e.g. restored from a previous install, or a
+                  // stray non-owner login) must never reach the dashboard.
+                  if (!OwnerConfig.isMasterEmail(user.email)) {
+                    // Sign the non-owner out asynchronously; keep the splash
+                    // up until authStateChanges re-emits the signed-out state.
+                    authService.signOut();
+                    return const _SplashScreen();
+                  }
+
                   // Gate the dashboard behind the license check (mirrors desktop LicenseGate)
                   return MobileLicenseGate(
                     licenseService: LicenseService(FirebaseDatabase.instance),
