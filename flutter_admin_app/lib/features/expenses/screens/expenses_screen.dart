@@ -254,7 +254,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                               children: [
                                 Container(
                                   padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
+                                  decoration: const BoxDecoration(
                                     color: GraphiteTheme.platinumFaint,
                                     shape: BoxShape.circle,
                                   ),

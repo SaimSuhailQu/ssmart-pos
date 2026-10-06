@@ -198,8 +198,11 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                                 if (customer.phone.isNotEmpty)
                                   _sheetAction(
                                     backgroundColor: const Color(0xFF25D366),
-                                    icon: const Icon(CupertinoIcons.chat_bubble_2_fill,
-                                        color: Colors.white, size: 19),
+                                    icon: const Icon(
+                                      CupertinoIcons.chat_bubble_2_fill,
+                                      color: Colors.white,
+                                      size: 19,
+                                    ),
                                     tooltip: 'Send WhatsApp Reminder',
                                     onPressed: () => WhatsAppHelper
                                         .sendCustomerKhataReminder(
@@ -211,8 +214,11 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                                 _sheetAction(
                                   backgroundColor: GraphiteTheme.cardSurface,
                                   borderColor: GraphiteTheme.cardBorder,
-                                  icon: const Icon(CupertinoIcons.arrow_up_doc_fill,
-                                      color: GraphiteTheme.platinum, size: 19),
+                                  icon: const Icon(
+                                    CupertinoIcons.arrow_up_doc_fill,
+                                    color: GraphiteTheme.platinum,
+                                    size: 19,
+                                  ),
                                   tooltip:
                                       'Export PDF & Share (WhatsApp, Email…)',
                                   onPressed: () async {
@@ -239,8 +245,11 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                                 const SizedBox(width: 6),
                                 _sheetAction(
                                   backgroundColor: GraphiteTheme.platinum,
-                                  icon: const Icon(CupertinoIcons.plus,
-                                      color: GraphiteTheme.graphiteDeep, size: 19),
+                                  icon: const Icon(
+                                    CupertinoIcons.plus,
+                                    color: GraphiteTheme.graphiteDeep,
+                                    size: 19,
+                                  ),
                                   tooltip: 'Add Khata Entry',
                                   onPressed: () {
                                     Navigator.pop(context);
