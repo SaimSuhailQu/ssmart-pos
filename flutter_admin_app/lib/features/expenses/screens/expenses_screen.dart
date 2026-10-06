@@ -6,6 +6,7 @@ import 'package:ssmart_pos_admin/core/theme/graphite_theme.dart';
 import 'package:ssmart_pos_admin/core/utils/date_utils.dart';
 import 'package:ssmart_pos_admin/core/widgets/app_error_widget.dart';
 import 'package:ssmart_pos_admin/core/widgets/app_loading_indicator.dart';
+import 'package:ssmart_pos_admin/core/widgets/graphite_empty_state.dart';
 import 'package:ssmart_pos_admin/core/widgets/liquid_scaffold.dart';
 import 'package:ssmart_pos_admin/models/expense.dart';
 import 'package:ssmart_pos_admin/services/firebase_service.dart';
@@ -225,11 +226,28 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               // Expense List
               Expanded(
                 child: filteredExpenses.isEmpty
-                    ? Center(
-                        child: Text(
-                          allExpenses.isEmpty ? 'No expenses logged yet.' : 'No expenses match your search.',
-                          style: const TextStyle(color: GraphiteTheme.slate),
-                        ),
+                    ? GraphiteEmptyState(
+                        icon: allExpenses.isEmpty
+                            ? CupertinoIcons.creditcard
+                            : CupertinoIcons.search,
+                        title: allExpenses.isEmpty
+                            ? 'No Expenses Logged'
+                            : 'No Matching Expenses',
+                        message: allExpenses.isEmpty
+                            ? 'Tap the Log Expense button above to record your store overhead and operational payouts.'
+                            : 'Try adjusting your search keywords or switching category filters.',
+                        iconColor: GraphiteTheme.platinum,
+                        actionLabel: allExpenses.isEmpty ? null : 'Reset Filters',
+                        actionIcon: CupertinoIcons.arrow_counterclockwise,
+                        onAction: allExpenses.isEmpty
+                            ? null
+                            : () {
+                                setState(() {
+                                  _searchController.clear();
+                                  _searchQuery = '';
+                                  _selectedCategory = 'ALL';
+                                });
+                              },
                       )
                     : ListView.separated(
                         padding: const EdgeInsets.only(

@@ -7,6 +7,7 @@ import 'package:ssmart_pos_admin/core/utils/currency_formatter.dart';
 import 'package:ssmart_pos_admin/core/widgets/app_error_widget.dart';
 import 'package:ssmart_pos_admin/core/widgets/app_loading_indicator.dart';
 import 'package:ssmart_pos_admin/core/widgets/barcode_scanner_sheet.dart';
+import 'package:ssmart_pos_admin/core/widgets/graphite_empty_state.dart';
 import 'package:ssmart_pos_admin/models/product.dart';
 import 'package:ssmart_pos_admin/services/firebase_service.dart';
 
@@ -554,75 +555,30 @@ class _CatalogScreenState extends State<CatalogScreen> {
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppTheme.spacingXL),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              CupertinoIcons.circle_grid_hex_fill,
-              size: 80,
-              color: AppTheme.secondaryPurple,
-            ),
-            const SizedBox(height: AppTheme.spacingL),
-            Text(
-              'No Catalog Data',
-              style: AppTheme.headlineMedium,
-            ),
-            const SizedBox(height: AppTheme.spacingS),
-            Text(
-              'Your items database has not been synced from the Electron POS app yet.',
-              style: AppTheme.bodyMedium.copyWith(
-                color: AppTheme.textSecondary,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
+    return const GraphiteEmptyState(
+      icon: CupertinoIcons.cube_box,
+      title: 'No Catalog Data',
+      message: 'Your items database has not been synced from the Electron POS app yet.',
+      iconColor: GraphiteTheme.platinum,
     );
   }
 
   Widget _buildNoResultsState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppTheme.spacingXL),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              CupertinoIcons.search_circle,
-              size: 70,
-              color: AppTheme.textSecondary,
-            ),
-            const SizedBox(height: AppTheme.spacingM),
-            Text(
-              'No matching items',
-              style: AppTheme.titleLarge,
-            ),
-            const SizedBox(height: AppTheme.spacingS),
-            Text(
-              'Try adjusting your search filters or clear the query.',
-              style: AppTheme.bodyMedium.copyWith(
-                color: AppTheme.textSecondary,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppTheme.spacingL),
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  _searchController.clear();
-                  _searchQuery = '';
-                  _selectedCategory = 'All';
-                });
-              },
-              child: const Text('Reset Filters'),
-            ),
-          ],
-        ),
-      ),
+    return GraphiteEmptyState(
+      icon: CupertinoIcons.search,
+      title: 'No Matching Items',
+      message: 'No inventory items match your current query or category filters.',
+      iconColor: GraphiteTheme.slate,
+      actionLabel: 'Reset Filters',
+      actionIcon: CupertinoIcons.arrow_counterclockwise,
+      onAction: () {
+        setState(() {
+          _searchController.clear();
+          _searchQuery = '';
+          _selectedCategory = 'All';
+          _showStockAlertsOnly = false;
+        });
+      },
     );
   }
 }

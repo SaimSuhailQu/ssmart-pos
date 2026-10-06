@@ -6,6 +6,7 @@ import 'package:ssmart_pos_admin/core/theme/graphite_theme.dart';
 import 'package:ssmart_pos_admin/core/utils/whatsapp_helper.dart';
 import 'package:ssmart_pos_admin/core/widgets/app_error_widget.dart';
 import 'package:ssmart_pos_admin/core/widgets/app_loading_indicator.dart';
+import 'package:ssmart_pos_admin/core/widgets/graphite_empty_state.dart';
 import 'package:ssmart_pos_admin/core/widgets/liquid_scaffold.dart';
 import 'package:ssmart_pos_admin/features/customers/widgets/customer_khata_details_sheet.dart';
 import 'package:ssmart_pos_admin/models/customer.dart';
@@ -197,11 +198,27 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
               // Customers List
               Expanded(
                 child: filtered.isEmpty
-                    ? const Center(
-                        child: Text(
-                          'No customers found.',
-                          style: TextStyle(color: AppTheme.textSecondary),
-                        ),
+                    ? GraphiteEmptyState(
+                        icon: customers.isEmpty
+                            ? CupertinoIcons.person_2
+                            : CupertinoIcons.search,
+                        title: customers.isEmpty
+                            ? 'No Customers Found'
+                            : 'No Matching Customers',
+                        message: customers.isEmpty
+                            ? 'Customers registered at your POS cash counter or added to ledger will appear here.'
+                            : 'No customer matches your name or phone number search.',
+                        iconColor: GraphiteTheme.platinum,
+                        actionLabel: customers.isEmpty ? null : 'Clear Search',
+                        actionIcon: CupertinoIcons.arrow_counterclockwise,
+                        onAction: customers.isEmpty
+                            ? null
+                            : () {
+                                setState(() {
+                                  _searchController.clear();
+                                  _searchQuery = '';
+                                });
+                              },
                       )
                     : ListView.separated(
                         padding: const EdgeInsets.only(

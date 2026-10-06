@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
+import 'package:ssmart_pos_admin/core/theme/graphite_theme.dart';
 
-/// Reusable App Error Widget
+/// Reusable App Error Widget aligned with Noir Graphite theme
 class AppErrorWidget extends StatelessWidget {
   final String message;
   final String? error;
@@ -23,21 +24,31 @@ class AppErrorWidget extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: Colors.red.withValues(alpha: 0.1),
+                color: Colors.redAccent.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.redAccent.withValues(alpha: 0.25),
+                  width: 1.2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.redAccent.withValues(alpha: 0.1),
+                    blurRadius: 20,
+                  ),
+                ],
               ),
               child: const Icon(
                 Icons.error_outline_rounded,
-                size: 48,
+                size: 44,
                 color: Colors.redAccent,
               ),
             ),
-            const SizedBox(height: AppTheme.spacingM),
+            const SizedBox(height: AppTheme.spacingL),
             Text(
               message,
-              style: AppTheme.titleMedium.copyWith(color: Colors.white),
+              style: GraphiteTheme.screenTitle.copyWith(fontSize: 18),
               textAlign: TextAlign.center,
             ),
             if (error != null && error!.isNotEmpty) ...[
@@ -45,16 +56,15 @@ class AppErrorWidget extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.black45,
+                  color: GraphiteTheme.graphiteCard,
                   borderRadius: BorderRadius.circular(AppTheme.radiusM),
-                  border: Border.all(color: Colors.white12),
+                  border: Border.all(color: GraphiteTheme.cardBorder),
                 ),
                 child: SelectableText(
                   error!,
-                  style: AppTheme.bodySmall.copyWith(
-                    color: const Color(0xFFE2E8F0),
-                    fontFamily: 'monospace',
-                    fontSize: 12,
+                  style: GraphiteTheme.monoText.copyWith(
+                    color: GraphiteTheme.slate,
+                    fontSize: 11,
                   ),
                   textAlign: TextAlign.left,
                 ),
@@ -65,10 +75,11 @@ class AppErrorWidget extends StatelessWidget {
               ElevatedButton.icon(
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh, size: 18),
-                label: const Text('Retry'),
+                label: const Text('Retry Connection'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryCyan,
-                  foregroundColor: Colors.black,
+                  backgroundColor: GraphiteTheme.platinum,
+                  foregroundColor: GraphiteTheme.graphiteDeep,
+                  elevation: 0,
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(AppTheme.radiusM),

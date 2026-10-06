@@ -12,6 +12,7 @@ import 'package:ssmart_pos_admin/features/dashboard/screens/daily_closings_scree
 import 'package:ssmart_pos_admin/widgets/error_widget.dart';
 import 'package:ssmart_pos_admin/widgets/loading_indicator.dart';
 import 'package:ssmart_pos_admin/widgets/manual_closing_dialog.dart';
+import 'package:ssmart_pos_admin/core/widgets/graphite_empty_state.dart';
 
 /// Screen displaying all transactions with filtering and search
 class TransactionsScreen extends StatefulWidget {
@@ -281,75 +282,29 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppTheme.spacingXL),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              CupertinoIcons.doc_text,
-              size: 80,
-              color: AppTheme.textTertiary,
-            ),
-            const SizedBox(height: AppTheme.spacingL),
-            Text(
-              'No Transactions Yet',
-              style: AppTheme.headlineMedium,
-            ),
-            const SizedBox(height: AppTheme.spacingS),
-            Text(
-              'Transactions from your POS will appear here.',
-              style: AppTheme.bodyMedium.copyWith(
-                color: AppTheme.textSecondary,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
+    return const GraphiteEmptyState(
+      icon: CupertinoIcons.doc_text,
+      title: 'No Transactions Yet',
+      message: 'Transactions completed from your POS terminal will appear here in real time.',
+      iconColor: GraphiteTheme.platinum,
     );
   }
 
   Widget _buildNoResultsState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppTheme.spacingXL),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              CupertinoIcons.search,
-              size: 80,
-              color: AppTheme.textTertiary,
-            ),
-            const SizedBox(height: AppTheme.spacingL),
-            Text(
-              'No Results Found',
-              style: AppTheme.headlineMedium,
-            ),
-            const SizedBox(height: AppTheme.spacingS),
-            Text(
-              'Try adjusting your filters or search query.',
-              style: AppTheme.bodyMedium.copyWith(
-                color: AppTheme.textSecondary,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppTheme.spacingL),
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  _searchController.clear();
-                  _searchQuery = '';
-                  _selectedFilter = 'All';
-                });
-              },
-              child: const Text('Clear Filters'),
-            ),
-          ],
-        ),
-      ),
+    return GraphiteEmptyState(
+      icon: CupertinoIcons.search,
+      title: 'No Results Found',
+      message: 'No sales match your current search query or date range filter.',
+      iconColor: GraphiteTheme.slate,
+      actionLabel: 'Clear Filters',
+      actionIcon: CupertinoIcons.arrow_counterclockwise,
+      onAction: () {
+        setState(() {
+          _searchController.clear();
+          _searchQuery = '';
+          _selectedFilter = 'All';
+        });
+      },
     );
   }
 }

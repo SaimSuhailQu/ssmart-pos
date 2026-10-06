@@ -21,7 +21,7 @@ class LiquidScaffold extends StatelessWidget {
     this.floatingActionButton,
     this.bottomNavigationBar,
     this.extendBodyBehindAppBar = false,
-    this.graphiteAmbience = false,
+    this.graphiteAmbience = true,
   });
 
   @override

@@ -219,6 +219,18 @@ class GraphiteTheme {
         color: cardSurface,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: cardBorder, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.35),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+          BoxShadow(
+            color: platinum.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 1),
+          ),
+        ],
       );
 
   /// Signature hero card: dark gradient, platinum hairline, top highlight.
@@ -228,16 +240,58 @@ class GraphiteTheme {
         border: Border.all(color: platinumBorder, width: 1),
         boxShadow: [
           BoxShadow(
-            color: platinum.withValues(alpha: 0.06),
+            color: platinum.withValues(alpha: 0.08),
             blurRadius: 28,
-            offset: const Offset(0, 10),
-          ),
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.5),
-            blurRadius: 18,
             offset: const Offset(0, 6),
           ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.6),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
         ],
+      );
+
+  /// Elevated card with directional specular sheen highlight on the top edge.
+  static BoxDecoration specularCardDecoration({double borderRadius = 18}) => BoxDecoration(
+        color: cardSurface,
+        borderRadius: BorderRadius.circular(borderRadius),
+        border: Border.all(color: cardBorder, width: 1),
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFF1E2129),
+            Color(0xFF13151A),
+          ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.4),
+            blurRadius: 18,
+            offset: const Offset(0, 5),
+          ),
+          BoxShadow(
+            color: platinum.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      );
+
+  /// Top hairline highlight widget to overlay inside cards for specular bevel look.
+  static Widget get cardSpecularHighlight => Container(
+        height: 1,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Colors.transparent,
+              platinum.withValues(alpha: 0.35),
+              Colors.transparent,
+            ],
+            stops: const [0.0, 0.5, 1.0],
+          ),
+        ),
       );
 
   /// Primary action button: platinum gradient, black text.
