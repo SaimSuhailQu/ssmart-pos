@@ -13,7 +13,6 @@ import 'package:ssmart_pos_admin/features/dashboard/screens/daily_closings_scree
 import 'package:ssmart_pos_admin/features/dashboard/widgets/graphite_hero_card.dart';
 import 'package:ssmart_pos_admin/features/dashboard/widgets/graphite_metric_card.dart';
 import 'package:ssmart_pos_admin/features/dashboard/widgets/graphite_sales_chart.dart';
-import 'package:ssmart_pos_admin/features/dashboard/widgets/recent_transactions.dart';
 import 'package:ssmart_pos_admin/features/licensing/screens/license_manager_screen.dart';
 import 'package:ssmart_pos_admin/features/pos/screens/mobile_checkout_screen.dart';
 import 'package:ssmart_pos_admin/features/transactions/screens/transactions_screen.dart';
@@ -23,7 +22,6 @@ import 'package:ssmart_pos_admin/features/expenses/screens/expenses_screen.dart'
 import 'package:ssmart_pos_admin/features/vendors/screens/vendors_screen.dart';
 import 'package:ssmart_pos_admin/models/dashboard_metrics.dart';
 import 'package:ssmart_pos_admin/models/sale.dart';
-import 'package:ssmart_pos_admin/features/dashboard/widgets/store_ops_strip.dart';
 import 'package:ssmart_pos_admin/services/auth_service.dart';
 import 'package:ssmart_pos_admin/services/firebase_service.dart';
 import 'package:ssmart_pos_admin/widgets/error_widget.dart';
@@ -401,9 +399,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     todaysMetrics: todaysMetrics,
                     weekMetrics: weekMetrics,
                     yesterdayRevenue: yesterdayRev,
-                    recentTransactions: allSales
-                        .take(AppConstants.recentTransactionsLimit)
-                        .toList(),
                   );
                 },
               ),
@@ -440,7 +435,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required DashboardMetrics todaysMetrics,
     required DashboardMetrics weekMetrics,
     required double yesterdayRevenue,
-    required List<Sale> recentTransactions,
   }) {
     final deltaPct = yesterdayRevenue > 0
         ? (todaysMetrics.totalRevenue - yesterdayRevenue) /
@@ -504,24 +498,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           const SizedBox(height: AppTheme.spacingL),
 
-          // Store ops strip (stock alerts + expenses)
-          StaggeredEntrance(
-            delay: const Duration(milliseconds: 140),
-            repeatKey: _refreshCycle,
-            child: StoreOpsStrip(
-              cachedExpenses:
-                  context.read<FirebaseService>().cachedExpenses ?? const [],
-              productStream:
-                  context.read<FirebaseService>().getProductsStream(),
-            ),
-          ),
-          const SizedBox(height: AppTheme.spacingL),
-
           // Metrics grid
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
             child: StaggeredEntrance(
-              delay: const Duration(milliseconds: 210),
+              delay: const Duration(milliseconds: 140),
               repeatKey: _refreshCycle,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -545,7 +526,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     childAspectRatio: 1.22,
                     children: [
                       // Note: the card paints its own ▲/▼ marker, so the
-                      // delta string here carries the text only.
+                      // delta string here carries the text only. The ledger
+                      // itself opens from a long-press, not a tap.
                       GraphiteMetricCard(
                         label: 'Revenue',
                         value: AppDateUtils.formatCurrency(
@@ -554,14 +536,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         delta: '${deltaPct.abs().toStringAsFixed(1)}% vs yesterday',
                         deltaPositive: deltaPct >= 0,
                         icon: CupertinoIcons.money_dollar_circle_fill,
-                        onTap: () => _go(const TransactionsScreen()),
+                        onLongPress: () => _go(const TransactionsScreen()),
                       ),
                       GraphiteMetricCard(
                         label: 'Orders',
                         value: '${todaysMetrics.transactionCount}',
                         delta: 'completed today',
                         icon: CupertinoIcons.doc_text_fill,
-                        onTap: () => _go(const TransactionsScreen()),
+                        onLongPress: () => _go(const TransactionsScreen()),
                       ),
                       GraphiteMetricCard(
                         label: 'Avg order',
@@ -589,7 +571,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
             child: StaggeredEntrance(
-              delay: const Duration(milliseconds: 280),
+              delay: const Duration(milliseconds: 210),
               repeatKey: _refreshCycle,
               child: GraphiteSalesChart(
                 dailyRevenue: weekMetrics.dailyRevenue,
@@ -605,20 +587,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               delay: const Duration(milliseconds: 350),
               repeatKey: _refreshCycle,
               child: _closingCard(todaysMetrics),
-            ),
-          ),
-          const SizedBox(height: AppTheme.spacingL),
-
-          // Recent transactions
-          StaggeredEntrance(
-            delay: const Duration(milliseconds: 420),
-            repeatKey: _refreshCycle,
-            child: RecentTransactions(
-              transactions: recentTransactions,
-              onViewAll: () async {
-                await Haptics.tap();
-                if (context.mounted) _go(const TransactionsScreen());
-              },
             ),
           ),
           const SizedBox(height: AppTheme.spacingL),

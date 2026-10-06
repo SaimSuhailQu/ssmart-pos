@@ -4,6 +4,33 @@ All notable changes to SSmart POS are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [2.3.4] — 2026-10-06
+
+Dashboard declutter pass for the mobile admin app.
+
+### Changed (mobile admin app)
+- **Recent transactions moved off the dashboard:** the home screen no longer
+  shows the recent-transactions card. The full ledger — including the recent
+  history — lives in the Transactions page, now a semi-hidden destination:
+  **long-press the Revenue or Orders performance card** to open it. A plain
+  tap no longer navigates, matching the request that the ledger be reachable
+  only via long-press.
+- **Stock alerts moved into stock management:** the stock-alert card and
+  today's-expenses tile are gone from the home screen. Out-of-stock and
+  low-stock monitoring now lives in the **Items Catalog**: a "Stock Alerts"
+  filter chip (amber, top of the screen) shows only problem items with
+  counts, sorted most-urgent first (out-of-stock before low stock); it hides
+  itself while inventory is healthy.
+
+### Removed (mobile admin app)
+- Dashboard sections: recent transactions, stock alerts card, today's
+  expenses card (`recent_transactions.dart` and `store_ops_strip.dart`
+  widgets deleted).
+
+### Release engineering
+- Version bump to 2.3.4 (desktop `package.json`) and 2.3.4+34 (mobile
+  `pubspec.yaml`); LiveContainer source updated to v2.3.4.
+
 ## [2.3.3] — 2026-10-06
 
 Dashboard layout polish for the mobile admin app: every action is now docked

@@ -22,6 +22,12 @@ class _CatalogScreenState extends State<CatalogScreen> {
   String _searchQuery = '';
   String _selectedCategory = 'All';
 
+  /// When true, the list shows only out-of-stock & low-stock items.
+  /// Replaces the Stock Alerts card that used to live on the dashboard.
+  bool _showStockAlertsOnly = false;
+
+  bool _isStockProblem(Product p) => p.stock < 15;
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -55,6 +61,12 @@ class _CatalogScreenState extends State<CatalogScreen> {
       }
     } else if (_selectedCategory != 'All') {
       filtered = filtered.where((p) => p.category.trim().toLowerCase() == _selectedCategory.toLowerCase()).toList();
+    }
+
+    // Stock alerts filter: most urgent first (out-of-stock before low).
+    if (_showStockAlertsOnly) {
+      filtered = filtered.where(_isStockProblem).toList()
+        ..sort((a, b) => a.stock.compareTo(b.stock));
     }
 
     return filtered;
@@ -197,6 +209,62 @@ class _CatalogScreenState extends State<CatalogScreen> {
                         },
                       ),
                     ),
+
+                    // Stock alerts filter (moved off the dashboard): one tap
+                    // shows only out-of-stock & low-stock items.
+                    Builder(
+                      builder: (context) {
+                        final outCount = allProducts.where((p) => p.stock <= 0).length;
+                        final lowCount = allProducts.where((p) => p.stock > 0 && p.stock < 15).length;
+                        if (outCount + lowCount == 0 && !_showStockAlertsOnly) {
+                          return const SizedBox.shrink();
+                        }
+                        final active = _showStockAlertsOnly;
+                        return Padding(
+                          padding: const EdgeInsets.only(top: AppTheme.spacingS),
+                          child: Row(
+                            children: [
+                              GestureDetector(
+                                onTap: () => setState(() => _showStockAlertsOnly = !_showStockAlertsOnly),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                                  decoration: BoxDecoration(
+                                    color: active ? AppTheme.warningOrange : AppTheme.warningOrange.withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(18),
+                                    border: Border.all(
+                                      color: AppTheme.warningOrange.withValues(alpha: active ? 1 : 0.4),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        CupertinoIcons.exclamationmark_triangle_fill,
+                                        size: 14,
+                                        color: active ? Colors.black : AppTheme.warningOrange,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        'Stock Alerts',
+                                        style: AppTheme.labelSmall.copyWith(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w800,
+                                          color: active ? Colors.black : AppTheme.warningOrange,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              _stockAlertStat('$outCount', 'Out of stock', AppTheme.errorRed),
+                              const SizedBox(width: 12),
+                              _stockAlertStat('$lowCount', 'Low stock', AppTheme.warningOrange),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
                   ],
                 ),
               ),
@@ -242,6 +310,32 @@ class _CatalogScreenState extends State<CatalogScreen> {
           );
         },
       ),
+    );
+  }
+
+  /// Small colored count + caption used beside the Stock Alerts filter.
+  Widget _stockAlertStat(String count, String label, Color color) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          count,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+            color: color,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: AppTheme.labelSmall.copyWith(
+            fontSize: 10,
+            color: AppTheme.textSecondary,
+          ),
+        ),
+      ],
     );
   }
 

@@ -5,7 +5,8 @@ import 'package:ssmart_pos_admin/core/widgets/haptics.dart';
 /// Noir Graphite metric tile: dark glass, platinum icon medallion, bold
 /// tabular numeral. Deltas are monochrome — white for up, dim gray for down.
 ///
-/// Gestures: tap gives a light haptic tick and fires [onTap] (drill-down).
+/// Gestures: tap gives a light haptic tick and fires [onTap] (drill-down);
+/// long-press fires [onLongPress] (secondary/hidden destinations).
 class GraphiteMetricCard extends StatelessWidget {
   final String label;
   final String value;
@@ -13,6 +14,7 @@ class GraphiteMetricCard extends StatelessWidget {
   final bool deltaPositive;
   final IconData icon;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
 
   const GraphiteMetricCard({
     super.key,
@@ -22,11 +24,18 @@ class GraphiteMetricCard extends StatelessWidget {
     this.deltaPositive = true,
     required this.icon,
     this.onTap,
+    this.onLongPress,
   });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      onLongPress: onLongPress == null
+          ? null
+          : () async {
+              await Haptics.medium();
+              onLongPress!();
+            },
       onTap: onTap == null
           ? null
           : () async {
