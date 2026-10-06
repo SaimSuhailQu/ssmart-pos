@@ -28,7 +28,8 @@ class LicenseService {
   /// Embedded fallback ensures offline product key verification works out of the box.
   static const String _publicKey = String.fromEnvironment(
     'SSPOS_LICENSE_PUBLIC_KEY',
-    defaultValue: 'MCowBQYDK2VwAyEAi5Xepc/uZULn5HPaBvAR3PRNDGDlSTfPO3oWBiBRpg0=',
+    defaultValue:
+        'MCowBQYDK2VwAyEAi5Xepc/uZULn5HPaBvAR3PRNDGDlSTfPO3oWBiBRpg0=',
   );
 
   /// The Firebase project root. This app is the OWNER/MASTER app: only the
@@ -60,9 +61,12 @@ class LicenseService {
       'customerEmail': _ownerEmail,
       'activatedFrom': 'mobile_admin_master',
       'activatedAt': DateTime.now().toIso8601String(),
-    }).then((_) {}, onError: (_) {
-      // Rules/offline may block the write; local master state still applies.
-    });
+    }).then(
+      (_) {},
+      onError: (_) {
+        // Rules/offline may block the write; local master state still applies.
+      },
+    );
   }
 
   /// Build the guaranteed master state for the signed-in owner.
@@ -116,7 +120,8 @@ class LicenseService {
     }
 
     await _store.writeProductKey(key);
-    final tier = payload.tier == 2 ? LicenseTier.enterprise : LicenseTier.standard;
+    final tier =
+        payload.tier == 2 ? LicenseTier.enterprise : LicenseTier.standard;
     final state = LicenseState(
       status: LicenseStatus.licensed,
       fingerprint: fingerprint,
@@ -125,10 +130,8 @@ class LicenseService {
       licensedTo: 'Licensed terminal',
       licenseKey: '${key.trim().toUpperCase().substring(0, 12)}…',
       expiresAt: payload.expiresAt?.toIso8601String(),
-      daysRemaining: payload.expiresAt
-          ?.difference(DateTime.now())
-          .inDays
-          .clamp(0, 9999),
+      daysRemaining:
+          payload.expiresAt?.difference(DateTime.now()).inDays.clamp(0, 9999),
       tier: tier,
       maxTerminals: payload.maxTerminals,
       isMaster: tier == LicenseTier.enterprise,
@@ -294,10 +297,8 @@ class LicenseService {
       licensedTo: 'Licensed terminal',
       licenseKey: '${key.substring(0, 12)}…',
       expiresAt: payload.expiresAt?.toIso8601String(),
-      daysRemaining: payload.expiresAt
-          ?.difference(DateTime.now())
-          .inDays
-          .clamp(0, 9999),
+      daysRemaining:
+          payload.expiresAt?.difference(DateTime.now()).inDays.clamp(0, 9999),
       tier: tier,
       maxTerminals: payload.maxTerminals,
       isMaster: tier == LicenseTier.enterprise,
@@ -319,8 +320,7 @@ class LicenseService {
         cached.expiresAt != null) {
       final exp = DateTime.tryParse(cached.expiresAt!);
       if (exp != null) {
-        final graceUntil =
-            exp.add(const Duration(days: _trialGraceDays));
+        final graceUntil = exp.add(const Duration(days: _trialGraceDays));
         final inGrace =
             DateTime.now().isAfter(exp) && DateTime.now().isBefore(graceUntil);
 
@@ -331,8 +331,7 @@ class LicenseService {
             platform: platform,
             checkedAt: now,
             expiresAt: cached.expiresAt,
-            daysRemaining:
-                exp.difference(DateTime.now()).inDays.clamp(0, 999),
+            daysRemaining: exp.difference(DateTime.now()).inDays.clamp(0, 999),
             error: wasRevoked ? 'license_revoked' : null,
           );
           _current = state;

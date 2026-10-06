@@ -266,7 +266,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
                                   valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.black),
+                                    Colors.black,
+                                  ),
                                 ),
                               )
                             : const Text(
@@ -286,10 +287,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     Row(
                       children: [
                         const Expanded(
-                            child: Divider(color: AppTheme.borderColor)),
+                          child: Divider(color: AppTheme.borderColor),
+                        ),
                         Padding(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: AppTheme.spacingM),
+                            horizontal: AppTheme.spacingM,
+                          ),
                           child: Text(
                             'OR',
                             style: AppTheme.labelSmall.copyWith(
@@ -299,7 +302,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                         const Expanded(
-                            child: Divider(color: AppTheme.borderColor)),
+                          child: Divider(color: AppTheme.borderColor),
+                        ),
                       ],
                     ),
                     const SizedBox(height: AppTheme.spacingL),

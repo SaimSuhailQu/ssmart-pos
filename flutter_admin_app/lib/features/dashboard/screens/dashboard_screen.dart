@@ -196,8 +196,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: GraphiteTheme.platinum
-                        .withValues(alpha: 0.25),
+                    color: GraphiteTheme.platinum.withValues(alpha: 0.25),
                     blurRadius: 12,
                     offset: const Offset(0, 3),
                   ),
@@ -229,8 +228,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 StreamBuilder<ConnectionStatus>(
                   stream: firebaseService.connectionStatusStream,
                   builder: (context, snapshot) {
-                    final status =
-                        snapshot.data ?? ConnectionStatus.connecting;
+                    final status = snapshot.data ?? ConnectionStatus.connecting;
                     final online = status.isOnline;
                     return Row(
                       mainAxisSize: MainAxisSize.min,
@@ -389,8 +387,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 initialData: firebaseService.cachedSales,
                 stream: firebaseService.getSalesStream(),
                 builder: (context, snapshot) {
-                  if (snapshot.connectionState ==
-                          ConnectionState.waiting &&
+                  if (snapshot.connectionState == ConnectionState.waiting &&
                       (!snapshot.hasData || snapshot.data == null)) {
                     return const AppLoadingIndicator(
                       message: 'Loading dashboard...',
@@ -479,8 +476,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           // Greeting
           Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
+            padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
             child: StaggeredEntrance(
               delay: Duration.zero,
               repeatKey: _refreshCycle,
@@ -507,8 +503,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
           // Hero — animated revenue, long-press copies summary
           Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
+            padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
             child: StaggeredEntrance(
               delay: const Duration(milliseconds: 70),
               repeatKey: _refreshCycle,
@@ -526,8 +521,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
           // Quick actions
           Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
+            padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
             child: StaggeredEntrance(
               delay: const Duration(milliseconds: 140),
               repeatKey: _refreshCycle,
@@ -596,8 +590,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
           // Metrics grid
           Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
+            padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
             child: StaggeredEntrance(
               delay: const Duration(milliseconds: 280),
               repeatKey: _refreshCycle,
@@ -664,8 +657,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
           // Weekly chart
           Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
+            padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
             child: StaggeredEntrance(
               delay: const Duration(milliseconds: 350),
               repeatKey: _refreshCycle,
@@ -678,8 +670,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
           // Daily closing card
           Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
+            padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
             child: StaggeredEntrance(
               delay: const Duration(milliseconds: 420),
               repeatKey: _refreshCycle,
@@ -733,8 +724,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   color: GraphiteTheme.platinumFaint,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: GraphiteTheme.platinum
-                        .withValues(alpha: 0.3),
+                    color: GraphiteTheme.platinum.withValues(alpha: 0.3),
                   ),
                 ),
                 child: const Icon(
@@ -844,7 +834,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: m.revenueByPaymentMethod.entries.map((e) {
                 return Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 9, vertical: 4),
+                    horizontal: 9,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: GraphiteTheme.cardSurface,
                     borderRadius: BorderRadius.circular(8),
@@ -867,7 +859,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _closingBtn(
-      String label, IconData icon, Color color, VoidCallback onTap) {
+    String label,
+    IconData icon,
+    Color color,
+    VoidCallback onTap,
+  ) {
     return GestureDetector(
       onTap: () async {
         await Haptics.tap();
@@ -924,8 +920,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 color: GraphiteTheme.platinumFaint,
                 borderRadius: BorderRadius.circular(13),
                 border: Border.all(
-                  color: GraphiteTheme.platinum
-                      .withValues(alpha: 0.25),
+                  color: GraphiteTheme.platinum.withValues(alpha: 0.25),
                 ),
               ),
               child: Icon(
@@ -976,8 +971,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 color: GraphiteTheme.platinumFaint,
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: GraphiteTheme.platinum
-                      .withValues(alpha: 0.3),
+                  color: GraphiteTheme.platinum.withValues(alpha: 0.3),
                 ),
               ),
               child: const Icon(
@@ -1055,8 +1049,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   String _month(int m) {
     const mo = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return mo[m - 1];
   }
