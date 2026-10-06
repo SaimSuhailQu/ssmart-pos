@@ -1,4 +1,5 @@
 import { initializeApp, getApps } from 'firebase/app';
+import { getAuth, signInAnonymously } from 'firebase/auth';
 import { getDatabase, ref, set, update, get, onValue, Database } from 'firebase/database';
 import {
   getUnsyncedSales,
@@ -56,6 +57,57 @@ try {
 } catch (err) {
   console.error("Firebase failed to initialize (Offline Mode):", err);
 }
+
+// ============================================================================
+// Server-side access: every sync device identifies itself to Firebase Auth
+// with a silent ANONYMOUS sign-in (one identity per install). The RTDB rules
+// then require `auth != null` for all business paths (root + tenants), so a
+// random script that only knows the web config can no longer read or write
+// shop data. See docs/SECURITY_AND_ACCESS.md § "Server-side access".
+// NOTE: requires the "Anonymous" provider to be enabled in the Firebase
+// console (Authentication → Sign-in method).
+// ============================================================================
+
+let authReadyPromise: Promise<void> | null = null;
+
+async function ensureSyncAuth(attempt = 1): Promise<void> {
+  if (!dbInstance) return;
+  try {
+    const auth = getAuth(dbInstance.app);
+    if (auth.currentUser) return; // Already signed in (persists across launches).
+    await signInAnonymously(auth);
+    console.log("[Sync] Anonymous device identity established (rules: auth required).");
+  } catch (err) {
+    const code = (err as { code?: string })?.code ?? '';
+    if (code === 'auth/operation-not-allowed') {
+      console.error(
+        '[Sync] Firebase \'Anonymous\' sign-in provider is disabled. ' +
+        'Enable it in Firebase Console → Authentication → Sign-in method, ' +
+        'otherwise cloud sync will be rejected by the database rules.'
+      );
+      return; // Do not spam retries for a configuration problem.
+    }
+    if (attempt <= 4) {
+      const delayMs = attempt * 15000;
+      console.warn(`[Sync] Anonymous sign-in failed (attempt ${attempt}/4), retrying in ${delayMs / 1000}s:`, err);
+      await new Promise((r) => setTimeout(r, delayMs));
+      return ensureSyncAuth(attempt + 1);
+    }
+    console.error('[Sync] Anonymous sign-in failed after retries — sync will stay blocked by rules until the next launch.', err);
+  }
+}
+
+/** Resolves once (and only once) the device identity is established. */
+function authReady(): Promise<void> {
+  if (!authReadyPromise) {
+    authReadyPromise = ensureSyncAuth().catch((err) => {
+      console.warn('[Sync] authReady unexpected error:', err);
+    });
+  }
+  return authReadyPromise;
+}
+
+void authReady(); // Kick off at module load; listeners self-heal once auth lands.
 
 // ============================================================================
 // Multi-tenant cloud routing
@@ -158,6 +210,7 @@ async function pushDelta<T>(
   opts: { deleteMissing?: boolean } = {}
 ): Promise<number> {
   if (!dbInstance) return 0;
+  await authReady(); // Rules require a device identity before any read/write.
 
   const localHashes = new Map<string, number>();
   const payloads = new Map<string, Record<string, unknown>>();
@@ -239,6 +292,8 @@ export async function syncSalesToCloud(silent = false) {
     return { success: false, syncedCount: 0, status: "OFFLINE" };
   }
 
+  await authReady(); // Rules require a device identity before any read/write.
+
   try {
     const unsynced = getUnsyncedSales();
     if (unsynced.length === 0) {
@@ -287,6 +342,7 @@ export async function syncSalesToCloud(silent = false) {
 
 export async function deleteSaleFromCloud(saleId: number) {
   if (!dbInstance) return;
+  await authReady(); // Rules require a device identity before any write.
   try {
     await set(ref(dbInstance, cp(`sales/${saleId}`)), null);
   } catch (err) {
@@ -390,10 +446,13 @@ export async function syncCustomerKhataToCloud(silent = false) {
     if (!silent) console.log("Sync skipped: Firebase DB offline (No .env credentials).");
     return { success: false, status: "OFFLINE" };
   }
+  // Claim the in-flight mutex BEFORE awaiting auth so overlapping callers
+  // cannot both slip past the guard while the first sign-in is in progress.
   if (inFlightSyncs.has('khata')) {
     return { success: true, status: "ONLINE" };
   }
   inFlightSyncs.add('khata');
+  await authReady(); // Rules require a device identity before any read/write.
   try {
     const entries = getAllCustomerKhataEntries() as (CustomerKhataEntry & { sync_id?: string })[];
 
@@ -500,6 +559,7 @@ export async function syncCustomerKhataToCloud(silent = false) {
 
 export async function deleteCustomerKhataEntryFromCloud(customerId: number, syncId?: string) {
   if (!dbInstance) return;
+  await authReady(); // Rules require a device identity before any write.
   try {
     if (syncId) {
       // Remove from customer_khata and register tombstone in deleted_khata_entries
@@ -513,6 +573,7 @@ export async function deleteCustomerKhataEntryFromCloud(customerId: number, sync
 
 export async function clearAllKhataFromCloudAndLocal() {
   clearAllKhataRecords();
+  await authReady(); // Rules require a device identity before any write.
   if (dbInstance) {
     try {
       await set(ref(dbInstance, cp('customer_khata')), null);
@@ -615,6 +676,7 @@ export function setTenant(tenantId: string | null | undefined): void {
 /** Ingest a single cloud node only if its content actually changed since last time. */
 async function ingestNode(name: string, path: string, handler: (val: unknown) => void | Promise<void>) {
   if (!dbInstance) return;
+  await authReady(); // Rules require a device identity before any read.
   try {
     const snap = await get(ref(dbInstance, path));
     const raw = snap.exists() ? snap.val() : null;
@@ -801,6 +863,7 @@ function ingestKhata(raw: unknown) {
 
 async function processDeletedKhataTombstones() {
   if (!dbInstance) return;
+  await authReady(); // Rules require a device identity before any read.
   try {
     const delKhataSnap = await get(ref(dbInstance, cp('deleted_khata_entries')));
     if (delKhataSnap.exists() && delKhataSnap.val()) {
@@ -857,6 +920,9 @@ async function runFullSyncPass() {
 // Start periodic background sync worker & bidirectional realtime sync
 export function startSyncWorker(onStatusChange?: (status: string) => void) {
   if (dbInstance && onStatusChange) {
+    // Device identity first: until anonymous auth lands, the rules reject
+    // reads (onValue listeners re-emit on their own once auth completes).
+    void authReady();
     const connectedRef = ref(dbInstance, ".info/connected");
     onValue(connectedRef, async (snap) => {
       if (snap.val() === true) {

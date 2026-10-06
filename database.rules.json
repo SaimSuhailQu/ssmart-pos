@@ -25,25 +25,30 @@
     //   config/...               public config (trial days etc.).
     // ------------------------------------------------------------------
 
-    // ---- Master (root) business data — must remain open for the desktop POS
-    // ---- sync engine, which authenticates at the database level, not with
-    // ---- Firebase Auth. List every collection used by src/syncEngine.ts and
+    // ---- Master (root) business data — SERVER-SIDE PROTECTED ----
+    // ---- Every sync device (desktop POS + mobile admin) signs in with a
+    // ---- silent ANONYMOUS Firebase Auth identity (see src/syncEngine.ts
+    // ---- ensureSyncAuth). Requiring `auth != null` here means a random
+    // ---- script that only knows the web config can no longer touch your
+    // ---- shop data. Requires the "Anonymous" provider to be ENABLED in
+    // ---- Firebase Console → Authentication → Sign-in method.
+    // ---- List every collection used by src/syncEngine.ts and
     // ---- flutter_admin_app/lib/services/firebase_service.dart.
-    "sales":           { ".read": true, ".write": true },
-    "products":        { ".read": true, ".write": true },
-    "customers":       { ".read": true, ".write": true },
-    "customer_khata":  { ".read": true, ".write": true },
-    "deleted_khata_entries": { ".read": true, ".write": true },
-    "expenses":        { ".read": true, ".write": true },
-    "vendors":         { ".read": true, ".write": true },
-    "purchase_orders": { ".read": true, ".write": true },
-    "daily_closings":  { ".read": true, ".write": true },
-    "cashier_sessions": { ".read": true, ".write": true },
-    "users":           { ".read": true, ".write": true },
+    "sales":           { ".read": "auth != null", ".write": "auth != null" },
+    "products":        { ".read": "auth != null", ".write": "auth != null" },
+    "customers":       { ".read": "auth != null", ".write": "auth != null" },
+    "customer_khata":  { ".read": "auth != null", ".write": "auth != null" },
+    "deleted_khata_entries": { ".read": "auth != null", ".write": "auth != null" },
+    "expenses":        { ".read": "auth != null", ".write": "auth != null" },
+    "vendors":         { ".read": "auth != null", ".write": "auth != null" },
+    "purchase_orders": { ".read": "auth != null", ".write": "auth != null" },
+    "daily_closings":  { ".read": "auth != null", ".write": "auth != null" },
+    "cashier_sessions": { ".read": "auth != null", ".write": "auth != null" },
+    "users":           { ".read": "auth != null", ".write": "auth != null" },
 
     // Ephemeral command queue: mobile POS asks the desktop printer to print.
     // Lives at the ROOT regardless of tenant (see startSyncWorker()).
-    "print_requests":  { ".read": true, ".write": true },
+    "print_requests":  { ".read": "auth != null", ".write": "auth != null" },
 
     "bindings": {
       "$keyId": {

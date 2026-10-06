@@ -4,6 +4,34 @@ All notable changes to SSmart POS are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [2.3.1] — 2026-10-06
+
+Server-side access control: every sync device now identifies itself to
+Firebase, and shop data is no longer world-readable. Owner guide added.
+
+### Security (desktop + mobile)
+- **Silent device identity:** the desktop sync engine performs an anonymous
+  Firebase Auth sign-in at startup (one hidden identity per install, with
+  bounded retries and self-healing listeners). No UI, no login prompt.
+- **Rules hardened:** all business paths (root + `tenants/`) now require
+  `auth != null` — a script that only knows the public web config gets
+  permission denied. Licensing lookups stay public so device-code activation
+  keeps working.
+- Requires the **Anonymous** provider enabled in the Firebase console (the
+  app logs precise instructions if it is off). See the new
+  `docs/SECURITY_AND_ACCESS.md` — a plain-language owner guide with the
+  console checklist, zone model, and troubleshooting table.
+
+### Documentation
+- `docs/SECURITY_AND_ACCESS.md`: who can access what, the three-zone data
+  model, the mobile app's three gates (owner allowlist → master license →
+  Google sign-in), the once-only Firebase console checklist (Google provider,
+  Anonymous provider, rules paste), and honest limitations.
+
+### Release engineering
+- LiveContainer/AltStore source bumped to 2.3.1; versions aligned
+  (desktop 2.3.1, mobile 2.3.1+31).
+
 ## [2.3.0] — 2026-10-05
 
 Owner/master mobile release: Google Sign-In for the admin app, guaranteed
