@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
+import 'package:ssmart_pos_admin/core/theme/graphite_theme.dart';
 import 'package:ssmart_pos_admin/core/utils/date_utils.dart';
 import 'package:ssmart_pos_admin/core/utils/whatsapp_helper.dart';
 import 'package:ssmart_pos_admin/core/utils/statement_pdf_helper.dart';
@@ -28,7 +29,7 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,
       decoration: const BoxDecoration(
-        color: AppTheme.surfaceDark,
+        color: GraphiteTheme.graphiteDeep,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
@@ -40,7 +41,7 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.white24,
+                color: GraphiteTheme.slateDim.withValues(alpha: 0.4),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -53,10 +54,10 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 26,
-                  backgroundColor: hasDebt ? Colors.amber.withValues(alpha: 0.2) : AppTheme.primaryBlue.withValues(alpha: 0.2),
+                  backgroundColor: hasDebt ? Colors.amber.withValues(alpha: 0.15) : GraphiteTheme.platinumFaint,
                   child: Icon(
                     CupertinoIcons.person_fill,
-                    color: hasDebt ? Colors.amber : AppTheme.primaryBlue,
+                    color: hasDebt ? Colors.amber : GraphiteTheme.platinum,
                     size: 28,
                   ),
                 ),
@@ -67,27 +68,23 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                     children: [
                       Text(
                         customer.name,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: GraphiteTheme.bodyStrong.copyWith(fontSize: 19),
                       ),
                       const SizedBox(height: 2),
                       Row(
                         children: [
-                          const Icon(CupertinoIcons.phone, size: 13, color: AppTheme.textSecondary),
+                          const Icon(CupertinoIcons.phone, size: 13, color: GraphiteTheme.slate),
                           const SizedBox(width: 4),
                           Text(
                             customer.phone.isNotEmpty ? customer.phone : 'No Phone',
-                            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                            style: const TextStyle(color: GraphiteTheme.slate, fontSize: 13),
                           ),
                           const SizedBox(width: 12),
-                          const Icon(CupertinoIcons.star_fill, size: 13, color: Colors.amber),
+                          const Icon(CupertinoIcons.star_fill, size: 13, color: GraphiteTheme.platinum),
                           const SizedBox(width: 4),
                           Text(
                             '${customer.points} pts',
-                            style: const TextStyle(color: Colors.amber, fontSize: 13, fontWeight: FontWeight.bold),
+                            style: const TextStyle(color: GraphiteTheme.platinum, fontSize: 13, fontWeight: FontWeight.bold),
                           ),
                         ],
                       ),
@@ -95,7 +92,7 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(CupertinoIcons.xmark_circle_fill, color: Colors.white60, size: 28),
+                  icon: const Icon(CupertinoIcons.xmark_circle_fill, color: GraphiteTheme.slate, size: 28),
                   onPressed: () => Navigator.pop(context),
                 ),
               ],
@@ -108,7 +105,7 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
               stream: firebaseService.getCustomerKhataStream(customer.id.toString()),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const Center(child: CircularProgressIndicator(color: GraphiteTheme.platinum));
                 }
 
                 final entries = snapshot.data ?? [];
@@ -132,21 +129,24 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
 
                 return Column(
                   children: [
-                    // Total Balance Overview Bar
+                    // Total Balance Overview Bar — Noir Graphite Platinum Card
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                       child: Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: hasCurrentDebt
-                                ? [Colors.amber.shade900.withValues(alpha: 0.4), Colors.amber.shade700.withValues(alpha: 0.2)]
-                                : [Colors.green.shade900.withValues(alpha: 0.4), Colors.green.shade700.withValues(alpha: 0.2)],
-                          ),
-                          borderRadius: BorderRadius.circular(16),
+                          gradient: GraphiteTheme.heroGradient,
+                          borderRadius: BorderRadius.circular(18),
                           border: Border.all(
-                            color: hasCurrentDebt ? Colors.amber.withValues(alpha: 0.4) : Colors.green.withValues(alpha: 0.4),
+                            color: hasCurrentDebt ? Colors.amber.withValues(alpha: 0.3) : GraphiteTheme.platinumBorder,
                           ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.4),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
@@ -164,13 +164,8 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                                       hasCurrentDebt
                                           ? 'TOTAL UDHAAR (DUE BALANCE)'
                                           : 'ACCOUNT BALANCE',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.bold,
-                                        letterSpacing: 1.1,
-                                        color: hasCurrentDebt
-                                            ? Colors.amber.shade200
-                                            : Colors.green.shade200,
+                                      style: GraphiteTheme.eyebrow.copyWith(
+                                        color: hasCurrentDebt ? Colors.amber : GraphiteTheme.slate,
                                       ),
                                     ),
                                   ),
@@ -178,15 +173,19 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                                   FittedBox(
                                     fit: BoxFit.scaleDown,
                                     alignment: Alignment.centerLeft,
-                                    child: Text(
-                                      'PKR ${displayBalance.toStringAsFixed(0)}',
-                                      style: TextStyle(
-                                        fontSize: 26,
-                                        fontWeight: FontWeight.w900,
-                                        color: hasCurrentDebt
-                                            ? Colors.amber
-                                            : AppTheme.successGreen,
-                                      ),
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                                      textBaseline: TextBaseline.alphabetic,
+                                      children: [
+                                        Text('PKR ', style: GraphiteTheme.heroCurrency),
+                                        Text(
+                                          displayBalance.toStringAsFixed(0),
+                                          style: GraphiteTheme.heroAmount.copyWith(
+                                            fontSize: 28,
+                                            color: hasCurrentDebt ? Colors.amber : GraphiteTheme.platinumLight,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ],
@@ -210,9 +209,10 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                                   ),
                                 const SizedBox(width: 6),
                                 _sheetAction(
-                                  backgroundColor: AppTheme.primaryCyan,
+                                  backgroundColor: GraphiteTheme.cardSurface,
+                                  borderColor: GraphiteTheme.cardBorder,
                                   icon: const Icon(CupertinoIcons.arrow_up_doc_fill,
-                                      color: Colors.black, size: 19),
+                                      color: GraphiteTheme.platinum, size: 19),
                                   tooltip:
                                       'Export PDF & Share (WhatsApp, Email…)',
                                   onPressed: () async {
@@ -229,7 +229,7 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                                           SnackBar(
                                             content:
                                                 Text('Could not generate PDF: $err'),
-                                            backgroundColor: AppTheme.errorRed,
+                                            backgroundColor: GraphiteTheme.errorRed,
                                           ),
                                         );
                                       }
@@ -238,9 +238,9 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                                 ),
                                 const SizedBox(width: 6),
                                 _sheetAction(
-                                  backgroundColor: Colors.amber.shade700,
+                                  backgroundColor: GraphiteTheme.platinum,
                                   icon: const Icon(CupertinoIcons.plus,
-                                      color: Colors.black, size: 19),
+                                      color: GraphiteTheme.graphiteDeep, size: 19),
                                   tooltip: 'Add Khata Entry',
                                   onPressed: () {
                                     Navigator.pop(context);
@@ -571,6 +571,7 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
   /// its icon so three of them always fit inside the balance bar.
   static Widget _sheetAction({
     required Color backgroundColor,
+    Color? borderColor,
     required Widget icon,
     required String tooltip,
     required VoidCallback onPressed,
@@ -578,6 +579,7 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
     return IconButton.filled(
       style: IconButton.styleFrom(
         backgroundColor: backgroundColor,
+        side: borderColor != null ? BorderSide(color: borderColor) : null,
         minimumSize: const Size(38, 38),
         maximumSize: const Size(38, 38),
         padding: EdgeInsets.zero,

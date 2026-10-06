@@ -5,33 +5,33 @@ import 'package:google_fonts/google_fonts.dart';
 /// Sleek Monochrome Dark Theme for the POS Admin App
 /// Matches the Electron POS application's modern visual system
 class AppTheme {
-  // Color Palette — High-contrast professional grayscale system
-  static const Color primaryCyan = Color(0xFFE2E8F0); // Crisp Titanium / Silver (Slate 200)
-  static const Color secondaryPurple = Color(0xFFCBD5E1); // Muted Silver (Slate 300)
-  static const Color primaryTeal = Color(0xFF94A3B8); // Slate Steel (Slate 400)
+  // Color Palette — Noir Graphite & Platinum system
+  static const Color primaryCyan = Color(0xFFEDEDEA); // Platinum (matches GraphiteTheme.platinum)
+  static const Color secondaryPurple = Color(0xFF8E8E93); // Slate Deep
+  static const Color primaryTeal = Color(0xFFEDEDEA); // Platinum
   static const Color accentNeon = Color(0xFFFFFFFF);
 
   // Backward compatibility mappings for older theme references
-  static const Color primaryBlue = Color(0xFFE2E8F0);
-  static const Color secondaryBlue = Color(0xFFCBD5E1);
-  static const Color darkBlue = Color(0xFF1E2024);
+  static const Color primaryBlue = Color(0xFFEDEDEA);
+  static const Color secondaryBlue = Color(0xFF8E8E93);
+  static const Color darkBlue = Color(0xFF17171A);
 
   static const Color successGreen = Color(0xFF10B981); // Emerald accent for cash/paid
   static const Color warningOrange = Color(0xFFF59E0B); // Amber for warnings/due
-  static const Color errorRed = Color(0xFFEF4444); // Red for debt/deletions
+  static const Color errorRed = Color(0xFFF87171); // Functional red (matches GraphiteTheme.errorRed)
 
-  static const Color backgroundLight = Color(0xFF090A0D); // Deep True Black-Grey
-  static const Color cardBackground = Color(0xFF13151A); // Neutral Monochromatic Glass
-  static const Color glassSurface = Color(0x9913151A); // 60% Frosted Panel
-  static const Color glassSurfaceLight = Color(0x1AFFFFFF); // 10% White Frost
-  static const Color surfaceDark = Color(0xFF181A20); // Modal & Dialog Surface
-  static const Color borderColor = Color(0x1FFFFFFF); // 12% White Border
-  static const Color borderHighlight = Color(0x33FFFFFF); // 20% White Top Highlight
-  static const Color glassBorder = Color(0x28FFFFFF); // 16% Frosted White Border
+  static const Color backgroundLight = Color(0xFF070708); // Noir Screen Base
+  static const Color cardBackground = Color(0xFF121215); // Noir Card Surface
+  static const Color glassSurface = Color(0x08FFFFFF); // ~3% White glass
+  static const Color glassSurfaceLight = Color(0x14EDEDEA); // ~8% Platinum wash
+  static const Color surfaceDark = Color(0xFF151518); // Modal & Dialog Surface
+  static const Color borderColor = Color(0x14FFFFFF); // ~8% White border
+  static const Color borderHighlight = Color(0x21EDEDEA); // Hairline Platinum
+  static const Color glassBorder = Color(0x14FFFFFF); // Frosted border
 
-  static const Color textPrimary = Color(0xFFF8FAFC); // Crisp Pure Off-White
-  static const Color textSecondary = Color(0xFF94A3B8); // Balanced Slate 400
-  static const Color textTertiary = Color(0x6694A3B8); // 40% Slate
+  static const Color textPrimary = Color(0xFFF5F5F4); // Crisp Platinum/Ink
+  static const Color textSecondary = Color(0xFF8E8E93); // Balanced Slate
+  static const Color textTertiary = Color(0xFF6E6E72); // Tertiary Slate Dim
 
   // Text Styles using Google Fonts
   static TextStyle get displayLarge => GoogleFonts.inter(
@@ -123,7 +123,7 @@ class AppTheme {
       ),
 
       appBarTheme: AppBarTheme(
-        backgroundColor: cardBackground,
+        backgroundColor: backgroundLight,
         foregroundColor: textPrimary,
         elevation: 0,
         centerTitle: false,
@@ -131,12 +131,21 @@ class AppTheme {
         iconTheme: const IconThemeData(color: primaryCyan),
       ),
 
+      tabBarTheme: TabBarThemeData(
+        indicatorColor: primaryCyan,
+        labelColor: primaryCyan,
+        unselectedLabelColor: textSecondary,
+        dividerColor: borderColor,
+        labelStyle: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 13),
+        unselectedLabelStyle: GoogleFonts.inter(fontWeight: FontWeight.w500, fontSize: 13),
+      ),
+
       cardTheme: CardThemeData(
         color: cardBackground,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-          side: const BorderSide(color: borderColor, width: 0.5),
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: borderColor, width: 1),
         ),
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       ),

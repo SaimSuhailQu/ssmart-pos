@@ -4,6 +4,17 @@ All notable changes to SSmart POS are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [2.3.5] — 2026-10-06
+
+Comprehensive app-wide visual unification into the **Noir Graphite & Platinum** identity.
+
+### Changed (mobile admin app)
+- **App-wide Visual Unification:** Replaced legacy mismatched cyber/rainbow colors (bright amber headers in Khata, purple indicators in Vendors, red action cards in Expenses, teal FABs in Catalog) with the sleek **Noir Graphite & Platinum** design language (`GraphiteTheme`).
+- **Customer Khata Screen & Sheet:** Replaced yellow/amber header card with `GraphiteTheme.platinumCardDecoration`, subtle slate typography, and consistent platinum primary buttons. Status colors (debt vs cleared) remain strictly functional for tags and balances.
+- **Expenses Screen:** Wrapped in `LiquidScaffold(graphiteAmbience: true)` with graphite header card and platinum action buttons, reserving functional red strictly for expense amounts and delete actions.
+- **Vendors Screen:** Updated TabBar and PO listing to use platinum indicators, graphite card surfaces, and platinum primary action buttons.
+- **Catalog & Transactions Screens:** Replaced legacy teal and cyan controls with graphite filter chips, platinum buttons, and clean hairline card borders.
+
 ## [2.3.4] — 2026-10-06
 
 Dashboard declutter pass for the mobile admin app.

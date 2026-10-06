@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
+import 'package:ssmart_pos_admin/core/theme/graphite_theme.dart';
 import 'package:ssmart_pos_admin/core/utils/date_utils.dart';
 import 'package:ssmart_pos_admin/core/utils/receipt_printer_helper.dart';
 import 'package:ssmart_pos_admin/core/utils/whatsapp_helper.dart';
@@ -85,7 +86,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     final firebaseService = context.read<FirebaseService>();
 
     return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
+      backgroundColor: GraphiteTheme.screenBase,
       appBar: AppBar(
         title: const Text('All Transactions'),
         leading: IconButton(
@@ -160,12 +161,16 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                               _selectedFilter = filter;
                             });
                           },
-                          backgroundColor: AppTheme.backgroundLight,
-                          selectedColor: AppTheme.primaryBlue.withValues(alpha: 0.2),
-                          labelStyle: AppTheme.bodyMedium.copyWith(
-                            color: isSelected
-                                ? AppTheme.primaryBlue
-                                : AppTheme.textPrimary,
+                          backgroundColor: GraphiteTheme.cardSurface,
+                          selectedColor: GraphiteTheme.platinum,
+                          labelStyle: GraphiteTheme.pillText(filled: isSelected).copyWith(
+                            color: isSelected ? GraphiteTheme.graphiteDeep : GraphiteTheme.slate,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                            side: BorderSide(
+                              color: isSelected ? GraphiteTheme.platinum : GraphiteTheme.cardBorder,
+                            ),
                           ),
                         ),
                       );
@@ -486,18 +491,12 @@ class _TransactionCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: 10,
-        vertical: 6,
+        vertical: 4,
       ),
-      decoration: BoxDecoration(
-        color: AppTheme.primaryBlue.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-      ),
+      decoration: GraphiteTheme.pillDecoration(filled: false),
       child: Text(
         sale.paymentMethod,
-        style: AppTheme.labelMedium.copyWith(
-          color: AppTheme.primaryBlue,
-          fontWeight: FontWeight.w600,
-        ),
+        style: GraphiteTheme.pillText(filled: false).copyWith(fontSize: 10),
       ),
     );
   }

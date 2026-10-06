@@ -2,10 +2,11 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
+import 'package:ssmart_pos_admin/core/theme/graphite_theme.dart';
 import 'package:ssmart_pos_admin/core/utils/whatsapp_helper.dart';
 import 'package:ssmart_pos_admin/core/widgets/app_error_widget.dart';
 import 'package:ssmart_pos_admin/core/widgets/app_loading_indicator.dart';
-import 'package:ssmart_pos_admin/core/widgets/glass_card.dart';
+import 'package:ssmart_pos_admin/core/widgets/liquid_scaffold.dart';
 import 'package:ssmart_pos_admin/features/customers/widgets/customer_khata_details_sheet.dart';
 import 'package:ssmart_pos_admin/models/customer.dart';
 import 'package:ssmart_pos_admin/services/firebase_service.dart';
@@ -33,20 +34,20 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
   Widget build(BuildContext context) {
     final firebaseService = context.read<FirebaseService>();
 
-    return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
+    return LiquidScaffold(
+      graphiteAmbience: true,
       appBar: AppBar(
         // Short title: with the back button + two actions, the longer
         // "Customer Khata & CRM" ellipsized at larger text scales.
         title: const Text('Customer Khata'),
         actions: [
           IconButton(
-            icon: const Icon(CupertinoIcons.person_add_solid, color: AppTheme.primaryTeal),
+            icon: const Icon(CupertinoIcons.person_add_solid, color: GraphiteTheme.platinum),
             tooltip: 'Add New Customer',
             onPressed: () => _showCustomerDialog(context, null),
           ),
           PopupMenuButton<String>(
-            icon: const Icon(CupertinoIcons.ellipsis_vertical, color: Colors.white70),
+            icon: const Icon(CupertinoIcons.ellipsis_vertical, color: GraphiteTheme.slate),
             onSelected: (val) {
               if (val == 'clear_khata') {
                 _confirmClearAllKhata(context);
@@ -57,9 +58,9 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                 value: 'clear_khata',
                 child: Row(
                   children: [
-                    Icon(CupertinoIcons.trash, color: AppTheme.errorRed, size: 18),
+                    Icon(CupertinoIcons.trash, color: GraphiteTheme.errorRed, size: 18),
                     SizedBox(width: 8),
-                    Text('Reset / Clear All Khata', style: TextStyle(color: AppTheme.errorRed, fontSize: 13, fontWeight: FontWeight.bold)),
+                    Text('Reset / Clear All Khata', style: TextStyle(color: GraphiteTheme.errorRed, fontSize: 13, fontWeight: FontWeight.bold)),
                   ],
                 ),
               ),
@@ -67,11 +68,26 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: Colors.amber.shade700,
-        icon: const Icon(CupertinoIcons.plus_app, color: Colors.black),
-        label: const Text('Add Customer', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-        onPressed: () => _showCustomerDialog(context, null),
+      floatingActionButton: Container(
+        decoration: GraphiteTheme.primaryButtonDecoration,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: () => _showCustomerDialog(context, null),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(CupertinoIcons.plus_app, color: GraphiteTheme.graphiteDeep, size: 20),
+                  const SizedBox(width: 8),
+                  Text('Add Customer', style: GraphiteTheme.primaryButtonText.copyWith(fontSize: 14)),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
       body: StreamBuilder<List<CustomerModel>>(
         initialData: firebaseService.cachedCustomers,
@@ -106,13 +122,11 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
 
           return Column(
             children: [
-              // Metric Card with Frosted Glass & Overflow Protection
-              GlassCard(
+              // Hero Metric Card — Noir Graphite Signature Styling
+              Container(
                 margin: const EdgeInsets.all(AppTheme.spacingM),
                 padding: const EdgeInsets.all(AppTheme.spacingL),
-                borderColor: Colors.amber.withValues(alpha: 0.35),
-                enableGlow: true,
-                glowColor: Colors.amber,
+                decoration: GraphiteTheme.platinumCardDecoration,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -121,21 +135,25 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Total Customer Udhaar (Loan)',
-                            style: AppTheme.labelMedium.copyWith(color: AppTheme.textSecondary),
+                            'TOTAL CUSTOMER UDHAAR (LOAN)',
+                            style: GraphiteTheme.eyebrow,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 6),
                           FittedBox(
                             fit: BoxFit.scaleDown,
                             alignment: Alignment.centerLeft,
-                            child: Text(
-                              'PKR ${totalKhata.toStringAsFixed(0)}',
-                              style: AppTheme.headlineLarge.copyWith(
-                                color: Colors.amber.shade700,
-                                fontWeight: FontWeight.bold,
-                              ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.baseline,
+                              textBaseline: TextBaseline.alphabetic,
+                              children: [
+                                Text('PKR ', style: GraphiteTheme.heroCurrency),
+                                Text(
+                                  totalKhata.toStringAsFixed(0),
+                                  style: GraphiteTheme.heroAmount.copyWith(fontSize: 36),
+                                ),
+                              ],
                             ),
                           ),
                         ],
@@ -145,11 +163,11 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.amber.withValues(alpha: 0.15),
+                        color: GraphiteTheme.platinumFaint,
                         borderRadius: BorderRadius.circular(AppTheme.radiusM),
-                        border: Border.all(color: Colors.amber.withValues(alpha: 0.2)),
+                        border: Border.all(color: GraphiteTheme.cardBorder),
                       ),
-                      child: const Icon(CupertinoIcons.book_fill, color: Colors.amber, size: 28),
+                      child: const Icon(CupertinoIcons.book_fill, color: GraphiteTheme.platinum, size: 28),
                     ),
                   ],
                 ),
@@ -199,14 +217,17 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
 
                           return Container(
                             decoration: BoxDecoration(
-                              color: AppTheme.cardBackground,
-                              borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                              color: GraphiteTheme.graphiteCard,
+                              borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: hasDebt ? Colors.amber.withValues(alpha: 0.3) : AppTheme.borderColor,
+                                color: hasDebt
+                                    ? Colors.amber.withValues(alpha: 0.25)
+                                    : GraphiteTheme.cardBorder,
+                                width: 1,
                               ),
                             ),
                             child: InkWell(
-                              borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                              borderRadius: BorderRadius.circular(16),
                               onTap: () => _showKhataDetailsSheet(context, item),
                               child: Padding(
                                 padding: const EdgeInsets.all(AppTheme.spacingM),
@@ -215,10 +236,12 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                                     Row(
                                       children: [
                                         CircleAvatar(
-                                          backgroundColor: hasDebt ? Colors.amber.withValues(alpha: 0.15) : AppTheme.primaryBlue.withValues(alpha: 0.1),
+                                          backgroundColor: hasDebt
+                                              ? Colors.amber.withValues(alpha: 0.12)
+                                              : GraphiteTheme.platinumFaint,
                                           child: Icon(
                                             CupertinoIcons.person_fill,
-                                            color: hasDebt ? Colors.amber.shade800 : AppTheme.primaryBlue,
+                                            color: hasDebt ? Colors.amber : GraphiteTheme.platinum,
                                           ),
                                         ),
                                         const SizedBox(width: AppTheme.spacingM),
@@ -231,20 +254,21 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                                                   Expanded(
                                                     child: Text(
                                                       item.name,
-                                                      style: AppTheme.bodyLarge.copyWith(fontWeight: FontWeight.bold),
+                                                      style: GraphiteTheme.bodyStrong,
                                                     ),
                                                   ),
-                                                  const Icon(CupertinoIcons.chevron_right, size: 14, color: AppTheme.textSecondary),
+                                                  const Icon(CupertinoIcons.chevron_right, size: 14, color: GraphiteTheme.slateDim),
                                                 ],
                                               ),
                                               const SizedBox(height: 2),
                                               Text(
                                                 item.phone.isNotEmpty ? item.phone : 'No Phone Listed',
-                                                style: AppTheme.bodySmall.copyWith(color: AppTheme.textSecondary),
+                                                style: GraphiteTheme.body.copyWith(color: GraphiteTheme.slate, fontSize: 12),
                                               ),
+                                              const SizedBox(height: 2),
                                               Text(
                                                 'Loyalty Points: ${item.points}',
-                                                style: AppTheme.labelSmall.copyWith(color: AppTheme.primaryBlue),
+                                                style: GraphiteTheme.captionPlatinum.copyWith(fontSize: 10),
                                               ),
                                             ],
                                           ),
@@ -255,30 +279,41 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                                           children: [
                                             Text(
                                               'PKR ${item.balance.toStringAsFixed(0)}',
-                                              style: AppTheme.bodyLarge.copyWith(
-                                                color: hasDebt ? Colors.amber.shade900 : AppTheme.successGreen,
-                                                fontWeight: FontWeight.bold,
+                                              style: GraphiteTheme.metricValue.copyWith(
+                                                color: hasDebt ? Colors.amber : AppTheme.successGreen,
+                                                fontSize: 18,
                                               ),
                                             ),
-                                            Text(
-                                              hasDebt ? 'Udhaar Due' : 'Cleared',
-                                              style: AppTheme.labelSmall.copyWith(
-                                                color: hasDebt ? Colors.amber.shade800 : AppTheme.successGreen,
-                                                fontWeight: FontWeight.bold,
+                                            const SizedBox(height: 2),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: hasDebt
+                                                    ? Colors.amber.withValues(alpha: 0.12)
+                                                    : AppTheme.successGreen.withValues(alpha: 0.12),
+                                                borderRadius: BorderRadius.circular(10),
+                                              ),
+                                              child: Text(
+                                                hasDebt ? 'Udhaar Due' : 'Cleared',
+                                                style: TextStyle(
+                                                  color: hasDebt ? Colors.amber : AppTheme.successGreen,
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
                                               ),
                                             ),
                                           ],
                                         ),
                                       ],
                                     ),
-                                    const Divider(height: 16, color: AppTheme.borderColor),
+                                    const Divider(height: 16, color: GraphiteTheme.cardBorder),
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.end,
                                       children: [
                                         // WhatsApp Reminder button
                                         if (item.phone.isNotEmpty) ...[
                                           TextButton.icon(
-                                            icon: const Icon(CupertinoIcons.chat_bubble_2_fill, size: 16, color: Color(0xFF25D366)),
+                                            icon: const Icon(CupertinoIcons.chat_bubble_2_fill, size: 15, color: Color(0xFF25D366)),
                                             label: const Text('WhatsApp', style: TextStyle(color: Color(0xFF25D366), fontSize: 12, fontWeight: FontWeight.bold)),
                                             onPressed: () async {
                                               final success = await WhatsAppHelper.sendCustomerKhataReminder(customer: item);
@@ -294,21 +329,21 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                                         ],
                                         // Record Wasool / Udhaar button
                                         TextButton.icon(
-                                          icon: const Icon(CupertinoIcons.money_dollar_circle, size: 16, color: Colors.amber),
-                                          label: const Text('Loan Entry', style: TextStyle(color: Colors.amber, fontSize: 12, fontWeight: FontWeight.bold)),
+                                          icon: const Icon(CupertinoIcons.money_dollar_circle, size: 16, color: GraphiteTheme.platinum),
+                                          label: const Text('Loan Entry', style: TextStyle(color: GraphiteTheme.platinum, fontSize: 12, fontWeight: FontWeight.bold)),
                                           onPressed: () => _showKhataTransactionDialog(context, item),
                                         ),
                                         const SizedBox(width: 6),
                                         // Edit Customer button
                                         TextButton.icon(
-                                          icon: const Icon(CupertinoIcons.pencil, size: 16, color: AppTheme.primaryCyan),
-                                          label: const Text('Edit', style: TextStyle(color: AppTheme.primaryCyan, fontSize: 12)),
+                                          icon: const Icon(CupertinoIcons.pencil, size: 15, color: GraphiteTheme.slate),
+                                          label: const Text('Edit', style: TextStyle(color: GraphiteTheme.slate, fontSize: 12)),
                                           onPressed: () => _showCustomerDialog(context, item),
                                         ),
-                                        const SizedBox(width: 6),
+                                        const SizedBox(width: 4),
                                         // Delete button
                                         IconButton(
-                                          icon: const Icon(CupertinoIcons.trash, size: 16, color: AppTheme.errorRed),
+                                          icon: const Icon(CupertinoIcons.trash, size: 15, color: GraphiteTheme.errorRed),
                                           onPressed: () => _confirmDeleteCustomer(context, item),
                                           tooltip: 'Delete',
                                           padding: EdgeInsets.zero,

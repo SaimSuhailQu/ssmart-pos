@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
+import 'package:ssmart_pos_admin/core/theme/graphite_theme.dart';
 import 'package:ssmart_pos_admin/core/utils/date_utils.dart';
 import 'package:ssmart_pos_admin/core/utils/whatsapp_helper.dart';
 import 'package:ssmart_pos_admin/core/widgets/app_error_widget.dart';
@@ -77,16 +78,16 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
     final firebaseService = context.read<FirebaseService>();
 
     return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
+      backgroundColor: GraphiteTheme.screenBase,
       appBar: AppBar(
         title: const Text('Vendors & Purchase Orders'),
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
           tabAlignment: TabAlignment.start,
-          indicatorColor: Colors.purpleAccent,
-          labelColor: Colors.purpleAccent,
-          unselectedLabelColor: AppTheme.textSecondary,
+          indicatorColor: GraphiteTheme.platinum,
+          labelColor: GraphiteTheme.platinum,
+          unselectedLabelColor: GraphiteTheme.slate,
           labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
           tabs: const [
             Tab(icon: Icon(CupertinoIcons.doc_text_fill, size: 18), text: 'Purchase Orders'),
@@ -97,7 +98,7 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
         ),
         actions: [
           IconButton(
-            icon: const Icon(CupertinoIcons.plus_circle_fill, color: Colors.purpleAccent),
+            icon: const Icon(CupertinoIcons.plus_circle_fill, color: GraphiteTheme.platinum),
             tooltip: 'Add',
             onPressed: () {
               if (_tabController.index == 0) {
@@ -110,20 +111,35 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
         ],
       ),
       floatingActionButton: (_tabController.index == 0 || _tabController.index == 1)
-          ? FloatingActionButton.extended(
-              backgroundColor: Colors.purple.shade700,
-              icon: const Icon(CupertinoIcons.plus, color: Colors.white),
-              label: Text(
-                _tabController.index == 0 ? 'New Purchase Order' : 'Add New Vendor',
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ? Container(
+              decoration: GraphiteTheme.primaryButtonDecoration,
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(14),
+                  onTap: () {
+                    if (_tabController.index == 0) {
+                      _showAddEditPODialog(context);
+                    } else {
+                      _showAddEditVendorDialog(context);
+                    }
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(CupertinoIcons.plus, color: GraphiteTheme.graphiteDeep, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          _tabController.index == 0 ? 'New Purchase Order' : 'Add New Vendor',
+                          style: GraphiteTheme.primaryButtonText.copyWith(fontSize: 14),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
-              onPressed: () {
-                if (_tabController.index == 0) {
-                  _showAddEditPODialog(context);
-                } else {
-                  _showAddEditVendorDialog(context);
-                }
-              },
             )
           : null,
       body: TabBarView(
@@ -190,15 +206,11 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
           onRefresh: () async => setState(() {}),
           child: Column(
             children: [
-              // Summary KPI Header
+              // Summary KPI Header — Noir Graphite Card
               Container(
                 margin: const EdgeInsets.fromLTRB(AppTheme.spacingM, AppTheme.spacingM, AppTheme.spacingM, 0),
                 padding: const EdgeInsets.all(AppTheme.spacingM),
-                decoration: BoxDecoration(
-                  color: AppTheme.cardBackground,
-                  borderRadius: BorderRadius.circular(AppTheme.radiusL),
-                  border: Border.all(color: Colors.purple.withValues(alpha: 0.3)),
-                ),
+                decoration: GraphiteTheme.platinumCardDecoration,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -206,31 +218,39 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Total Vendor Payable Due',
-                          style: AppTheme.labelMedium.copyWith(color: AppTheme.textSecondary),
+                          'TOTAL VENDOR PAYABLE DUE',
+                          style: GraphiteTheme.eyebrow,
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'PKR ${totalPayable.toStringAsFixed(0)}',
-                          style: AppTheme.headlineLarge.copyWith(
-                            color: totalPayable > 0 ? Colors.redAccent : AppTheme.successGreen,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        const SizedBox(height: 6),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            Text('PKR ', style: GraphiteTheme.heroCurrency),
+                            Text(
+                              totalPayable.toStringAsFixed(0),
+                              style: GraphiteTheme.heroAmount.copyWith(
+                                fontSize: 32,
+                                color: totalPayable > 0 ? GraphiteTheme.errorRed : GraphiteTheme.platinumLight,
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 4),
                         Text(
                           'Paid: PKR ${totalPaid.toStringAsFixed(0)} • Pending Fulfillment: $pendingCount',
-                          style: const TextStyle(color: Colors.white70, fontSize: 11),
+                          style: GraphiteTheme.body.copyWith(color: GraphiteTheme.slate, fontSize: 11),
                         ),
                       ],
                     ),
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.purple.withValues(alpha: 0.15),
+                        color: GraphiteTheme.platinumFaint,
                         borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                        border: Border.all(color: GraphiteTheme.cardBorder),
                       ),
-                      child: const Icon(CupertinoIcons.cube_box_fill, color: Colors.purpleAccent, size: 30),
+                      child: const Icon(CupertinoIcons.cube_box_fill, color: GraphiteTheme.platinum, size: 28),
                     ),
                   ],
                 ),
@@ -324,16 +344,16 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
       child: FilterChip(
         label: Text(label),
         selected: isSelected,
-        selectedColor: Colors.purple.withValues(alpha: 0.3),
-        backgroundColor: AppTheme.cardBackground,
+        selectedColor: GraphiteTheme.platinum,
+        backgroundColor: GraphiteTheme.cardSurface,
         labelStyle: TextStyle(
-          color: isSelected ? Colors.purpleAccent : Colors.white70,
+          color: isSelected ? GraphiteTheme.graphiteDeep : GraphiteTheme.slate,
           fontSize: 11,
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: isSelected ? Colors.purpleAccent : AppTheme.borderColor),
+          side: BorderSide(color: isSelected ? GraphiteTheme.platinum : GraphiteTheme.cardBorder),
         ),
         onSelected: (val) {
           setState(() => _poFilter = filterKey);
@@ -347,12 +367,12 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
 
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.cardBackground,
-        borderRadius: BorderRadius.circular(AppTheme.radiusM),
-        border: Border.all(color: AppTheme.borderColor),
+        color: GraphiteTheme.graphiteCard,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: GraphiteTheme.cardBorder),
       ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(AppTheme.radiusM),
+        borderRadius: BorderRadius.circular(16),
         onTap: () => _showPODetailsSheet(context, po),
         child: Padding(
           padding: const EdgeInsets.all(AppTheme.spacingM),
@@ -368,12 +388,12 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                         Flexible(
                           child: Text(
                             po.vendorName,
-                            style: AppTheme.bodyLarge.copyWith(fontWeight: FontWeight.bold),
+                            style: GraphiteTheme.bodyStrong,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         const SizedBox(width: 6),
-                        const Icon(CupertinoIcons.chevron_right, size: 14, color: AppTheme.textSecondary),
+                        const Icon(CupertinoIcons.chevron_right, size: 14, color: GraphiteTheme.slateDim),
                       ],
                     ),
                   ),
@@ -381,11 +401,11 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                     children: [
                       // Status chip (Pending / Received)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                         margin: const EdgeInsets.only(right: 4),
                         decoration: BoxDecoration(
                           color: po.isReceived ? Colors.teal.withValues(alpha: 0.15) : Colors.orange.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(AppTheme.radiusS),
+                          borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
                           po.status.toUpperCase(),
@@ -398,17 +418,17 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                       ),
                       // Payment chip
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                         decoration: BoxDecoration(
-                          color: isCleared ? Colors.green.withValues(alpha: 0.15) : Colors.red.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(AppTheme.radiusS),
+                          color: isCleared ? AppTheme.successGreen.withValues(alpha: 0.15) : GraphiteTheme.errorRed.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
                           isCleared ? 'PAID' : (po.paidAmount > 0 ? 'PARTIAL' : 'UNPAID'),
                           style: TextStyle(
                             fontSize: 9,
                             fontWeight: FontWeight.bold,
-                            color: isCleared ? Colors.greenAccent : Colors.redAccent,
+                            color: isCleared ? AppTheme.successGreen : GraphiteTheme.errorRed,
                           ),
                         ),
                       ),
@@ -422,15 +442,16 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: AppTheme.surfaceDark.withValues(alpha: 0.5),
+                  color: GraphiteTheme.cardSurface,
                   borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: GraphiteTheme.cardBorder),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _buildAmountColumn('Total Billed', 'PKR ${po.totalCost.toStringAsFixed(0)}', Colors.white),
+                    _buildAmountColumn('Total Billed', 'PKR ${po.totalCost.toStringAsFixed(0)}', GraphiteTheme.ink),
                     _buildAmountColumn('Paid', 'PKR ${po.paidAmount.toStringAsFixed(0)}', AppTheme.successGreen),
-                    _buildAmountColumn('Balance Due', 'PKR ${po.balanceDue.toStringAsFixed(0)}', isCleared ? AppTheme.successGreen : Colors.redAccent, isBold: true),
+                    _buildAmountColumn('Balance Due', 'PKR ${po.balanceDue.toStringAsFixed(0)}', isCleared ? AppTheme.successGreen : GraphiteTheme.errorRed, isBold: true),
                   ],
                 ),
               ),
@@ -439,7 +460,7 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                 const SizedBox(height: 6),
                 Text(
                   po.notes,
-                  style: const TextStyle(color: Colors.white70, fontSize: 11, fontStyle: FontStyle.italic),
+                  style: const TextStyle(color: GraphiteTheme.slate, fontSize: 11, fontStyle: FontStyle.italic),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -451,17 +472,17 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                 children: [
                   Text(
                     AppDateUtils.formatDateTime(po.timestamp),
-                    style: AppTheme.labelSmall.copyWith(color: AppTheme.textSecondary, fontSize: 10),
+                    style: GraphiteTheme.body.copyWith(color: GraphiteTheme.slateDim, fontSize: 10),
                   ),
                   if (po.items.isNotEmpty)
                     Text(
                       '${po.items.length} items',
-                      style: const TextStyle(color: Colors.purpleAccent, fontSize: 10, fontWeight: FontWeight.w600),
+                      style: GraphiteTheme.captionPlatinum.copyWith(fontSize: 10),
                     ),
                 ],
               ),
 
-              const Divider(height: 14, color: AppTheme.borderColor),
+              const Divider(height: 14, color: GraphiteTheme.cardBorder),
 
               // Actions Row
               Row(
@@ -478,8 +499,8 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                   ],
                   TextButton.icon(
                     style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4)),
-                    icon: const Icon(CupertinoIcons.money_dollar, size: 15, color: AppTheme.primaryTeal),
-                    label: const Text('Pay', style: TextStyle(color: AppTheme.primaryTeal, fontSize: 11, fontWeight: FontWeight.bold)),
+                    icon: const Icon(CupertinoIcons.money_dollar, size: 15, color: GraphiteTheme.platinum),
+                    label: const Text('Pay', style: TextStyle(color: GraphiteTheme.platinum, fontSize: 11, fontWeight: FontWeight.bold)),
                     onPressed: () => _showPODetailsSheet(context, po),
                   ),
                   Builder(
@@ -495,13 +516,13 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                           children: [
                             TextButton.icon(
                               style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4)),
-                              icon: const Icon(CupertinoIcons.pencil, size: 14, color: Colors.purpleAccent),
-                              label: Text('Edit (${poRemainingMins}m)', style: const TextStyle(color: Colors.purpleAccent, fontSize: 11)),
+                              icon: const Icon(CupertinoIcons.pencil, size: 14, color: GraphiteTheme.slate),
+                              label: Text('Edit (${poRemainingMins}m)', style: const TextStyle(color: GraphiteTheme.slate, fontSize: 11)),
                               onPressed: () => _showAddEditPODialog(context, po: po),
                             ),
                             const SizedBox(width: 4),
                             IconButton(
-                              icon: const Icon(CupertinoIcons.trash, size: 16, color: AppTheme.errorRed),
+                              icon: const Icon(CupertinoIcons.trash, size: 16, color: GraphiteTheme.errorRed),
                               tooltip: 'Undo / Delete PO (${poRemainingMins}m left)',
                               onPressed: () => _confirmDeletePO(context, po),
                               padding: EdgeInsets.zero,

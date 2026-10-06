@@ -2,12 +2,13 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
+import 'package:ssmart_pos_admin/core/theme/graphite_theme.dart';
 import 'package:ssmart_pos_admin/core/utils/date_utils.dart';
-import 'package:ssmart_pos_admin/core/widgets/glass_card.dart';
+import 'package:ssmart_pos_admin/core/widgets/app_error_widget.dart';
+import 'package:ssmart_pos_admin/core/widgets/app_loading_indicator.dart';
+import 'package:ssmart_pos_admin/core/widgets/liquid_scaffold.dart';
 import 'package:ssmart_pos_admin/models/expense.dart';
 import 'package:ssmart_pos_admin/services/firebase_service.dart';
-import 'package:ssmart_pos_admin/widgets/error_widget.dart';
-import 'package:ssmart_pos_admin/widgets/loading_indicator.dart';
 
 class ExpensesScreen extends StatefulWidget {
   const ExpensesScreen({super.key});
@@ -31,23 +32,38 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   Widget build(BuildContext context) {
     final firebaseService = context.read<FirebaseService>();
 
-    return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
+    return LiquidScaffold(
+      graphiteAmbience: true,
       appBar: AppBar(
         title: const Text('Expense Counter'),
         actions: [
           IconButton(
-            icon: const Icon(CupertinoIcons.add_circled, color: Colors.redAccent),
+            icon: const Icon(CupertinoIcons.add_circled, color: GraphiteTheme.platinum),
             tooltip: 'Log Expense',
             onPressed: () => _showAddExpenseDialog(context),
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: Colors.redAccent,
-        icon: const Icon(CupertinoIcons.plus, color: Colors.white),
-        label: const Text('Log Expense', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        onPressed: () => _showAddExpenseDialog(context),
+      floatingActionButton: Container(
+        decoration: GraphiteTheme.primaryButtonDecoration,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: () => _showAddExpenseDialog(context),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(CupertinoIcons.plus, color: GraphiteTheme.graphiteDeep, size: 20),
+                  const SizedBox(width: 8),
+                  Text('Log Expense', style: GraphiteTheme.primaryButtonText.copyWith(fontSize: 14)),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
       body: StreamBuilder<List<ExpenseModel>>(
         initialData: firebaseService.cachedExpenses,
@@ -89,13 +105,11 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
 
           return Column(
             children: [
-              // Summary Header              // Metric Card with Frosted Glass & Overflow Protection
-              GlassCard(
+              // Hero Summary Header — Noir Graphite Card
+              Container(
                 margin: const EdgeInsets.all(AppTheme.spacingM),
                 padding: const EdgeInsets.all(AppTheme.spacingL),
-                borderColor: Colors.redAccent.withValues(alpha: 0.35),
-                enableGlow: true,
-                glowColor: Colors.redAccent,
+                decoration: GraphiteTheme.platinumCardDecoration,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -104,21 +118,28 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            _searchQuery.isNotEmpty || _selectedCategory != 'ALL' ? 'Filtered Expenses' : 'Total Expenses',
-                            style: AppTheme.labelMedium.copyWith(color: AppTheme.textSecondary),
+                            (_searchQuery.isNotEmpty || _selectedCategory != 'ALL' ? 'FILTERED EXPENSES' : 'TOTAL EXPENSES').toUpperCase(),
+                            style: GraphiteTheme.eyebrow,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 6),
                           FittedBox(
                             fit: BoxFit.scaleDown,
                             alignment: Alignment.centerLeft,
-                            child: Text(
-                              'PKR ${(_searchQuery.isNotEmpty || _selectedCategory != 'ALL' ? filteredTotal : totalExpenses).toStringAsFixed(0)}',
-                              style: AppTheme.headlineLarge.copyWith(
-                                color: Colors.redAccent,
-                                fontWeight: FontWeight.bold,
-                              ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.baseline,
+                              textBaseline: TextBaseline.alphabetic,
+                              children: [
+                                Text('PKR ', style: GraphiteTheme.heroCurrency),
+                                Text(
+                                  (_searchQuery.isNotEmpty || _selectedCategory != 'ALL' ? filteredTotal : totalExpenses).toStringAsFixed(0),
+                                  style: GraphiteTheme.heroAmount.copyWith(
+                                    fontSize: 36,
+                                    color: GraphiteTheme.errorRed,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
@@ -128,11 +149,11 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.red.withValues(alpha: 0.15),
+                        color: GraphiteTheme.platinumFaint,
                         borderRadius: BorderRadius.circular(AppTheme.radiusM),
-                        border: Border.all(color: Colors.redAccent.withValues(alpha: 0.2)),
+                        border: Border.all(color: GraphiteTheme.cardBorder),
                       ),
-                      child: const Icon(CupertinoIcons.money_dollar_circle_fill, color: Colors.redAccent, size: 28),
+                      child: const Icon(CupertinoIcons.money_dollar_circle_fill, color: GraphiteTheme.errorRed, size: 28),
                     ),
                   ],
                 ),
@@ -182,10 +203,18 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                         final cat = categories[idx];
                         final isSel = _selectedCategory.toLowerCase() == cat.toLowerCase();
                         return ChoiceChip(
-                          label: Text(cat, style: TextStyle(fontSize: 12, color: isSel ? Colors.white : AppTheme.textSecondary)),
+                          label: Text(
+                            cat,
+                            style: GraphiteTheme.pillText(filled: isSel).copyWith(
+                              color: isSel ? GraphiteTheme.graphiteDeep : GraphiteTheme.slate,
+                            ),
+                          ),
                           selected: isSel,
-                          selectedColor: Colors.redAccent,
-                          backgroundColor: AppTheme.cardBackground,
+                          selectedColor: GraphiteTheme.platinum,
+                          backgroundColor: GraphiteTheme.cardSurface,
+                          side: BorderSide(
+                            color: isSel ? GraphiteTheme.platinum : GraphiteTheme.cardBorder,
+                          ),
                           onSelected: (_) => setState(() => _selectedCategory = cat),
                         );
                       },
@@ -199,7 +228,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                     ? Center(
                         child: Text(
                           allExpenses.isEmpty ? 'No expenses logged yet.' : 'No expenses match your search.',
-                          style: const TextStyle(color: AppTheme.textSecondary),
+                          style: const TextStyle(color: GraphiteTheme.slate),
                         ),
                       )
                     : ListView.separated(
@@ -217,19 +246,19 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                           return Container(
                             padding: const EdgeInsets.all(AppTheme.spacingM),
                             decoration: BoxDecoration(
-                              color: AppTheme.cardBackground,
-                              borderRadius: BorderRadius.circular(AppTheme.radiusM),
-                              border: Border.all(color: AppTheme.borderColor),
+                              color: GraphiteTheme.graphiteCard,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: GraphiteTheme.cardBorder),
                             ),
                             child: Row(
                               children: [
                                 Container(
                                   padding: const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
-                                    color: Colors.red.withValues(alpha: 0.1),
+                                    color: GraphiteTheme.platinumFaint,
                                     shape: BoxShape.circle,
                                   ),
-                                  child: const Icon(CupertinoIcons.arrow_down_right, color: Colors.redAccent, size: 20),
+                                  child: const Icon(CupertinoIcons.arrow_down_right, color: GraphiteTheme.errorRed, size: 20),
                                 ),
                                 const SizedBox(width: AppTheme.spacingM),
                                 Expanded(
@@ -238,7 +267,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                                     children: [
                                       Text(
                                         expense.description,
-                                        style: AppTheme.titleMedium.copyWith(fontWeight: FontWeight.bold),
+                                        style: GraphiteTheme.bodyStrong,
                                       ),
                                       const SizedBox(height: 2),
                                       Row(
@@ -246,18 +275,19 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                                           Container(
                                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                             decoration: BoxDecoration(
-                                              color: Colors.white10,
+                                              color: GraphiteTheme.cardSurface,
+                                              border: Border.all(color: GraphiteTheme.cardBorder),
                                               borderRadius: BorderRadius.circular(4),
                                             ),
                                             child: Text(
                                               expense.category,
-                                              style: const TextStyle(color: Colors.white70, fontSize: 10),
+                                              style: GraphiteTheme.captionPlatinum.copyWith(fontSize: 10),
                                             ),
                                           ),
                                           const SizedBox(width: 8),
                                           Text(
                                             formattedDate,
-                                            style: AppTheme.bodySmall.copyWith(color: AppTheme.textTertiary),
+                                            style: GraphiteTheme.body.copyWith(color: GraphiteTheme.slateDim, fontSize: 11),
                                           ),
                                         ],
                                       ),
@@ -269,13 +299,13 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                                   children: [
                                     Text(
                                       'PKR ${expense.amount.toStringAsFixed(0)}',
-                                      style: AppTheme.titleMedium.copyWith(
-                                        color: Colors.redAccent,
-                                        fontWeight: FontWeight.bold,
+                                      style: GraphiteTheme.metricValue.copyWith(
+                                        color: GraphiteTheme.errorRed,
+                                        fontSize: 16,
                                       ),
                                     ),
                                     IconButton(
-                                      icon: const Icon(CupertinoIcons.trash, color: AppTheme.textTertiary, size: 18),
+                                      icon: const Icon(CupertinoIcons.trash, color: GraphiteTheme.slateDim, size: 18),
                                       onPressed: () => _confirmDeleteExpense(context, expense),
                                     ),
                                   ],
@@ -322,10 +352,10 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                 children: [
                   Text(
                     'Log Business Expense',
-                    style: AppTheme.headlineMedium.copyWith(color: Colors.redAccent),
+                    style: GraphiteTheme.bodyStrong.copyWith(fontSize: 18),
                   ),
                   IconButton(
-                    icon: const Icon(CupertinoIcons.xmark_circle, color: AppTheme.textSecondary),
+                    icon: const Icon(CupertinoIcons.xmark_circle, color: GraphiteTheme.slate),
                     onPressed: () => Navigator.pop(ctx),
                   ),
                 ],
@@ -352,44 +382,46 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                 decoration: const InputDecoration(labelText: 'Category (e.g. Rent, Utilities, Refreshments)', prefixIcon: Icon(CupertinoIcons.folder)),
               ),
               const SizedBox(height: 24),
-              SizedBox(
+              Container(
                 width: double.infinity,
                 height: 48,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.redAccent,
-                    foregroundColor: Colors.white,
-                  ),
-                  icon: const Icon(CupertinoIcons.checkmark_alt),
-                  label: const Text('Record Expense', style: TextStyle(fontWeight: FontWeight.bold)),
-                  onPressed: () async {
-                    final amount = double.tryParse(amountCtrl.text.trim()) ?? 0;
-                    final desc = descCtrl.text.trim();
-                    final cat = catCtrl.text.trim().isEmpty ? 'General' : catCtrl.text.trim();
+                decoration: GraphiteTheme.primaryButtonDecoration,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(14),
+                    onTap: () async {
+                      final amount = double.tryParse(amountCtrl.text.trim()) ?? 0;
+                      final desc = descCtrl.text.trim();
+                      final cat = catCtrl.text.trim().isEmpty ? 'General' : catCtrl.text.trim();
 
-                    if (amount <= 0 || desc.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Please enter an amount and description')),
+                      if (amount <= 0 || desc.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Please enter an amount and description')),
+                        );
+                        return;
+                      }
+
+                      Navigator.pop(ctx);
+                      await context.read<FirebaseService>().addExpense(
+                        amount: amount,
+                        description: desc,
+                        category: cat,
+                        loggedBy: 'Mobile Admin',
                       );
-                      return;
-                    }
 
-                    Navigator.pop(ctx);
-                    await context.read<FirebaseService>().addExpense(
-                      amount: amount,
-                      description: desc,
-                      category: cat,
-                      loggedBy: 'Mobile Admin',
-                    );
-
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Expense recorded successfully!'),
-                        backgroundColor: Colors.redAccent,
-                      ),
-                    );
-                  },
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Expense recorded successfully!'),
+                          backgroundColor: GraphiteTheme.graphiteCard,
+                        ),
+                      );
+                    },
+                    child: Center(
+                      child: Text('Record Expense', style: GraphiteTheme.primaryButtonText),
+                    ),
+                  ),
                 ),
               ),
             ],

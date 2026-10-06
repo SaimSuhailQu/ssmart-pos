@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
+import 'package:ssmart_pos_admin/core/theme/graphite_theme.dart';
 import 'package:ssmart_pos_admin/core/utils/currency_formatter.dart';
 import 'package:ssmart_pos_admin/core/widgets/app_error_widget.dart';
 import 'package:ssmart_pos_admin/core/widgets/app_loading_indicator.dart';
@@ -87,7 +88,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
     final firebaseService = context.read<FirebaseService>();
 
     return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
+      backgroundColor: GraphiteTheme.screenBase,
       appBar: AppBar(
         title: const Text('Items Catalog'),
         leading: IconButton(
@@ -96,17 +97,32 @@ class _CatalogScreenState extends State<CatalogScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(CupertinoIcons.add_circled, color: AppTheme.primaryTeal),
+            icon: const Icon(CupertinoIcons.add_circled, color: GraphiteTheme.platinum),
             tooltip: 'Add New Item',
             onPressed: () => _showProductDialog(context, null),
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: AppTheme.primaryTeal,
-        icon: const Icon(CupertinoIcons.plus, color: Colors.black),
-        label: const Text('Add Product', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-        onPressed: () => _showProductDialog(context, null),
+      floatingActionButton: Container(
+        decoration: GraphiteTheme.primaryButtonDecoration,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: () => _showProductDialog(context, null),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(CupertinoIcons.plus, color: GraphiteTheme.graphiteDeep, size: 20),
+                  const SizedBox(width: 8),
+                  Text('Add Product', style: GraphiteTheme.primaryButtonText.copyWith(fontSize: 14)),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
       body: StreamBuilder<List<Product>>(
         initialData: firebaseService.cachedProducts,
@@ -651,16 +667,13 @@ class _ProductCatalogCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: AppTheme.secondaryPurple.withValues(alpha: 0.1),
+                    color: GraphiteTheme.platinumFaint,
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: AppTheme.secondaryPurple.withValues(alpha: 0.25), width: 0.5),
+                    border: Border.all(color: GraphiteTheme.cardBorder, width: 0.5),
                   ),
                   child: Text(
                     product.category,
-                    style: AppTheme.labelSmall.copyWith(
-                      color: AppTheme.secondaryPurple,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: GraphiteTheme.captionPlatinum.copyWith(fontSize: 10),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -688,9 +701,10 @@ class _ProductCatalogCard extends StatelessWidget {
                       const SizedBox(width: 6),
                       Text(
                         '${product.stock} ($stockLabel)',
-                        style: AppTheme.labelSmall.copyWith(
+                        style: TextStyle(
                           color: stockColor,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ],
@@ -699,7 +713,7 @@ class _ProductCatalogCard extends StatelessWidget {
                 const Spacer(),
                 // Edit button
                 IconButton(
-                  icon: const Icon(CupertinoIcons.pencil, size: 18, color: AppTheme.primaryCyan),
+                  icon: const Icon(CupertinoIcons.pencil, size: 18, color: GraphiteTheme.slate),
                   onPressed: onEdit,
                   tooltip: 'Edit Item',
                   padding: EdgeInsets.zero,
@@ -708,7 +722,7 @@ class _ProductCatalogCard extends StatelessWidget {
                 const SizedBox(width: 12),
                 // Delete button
                 IconButton(
-                  icon: const Icon(CupertinoIcons.trash, size: 18, color: AppTheme.errorRed),
+                  icon: const Icon(CupertinoIcons.trash, size: 18, color: GraphiteTheme.errorRed),
                   onPressed: onDelete,
                   tooltip: 'Delete Item',
                   padding: EdgeInsets.zero,
@@ -721,7 +735,7 @@ class _ProductCatalogCard extends StatelessWidget {
             // Row 2: Product Name
             Text(
               product.name,
-              style: AppTheme.titleMedium.copyWith(color: AppTheme.textPrimary),
+              style: GraphiteTheme.bodyStrong,
             ),
             const SizedBox(height: AppTheme.spacingXS),
 
