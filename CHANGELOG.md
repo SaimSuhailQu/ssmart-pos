@@ -4,6 +4,15 @@ All notable changes to SSmart POS are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [2.3.2] — 2026-10-06
+
+Maintenance and autoupdate release for desktop POS and mobile admin app.
+
+### Changed
+- **Mobile Admin:** Google Sign-In and Email authentication for master admin app (`saim.suhail.5@gmail.com`).
+- **Mobile Admin:** Code quality enhancements and trailing comma linter compliance across screens.
+- **Desktop POS:** Synchronized release artifacts for desktop autoupdate engine.
+
 ## [2.3.1] — 2026-10-06
 
 Server-side access control: every sync device now identifies itself to
