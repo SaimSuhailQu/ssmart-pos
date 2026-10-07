@@ -4,6 +4,19 @@ All notable changes to SSmart POS are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [2.4.1] — 2026-10-07
+
+Semantic color system for the mobile admin app: green means good, red means bad — across the whole app. Reverts the v2.4.0 all-text-red direction; Noir Graphite stays.
+
+### Fixed (mobile admin app)
+- **Red accent no longer works against the theme:** `AppTheme` / `GraphiteTheme` text styles are monochrome again (platinum/ink/slate); the `textRed` family consts are removed.
+- **Green = good, red = bad:** revenue/collection hero numerals render green when money is in (platinum at zero); dues, payables, udhaar, expenses out, and negative deltas render red; neutral chrome stays platinum.
+- **Dashboard delta indicators:** new `DeltaDirection` (up/down/flat/none) — positive deltas green ▲, negative red ▼, exactly 0.0% neutral gray •, and plain captions (e.g. "completed today") no longer show a fake arrow. Fixed a double-arrow rendering bug on the revenue card.
+- **Currency unified:** dashboard hero, metric card, sales chart, and khata hero all use PKR.
+
+### Release engineering
+- Bumped version to 2.4.1 (desktop `package.json`), 2.4.1+38 (mobile `pubspec.yaml`), and updated LiveContainer source feed to v2.4.1.
+
 ## [2.4.0] — 2026-10-07
 
 Crimson editorial theme, Customer Khata correctness fixes, and record delete/edit reliability pass.
