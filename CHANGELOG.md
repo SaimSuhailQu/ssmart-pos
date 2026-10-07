@@ -4,6 +4,14 @@ All notable changes to SSmart POS are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [2.4.6] — 2026-10-07
+
+### Fixed (mobile admin app)
+- **Swipe-back gesture now works on every screen.** The edge-swipe recognizer was losing the gesture arena to inner horizontal scrollers (the tab view on Vendors, swipeable rows on Catalog). A narrow exclusive edge strip now catches the gesture before anything beneath can steal it.
+
+### Release engineering
+- Bumped version to 2.4.6 (desktop `package.json`), 2.4.6+43 (mobile `pubspec.yaml`), and updated LiveContainer source feed to v2.4.6.
+
 ## [2.4.5] — 2026-10-07
 
 Hotfix for the v2.4.4 iOS build.
