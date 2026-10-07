@@ -4,6 +4,15 @@ All notable changes to SSmart POS are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [2.4.8] — 2026-10-07
+
+### Fixed (mobile admin app)
+- **Swipe action colors:** the Edit/Details row actions were rendering as broken-looking white pills because they used `primaryTeal`, which is near-white platinum in the Noir Graphite theme. They now use a proper iOS action blue.
+- **Swipeable rows** snap closed reliably on drag cancel.
+
+### Release engineering
+- Bumped version to 2.4.8 (desktop `package.json`), 2.4.8+45 (mobile `pubspec.yaml`), and updated LiveContainer source feed to v2.4.8.
+
 ## [2.4.7] — 2026-10-07
 
 ### Fixed (mobile admin app)

@@ -10,10 +10,10 @@
       "name": "SSmart POS Admin",
       "bundleIdentifier": "com.ssmartpos",
       "developerName": "SSmart POS",
-      "version": "2.4.7",
-      "versionDate": "2026-10-07T12:10:00Z",
-      "versionDescription": "SSmart POS v2.4.7 — daily closings screen: overlapping add buttons removed, clipped card button fixed.",
-      "downloadURL": "https://github.com/SaimSuhailQu/ssmart-pos/releases/download/v2.4.7/ssmartpos.ipa",
+      "version": "2.4.8",
+      "versionDate": "2026-10-07T13:15:00Z",
+      "versionDescription": "SSmart POS v2.4.8 — swipe actions now render in proper colors; rows snap reliably.",
+      "downloadURL": "https://github.com/SaimSuhailQu/ssmart-pos/releases/download/v2.4.8/ssmartpos.ipa",
       "localizedDescription": "SSmart POS iOS Admin & Management Dashboard. Real-time sales analytics, product catalog, mobile checkout billing, and daily closing sales ledger.",
       "iconURL": "https://raw.githubusercontent.com/SaimSuhailQu/ssmart-pos/main/flutter_admin_app/assets/images/ss_mart_logo.png",
       "tintColor": "E63946",
@@ -24,6 +24,15 @@
     }
   ],
   "news": [
+    {
+      "title": "SSmart POS v2.4.8 Released!",
+      "identifier": "release-v2.4.8",
+      "caption": "SSmart POS v2.4.8 Update — swipe action colors fixed",
+      "date": "2026-10-07",
+      "tintColor": "E63946",
+      "appID": "com.ssmartpos",
+      "notify": true
+    },
     {
       "title": "SSmart POS v2.4.7 Released!",
       "identifier": "release-v2.4.7",
