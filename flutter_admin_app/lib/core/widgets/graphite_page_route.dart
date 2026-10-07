@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 /// The app-wide page transition: a quick fade with a subtle rise + settle,
@@ -47,10 +48,109 @@ Future<T?> graphitePush<T>(BuildContext context, Widget screen) {
   );
 }
 
+/// Recognizer for the edge-swipe-back gesture.
+///
+/// A plain [GestureDetector] drag recognizer loses the gesture arena to
+/// inner horizontal scrollers (e.g. a [TabBarView], as on the Vendors
+/// screen) because the inner recognizer joins the arena first. This
+/// recognizer instead claims the gesture on the first clearly-horizontal
+/// move that starts inside the edge zone — before any inner scroller's
+/// touch slop is reached — so the back swipe always wins at the edge,
+/// exactly like iOS.
+///
+/// Taps and vertical scrolls are never stolen: with no significant
+/// movement the gesture stays undecided (taps complete normally), and
+/// predominantly vertical movement rejects immediately, handing the
+/// gesture to the underlying scrollable.
+class _EdgeSwipeGestureRecognizer extends OneSequenceGestureRecognizer {
+  _EdgeSwipeGestureRecognizer({required this.edgeWidth});
+
+  final double edgeWidth;
+
+  bool Function()? canStart;
+  VoidCallback? onStart;
+  GestureDragUpdateCallback? onUpdate;
+  GestureDragEndCallback? onEnd;
+
+  Offset? _downPosition;
+  Offset? _lastPosition;
+  bool _claimed = false;
+  final VelocityTracker _velocityTracker =
+      VelocityTracker.withKind(PointerDeviceKind.touch);
+
+  @override
+  void addAllowedPointer(PointerDownEvent event) {
+    _downPosition = event.position;
+    _lastPosition = event.position;
+    _claimed = false;
+    startTrackingPointer(event.pointer, event.transform);
+    _velocityTracker.addPosition(event.timeStamp, event.position);
+  }
+
+  @override
+  void handleEvent(PointerEvent event) {
+    if (event is PointerMoveEvent) {
+      _velocityTracker.addPosition(event.timeStamp, event.position);
+      final down = _downPosition;
+      if (down != null &&
+          !_claimed &&
+          state == GestureRecognizerState.possible) {
+        final dx = event.position.dx - down.dx;
+        final dy = (event.position.dy - down.dy).abs();
+        final inEdge = down.dx < edgeWidth;
+        if (inEdge && dx > 4 && dx > dy * 1.5 && (canStart?.call() ?? true)) {
+          _claimed = true;
+          resolve(GestureDisposition.accepted);
+        } else if (!inEdge || dy > 8 || dx < -12) {
+          resolve(GestureDisposition.rejected);
+        }
+        // Otherwise: ambiguous micro-movement — stay undecided so taps
+        // and tiny jitter are never stolen.
+      } else if (_claimed) {
+        final last = _lastPosition ?? event.position;
+        onUpdate?.call(DragUpdateDetails(
+          sourceTimeStamp: event.timeStamp,
+          delta: event.position - last,
+          primaryDelta: event.position.dx - last.dx,
+          globalPosition: event.position,
+        ));
+      }
+      _lastPosition = event.position;
+    } else if (event is PointerUpEvent || event is PointerCancelEvent) {
+      if (_claimed) {
+        final velocity = _velocityTracker.getVelocity().pixelsPerSecond.dx;
+        onEnd?.call(DragEndDetails(primaryVelocity: velocity));
+      } else if (state == GestureRecognizerState.possible) {
+        resolve(GestureDisposition.rejected);
+      }
+      stopTrackingPointer(event.pointer);
+      _downPosition = null;
+      _lastPosition = null;
+      _claimed = false;
+    }
+  }
+
+  @override
+  void acceptGesture(int pointer) {
+    onStart?.call();
+  }
+
+  @override
+  void rejectGesture(int pointer) {
+    stopTrackingPointer(pointer);
+    _downPosition = null;
+    _lastPosition = null;
+    _claimed = false;
+  }
+
+  @override
+  String get debugDescription => 'edge swipe back';
+}
+
 /// iOS-style "swipe from the left edge to go back".
 ///
 /// Only drags that start within [_edgeWidth] of the left edge are tracked,
-/// so inner horizontal scrollers (chip rows, charts) keep working. The page
+/// so inner scrollers and tab views keep working everywhere else. The page
 /// follows the finger; releasing past 35% of the width (or with a fast
 /// flick) pops the route, otherwise it springs back.
 class _EdgeSwipeBack extends StatefulWidget {
@@ -67,7 +167,6 @@ class _EdgeSwipeBack extends StatefulWidget {
 class _EdgeSwipeBackState extends State<_EdgeSwipeBack>
     with SingleTickerProviderStateMixin {
   double _dragOffset = 0;
-  bool _tracking = false;
   late final AnimationController _spring;
   late Animation<double> _springAnim;
 
@@ -92,25 +191,23 @@ class _EdgeSwipeBackState extends State<_EdgeSwipeBack>
 
   bool get _canPop {
     final route = ModalRoute.of(context);
-    return route != null && !route.isFirst && route.animation?.isCompleted == true;
+    return route != null &&
+        !route.isFirst &&
+        route.animation?.isCompleted == true;
   }
 
-  void _onDragStart(DragStartDetails details) {
-    _tracking = details.globalPosition.dx < _EdgeSwipeBack._edgeWidth && _canPop;
-    if (_tracking) _spring.stop();
+  void _onSwipeStart() {
+    _spring.stop();
   }
 
-  void _onDragUpdate(DragUpdateDetails details) {
-    if (!_tracking) return;
+  void _onSwipeUpdate(DragUpdateDetails details) {
     final width = MediaQuery.sizeOf(context).width;
     setState(() {
       _dragOffset = (_dragOffset + details.delta.dx).clamp(0.0, width);
     });
   }
 
-  void _onDragEnd(DragEndDetails details) {
-    if (!_tracking) return;
-    _tracking = false;
+  void _onSwipeEnd(DragEndDetails details) {
     final width = MediaQuery.sizeOf(context).width;
     final velocity = details.primaryVelocity ?? 0;
     if (_dragOffset > width * 0.35 || velocity > 700) {
@@ -142,11 +239,24 @@ class _EdgeSwipeBackState extends State<_EdgeSwipeBack>
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return RawGestureDetector(
       behavior: HitTestBehavior.translucent,
-      onHorizontalDragStart: _onDragStart,
-      onHorizontalDragUpdate: _onDragUpdate,
-      onHorizontalDragEnd: _onDragEnd,
+      excludeFromSemantics: true,
+      gestures: <Type, GestureRecognizerFactory>{
+        _EdgeSwipeGestureRecognizer:
+            GestureRecognizerFactoryWithHandlers<_EdgeSwipeGestureRecognizer>(
+          () => _EdgeSwipeGestureRecognizer(
+            edgeWidth: _EdgeSwipeBack._edgeWidth,
+          ),
+          (_EdgeSwipeGestureRecognizer instance) {
+            instance
+              ..canStart = () => _canPop
+              ..onStart = _onSwipeStart
+              ..onUpdate = _onSwipeUpdate
+              ..onEnd = _onSwipeEnd;
+          },
+        ),
+      },
       child: Transform.translate(
         offset: Offset(_dragOffset, 0),
         child: widget.child,
