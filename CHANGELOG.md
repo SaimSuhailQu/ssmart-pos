@@ -4,6 +4,14 @@ All notable changes to SSmart POS are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [2.4.9] — 2026-10-07
+
+### Fixed (mobile admin app)
+- **Swipe actions restyled:** row actions now fill the row edge-to-edge like iOS Mail instead of floating pills with gaps.
+
+### Release engineering
+- Bumped version to 2.4.9 (desktop `package.json`), 2.4.9+46 (mobile `pubspec.yaml`), and updated LiveContainer source feed to v2.4.9.
+
 ## [2.4.8] — 2026-10-07
 
 ### Fixed (mobile admin app)
