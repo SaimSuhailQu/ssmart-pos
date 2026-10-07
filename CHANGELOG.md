@@ -4,6 +4,14 @@ All notable changes to SSmart POS are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [2.4.7] — 2026-10-07
+
+### Fixed (mobile admin app)
+- **Daily Closing Sales screen:** removed the redundant floating "Add Daily Closing" button that overlapped the empty-state button (the AppBar, card, and empty state already cover the add flow); constrained the hero card header so the Add/Edit button is no longer clipped off the card edge.
+
+### Release engineering
+- Bumped version to 2.4.7 (desktop `package.json`), 2.4.7+44 (mobile `pubspec.yaml`), and updated LiveContainer source feed to v2.4.7.
+
 ## [2.4.6] — 2026-10-07
 
 ### Fixed (mobile admin app)
