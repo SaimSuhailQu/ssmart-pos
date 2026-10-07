@@ -5,6 +5,7 @@ import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
 import 'package:ssmart_pos_admin/core/theme/graphite_theme.dart';
 import 'package:ssmart_pos_admin/core/utils/currency_formatter.dart';
 import 'package:ssmart_pos_admin/core/widgets/app_error_widget.dart';
+import 'package:ssmart_pos_admin/core/widgets/staggered_entrance.dart';
 import 'package:ssmart_pos_admin/core/widgets/app_loading_indicator.dart';
 import 'package:ssmart_pos_admin/core/widgets/barcode_scanner_sheet.dart';
 import 'package:ssmart_pos_admin/core/widgets/graphite_empty_state.dart';
@@ -315,10 +316,13 @@ class _CatalogScreenState extends State<CatalogScreen> {
                         itemCount: filteredProducts.length,
                         itemBuilder: (context, index) {
                           final product = filteredProducts[index];
-                          return _ProductCatalogCard(
+                          return StaggeredEntrance(
+                            delay: Duration(milliseconds: (index % 12) * 35),
+                            child: _ProductCatalogCard(
                             product: product,
                             onEdit: () => _showProductDialog(context, product),
                             onDelete: () => _confirmDeleteProduct(context, product),
+                          ),
                           );
                         },
                       ),

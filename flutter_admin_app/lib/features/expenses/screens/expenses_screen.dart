@@ -5,6 +5,7 @@ import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
 import 'package:ssmart_pos_admin/core/theme/graphite_theme.dart';
 import 'package:ssmart_pos_admin/core/utils/date_utils.dart';
 import 'package:ssmart_pos_admin/core/widgets/app_error_widget.dart';
+import 'package:ssmart_pos_admin/core/widgets/staggered_entrance.dart';
 import 'package:ssmart_pos_admin/core/widgets/app_loading_indicator.dart';
 import 'package:ssmart_pos_admin/core/widgets/graphite_empty_state.dart';
 import 'package:ssmart_pos_admin/core/widgets/liquid_scaffold.dart';
@@ -261,7 +262,9 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                           final expense = filteredExpenses[index];
                           final formattedDate = AppDateUtils.formatDateTime(DateTime.parse(expense.date));
 
-                          return Container(
+                          return StaggeredEntrance(
+                            delay: Duration(milliseconds: (index % 12) * 35),
+                            child: Container(
                             padding: const EdgeInsets.all(AppTheme.spacingM),
                             decoration: BoxDecoration(
                               color: GraphiteTheme.graphiteCard,
@@ -330,6 +333,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                                 ),
                               ],
                             ),
+                          ),
                           );
                         },
                       ),

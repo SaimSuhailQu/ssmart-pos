@@ -13,6 +13,8 @@ import 'package:ssmart_pos_admin/widgets/error_widget.dart';
 import 'package:ssmart_pos_admin/widgets/loading_indicator.dart';
 import 'package:ssmart_pos_admin/widgets/manual_closing_dialog.dart';
 import 'package:ssmart_pos_admin/core/widgets/graphite_empty_state.dart';
+import 'package:ssmart_pos_admin/core/widgets/graphite_page_route.dart';
+import 'package:ssmart_pos_admin/core/widgets/staggered_entrance.dart';
 
 /// Screen displaying all transactions with filtering and search
 class TransactionsScreen extends StatefulWidget {
@@ -99,10 +101,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             icon: const Icon(CupertinoIcons.calendar),
             tooltip: 'View Daily Closings',
             onPressed: () {
-              Navigator.push(
-                context,
-                CupertinoPageRoute(builder: (_) => const DailyClosingsScreen()),
-              );
+              graphitePush(context, const DailyClosingsScreen());
             },
           ),
           IconButton(
@@ -273,7 +272,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             ),
             itemBuilder: (context, index) {
               final sale = sales[index];
-              return _TransactionCard(sale: sale);
+              return StaggeredEntrance(
+                delay: Duration(milliseconds: (index % 12) * 35),
+                child: _TransactionCard(sale: sale),
+              );
             },
           ),
         ),

@@ -8,6 +8,7 @@ import 'package:ssmart_pos_admin/core/theme/graphite_theme.dart';
 import 'package:ssmart_pos_admin/core/utils/date_utils.dart';
 import 'package:ssmart_pos_admin/core/utils/whatsapp_helper.dart';
 import 'package:ssmart_pos_admin/core/widgets/app_error_widget.dart';
+import 'package:ssmart_pos_admin/core/widgets/staggered_entrance.dart';
 import 'package:ssmart_pos_admin/core/widgets/app_loading_indicator.dart';
 import 'package:ssmart_pos_admin/features/vendors/widgets/vendor_po_details_sheet.dart';
 import 'package:ssmart_pos_admin/models/vendor.dart';
@@ -326,7 +327,10 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                         separatorBuilder: (_, __) => const SizedBox(height: AppTheme.spacingS),
                         itemBuilder: (context, index) {
                           final po = filtered[index];
-                          return _buildPOCard(context, po);
+                          return StaggeredEntrance(
+                            delay: Duration(milliseconds: (index % 12) * 35),
+                            child: _buildPOCard(context, po),
+                          );
                         },
                       ),
               ),

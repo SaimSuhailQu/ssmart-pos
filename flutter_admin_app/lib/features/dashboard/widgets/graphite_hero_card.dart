@@ -3,19 +3,23 @@ import 'package:flutter/material.dart';
 import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
 import 'package:ssmart_pos_admin/core/theme/graphite_theme.dart';
 import 'package:ssmart_pos_admin/core/widgets/haptics.dart';
+import 'package:ssmart_pos_admin/core/widgets/pressable.dart';
+import 'package:ssmart_pos_admin/core/widgets/sparkline.dart';
 
-/// The signature Noir Graphite hero: today's collection in big bold red serif
-/// numerals, counting up on appearance, over a deep crimson-lit gradient.
+/// The signature Noir Graphite hero: today's collection in big bold
+/// grotesque-sans (Inter ExtraBold — the professional Arial-style numeral),
+/// counting up on appearance, with a delta pill and an intraday sparkline.
 ///
-/// Structure: eyebrow + copy chip → numeral → delta row → hairline →
-/// metric trio (bills / avg / date) → long-press hint. The card is fully
-/// tappable for the copy action (haptic + snackbar on long-press).
+/// Structure: eyebrow badge → numeral → delta pill → sparkline →
+/// metric trio (bills / avg / date) → long-press hint. Long-press copies
+/// the closing summary (haptic + callback).
 class GraphiteHeroCard extends StatefulWidget {
   final double revenue;
   final int orderCount;
   final double averageOrder;
   final double deltaPct; // vs yesterday, e.g. 12.4
   final String dateLabel;
+  final List<double> hourlyRevenue; // intraday buckets for the sparkline
   final VoidCallback onCopySummary;
 
   const GraphiteHeroCard({
@@ -25,6 +29,7 @@ class GraphiteHeroCard extends StatefulWidget {
     required this.averageOrder,
     required this.deltaPct,
     required this.dateLabel,
+    this.hourlyRevenue = const [],
     required this.onCopySummary,
   });
 
@@ -76,27 +81,19 @@ class _GraphiteHeroCardState extends State<GraphiteHeroCard>
         : d < 0
             ? DeltaDirection.down
             : DeltaDirection.flat;
-    return GestureDetector(
+    final sparkColor =
+        widget.revenue > 0 ? GraphiteTheme.success : GraphiteTheme.slateDim;
+    return Pressable(
+      haptic: false,
       onLongPress: () async {
         await Haptics.medium();
         widget.onCopySummary();
       },
       child: Container(
-        decoration: GraphiteTheme.platinumCardDecoration.copyWith(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF241014), // deep crimson-tinted graphite
-              GraphiteTheme.graphiteCard,
-              GraphiteTheme.graphiteCardEnd,
-            ],
-            stops: [0.0, 0.45, 1.0],
-          ),
-        ),
+        decoration: GraphiteTheme.platinumCardDecoration,
         child: Stack(
           children: [
-            // Ambient crimson glow, top-right
+            // Ambient platinum glow, top-right
             Positioned(
               top: -80,
               right: -60,
@@ -183,26 +180,36 @@ class _GraphiteHeroCardState extends State<GraphiteHeroCard>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'TODAY\'S COLLECTION',
-                          style: GraphiteTheme.eyebrow,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                  // Eyebrow badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: GraphiteTheme.platinumFaint,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: GraphiteTheme.cardBorder),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          CupertinoIcons.lock_shield_fill,
+                          size: 12,
+                          color: GraphiteTheme.slate,
                         ),
-                      ),
-                      const Icon(
-                        CupertinoIcons.lock_shield_fill,
-                        size: 13,
-                        color: GraphiteTheme.platinum,
-                      ),
-                    ],
+                        const SizedBox(width: 6),
+                        Text(
+                          'TODAY\'S COLLECTION',
+                          style: GraphiteTheme.eyebrow.copyWith(
+                            letterSpacing: 2.4,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 10),
-                  // Animated counting numeral. FittedBox guards the card
-                  // against horizontal overflow on very large amounts.
+                  const SizedBox(height: 12),
+                  // Animated counting numeral — bold grotesque sans.
+                  // FittedBox guards against overflow on large amounts.
                   TweenAnimationBuilder<double>(
                     tween: Tween(begin: _from, end: _to),
                     duration: const Duration(milliseconds: 1100),
@@ -217,7 +224,11 @@ class _GraphiteHeroCardState extends State<GraphiteHeroCard>
                             children: [
                               TextSpan(
                                 text: 'PKR  ',
-                                style: GraphiteTheme.heroCurrency,
+                                style: GraphiteTheme.heroCurrency.copyWith(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.5,
+                                ),
                               ),
                               TextSpan(
                                 text: _formatCompact(value),
@@ -235,29 +246,16 @@ class _GraphiteHeroCardState extends State<GraphiteHeroCard>
                     },
                   ),
                   const SizedBox(height: 10),
-                  // Delta as bold text — green up, red down, gray flat.
-                  RichText(
-                    text: TextSpan(
-                      children: [
-                        TextSpan(
-                          text:
-                              '${switch (dir) { DeltaDirection.up => '▲', DeltaDirection.down => '▼', _ => '•' }} ${widget.deltaPct.abs().toStringAsFixed(1)}%  ',
-                          style: switch (dir) {
-                            DeltaDirection.up =>
-                              GraphiteTheme.deltaUp.copyWith(fontSize: 13),
-                            DeltaDirection.down =>
-                              GraphiteTheme.deltaDown.copyWith(fontSize: 13),
-                            _ => GraphiteTheme.deltaFlat.copyWith(fontSize: 13),
-                          },
-                        ),
-                        TextSpan(
-                          text: 'vs yesterday',
-                          style: GraphiteTheme.deltaFlat.copyWith(fontSize: 12),
-                        ),
-                      ],
-                    ),
+                  // Delta pill — green up, red down, gray flat.
+                  _deltaPill(dir),
+                  const SizedBox(height: 12),
+                  // Intraday sparkline.
+                  Sparkline(
+                    values: widget.hourlyRevenue,
+                    lineColor: sparkColor,
+                    height: 52,
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 12),
                   Container(
                     height: 1,
                     decoration: GraphiteTheme.platinumDivider,
@@ -304,6 +302,49 @@ class _GraphiteHeroCardState extends State<GraphiteHeroCard>
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _deltaPill(DeltaDirection dir) {
+    final Color color = switch (dir) {
+      DeltaDirection.up => GraphiteTheme.success,
+      DeltaDirection.down => GraphiteTheme.danger,
+      DeltaDirection.flat || DeltaDirection.none => GraphiteTheme.slateDim,
+    };
+    final String glyph = switch (dir) {
+      DeltaDirection.up => '▲',
+      DeltaDirection.down => '▼',
+      DeltaDirection.flat || DeltaDirection.none => '•',
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            glyph,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              color: color,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            '${widget.deltaPct.abs().toStringAsFixed(1)}% vs yesterday',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+        ],
       ),
     );
   }

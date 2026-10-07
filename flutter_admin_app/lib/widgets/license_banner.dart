@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:ssmart_pos_admin/core/licensing/license_state.dart';
 import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
+import 'package:ssmart_pos_admin/core/widgets/graphite_page_route.dart';
 import 'package:ssmart_pos_admin/features/licensing/screens/license_manager_screen.dart';
 import 'package:ssmart_pos_admin/widgets/license_gate.dart';
 
@@ -46,11 +47,9 @@ class LicenseBanner extends StatelessWidget {
       ),
       child: GestureDetector(
         onTap: () {
-          Navigator.push(
+          graphitePush(
             context,
-            CupertinoPageRoute(
-              builder: (_) => const LicenseManagerScreen(),
-            ),
+            const LicenseManagerScreen(),
           );
         },
         child: Container(

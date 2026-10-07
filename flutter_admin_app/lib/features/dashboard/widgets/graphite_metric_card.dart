@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:ssmart_pos_admin/core/theme/graphite_theme.dart';
 import 'package:ssmart_pos_admin/core/widgets/haptics.dart';
+import 'package:ssmart_pos_admin/core/widgets/pressable.dart';
 
 /// Noir Graphite metric tile: dark glass, platinum icon medallion, bold
 /// tabular numeral. Deltas are semantic — green for up, red for down,
@@ -30,18 +31,13 @@ class GraphiteMetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return Pressable(
+      onTap: onTap,
       onLongPress: onLongPress == null
           ? null
           : () async {
               await Haptics.medium();
               onLongPress!();
-            },
-      onTap: onTap == null
-          ? null
-          : () async {
-              await Haptics.tap();
-              onTap!();
             },
       child: Container(
         padding: const EdgeInsets.all(16),

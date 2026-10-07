@@ -60,10 +60,12 @@ class GraphiteTheme {
   );
 
   // --- Text styles: bold is the brand ---
-  /// Big bold serif revenue numeral — the signature graphite look.
-  /// Explicit line height so Playfair's tall ascenders are never clipped by
+  /// Big bold grotesque-sans revenue numeral — the signature graphite look.
+  /// Inter ExtraBold reads like a professional Arial/Helvetica bold:
+  /// confident, neutral, tabular. (Previously Playfair serif.)
+  /// Explicit line height so tall ascenders are never clipped by
   /// the line box on any device.
-  static TextStyle get heroAmount => GoogleFonts.playfairDisplay(
+  static TextStyle get heroAmount => GoogleFonts.inter(
         fontSize: 48,
         fontWeight: FontWeight.w800,
         color: platinumLight,

@@ -7,6 +7,8 @@ import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
 import 'package:ssmart_pos_admin/core/theme/graphite_theme.dart';
 import 'package:ssmart_pos_admin/core/utils/date_utils.dart';
 import 'package:ssmart_pos_admin/core/widgets/haptics.dart';
+import 'package:ssmart_pos_admin/core/widgets/pressable.dart';
+import 'package:ssmart_pos_admin/core/widgets/graphite_page_route.dart';
 import 'package:ssmart_pos_admin/core/widgets/liquid_scaffold.dart';
 import 'package:ssmart_pos_admin/core/widgets/staggered_entrance.dart';
 import 'package:ssmart_pos_admin/features/dashboard/screens/daily_closings_screen.dart';
@@ -102,6 +104,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (!local.isBefore(start) && local.isBefore(end)) total += s.total;
     }
     return total;
+  }
+
+  /// Today's revenue bucketed by hour (0-23), trimmed to the current hour,
+  /// for the hero sparkline. Empty day → all zeros (flat baseline).
+  List<double> _hourlyRevenue(List<Sale> sales) {
+    final buckets = List<double>.filled(24, 0);
+    for (final s in sales) {
+      if (!AppDateUtils.isToday(s.timestamp)) continue;
+      final ts = AppDateUtils.parseDateTime(s.timestamp);
+      if (ts == null) continue;
+      final local = ts.isUtc ? ts.toLocal() : ts;
+      buckets[local.hour] += s.total;
+    }
+    return buckets.sublist(0, DateTime.now().hour + 1);
   }
 
   /// Shared by the hero long-press and the Copy Note button.
@@ -399,6 +415,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     todaysMetrics: todaysMetrics,
                     weekMetrics: weekMetrics,
                     yesterdayRevenue: yesterdayRev,
+                    allSales: allSales,
                   );
                 },
               ),
@@ -425,16 +442,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _go(Widget screen) {
-    Navigator.push(
-      context,
-      CupertinoPageRoute(builder: (_) => screen),
-    );
+    graphitePush(context, screen);
   }
 
   Widget _buildDashboardContent({
     required DashboardMetrics todaysMetrics,
     required DashboardMetrics weekMetrics,
     required double yesterdayRevenue,
+    required List<Sale> allSales,
   }) {
     final deltaPct = yesterdayRevenue > 0
         ? (todaysMetrics.totalRevenue - yesterdayRevenue) /
@@ -492,6 +507,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 averageOrder: todaysMetrics.averageTransactionValue,
                 deltaPct: deltaPct,
                 dateLabel: dateLabel,
+                hourlyRevenue: _hourlyRevenue(allSales),
                 onCopySummary: () => _copyDailySummary(todaysMetrics),
               ),
             ),
@@ -886,9 +902,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _barAction(String tooltip, IconData icon, VoidCallback onTap) {
     return Tooltip(
       message: tooltip,
-      child: GestureDetector(
-        onTap: () async {
-          await Haptics.tap();
+      child: Pressable(
+        onTap: () {
           if (mounted) onTap();
         },
         child: Container(
