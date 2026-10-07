@@ -49,12 +49,14 @@ class SwipeableRow extends StatefulWidget {
   final Widget child;
   final List<SwipeAction> actions;
   final double actionExtent;
+  final double borderRadius;
 
   const SwipeableRow({
     super.key,
     required this.child,
     required this.actions,
     this.actionExtent = 76,
+    this.borderRadius = 12,
   }) : assert(actions.length > 0, 'SwipeableRow needs at least one action');
 
   @override
@@ -126,26 +128,25 @@ class _SwipeableRowState extends State<SwipeableRow>
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        // Revealed actions, pinned right.
+        // Revealed actions, pinned right — full-bleed like iOS Mail, no gaps.
         Positioned.fill(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: widget.actions
-                .map(
-                  (action) => SizedBox(
-                    width: widget.actionExtent,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 2),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(widget.borderRadius),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: widget.actions
+                  .map(
+                    (action) => SizedBox(
+                      width: widget.actionExtent,
+                      height: double.infinity,
                       child: Material(
                         color: action.color,
-                        borderRadius: BorderRadius.circular(12),
                         child: InkWell(
-                          borderRadius: BorderRadius.circular(12),
                           onTap: () => _onActionTap(action),
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(action.icon, color: Colors.white, size: 20),
+                              Icon(action.icon, color: Colors.white, size: 22),
                               const SizedBox(height: 4),
                               Text(
                                 action.label,
@@ -160,9 +161,9 @@ class _SwipeableRowState extends State<SwipeableRow>
                         ),
                       ),
                     ),
-                  ),
-                )
-                .toList(),
+                  )
+                  .toList(),
+            ),
           ),
         ),
         // The row itself, sliding over the actions.
