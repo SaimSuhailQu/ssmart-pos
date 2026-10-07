@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/widgets.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -14,12 +15,28 @@ import 'package:share_plus/share_plus.dart';
 class StatementPdfHelper {
   static const String _storeName = 'SS MART';
 
+  /// Compute the share-sheet popover anchor from a widget's context.
+  /// iOS requires a non-zero `sharePositionOrigin` inside the source view's
+  /// coordinate space, otherwise the share throws a PlatformException.
+  /// Returns null when the render box isn't laid out yet.
+  static Rect? shareOriginFromContext(BuildContext context) {
+    final box = context.findRenderObject();
+    if (box is RenderBox &&
+        box.hasSize &&
+        box.size.width > 0 &&
+        box.size.height > 0) {
+      return box.localToGlobal(Offset.zero) & box.size;
+    }
+    return null;
+  }
+
   /// Build and share a customer khata ledger statement.
   static Future<void> shareCustomerKhata({
     required String customerName,
     required String phone,
     required double balance,
     required List<Map<String, dynamic>> entries,
+    Rect? sharePositionOrigin,
   }) async {
     final doc = pw.Document();
 
@@ -92,6 +109,7 @@ class StatementPdfHelper {
           'Khata_Statement_${customerName.replaceAll(RegExp(r'[^A-Za-z0-9]+'), '_')}_'
           '${DateTime.now().millisecondsSinceEpoch ~/ 1000}.pdf',
       subject: 'Khata Statement — $customerName',
+      sharePositionOrigin: sharePositionOrigin,
       body: 'Assalam-o-Alaikum $customerName,\n\n'
           'Please find your khata statement attached from $_storeName.\n'
           'Current balance: PKR ${balance.toStringAsFixed(0)}\n\n'
@@ -110,6 +128,7 @@ class StatementPdfHelper {
     required double balanceDue,
     required List<Map<String, String>> items,
     required List<Map<String, String>> payments,
+    Rect? sharePositionOrigin,
   }) async {
     final doc = pw.Document();
 
@@ -185,6 +204,7 @@ class StatementPdfHelper {
       fileName: 'Vendor_Statement_${vendorName.replaceAll(RegExp(r'[^A-Za-z0-9]+'), '_')}_'
           '${DateTime.now().millisecondsSinceEpoch ~/ 1000}.pdf',
       subject: 'Account Statement — $vendorName',
+      sharePositionOrigin: sharePositionOrigin,
       body: 'Vendor account statement for $vendorName attached.\n'
           'Balance due: PKR ${balanceDue.toStringAsFixed(0)}\n\n'
           '— $_storeName',
@@ -563,11 +583,19 @@ class StatementPdfHelper {
     required String fileName,
     required String subject,
     required String body,
+    Rect? sharePositionOrigin,
   }) async {
     final file = await _saveToTemp(doc, fileName);
     // share_plus 11.x: SharePlus.instance.share(ShareParams(...)).
+    // sharePositionOrigin is required on iOS (popover anchor) — without it
+    // the share throws a PlatformException.
     await SharePlus.instance.share(
-      ShareParams(files: [XFile(file.path)], text: body, title: subject),
+      ShareParams(
+        files: [XFile(file.path)],
+        text: body,
+        title: subject,
+        sharePositionOrigin: sharePositionOrigin,
+      ),
     );
   }
 }

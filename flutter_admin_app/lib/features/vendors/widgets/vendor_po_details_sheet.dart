@@ -828,12 +828,13 @@ class VendorPODetailsSheet extends StatelessWidget {
                               onPressed: () => WhatsAppHelper.sendVendorPO(po: po),
                             ),
                           const SizedBox(width: 4),
-                          IconButton.filled(
-                            style: IconButton.styleFrom(backgroundColor: AppTheme.textPrimary),
-                            icon: const Icon(CupertinoIcons.arrow_up_doc_fill, color: Colors.white, size: 20),
-                            tooltip: 'Export Account PDF & Share (WhatsApp, Email…)',
-                            onPressed: () async {
-                              try {
+                          Builder(
+                            builder: (btnContext) => IconButton.filled(
+                              style: IconButton.styleFrom(backgroundColor: AppTheme.textPrimary),
+                              icon: const Icon(CupertinoIcons.arrow_up_doc_fill, color: Colors.white, size: 20),
+                              tooltip: 'Export Account PDF & Share (WhatsApp, Email…)',
+                              onPressed: () async {
+                                try {
                                 final paymentRows = <Map<String, String>>[];
                                 for (final p in po.payments) {
                                   try {
@@ -871,6 +872,8 @@ class VendorPODetailsSheet extends StatelessWidget {
                                   balanceDue: po.balanceDue,
                                   items: itemRows,
                                   payments: paymentRows,
+                                  sharePositionOrigin:
+                                      StatementPdfHelper.shareOriginFromContext(btnContext),
                                 );
                               } catch (err) {
                                 if (context.mounted) {
@@ -883,6 +886,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                                 }
                               }
                             },
+                          ),
                           ),
                           const SizedBox(width: 8),
                           IconButton.filled(

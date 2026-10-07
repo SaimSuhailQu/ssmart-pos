@@ -204,7 +204,7 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                                       size: 19,
                                     ),
                                     tooltip: 'Send WhatsApp Reminder',
-                                    onPressed: () => WhatsAppHelper
+                                    onPressed: (_) => WhatsAppHelper
                                         .sendCustomerKhataReminder(
                                       customer: customer
                                           .copyWith(balance: displayBalance),
@@ -221,13 +221,15 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                                   ),
                                   tooltip:
                                       'Export PDF & Share (WhatsApp, Email…)',
-                                  onPressed: () async {
+                                  onPressed: (btnContext) async {
                                     try {
                                       await StatementPdfHelper.shareCustomerKhata(
                                         customerName: customer.name,
                                         phone: customer.phone,
                                         balance: displayBalance,
                                         entries: entries,
+                                        sharePositionOrigin:
+                                            StatementPdfHelper.shareOriginFromContext(btnContext),
                                       );
                                     } catch (err) {
                                       if (context.mounted) {
@@ -251,7 +253,7 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                                     size: 19,
                                   ),
                                   tooltip: 'Add Khata Entry',
-                                  onPressed: () {
+                                  onPressed: (_) {
                                     Navigator.pop(context);
                                     onAddEntry();
                                   },
@@ -583,21 +585,23 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
     Color? borderColor,
     required Widget icon,
     required String tooltip,
-    required VoidCallback onPressed,
+    required void Function(BuildContext) onPressed,
   }) {
-    return IconButton.filled(
-      style: IconButton.styleFrom(
-        backgroundColor: backgroundColor,
-        side: borderColor != null ? BorderSide(color: borderColor) : null,
-        minimumSize: const Size(38, 38),
-        maximumSize: const Size(38, 38),
-        padding: EdgeInsets.zero,
-        visualDensity: VisualDensity.compact,
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    return Builder(
+      builder: (btnContext) => IconButton.filled(
+        style: IconButton.styleFrom(
+          backgroundColor: backgroundColor,
+          side: borderColor != null ? BorderSide(color: borderColor) : null,
+          minimumSize: const Size(38, 38),
+          maximumSize: const Size(38, 38),
+          padding: EdgeInsets.zero,
+          visualDensity: VisualDensity.compact,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+        icon: icon,
+        tooltip: tooltip,
+        onPressed: () => onPressed(btnContext),
       ),
-      icon: icon,
-      tooltip: tooltip,
-      onPressed: onPressed,
     );
   }
 
