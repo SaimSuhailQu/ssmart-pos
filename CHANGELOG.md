@@ -4,6 +4,14 @@ All notable changes to SSmart POS are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [2.4.11] — 2026-10-07
+
+### Changed (mobile admin app)
+- **Removed swipe-to-reveal row actions** across catalog, transactions, expenses, vendor POs, vendor directory and khata — rows already carry inline edit/delete icons, so the swipe panels were redundant. Long-press shortcuts are unchanged.
+
+### Release engineering
+- Bumped version to 2.4.11 (desktop `package.json`), 2.4.11+48 (mobile `pubspec.yaml`), and updated LiveContainer source feed to v2.4.11.
+
 ## [2.4.10] — 2026-10-07
 
 ### Fixed (mobile admin app)

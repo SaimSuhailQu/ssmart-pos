@@ -10,10 +10,10 @@
       "name": "SSmart POS Admin",
       "bundleIdentifier": "com.ssmartpos",
       "developerName": "SSmart POS",
-      "version": "2.4.10",
-      "versionDate": "2026-10-07T14:25:00Z",
-      "versionDescription": "SSmart POS v2.4.10 — swipe actions stay hidden behind cards until swiped.",
-      "downloadURL": "https://github.com/SaimSuhailQu/ssmart-pos/releases/download/v2.4.10/ssmartpos.ipa",
+      "version": "2.4.11",
+      "versionDate": "2026-10-07T18:10:00Z",
+      "versionDescription": "SSmart POS v2.4.11 — swipe row actions removed; inline icons remain.",
+      "downloadURL": "https://github.com/SaimSuhailQu/ssmart-pos/releases/download/v2.4.11/ssmartpos.ipa",
       "localizedDescription": "SSmart POS iOS Admin & Management Dashboard. Real-time sales analytics, product catalog, mobile checkout billing, and daily closing sales ledger.",
       "iconURL": "https://raw.githubusercontent.com/SaimSuhailQu/ssmart-pos/main/flutter_admin_app/assets/images/ss_mart_logo.png",
       "tintColor": "E63946",
@@ -24,6 +24,15 @@
     }
   ],
   "news": [
+    {
+      "title": "SSmart POS v2.4.11 Released!",
+      "identifier": "release-v2.4.11",
+      "caption": "SSmart POS v2.4.11 Update — swipe actions removed",
+      "date": "2026-10-07",
+      "tintColor": "E63946",
+      "appID": "com.ssmartpos",
+      "notify": true
+    },
     {
       "title": "SSmart POS v2.4.10 Released!",
       "identifier": "release-v2.4.10",
