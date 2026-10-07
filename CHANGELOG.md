@@ -4,6 +4,16 @@ All notable changes to SSmart POS are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [2.4.5] — 2026-10-07
+
+Hotfix for the v2.4.4 iOS build.
+
+### Fixed (mobile admin app)
+- **iOS build failure:** the custom edge-swipe-back gesture recognizer did not compile against the current Flutter SDK — implemented the required `didStopTrackingLastPointer`, replaced the unavailable `state` getter with local accept/reject tracking, and fixed a mis-parsed cascade in the recognizer setup.
+
+### Release engineering
+- Bumped version to 2.4.5 (desktop `package.json`), 2.4.5+42 (mobile `pubspec.yaml`), and updated LiveContainer source feed to v2.4.5.
+
 ## [2.4.4] — 2026-10-07
 
 Gestures and feedback across the mobile admin app, plus the swipe-back fix.
