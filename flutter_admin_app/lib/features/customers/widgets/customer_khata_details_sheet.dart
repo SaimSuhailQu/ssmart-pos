@@ -424,7 +424,7 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                                       color: AppTheme.cardBackground,
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(
-                                        color: isPayment ? Colors.green.withValues(alpha: 0.2) : GraphiteTheme.redAccent.withValues(alpha: 0.2),
+                                        color: isPayment ? AppTheme.successGreen.withValues(alpha: 0.2) : GraphiteTheme.redAccent.withValues(alpha: 0.2),
                                       ),
                                     ),
                                     child: Row(
@@ -432,7 +432,7 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                                         Container(
                                           padding: const EdgeInsets.all(8),
                                           decoration: BoxDecoration(
-                                            color: isPayment ? Colors.green.withValues(alpha: 0.15) : GraphiteTheme.redAccent.withValues(alpha: 0.15),
+                                            color: isPayment ? AppTheme.successGreen.withValues(alpha: 0.15) : GraphiteTheme.redAccent.withValues(alpha: 0.15),
                                             borderRadius: BorderRadius.circular(8),
                                           ),
                                           child: Icon(
@@ -466,9 +466,9 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                                                       Container(
                                                         padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
                                                         decoration: BoxDecoration(
-                                                          color: Colors.green.withValues(alpha: 0.12),
+                                                          color: AppTheme.successGreen.withValues(alpha: 0.12),
                                                           borderRadius: BorderRadius.circular(4),
-                                                          border: Border.all(color: Colors.green.withValues(alpha: 0.3), width: 0.5),
+                                                          border: Border.all(color: AppTheme.successGreen.withValues(alpha: 0.3), width: 0.5),
                                                         ),
                                                         child: Text(
                                                           paymentMethod,

@@ -26,23 +26,23 @@ class AppErrorWidget extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: Colors.redAccent.withValues(alpha: 0.12),
+                color: AppTheme.errorRed.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: Colors.redAccent.withValues(alpha: 0.25),
+                  color: AppTheme.errorRed.withValues(alpha: 0.25),
                   width: 1.2,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.redAccent.withValues(alpha: 0.1),
+                    color: AppTheme.errorRed.withValues(alpha: 0.1),
                     blurRadius: 20,
                   ),
                 ],
               ),
               child: const Icon(
                 Icons.error_outline_rounded,
-                size: 44,
-                color: Colors.redAccent,
+                size: 48,
+                color: AppTheme.errorRed,
               ),
             ),
             const SizedBox(height: AppTheme.spacingL),

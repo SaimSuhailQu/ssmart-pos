@@ -246,7 +246,7 @@ class _MobileLicenseGateState extends State<MobileLicenseGate> {
                   Text(
                     'Activation Required',
                     style: AppTheme.titleLarge.copyWith(
-                      color: AppTheme.textRed,
+                      color: AppTheme.textPrimary,
                       fontWeight: FontWeight.bold,
                     ),
                   ),

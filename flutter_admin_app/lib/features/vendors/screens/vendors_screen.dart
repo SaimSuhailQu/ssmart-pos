@@ -680,7 +680,7 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                         child: FilterChip(
                           label: Text(cat),
                           selected: isSelected,
-                          selectedColor: GraphiteTheme.redAccent.withValues(alpha: 0.3),
+                          selectedColor: GraphiteTheme.platinum.withValues(alpha: 0.25),
                           backgroundColor: AppTheme.cardBackground,
                           labelStyle: TextStyle(
                             color: isSelected ? AppTheme.primaryTeal : GraphiteTheme.slate,
@@ -689,7 +689,7 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                           ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
-                            side: BorderSide(color: isSelected ? GraphiteTheme.redAccent : AppTheme.borderColor),
+                            side: BorderSide(color: isSelected ? GraphiteTheme.platinum : AppTheme.borderColor),
                           ),
                           onSelected: (val) => setState(() => _selectedCategory = cat),
                         ),

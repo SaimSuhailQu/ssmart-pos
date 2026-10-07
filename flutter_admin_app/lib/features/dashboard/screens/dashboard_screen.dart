@@ -533,8 +533,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         value: AppDateUtils.formatCurrency(
                           todaysMetrics.totalRevenue,
                         ),
-                        delta: '${deltaPct.abs().toStringAsFixed(1)}% vs yesterday',
-                        deltaPositive: deltaPct >= 0,
+                        delta:
+                            '${deltaPct.abs().toStringAsFixed(1)}% vs yesterday',
+                        deltaDirection: deltaPct > 0
+                            ? DeltaDirection.up
+                            : deltaPct < 0
+                                ? DeltaDirection.down
+                                : DeltaDirection.flat,
                         icon: CupertinoIcons.money_dollar_circle_fill,
                         onLongPress: () => _go(const TransactionsScreen()),
                       ),

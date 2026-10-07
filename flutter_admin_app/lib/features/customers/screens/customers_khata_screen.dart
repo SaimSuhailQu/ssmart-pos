@@ -181,7 +181,8 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                                   totalKhata.toStringAsFixed(0),
                                   style: GraphiteTheme.heroAmount.copyWith(
                                     fontSize: 36,
-                                    color: totalKhata > 0 ? GraphiteTheme.platinumLight : GraphiteTheme.slate,
+                                    // Udhaar due = bad → red; nothing owed → slate.
+                                    color: totalKhata > 0 ? GraphiteTheme.errorRed : GraphiteTheme.slate,
                                   ),
                                 ),
                               ],
@@ -717,7 +718,7 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppTheme.surfaceDark,
-        title: const Text('Reset All Khata Records?', style: TextStyle(color: AppTheme.textRed, fontWeight: FontWeight.bold)),
+        title: const Text('Reset All Khata Records?', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold)),
         content: const Text(
           'This will permanently delete all audit loan/payment transactions and reset all customer balances to PKR 0 in the cloud and local system. Are you sure?',
           style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),

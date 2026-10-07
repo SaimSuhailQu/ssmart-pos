@@ -100,21 +100,21 @@ class _MobileCheckoutScreenState extends State<MobileCheckoutScreen> {
               TextField(
                 controller: nameCtrl,
                 textCapitalization: TextCapitalization.words,
-                style: const TextStyle(color: AppTheme.textRed),
+                style: const TextStyle(color: AppTheme.textPrimary),
                 decoration: const InputDecoration(labelText: 'Item Name / Description'),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: priceCtrl,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                style: const TextStyle(color: AppTheme.textRed),
+                style: const TextStyle(color: AppTheme.textPrimary),
                 decoration: const InputDecoration(labelText: 'Unit Price (PKR)', prefixIcon: Icon(CupertinoIcons.money_dollar)),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: qtyCtrl,
                 keyboardType: TextInputType.number,
-                style: const TextStyle(color: AppTheme.textRed),
+                style: const TextStyle(color: AppTheme.textPrimary),
                 decoration: const InputDecoration(labelText: 'Quantity', prefixIcon: Icon(CupertinoIcons.number)),
               ),
             ],
@@ -224,7 +224,7 @@ class _MobileCheckoutScreenState extends State<MobileCheckoutScreen> {
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text(item.name, style: const TextStyle(color: AppTheme.textRed, fontWeight: FontWeight.bold, fontSize: 14)),
+                                      Text(item.name, style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 14)),
                                       Text('PKR ${item.price.toStringAsFixed(0)} each', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
                                     ],
                                   ),
@@ -232,7 +232,7 @@ class _MobileCheckoutScreenState extends State<MobileCheckoutScreen> {
                                 Row(
                                   children: [
                                     IconButton(
-                                      icon: const Icon(CupertinoIcons.minus_circle, color: Colors.redAccent, size: 22),
+                                      icon: const Icon(CupertinoIcons.minus_circle, color: AppTheme.errorRed, size: 22),
                                       onPressed: () {
                                         setSheetState(() {
                                           if (item.quantity > 1) {
@@ -244,7 +244,7 @@ class _MobileCheckoutScreenState extends State<MobileCheckoutScreen> {
                                         setState(() {});
                                       },
                                     ),
-                                    Text('${item.quantity}', style: const TextStyle(color: AppTheme.textRed, fontWeight: FontWeight.bold, fontSize: 15)),
+                                    Text('${item.quantity}', style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 15)),
                                     IconButton(
                                       icon: const Icon(CupertinoIcons.plus_circle, color: AppTheme.successGreen, size: 22),
                                       onPressed: () {
@@ -270,7 +270,7 @@ class _MobileCheckoutScreenState extends State<MobileCheckoutScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Total Bill:', style: TextStyle(color: AppTheme.textRed, fontSize: 16, fontWeight: FontWeight.bold)),
+                    const Text('Total Bill:', style: TextStyle(color: AppTheme.textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
                     Text(
                       'PKR ${_total.toStringAsFixed(0)}',
                       style: const TextStyle(color: AppTheme.primaryCyan, fontSize: 20, fontWeight: FontWeight.w900),
@@ -370,7 +370,7 @@ class _MobileCheckoutScreenState extends State<MobileCheckoutScreen> {
                         ),
                         Text(
                           '${_cart.length} items ($_totalItemCount pcs)',
-                          style: const TextStyle(color: AppTheme.textSecondaryRed, fontSize: 12),
+                          style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
                         ),
                       ],
                     ),
@@ -392,11 +392,11 @@ class _MobileCheckoutScreenState extends State<MobileCheckoutScreen> {
                       children: [
                         Row(
                           children: [
-                            const Icon(CupertinoIcons.person_crop_circle_fill, color: AppTheme.textRed, size: 20),
+                            const Icon(CupertinoIcons.person_crop_circle_fill, color: AppTheme.textPrimary, size: 20),
                             const SizedBox(width: 8),
                             Text(
                               _selectedCustomer != null ? '${_selectedCustomer!.name} (${_selectedCustomer!.phone})' : 'Walk-in Cash Customer',
-                              style: const TextStyle(color: AppTheme.textRed, fontWeight: FontWeight.bold, fontSize: 13),
+                              style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 13),
                             ),
                           ],
                         ),
@@ -423,7 +423,7 @@ class _MobileCheckoutScreenState extends State<MobileCheckoutScreen> {
                         selectedColor: AppTheme.primaryCyan.withValues(alpha: 0.3),
                         backgroundColor: AppTheme.cardBackground,
                         labelStyle: TextStyle(
-                          color: isSelected ? AppTheme.primaryCyan : AppTheme.textTertiaryRed,
+                          color: isSelected ? AppTheme.primaryCyan : AppTheme.textTertiary,
                           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                           fontSize: 12,
                         ),
@@ -442,7 +442,7 @@ class _MobileCheckoutScreenState extends State<MobileCheckoutScreen> {
                         child: TextField(
                           controller: tenderedCtrl,
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          style: const TextStyle(color: AppTheme.textRed, fontWeight: FontWeight.bold),
+                          style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold),
                           decoration: const InputDecoration(
                             labelText: 'Amount Tendered (PKR)',
                             prefixIcon: Icon(CupertinoIcons.money_dollar),
@@ -455,7 +455,7 @@ class _MobileCheckoutScreenState extends State<MobileCheckoutScreen> {
                         child: TextField(
                           controller: discountCtrl,
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          style: const TextStyle(color: AppTheme.textRed),
+                          style: const TextStyle(color: AppTheme.textPrimary),
                           decoration: const InputDecoration(
                             labelText: 'Discount (PKR)',
                             prefixIcon: Icon(CupertinoIcons.tag_fill),
@@ -535,14 +535,14 @@ class _MobileCheckoutScreenState extends State<MobileCheckoutScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Select Customer for Khata Bill', style: TextStyle(color: AppTheme.textRed, fontWeight: FontWeight.bold, fontSize: 16)),
+                    const Text('Select Customer for Khata Bill', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
                     IconButton(icon: const Icon(CupertinoIcons.xmark_circle), onPressed: () => Navigator.pop(ctx)),
                   ],
                 ),
                 const Divider(),
                 ListTile(
-                  leading: const Icon(CupertinoIcons.person_crop_circle_badge_xmark, color: AppTheme.textTertiaryRed),
-                  title: const Text('Walk-in Cash Customer', style: TextStyle(color: AppTheme.textRed)),
+                  leading: const Icon(CupertinoIcons.person_crop_circle_badge_xmark, color: AppTheme.textTertiary),
+                  title: const Text('Walk-in Cash Customer', style: TextStyle(color: AppTheme.textPrimary)),
                   onTap: () {
                     setState(() => _selectedCustomer = null);
                     setPayState(() {});
@@ -555,8 +555,8 @@ class _MobileCheckoutScreenState extends State<MobileCheckoutScreen> {
                     itemBuilder: (context, i) {
                       final c = customers[i];
                       return ListTile(
-                        leading: const Icon(CupertinoIcons.person_fill, color: AppTheme.textRed),
-                        title: Text(c.name, style: const TextStyle(color: AppTheme.textRed, fontWeight: FontWeight.bold)),
+                        leading: const Icon(CupertinoIcons.person_fill, color: AppTheme.textPrimary),
+                        title: Text(c.name, style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold)),
                         subtitle: Text('${c.phone} • Udhaar: PKR ${c.balance.toStringAsFixed(0)}', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
                         onTap: () {
                           setState(() => _selectedCustomer = c);
@@ -689,7 +689,7 @@ class _MobileCheckoutScreenState extends State<MobileCheckoutScreen> {
                           const SizedBox(width: 6),
                           Text(
                             '$_totalItemCount Items in Cart',
-                            style: const TextStyle(color: AppTheme.textRed, fontWeight: FontWeight.bold, fontSize: 13),
+                            style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 13),
                           ),
                         ],
                       ),
@@ -772,7 +772,7 @@ class _MobileCheckoutScreenState extends State<MobileCheckoutScreen> {
                     Expanded(
                       child: TextField(
                         controller: _searchController,
-                        style: const TextStyle(color: AppTheme.textRed),
+                        style: const TextStyle(color: AppTheme.textPrimary),
                         decoration: InputDecoration(
                           hintText: 'Search products by name or barcode...',
                           hintStyle: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
@@ -821,7 +821,7 @@ class _MobileCheckoutScreenState extends State<MobileCheckoutScreen> {
                         selectedColor: AppTheme.primaryCyan.withValues(alpha: 0.3),
                         backgroundColor: AppTheme.cardBackground,
                         labelStyle: TextStyle(
-                          color: isSelected ? AppTheme.primaryCyan : AppTheme.textTertiaryRed,
+                          color: isSelected ? AppTheme.primaryCyan : AppTheme.textTertiary,
                           fontSize: 11,
                           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                         ),
@@ -892,7 +892,7 @@ class _MobileCheckoutScreenState extends State<MobileCheckoutScreen> {
                                     Expanded(
                                       child: Text(
                                         product.name,
-                                        style: const TextStyle(color: AppTheme.textRed, fontWeight: FontWeight.bold, fontSize: 13),
+                                        style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 13),
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
                                       ),
@@ -931,7 +931,7 @@ class _MobileCheckoutScreenState extends State<MobileCheckoutScreen> {
                                         Text(
                                           'Stock: ${product.stock}',
                                           style: TextStyle(
-                                            color: product.stock > 5 ? AppTheme.textSecondary : Colors.redAccent,
+                                            color: product.stock > 5 ? AppTheme.textSecondary : AppTheme.warningOrange,
                                             fontSize: 11,
                                           ),
                                         ),

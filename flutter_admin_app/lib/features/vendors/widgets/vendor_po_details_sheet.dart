@@ -143,7 +143,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                   Text(
                     'Current Balance Due: PKR ${po.balanceDue.toStringAsFixed(0)}',
                     style: TextStyle(
-                      color: po.balanceDue > 0 ? Colors.redAccent : AppTheme.successGreen,
+                      color: po.balanceDue > 0 ? AppTheme.errorRed : AppTheme.successGreen,
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
                     ),
@@ -248,7 +248,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                             ),
                           ),
                           IconButton(
-                            icon: const Icon(CupertinoIcons.trash, color: Colors.redAccent, size: 20),
+                            icon: const Icon(CupertinoIcons.trash, color: AppTheme.errorRed, size: 20),
                             onPressed: () => setSheetState(() => attachedReceiptUrl = null),
                           ),
                         ] else ...[
@@ -481,7 +481,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                             ),
                           ),
                           IconButton(
-                            icon: const Icon(CupertinoIcons.trash, color: Colors.redAccent, size: 20),
+                            icon: const Icon(CupertinoIcons.trash, color: AppTheme.errorRed, size: 20),
                             onPressed: () => setSheetState(() => attachedBillUrl = null),
                           ),
                         ] else ...[
@@ -600,7 +600,7 @@ class VendorPODetailsSheet extends StatelessWidget {
         );
       } catch (e) {
         imageWidget = Center(
-          child: Text('Corrupt image data: $e', style: const TextStyle(color: Colors.redAccent)),
+          child: Text('Corrupt image data: $e', style: const TextStyle(color: AppTheme.errorRed)),
         );
       }
     } else {
@@ -731,8 +731,8 @@ class VendorPODetailsSheet extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 26,
-                  backgroundColor: AppTheme.textRed.withValues(alpha: 0.2),
-                  child: const Icon(CupertinoIcons.cube_box_fill, color: AppTheme.textRed, size: 28),
+                  backgroundColor: AppTheme.textPrimary.withValues(alpha: 0.2),
+                  child: const Icon(CupertinoIcons.cube_box_fill, color: AppTheme.textPrimary, size: 28),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -742,7 +742,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                       Text(
                         po.vendorName,
                         style: const TextStyle(
-                          color: AppTheme.textRed,
+                          color: AppTheme.textPrimary,
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                         ),
@@ -782,12 +782,12 @@ class VendorPODetailsSheet extends StatelessWidget {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: isCleared
-                      ? [Colors.green.shade900.withValues(alpha: 0.4), Colors.green.shade700.withValues(alpha: 0.2)]
-                      : [Colors.red.shade900.withValues(alpha: 0.4), Colors.red.shade700.withValues(alpha: 0.2)],
+                      ? [AppTheme.successGreen.withValues(alpha: 0.4), AppTheme.successGreen.withValues(alpha: 0.2)]
+                      : [AppTheme.errorRed.withValues(alpha: 0.4), AppTheme.errorRed.withValues(alpha: 0.2)],
                 ),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: isCleared ? Colors.green.withValues(alpha: 0.4) : Colors.red.withValues(alpha: 0.4),
+                  color: isCleared ? AppTheme.successGreen.withValues(alpha: 0.4) : AppTheme.errorRed.withValues(alpha: 0.4),
                 ),
               ),
               child: Column(
@@ -804,7 +804,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
                               letterSpacing: 1.1,
-                              color: isCleared ? Colors.green.shade200 : Colors.red.shade200,
+                              color: isCleared ? AppTheme.successGreen : AppTheme.errorRed,
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -813,7 +813,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 26,
                               fontWeight: FontWeight.w900,
-                              color: isCleared ? AppTheme.successGreen : Colors.redAccent,
+                              color: isCleared ? AppTheme.successGreen : AppTheme.errorRed,
                             ),
                           ),
                         ],
@@ -829,7 +829,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                             ),
                           const SizedBox(width: 4),
                           IconButton.filled(
-                            style: IconButton.styleFrom(backgroundColor: AppTheme.textRed),
+                            style: IconButton.styleFrom(backgroundColor: AppTheme.textPrimary),
                             icon: const Icon(CupertinoIcons.arrow_up_doc_fill, color: Colors.white, size: 20),
                             tooltip: 'Export Account PDF & Share (WhatsApp, Email…)',
                             onPressed: () async {
@@ -1196,13 +1196,13 @@ class VendorPODetailsSheet extends StatelessWidget {
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                                     decoration: BoxDecoration(
-                                      color: Colors.red.withValues(alpha: 0.15),
+                                      color: AppTheme.errorRed.withValues(alpha: 0.15),
                                       borderRadius: BorderRadius.circular(4),
-                                      border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                                      border: Border.all(color: AppTheme.errorRed.withValues(alpha: 0.3)),
                                     ),
                                     child: Text(
                                       'Undo (${remainingMins}m)',
-                                      style: const TextStyle(color: Colors.redAccent, fontSize: 10, fontWeight: FontWeight.bold),
+                                      style: const TextStyle(color: AppTheme.errorRed, fontSize: 10, fontWeight: FontWeight.bold),
                                     ),
                                   ),
                                 )
@@ -1262,7 +1262,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: AppTheme.cardBackground,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.green.withValues(alpha: 0.2)),
+                        border: Border.all(color: AppTheme.successGreen.withValues(alpha: 0.2)),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1288,9 +1288,9 @@ class VendorPODetailsSheet extends StatelessWidget {
                                               child: Container(
                                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                                 decoration: BoxDecoration(
-                                                  color: Colors.green.withValues(alpha: 0.2),
+                                                  color: AppTheme.successGreen.withValues(alpha: 0.2),
                                                   borderRadius: BorderRadius.circular(4),
-                                                  border: Border.all(color: Colors.green.withValues(alpha: 0.4)),
+                                                  border: Border.all(color: AppTheme.successGreen.withValues(alpha: 0.4)),
                                                 ),
                                                 child: const Row(
                                                   mainAxisSize: MainAxisSize.min,
@@ -1363,13 +1363,13 @@ class VendorPODetailsSheet extends StatelessWidget {
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                                     decoration: BoxDecoration(
-                                      color: Colors.red.withValues(alpha: 0.15),
+                                      color: AppTheme.errorRed.withValues(alpha: 0.15),
                                       borderRadius: BorderRadius.circular(4),
-                                      border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                                      border: Border.all(color: AppTheme.errorRed.withValues(alpha: 0.3)),
                                     ),
                                     child: Text(
                                       'Undo (${remainingMins}m)',
-                                      style: const TextStyle(color: Colors.redAccent, fontSize: 10, fontWeight: FontWeight.bold),
+                                      style: const TextStyle(color: AppTheme.errorRed, fontSize: 10, fontWeight: FontWeight.bold),
                                     ),
                                   ),
                                 )

@@ -45,7 +45,7 @@ class _GraphiteSalesChartState extends State<GraphiteSalesChart> {
               ),
               const Spacer(),
               Text(
-                'Rs ${_compact(widget.dailyRevenue.fold<double>(0, (s, d) => s + d.revenue))} total',
+                'PKR ${_compact(widget.dailyRevenue.fold<double>(0, (s, d) => s + d.revenue))} total',
                 style: GraphiteTheme.metricLabel.copyWith(fontSize: 10),
               ),
             ],

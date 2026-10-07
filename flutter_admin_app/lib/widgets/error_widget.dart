@@ -216,7 +216,7 @@ void showErrorSnackbar(BuildContext context, String message) {
           Expanded(
             child: Text(
               message,
-              style: AppTheme.bodyMedium.copyWith(color: AppTheme.textRed),
+              style: AppTheme.bodyMedium.copyWith(color: AppTheme.textPrimary),
             ),
           ),
         ],
@@ -245,7 +245,7 @@ void showSuccessSnackbar(BuildContext context, String message) {
           Expanded(
             child: Text(
               message,
-              style: AppTheme.bodyMedium.copyWith(color: AppTheme.textRed),
+              style: AppTheme.bodyMedium.copyWith(color: AppTheme.textPrimary),
             ),
           ),
         ],

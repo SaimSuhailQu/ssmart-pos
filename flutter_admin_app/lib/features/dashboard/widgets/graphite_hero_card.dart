@@ -70,7 +70,12 @@ class _GraphiteHeroCardState extends State<GraphiteHeroCard>
 
   @override
   Widget build(BuildContext context) {
-    final deltaPositive = widget.deltaPct >= 0;
+    final d = widget.deltaPct;
+    final DeltaDirection dir = d > 0
+        ? DeltaDirection.up
+        : d < 0
+            ? DeltaDirection.down
+            : DeltaDirection.flat;
     return GestureDetector(
       onLongPress: () async {
         await Haptics.medium();
@@ -102,7 +107,7 @@ class _GraphiteHeroCardState extends State<GraphiteHeroCard>
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: [
-                      GraphiteTheme.redAccent.withValues(alpha: 0.16),
+                      GraphiteTheme.platinum.withValues(alpha: 0.10),
                       Colors.transparent,
                     ],
                   ),
@@ -144,7 +149,7 @@ class _GraphiteHeroCardState extends State<GraphiteHeroCard>
                           gradient: LinearGradient(
                             colors: [
                               Colors.transparent,
-                              GraphiteTheme.redBright.withValues(alpha: 0.05),
+                              GraphiteTheme.platinum.withValues(alpha: 0.05),
                               Colors.transparent,
                             ],
                           ),
@@ -166,7 +171,7 @@ class _GraphiteHeroCardState extends State<GraphiteHeroCard>
                   gradient: LinearGradient(
                     colors: [
                       Colors.transparent,
-                      GraphiteTheme.redAccent.withValues(alpha: 0.55),
+                      GraphiteTheme.platinum.withValues(alpha: 0.45),
                       Colors.transparent,
                     ],
                   ),
@@ -191,7 +196,7 @@ class _GraphiteHeroCardState extends State<GraphiteHeroCard>
                       const Icon(
                         CupertinoIcons.lock_shield_fill,
                         size: 13,
-                        color: GraphiteTheme.redAccent,
+                        color: GraphiteTheme.platinum,
                       ),
                     ],
                   ),
@@ -216,14 +221,11 @@ class _GraphiteHeroCardState extends State<GraphiteHeroCard>
                               ),
                               TextSpan(
                                 text: _formatCompact(value),
+                                // Revenue in = good → green; zero stays platinum.
                                 style: GraphiteTheme.heroAmount.copyWith(
-                                  shadows: [
-                                    Shadow(
-                                      color:
-                                          GraphiteTheme.redAccent.withValues(alpha: 0.45),
-                                      blurRadius: 26,
-                                    ),
-                                  ],
+                                  color: widget.revenue > 0
+                                      ? GraphiteTheme.success
+                                      : GraphiteTheme.platinumLight,
                                 ),
                               ),
                             ],
@@ -233,20 +235,24 @@ class _GraphiteHeroCardState extends State<GraphiteHeroCard>
                     },
                   ),
                   const SizedBox(height: 10),
-                  // Delta as bold text — no pill in graphite
+                  // Delta as bold text — green up, red down, gray flat.
                   RichText(
                     text: TextSpan(
                       children: [
                         TextSpan(
                           text:
-                              '${deltaPositive ? '▲' : '▼'} ${widget.deltaPct.abs().toStringAsFixed(1)}%  ',
-                          style: deltaPositive
-                              ? GraphiteTheme.deltaUp.copyWith(fontSize: 13)
-                              : GraphiteTheme.deltaDown.copyWith(fontSize: 13),
+                              '${switch (dir) { DeltaDirection.up => '▲', DeltaDirection.down => '▼', _ => '•' }} ${widget.deltaPct.abs().toStringAsFixed(1)}%  ',
+                          style: switch (dir) {
+                            DeltaDirection.up =>
+                              GraphiteTheme.deltaUp.copyWith(fontSize: 13),
+                            DeltaDirection.down =>
+                              GraphiteTheme.deltaDown.copyWith(fontSize: 13),
+                            _ => GraphiteTheme.deltaFlat.copyWith(fontSize: 13),
+                          },
                         ),
                         TextSpan(
                           text: 'vs yesterday',
-                          style: GraphiteTheme.deltaDown.copyWith(fontSize: 12),
+                          style: GraphiteTheme.deltaFlat.copyWith(fontSize: 12),
                         ),
                       ],
                     ),
@@ -261,7 +267,7 @@ class _GraphiteHeroCardState extends State<GraphiteHeroCard>
                     children: [
                       _meta('${widget.orderCount}', 'bills'),
                       _metaDivider(),
-                      _meta('avg', 'Rs ${widget.averageOrder.toStringAsFixed(0)}'),
+                      _meta('avg', 'PKR ${widget.averageOrder.toStringAsFixed(0)}'),
                       _metaDivider(),
                       Expanded(
                         child: Text(
@@ -269,7 +275,7 @@ class _GraphiteHeroCardState extends State<GraphiteHeroCard>
                           textAlign: TextAlign.right,
                           style: const TextStyle(
                             fontSize: 11.5,
-                            color: GraphiteTheme.redSoft,
+                            color: GraphiteTheme.slate,
                           ),
                         ),
                       ),
@@ -318,7 +324,7 @@ class _GraphiteHeroCardState extends State<GraphiteHeroCard>
             text: rest,
             style: const TextStyle(
               fontSize: 11.5,
-              color: GraphiteTheme.redSoft,
+              color: GraphiteTheme.slate,
             ),
           ),
         ],
@@ -330,7 +336,7 @@ class _GraphiteHeroCardState extends State<GraphiteHeroCard>
     return Container(
       width: 1,
       height: 12,
-      color: GraphiteTheme.redAccent.withValues(alpha: 0.2),
+      color: GraphiteTheme.platinum.withValues(alpha: 0.14),
       margin: const EdgeInsets.symmetric(horizontal: 12),
     );
   }

@@ -699,7 +699,7 @@ class _TransactionDetailsSheet extends StatelessWidget {
             TextField(
               controller: phoneCtrl,
               keyboardType: TextInputType.phone,
-              style: const TextStyle(color: AppTheme.textRed),
+              style: const TextStyle(color: AppTheme.textPrimary),
               decoration: const InputDecoration(
                 hintText: '03001234567',
                 labelText: 'Phone Number',
