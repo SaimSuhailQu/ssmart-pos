@@ -75,6 +75,7 @@ class _EdgeSwipeGestureRecognizer extends OneSequenceGestureRecognizer {
   Offset? _downPosition;
   Offset? _lastPosition;
   bool _claimed = false;
+  bool _resolved = false;
   final VelocityTracker _velocityTracker =
       VelocityTracker.withKind(PointerDeviceKind.touch);
 
@@ -83,8 +84,23 @@ class _EdgeSwipeGestureRecognizer extends OneSequenceGestureRecognizer {
     _downPosition = event.position;
     _lastPosition = event.position;
     _claimed = false;
+    _resolved = false;
     startTrackingPointer(event.pointer, event.transform);
     _velocityTracker.addPosition(event.timeStamp, event.position);
+  }
+
+  void _accept() {
+    if (_resolved) return;
+    _resolved = true;
+    _claimed = true;
+    resolve(GestureDisposition.accepted);
+  }
+
+  void _reject() {
+    if (_resolved) return;
+    _resolved = true;
+    _claimed = false;
+    resolve(GestureDisposition.rejected);
   }
 
   @override
@@ -92,17 +108,14 @@ class _EdgeSwipeGestureRecognizer extends OneSequenceGestureRecognizer {
     if (event is PointerMoveEvent) {
       _velocityTracker.addPosition(event.timeStamp, event.position);
       final down = _downPosition;
-      if (down != null &&
-          !_claimed &&
-          state == GestureRecognizerState.possible) {
+      if (down != null && !_resolved) {
         final dx = event.position.dx - down.dx;
         final dy = (event.position.dy - down.dy).abs();
         final inEdge = down.dx < edgeWidth;
         if (inEdge && dx > 4 && dx > dy * 1.5 && (canStart?.call() ?? true)) {
-          _claimed = true;
-          resolve(GestureDisposition.accepted);
+          _accept();
         } else if (!inEdge || dy > 8 || dx < -12) {
-          resolve(GestureDisposition.rejected);
+          _reject();
         }
         // Otherwise: ambiguous micro-movement — stay undecided so taps
         // and tiny jitter are never stolen.
@@ -120,13 +133,10 @@ class _EdgeSwipeGestureRecognizer extends OneSequenceGestureRecognizer {
       if (_claimed) {
         final velocity = _velocityTracker.getVelocity().pixelsPerSecond.dx;
         onEnd?.call(DragEndDetails(primaryVelocity: velocity));
-      } else if (state == GestureRecognizerState.possible) {
-        resolve(GestureDisposition.rejected);
+      } else if (!_resolved) {
+        _reject();
       }
       stopTrackingPointer(event.pointer);
-      _downPosition = null;
-      _lastPosition = null;
-      _claimed = false;
     }
   }
 
@@ -138,9 +148,16 @@ class _EdgeSwipeGestureRecognizer extends OneSequenceGestureRecognizer {
   @override
   void rejectGesture(int pointer) {
     stopTrackingPointer(pointer);
+  }
+
+  @override
+  void didStopTrackingLastPointer(int pointer) {
+    // Final cleanup whenever the last tracked pointer goes away,
+    // however it happened (up, cancel, arena reject, dispose).
     _downPosition = null;
     _lastPosition = null;
     _claimed = false;
+    _resolved = false;
   }
 
   @override
@@ -249,11 +266,10 @@ class _EdgeSwipeBackState extends State<_EdgeSwipeBack>
             edgeWidth: _EdgeSwipeBack._edgeWidth,
           ),
           (_EdgeSwipeGestureRecognizer instance) {
-            instance
-              ..canStart = () => _canPop
-              ..onStart = _onSwipeStart
-              ..onUpdate = _onSwipeUpdate
-              ..onEnd = _onSwipeEnd;
+            instance.canStart = () => _canPop;
+            instance.onStart = _onSwipeStart;
+            instance.onUpdate = _onSwipeUpdate;
+            instance.onEnd = _onSwipeEnd;
           },
         ),
       },
