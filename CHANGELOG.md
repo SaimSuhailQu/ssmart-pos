@@ -4,6 +4,17 @@ All notable changes to SSmart POS are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [2.4.3] — 2026-10-07
+
+Bug fixes for the mobile admin app.
+
+### Fixed (mobile admin app)
+- **PDF export crash:** sharing a khata/vendor PDF statement threw `PlatformException(sharePositionOrigin: argument must be set…)`. The share sheet now receives the required popover anchor from the tapped button on both the khata and vendor statement flows.
+- **Swipe to go back:** the custom page transition now includes an iOS-style edge swipe — drag from the left edge, the page follows your finger, release past a third of the screen (or flick) to go back.
+
+### Release engineering
+- Bumped version to 2.4.3 (desktop `package.json`), 2.4.3+40 (mobile `pubspec.yaml`), and updated LiveContainer source feed to v2.4.3.
+
 ## [2.4.2] — 2026-10-07
 
 Variant A hero widget and app-wide motion system for the mobile admin app.
