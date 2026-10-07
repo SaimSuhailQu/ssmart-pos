@@ -166,16 +166,20 @@ class _EdgeSwipeGestureRecognizer extends OneSequenceGestureRecognizer {
 
 /// iOS-style "swipe from the left edge to go back".
 ///
-/// Only drags that start within [_edgeWidth] of the left edge are tracked,
-/// so inner scrollers and tab views keep working everywhere else. The page
-/// follows the finger; releasing past 35% of the width (or with a fast
-/// flick) pops the route, otherwise it springs back.
+/// The gesture is caught by an exclusive 20px edge strip layered above the
+/// page: hit-testing stops at the strip, so inner tab views, scrollables,
+/// and swipeable rows never see the touch and cannot steal it in the
+/// gesture arena. The page follows the finger; releasing past 35% of the
+/// width (or with a fast flick) pops the route, otherwise it springs back.
+///
+/// The strip is invisible and only 20px wide (page content starts at 16px
+/// padding), so it steals no meaningful taps.
 class _EdgeSwipeBack extends StatefulWidget {
   final Widget child;
 
   const _EdgeSwipeBack({required this.child});
 
-  static const double _edgeWidth = 28;
+  static const double _edgeWidth = 20;
 
   @override
   State<_EdgeSwipeBack> createState() => _EdgeSwipeBackState();
@@ -256,27 +260,42 @@ class _EdgeSwipeBackState extends State<_EdgeSwipeBack>
 
   @override
   Widget build(BuildContext context) {
-    return RawGestureDetector(
-      behavior: HitTestBehavior.translucent,
-      excludeFromSemantics: true,
-      gestures: <Type, GestureRecognizerFactory>{
-        _EdgeSwipeGestureRecognizer:
-            GestureRecognizerFactoryWithHandlers<_EdgeSwipeGestureRecognizer>(
-          () => _EdgeSwipeGestureRecognizer(
-            edgeWidth: _EdgeSwipeBack._edgeWidth,
-          ),
-          (_EdgeSwipeGestureRecognizer instance) {
-            instance.canStart = () => _canPop;
-            instance.onStart = _onSwipeStart;
-            instance.onUpdate = _onSwipeUpdate;
-            instance.onEnd = _onSwipeEnd;
-          },
+    return Stack(
+      children: [
+        // The page, following the finger during an edge swipe.
+        Transform.translate(
+          offset: Offset(_dragOffset, 0),
+          child: widget.child,
         ),
-      },
-      child: Transform.translate(
-        offset: Offset(_dragOffset, 0),
-        child: widget.child,
-      ),
+        // Exclusive edge strip on top: hit-testing stops here, so this
+        // is the only recognizer that ever sees the touch.
+        Positioned(
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: _EdgeSwipeBack._edgeWidth,
+          child: RawGestureDetector(
+            behavior: HitTestBehavior.opaque,
+            excludeFromSemantics: true,
+            gestures: <Type, GestureRecognizerFactory>{
+              _EdgeSwipeGestureRecognizer:
+                  GestureRecognizerFactoryWithHandlers<
+                      _EdgeSwipeGestureRecognizer>(
+                () => _EdgeSwipeGestureRecognizer(
+                  edgeWidth: _EdgeSwipeBack._edgeWidth,
+                ),
+                (_EdgeSwipeGestureRecognizer instance) {
+                  instance.canStart = () => _canPop;
+                  instance.onStart = _onSwipeStart;
+                  instance.onUpdate = _onSwipeUpdate;
+                  instance.onEnd = _onSwipeEnd;
+                },
+              ),
+            },
+            child: const SizedBox.expand(),
+          ),
+        ),
+      ],
     );
   }
 }
