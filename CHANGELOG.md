@@ -4,6 +4,17 @@ All notable changes to SSmart POS are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [2.4.2] — 2026-10-07
+
+Variant A hero widget and app-wide motion system for the mobile admin app.
+
+### Changed (mobile admin app)
+- **Today's Collection hero rebuilt (Variant A):** hero numeral font changed from Playfair serif to Inter ExtraBold (bold Arial-style, professional); delta now a semantic pill chip (green up / red down / gray flat); new intraday hourly sparkline fed by today's sales; eyebrow restyled as a badge; crimson gradient removed.
+- **App-wide motion system:** new `Pressable` (press-down scale + haptic) on metric cards and bottom-bar actions; new `GraphitePageRoute` (fade + rise + settle) replacing the stock iOS slide on all pushes; `StaggeredEntrance` cascade applied to primary lists (transactions, vendor POs, catalog, expenses, khata customers).
+
+### Release engineering
+- Bumped version to 2.4.2 (desktop `package.json`), 2.4.2+39 (mobile `pubspec.yaml`), and updated LiveContainer source feed to v2.4.2.
+
 ## [2.4.1] — 2026-10-07
 
 Semantic color system for the mobile admin app: green means good, red means bad — across the whole app. Reverts the v2.4.0 all-text-red direction; Noir Graphite stays.

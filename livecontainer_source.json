@@ -10,10 +10,10 @@
       "name": "SSmart POS Admin",
       "bundleIdentifier": "com.ssmartpos",
       "developerName": "SSmart POS",
-      "version": "2.4.1",
-      "versionDate": "2026-10-07T08:00:00Z",
-      "versionDescription": "SSmart POS v2.4.1 — Semantic colors: green for good, red for bad. Noir Graphite monochrome restored; dashboard deltas, PKR currency, and double-arrow fix.",
-      "downloadURL": "https://github.com/SaimSuhailQu/ssmart-pos/releases/download/v2.4.1/ssmartpos.ipa",
+      "version": "2.4.2",
+      "versionDate": "2026-10-07T08:30:00Z",
+      "versionDescription": "SSmart POS v2.4.2 — Variant A hero widget (bold sans numeral, delta pill, intraday sparkline) + app-wide motion system.",
+      "downloadURL": "https://github.com/SaimSuhailQu/ssmart-pos/releases/download/v2.4.2/ssmartpos.ipa",
       "localizedDescription": "SSmart POS iOS Admin & Management Dashboard. Real-time sales analytics, product catalog, mobile checkout billing, and daily closing sales ledger.",
       "iconURL": "https://raw.githubusercontent.com/SaimSuhailQu/ssmart-pos/main/flutter_admin_app/assets/images/ss_mart_logo.png",
       "tintColor": "E63946",
@@ -24,6 +24,15 @@
     }
   ],
   "news": [
+    {
+      "title": "SSmart POS v2.4.2 Released!",
+      "identifier": "release-v2.4.2",
+      "caption": "SSmart POS v2.4.2 Update — New hero widget design + smoother animations across the app",
+      "date": "2026-10-07",
+      "tintColor": "E63946",
+      "appID": "com.ssmartpos",
+      "notify": true
+    },
     {
       "title": "SSmart POS v2.4.1 Released!",
       "identifier": "release-v2.4.1",
