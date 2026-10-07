@@ -147,19 +147,6 @@ class _DailyClosingsScreenState extends State<DailyClosingsScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: AppTheme.primaryCyan,
-        foregroundColor: Colors.black,
-        icon: const Icon(CupertinoIcons.plus_app_fill, color: Colors.black),
-        label: const Text(
-          'Add Daily Closing',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-        ),
-        onPressed: () => ManualClosingDialog.show(
-          context,
-          initialDate: _selectedDate,
-        ),
-      ),
       body: StreamBuilder<List<DailyClosingModel>>(
         stream: firebaseService.getDailyClosingsStream(),
         builder: (context, snapshot) {
@@ -362,38 +349,44 @@ class _DailyClosingsScreenState extends State<DailyClosingsScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppTheme.successGreen.withValues(alpha: 0.15),
-                          shape: BoxShape.circle,
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppTheme.successGreen.withValues(alpha: 0.15),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(CupertinoIcons.sparkles, color: AppTheme.successGreen, size: 20),
                         ),
-                        child: const Icon(CupertinoIcons.sparkles, color: AppTheme.successGreen, size: 20),
-                      ),
-                      const SizedBox(width: 10),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Closing Sale: $dateKey',
-                            style: const TextStyle(
-                              color: AppTheme.successGreen,
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                            ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Closing Sale: $dateKey',
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: AppTheme.successGreen,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                closings.isEmpty
+                                    ? 'No Closing Logged Yet'
+                                    : '${closings.length} Closing Entry Recorded',
+                                style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11),
+                              ),
+                            ],
                           ),
-                          Text(
-                            closings.isEmpty
-                                ? 'No Closing Logged Yet'
-                                : '${closings.length} Closing Entry Recorded',
-                            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11),
-                          ),
-                        ],
-                      ),
-                    ],
+                        ),
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   Row(
                     children: [
                       if (primaryClosing != null) ...[
