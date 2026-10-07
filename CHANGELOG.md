@@ -4,6 +4,14 @@ All notable changes to SSmart POS are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [2.4.10] — 2026-10-07
+
+### Fixed (mobile admin app)
+- **Swipe actions hidden at rest:** the blue/red strips were peeking out around cards without swiping because Flutter `Card`'s default 4px margin made the actions layer larger than the visible card. Card margins are now zero with spacing moved outside the row, so actions align exactly and stay invisible until swiped.
+
+### Release engineering
+- Bumped version to 2.4.10 (desktop `package.json`), 2.4.10+47 (mobile `pubspec.yaml`), and updated LiveContainer source feed to v2.4.10.
+
 ## [2.4.9] — 2026-10-07
 
 ### Fixed (mobile admin app)
