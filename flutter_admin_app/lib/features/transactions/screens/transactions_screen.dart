@@ -277,6 +277,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               return StaggeredEntrance(
                 delay: Duration(milliseconds: (index % 12) * 35),
                 child: SwipeableRow(
+                  margin: const EdgeInsets.all(4),
                   actions: [
                     SwipeAction(
                       icon: CupertinoIcons.doc_text,
@@ -341,6 +342,7 @@ class _TransactionCard extends StatelessWidget {
     final totalUnits = sale.items?.fold<int>(0, (sum, item) => sum + item.quantity) ?? 0;
 
     return Card(
+      margin: EdgeInsets.zero,
       child: Pressable(
         onTap: () => showDetails(context, sale),
         onLongPress: () => showDetails(context, sale),

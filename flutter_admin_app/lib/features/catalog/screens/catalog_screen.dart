@@ -328,6 +328,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                           return StaggeredEntrance(
                             delay: Duration(milliseconds: (index % 12) * 35),
                             child: SwipeableRow(
+                              margin: const EdgeInsets.all(4),
                               actions: [
                                 SwipeAction(
                                   icon: CupertinoIcons.pencil,
@@ -649,6 +650,7 @@ class _ProductCatalogCard extends StatelessWidget {
     return GestureDetector(
       onLongPress: onLongPress,
       child: Card(
+      margin: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.all(AppTheme.spacingM),
         child: Column(

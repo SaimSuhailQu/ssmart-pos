@@ -51,12 +51,17 @@ class SwipeableRow extends StatefulWidget {
   final double actionExtent;
   final double borderRadius;
 
+  /// Spacing around the row. Keep the child's own margin at zero so the
+  /// revealed actions align exactly with the card and never peek out.
+  final EdgeInsetsGeometry margin;
+
   const SwipeableRow({
     super.key,
     required this.child,
     required this.actions,
     this.actionExtent = 76,
     this.borderRadius = 12,
+    this.margin = EdgeInsets.zero,
   }) : assert(actions.length > 0, 'SwipeableRow needs at least one action');
 
   @override
@@ -126,7 +131,9 @@ class _SwipeableRowState extends State<SwipeableRow>
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
+    return Padding(
+      padding: widget.margin,
+      child: Stack(
       children: [
         // Revealed actions, pinned right — full-bleed like iOS Mail, no gaps.
         Positioned.fill(
@@ -182,6 +189,7 @@ class _SwipeableRowState extends State<SwipeableRow>
           ),
         ),
       ],
+      ),
     );
   }
 }
