@@ -39,6 +39,9 @@ class GraphiteHeroCard extends StatefulWidget {
 
 class _GraphiteHeroCardState extends State<GraphiteHeroCard>
     with SingleTickerProviderStateMixin {
+  /// Which primary number the hero shows: 0 = revenue, 1 = order count,
+  /// 2 = average order value. Cycled by double-tap.
+  int _heroMode = 0;
   double _from = 0;
   double _to = 0;
   late final AnimationController _shimmer;
@@ -65,13 +68,47 @@ class _GraphiteHeroCardState extends State<GraphiteHeroCard>
   @override
   void didUpdateWidget(GraphiteHeroCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.revenue != oldWidget.revenue) {
+    final newValue = _modeValue(widget, _heroMode);
+    if (newValue != _modeValue(oldWidget, _heroMode)) {
       setState(() {
         _from = _to;
-        _to = widget.revenue;
+        _to = newValue;
       });
     }
   }
+
+  /// Double-tap cycles the hero's primary number: revenue → orders → avg.
+  void _cycleHeroMode() {
+    Haptics.select();
+    setState(() {
+      _from = _to;
+      _heroMode = (_heroMode + 1) % 3;
+      _to = _modeValue(widget, _heroMode);
+    });
+  }
+
+  static double _modeValue(GraphiteHeroCard w, int mode) => switch (mode) {
+        0 => w.revenue,
+        1 => w.orderCount.toDouble(),
+        _ => w.averageOrder,
+      };
+
+  String get _modeEyebrow => switch (_heroMode) {
+        0 => 'TODAY\'S COLLECTION',
+        1 => 'ORDERS TODAY',
+        _ => 'AVERAGE ORDER',
+      };
+
+  /// Semantic numeral color: money-in is green, order count stays platinum.
+  Color _heroNumberColor() => switch (_heroMode) {
+        0 => widget.revenue > 0
+            ? GraphiteTheme.success
+            : GraphiteTheme.platinumLight,
+        1 => GraphiteTheme.platinumLight,
+        _ => widget.averageOrder > 0
+            ? GraphiteTheme.success
+            : GraphiteTheme.platinumLight,
+      };
 
   @override
   Widget build(BuildContext context) {
@@ -83,7 +120,9 @@ class _GraphiteHeroCardState extends State<GraphiteHeroCard>
             : DeltaDirection.flat;
     final sparkColor =
         widget.revenue > 0 ? GraphiteTheme.success : GraphiteTheme.slateDim;
-    return Pressable(
+    return GestureDetector(
+      onDoubleTap: _cycleHeroMode,
+      child: Pressable(
       haptic: false,
       onLongPress: () async {
         await Haptics.medium();
@@ -199,7 +238,7 @@ class _GraphiteHeroCardState extends State<GraphiteHeroCard>
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          'TODAY\'S COLLECTION',
+                          _modeEyebrow,
                           style: GraphiteTheme.eyebrow.copyWith(
                             letterSpacing: 2.4,
                           ),
@@ -215,6 +254,7 @@ class _GraphiteHeroCardState extends State<GraphiteHeroCard>
                     duration: const Duration(milliseconds: 1100),
                     curve: Curves.easeOutCubic,
                     builder: (context, value, _) {
+                      final isMoney = _heroMode != 1;
                       return FittedBox(
                         fit: BoxFit.scaleDown,
                         alignment: Alignment.centerLeft,
@@ -222,21 +262,20 @@ class _GraphiteHeroCardState extends State<GraphiteHeroCard>
                           text: TextSpan(
                             style: GraphiteTheme.heroAmount,
                             children: [
-                              TextSpan(
-                                text: 'PKR  ',
-                                style: GraphiteTheme.heroCurrency.copyWith(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 0.5,
+                              if (isMoney)
+                                TextSpan(
+                                  text: 'PKR  ',
+                                  style: GraphiteTheme.heroCurrency.copyWith(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.5,
+                                  ),
                                 ),
-                              ),
                               TextSpan(
                                 text: _formatCompact(value),
-                                // Revenue in = good → green; zero stays platinum.
+                                // Money in = good → green; count stays platinum.
                                 style: GraphiteTheme.heroAmount.copyWith(
-                                  color: widget.revenue > 0
-                                      ? GraphiteTheme.success
-                                      : GraphiteTheme.platinumLight,
+                                  color: _heroNumberColor(),
                                 ),
                               ),
                             ],
@@ -289,7 +328,7 @@ class _GraphiteHeroCardState extends State<GraphiteHeroCard>
                       ),
                       const SizedBox(width: 5),
                       Text(
-                        'Long-press to copy closing summary',
+                        'Long-press copies summary · Double-tap switches metric',
                         style: AppTheme.labelSmall.copyWith(
                           fontSize: 10,
                           color: GraphiteTheme.slateDim,
@@ -302,6 +341,7 @@ class _GraphiteHeroCardState extends State<GraphiteHeroCard>
             ),
           ],
         ),
+      ),
       ),
     );
   }

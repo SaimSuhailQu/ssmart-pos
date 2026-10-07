@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:ssmart_pos_admin/core/theme/graphite_theme.dart';
+import 'package:ssmart_pos_admin/core/widgets/count_up.dart';
 import 'package:ssmart_pos_admin/core/widgets/haptics.dart';
 import 'package:ssmart_pos_admin/core/widgets/pressable.dart';
 
@@ -7,11 +8,17 @@ import 'package:ssmart_pos_admin/core/widgets/pressable.dart';
 /// tabular numeral. Deltas are semantic — green for up, red for down,
 /// gray for flat, no arrow for plain captions.
 ///
+/// Pass [animatedValue] + [valueFormat] to count the numeral up/down
+/// whenever the value changes; otherwise the pre-formatted [value] string
+/// is shown statically.
+///
 /// Gestures: tap gives a light haptic tick and fires [onTap] (drill-down);
 /// long-press fires [onLongPress] (secondary/hidden destinations).
 class GraphiteMetricCard extends StatelessWidget {
   final String label;
   final String value;
+  final double? animatedValue;
+  final String Function(double)? valueFormat;
   final String delta;
   final DeltaDirection deltaDirection;
   final IconData icon;
@@ -22,6 +29,8 @@ class GraphiteMetricCard extends StatelessWidget {
     super.key,
     required this.label,
     required this.value,
+    this.animatedValue,
+    this.valueFormat,
     required this.delta,
     this.deltaDirection = DeltaDirection.none,
     required this.icon,
@@ -85,8 +94,14 @@ class GraphiteMetricCard extends StatelessWidget {
             FittedBox(
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
-              child:
-                  Text(value, style: GraphiteTheme.metricValue, maxLines: 1),
+              child: animatedValue != null && valueFormat != null
+                  ? CountUp(
+                      value: animatedValue!,
+                      format: valueFormat!,
+                      style: GraphiteTheme.metricValue,
+                    )
+                  : Text(value,
+                      style: GraphiteTheme.metricValue, maxLines: 1),
             ),
             const SizedBox(height: 4),
             Row(

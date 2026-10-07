@@ -6,7 +6,11 @@ import 'package:ssmart_pos_admin/core/theme/graphite_theme.dart';
 import 'package:ssmart_pos_admin/core/utils/currency_formatter.dart';
 import 'package:ssmart_pos_admin/core/widgets/app_error_widget.dart';
 import 'package:ssmart_pos_admin/core/widgets/staggered_entrance.dart';
-import 'package:ssmart_pos_admin/core/widgets/app_loading_indicator.dart';
+import 'package:ssmart_pos_admin/core/widgets/haptics.dart';
+import 'package:ssmart_pos_admin/core/widgets/shakable.dart';
+import 'package:ssmart_pos_admin/core/widgets/shimmer.dart';
+import 'package:ssmart_pos_admin/core/widgets/success_overlay.dart';
+import 'package:ssmart_pos_admin/core/widgets/swipeable_row.dart';
 import 'package:ssmart_pos_admin/core/widgets/barcode_scanner_sheet.dart';
 import 'package:ssmart_pos_admin/core/widgets/graphite_empty_state.dart';
 import 'package:ssmart_pos_admin/models/product.dart';
@@ -132,8 +136,9 @@ class _CatalogScreenState extends State<CatalogScreen> {
         builder: (context, snapshot) {
           // Loading state - only display if no cached data is present yet
           if (snapshot.connectionState == ConnectionState.waiting && (!snapshot.hasData || snapshot.data == null)) {
-            return const AppLoadingIndicator(
-              message: 'Loading catalog...',
+            return const Padding(
+              padding: EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
+              child: ShimmerList(itemCount: 6, itemHeight: 190),
             );
           }
 
@@ -219,6 +224,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                             label: Text(cat),
                             selected: isSelected,
                             onSelected: (selected) {
+                              Haptics.select();
                               setState(() {
                                 _selectedCategory = cat;
                               });
@@ -243,7 +249,10 @@ class _CatalogScreenState extends State<CatalogScreen> {
                           child: Row(
                             children: [
                               GestureDetector(
-                                onTap: () => setState(() => _showStockAlertsOnly = !_showStockAlertsOnly),
+                                onTap: () {
+                                  Haptics.select();
+                                  setState(() => _showStockAlertsOnly = !_showStockAlertsOnly);
+                                },
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                                   decoration: BoxDecoration(
@@ -318,11 +327,28 @@ class _CatalogScreenState extends State<CatalogScreen> {
                           final product = filteredProducts[index];
                           return StaggeredEntrance(
                             delay: Duration(milliseconds: (index % 12) * 35),
-                            child: _ProductCatalogCard(
-                            product: product,
-                            onEdit: () => _showProductDialog(context, product),
-                            onDelete: () => _confirmDeleteProduct(context, product),
-                          ),
+                            child: SwipeableRow(
+                              actions: [
+                                SwipeAction(
+                                  icon: CupertinoIcons.pencil,
+                                  label: 'Edit',
+                                  color: AppTheme.primaryTeal,
+                                  onTap: () => _showProductDialog(context, product),
+                                ),
+                                SwipeAction(
+                                  icon: CupertinoIcons.delete,
+                                  label: 'Delete',
+                                  color: AppTheme.errorRed,
+                                  onTap: () => _confirmDeleteProduct(context, product),
+                                ),
+                              ],
+                              child: _ProductCatalogCard(
+                                product: product,
+                                onEdit: () => _showProductDialog(context, product),
+                                onDelete: () => _confirmDeleteProduct(context, product),
+                                onLongPress: () => _showProductDialog(context, product),
+                              ),
+                            ),
                           );
                         },
                       ),
@@ -368,6 +394,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
     final costCtrl = TextEditingController(text: product?.costPrice != null ? product!.costPrice.toString() : '');
     final stockCtrl = TextEditingController(text: product?.stock != null ? product!.stock.toString() : '0');
     final catCtrl = TextEditingController(text: product?.category ?? 'General');
+    final shakeCtrl = ShakeController();
 
     showModalBottomSheet(
       context: context,
@@ -376,7 +403,9 @@ class _CatalogScreenState extends State<CatalogScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => Padding(
+      builder: (ctx) => Shakable(
+        controller: shakeCtrl,
+        child: Padding(
         padding: EdgeInsets.only(
           bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
           top: 20,
@@ -495,6 +524,8 @@ class _CatalogScreenState extends State<CatalogScreen> {
                     final cat = catCtrl.text.trim().isEmpty ? 'General' : catCtrl.text.trim();
 
                     if (name.isEmpty || barcode.isEmpty) {
+                      Haptics.error();
+                      shakeCtrl.shake();
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Please fill item name and barcode')),
                       );
@@ -513,17 +544,16 @@ class _CatalogScreenState extends State<CatalogScreen> {
                     );
 
                     if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(isEditing ? 'Item "$name" updated!' : 'Item "$name" added to catalog!'),
-                        backgroundColor: AppTheme.primaryTeal,
-                      ),
+                    showSuccessOverlay(
+                      context,
+                      message: isEditing ? '"$name" updated' : '"$name" saved',
                     );
                   },
                 ),
               ),
             ],
           ),
+        ),
         ),
       ),
     );
@@ -592,11 +622,13 @@ class _ProductCatalogCard extends StatelessWidget {
   final Product product;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final VoidCallback onLongPress;
 
   const _ProductCatalogCard({
     required this.product,
     required this.onEdit,
     required this.onDelete,
+    required this.onLongPress,
   });
 
   @override
@@ -614,7 +646,9 @@ class _ProductCatalogCard extends StatelessWidget {
       stockLabel = 'Low Stock';
     }
 
-    return Card(
+    return GestureDetector(
+      onLongPress: onLongPress,
+      child: Card(
       child: Padding(
         padding: const EdgeInsets.all(AppTheme.spacingM),
         child: Column(
@@ -778,6 +812,7 @@ class _ProductCatalogCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }

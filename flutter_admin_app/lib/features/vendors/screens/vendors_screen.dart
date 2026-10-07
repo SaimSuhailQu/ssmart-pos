@@ -9,7 +9,9 @@ import 'package:ssmart_pos_admin/core/utils/date_utils.dart';
 import 'package:ssmart_pos_admin/core/utils/whatsapp_helper.dart';
 import 'package:ssmart_pos_admin/core/widgets/app_error_widget.dart';
 import 'package:ssmart_pos_admin/core/widgets/staggered_entrance.dart';
-import 'package:ssmart_pos_admin/core/widgets/app_loading_indicator.dart';
+import 'package:ssmart_pos_admin/core/widgets/haptics.dart';
+import 'package:ssmart_pos_admin/core/widgets/shimmer.dart';
+import 'package:ssmart_pos_admin/core/widgets/swipeable_row.dart';
 import 'package:ssmart_pos_admin/features/vendors/widgets/vendor_po_details_sheet.dart';
 import 'package:ssmart_pos_admin/models/vendor.dart';
 import 'package:ssmart_pos_admin/services/firebase_service.dart';
@@ -49,6 +51,7 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
     _tabController = TabController(length: 4, vsync: this);
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
+        Haptics.select();
         setState(() {});
       }
     });
@@ -164,7 +167,10 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
       stream: firebaseService.getPurchaseOrdersStream(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting && (!snapshot.hasData || snapshot.data == null)) {
-          return const AppLoadingIndicator(message: 'Loading vendor purchase orders...');
+          return const Padding(
+            padding: EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
+            child: ShimmerList(itemCount: 5, itemHeight: 180),
+          );
         }
 
         if (snapshot.hasError && (!snapshot.hasData || snapshot.data == null)) {
@@ -327,9 +333,37 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                         separatorBuilder: (_, __) => const SizedBox(height: AppTheme.spacingS),
                         itemBuilder: (context, index) {
                           final po = filtered[index];
+                          // Same 30-minute edit window as the card's Edit/Delete
+                          // buttons: older POs are permanent.
+                          final poCreated = DateTime.tryParse(po.timestamp.replaceAll(' ', 'T')) ?? DateTime.now();
+                          final poIsEditable = DateTime.now().difference(poCreated).inMinutes <= 30;
                           return StaggeredEntrance(
                             delay: Duration(milliseconds: (index % 12) * 35),
-                            child: _buildPOCard(context, po),
+                            child: SwipeableRow(
+                              actions: [
+                                if (poIsEditable) ...[
+                                  SwipeAction(
+                                    icon: CupertinoIcons.pencil,
+                                    label: 'Edit',
+                                    color: AppTheme.primaryTeal,
+                                    onTap: () => _showAddEditPODialog(context, po: po),
+                                  ),
+                                  SwipeAction(
+                                    icon: CupertinoIcons.delete,
+                                    label: 'Delete',
+                                    color: AppTheme.errorRed,
+                                    onTap: () => _confirmDeletePO(context, po),
+                                  ),
+                                ] else
+                                  SwipeAction(
+                                    icon: CupertinoIcons.doc_text,
+                                    label: 'Details',
+                                    color: AppTheme.primaryTeal,
+                                    onTap: () => _showPODetailsSheet(context, po),
+                                  ),
+                              ],
+                              child: _buildPOCard(context, po),
+                            ),
                           );
                         },
                       ),
@@ -360,6 +394,7 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
           side: BorderSide(color: isSelected ? GraphiteTheme.platinum : GraphiteTheme.cardBorder),
         ),
         onSelected: (val) {
+          Haptics.select();
           setState(() => _poFilter = filterKey);
         },
       ),
@@ -590,7 +625,10 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
       stream: firebaseService.getVendorsStream(),
       builder: (context, vendorSnapshot) {
         if (vendorSnapshot.connectionState == ConnectionState.waiting && (!vendorSnapshot.hasData || vendorSnapshot.data == null)) {
-          return const AppLoadingIndicator(message: 'Loading vendor directory...');
+          return const Padding(
+            padding: EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
+            child: ShimmerList(itemCount: 5, itemHeight: 140),
+          );
         }
 
         if (vendorSnapshot.hasError && (!vendorSnapshot.hasData || vendorSnapshot.data == null)) {
@@ -695,7 +733,10 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                             borderRadius: BorderRadius.circular(20),
                             side: BorderSide(color: isSelected ? GraphiteTheme.platinum : AppTheme.borderColor),
                           ),
-                          onSelected: (val) => setState(() => _selectedCategory = cat),
+                          onSelected: (val) {
+                            Haptics.select();
+                            setState(() => _selectedCategory = cat);
+                          },
                         ),
                       );
                     }).toList(),
@@ -742,7 +783,23 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                             final double due = vendorBalances[vendor.name.trim().toLowerCase()] ?? 0.0;
                             final int poCount = vendorPOCounts[vendor.name.trim().toLowerCase()] ?? 0;
 
-                            return _buildVendorCard(context, vendor, due, poCount);
+                            return SwipeableRow(
+                              actions: [
+                                SwipeAction(
+                                  icon: CupertinoIcons.pencil,
+                                  label: 'Edit',
+                                  color: AppTheme.primaryTeal,
+                                  onTap: () => _showAddEditVendorDialog(context, vendor: vendor),
+                                ),
+                                SwipeAction(
+                                  icon: CupertinoIcons.delete,
+                                  label: 'Delete',
+                                  color: AppTheme.errorRed,
+                                  onTap: () => _confirmDeleteVendor(context, vendor),
+                                ),
+                              ],
+                              child: _buildVendorCard(context, vendor, due, poCount),
+                            );
                           },
                         ),
                 ),
@@ -1355,7 +1412,10 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
       stream: firebaseService.getPurchaseOrdersStream(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting && (!snapshot.hasData || snapshot.data == null)) {
-          return const AppLoadingIndicator(message: 'Loading payment ledger...');
+          return const Padding(
+            padding: EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
+            child: ShimmerList(itemCount: 5, itemHeight: 120),
+          );
         }
         if (snapshot.hasError && (!snapshot.hasData || snapshot.data == null)) {
           return AppErrorWidget(
@@ -1621,7 +1681,10 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
       stream: firebaseService.getPurchaseOrdersStream(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting && (!snapshot.hasData || snapshot.data == null)) {
-          return const AppLoadingIndicator(message: 'Loading order deliveries...');
+          return const Padding(
+            padding: EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
+            child: ShimmerList(itemCount: 5, itemHeight: 120),
+          );
         }
         if (snapshot.hasError && (!snapshot.hasData || snapshot.data == null)) {
           return AppErrorWidget(

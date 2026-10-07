@@ -6,9 +6,13 @@ import 'package:ssmart_pos_admin/core/theme/graphite_theme.dart';
 import 'package:ssmart_pos_admin/core/utils/date_utils.dart';
 import 'package:ssmart_pos_admin/core/widgets/app_error_widget.dart';
 import 'package:ssmart_pos_admin/core/widgets/staggered_entrance.dart';
-import 'package:ssmart_pos_admin/core/widgets/app_loading_indicator.dart';
 import 'package:ssmart_pos_admin/core/widgets/graphite_empty_state.dart';
+import 'package:ssmart_pos_admin/core/widgets/haptics.dart';
 import 'package:ssmart_pos_admin/core/widgets/liquid_scaffold.dart';
+import 'package:ssmart_pos_admin/core/widgets/shakable.dart';
+import 'package:ssmart_pos_admin/core/widgets/shimmer.dart';
+import 'package:ssmart_pos_admin/core/widgets/success_overlay.dart';
+import 'package:ssmart_pos_admin/core/widgets/swipeable_row.dart';
 import 'package:ssmart_pos_admin/models/expense.dart';
 import 'package:ssmart_pos_admin/services/firebase_service.dart';
 
@@ -72,7 +76,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
         stream: firebaseService.getExpensesStream(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting && (!snapshot.hasData || snapshot.data == null)) {
-            return const AppLoadingIndicator(message: 'Loading expenses...');
+            return const ShimmerList(itemCount: 6, itemHeight: 96);
           }
 
           if (snapshot.hasError && (!snapshot.hasData || snapshot.data == null)) {
@@ -217,7 +221,10 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                           side: BorderSide(
                             color: isSel ? GraphiteTheme.platinum : GraphiteTheme.cardBorder,
                           ),
-                          onSelected: (_) => setState(() => _selectedCategory = cat),
+                          onSelected: (_) {
+                            Haptics.select();
+                            setState(() => _selectedCategory = cat);
+                          },
                         );
                       },
                     ),
@@ -264,7 +271,16 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
 
                           return StaggeredEntrance(
                             delay: Duration(milliseconds: (index % 12) * 35),
-                            child: Container(
+                            child: SwipeableRow(
+                              actions: [
+                                SwipeAction(
+                                  icon: CupertinoIcons.delete,
+                                  label: 'Delete',
+                                  color: AppTheme.errorRed,
+                                  onTap: () => _confirmDeleteExpense(context, expense),
+                                ),
+                              ],
+                              child: Container(
                             padding: const EdgeInsets.all(AppTheme.spacingM),
                             decoration: BoxDecoration(
                               color: GraphiteTheme.graphiteCard,
@@ -333,7 +349,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                                 ),
                               ],
                             ),
-                          ),
+                              ),
+                            ),
                           );
                         },
                       ),
@@ -349,6 +366,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     final amountCtrl = TextEditingController();
     final descCtrl = TextEditingController();
     final catCtrl = TextEditingController(text: 'General');
+    final shakeCtrl = ShakeController();
 
     showModalBottomSheet(
       context: context,
@@ -357,7 +375,9 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => Padding(
+      builder: (ctx) => Shakable(
+        controller: shakeCtrl,
+        child: Padding(
         padding: EdgeInsets.only(
           bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
           top: 20,
@@ -418,6 +438,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                       final cat = catCtrl.text.trim().isEmpty ? 'General' : catCtrl.text.trim();
 
                       if (amount <= 0 || desc.isEmpty) {
+                        Haptics.error();
+                        shakeCtrl.shake();
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Please enter an amount and description')),
                         );
@@ -433,12 +455,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                       );
 
                       if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Expense recorded successfully!'),
-                          backgroundColor: GraphiteTheme.graphiteCard,
-                        ),
-                      );
+                      showSuccessOverlay(context, message: 'Expense recorded');
                     },
                     child: Center(
                       child: Text('Record Expense', style: GraphiteTheme.primaryButtonText),
@@ -449,6 +466,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
             ],
           ),
         ),
+      ),
       ),
     );
   }
@@ -471,9 +489,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               Navigator.pop(ctx);
               await context.read<FirebaseService>().deleteExpense(expense.id.toString());
               if (!context.mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Expense deleted')),
-              );
+              showSuccessOverlay(context, message: 'Expense deleted');
             },
             child: const Text('Delete'),
           ),

@@ -10,6 +10,7 @@ import 'package:ssmart_pos_admin/core/widgets/haptics.dart';
 import 'package:ssmart_pos_admin/core/widgets/pressable.dart';
 import 'package:ssmart_pos_admin/core/widgets/graphite_page_route.dart';
 import 'package:ssmart_pos_admin/core/widgets/liquid_scaffold.dart';
+import 'package:ssmart_pos_admin/core/widgets/shimmer.dart';
 import 'package:ssmart_pos_admin/core/widgets/staggered_entrance.dart';
 import 'package:ssmart_pos_admin/features/dashboard/screens/daily_closings_screen.dart';
 import 'package:ssmart_pos_admin/features/dashboard/widgets/graphite_hero_card.dart';
@@ -28,7 +29,6 @@ import 'package:ssmart_pos_admin/services/auth_service.dart';
 import 'package:ssmart_pos_admin/services/firebase_service.dart';
 import 'package:ssmart_pos_admin/widgets/error_widget.dart';
 import 'package:ssmart_pos_admin/widgets/license_banner.dart';
-import 'package:ssmart_pos_admin/widgets/loading_indicator.dart';
 import 'package:ssmart_pos_admin/widgets/manual_closing_dialog.dart';
 
 /// Noir Graphite dashboard — "Option K (refined)" premium redesign.
@@ -386,8 +386,38 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting &&
                       (!snapshot.hasData || snapshot.data == null)) {
-                    return const AppLoadingIndicator(
-                      message: 'Loading dashboard...',
+                    // Skeleton placeholders shaped like the hero + metric
+                    // grid — calmer than a spinner while metrics load.
+                    return ListView(
+                      physics: const NeverScrollableScrollPhysics(),
+                      padding: const EdgeInsets.all(AppTheme.spacingM),
+                      children: const [
+                        ShimmerPlaceholder(height: 320, borderRadius: 20),
+                        SizedBox(height: AppTheme.spacingL),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ShimmerPlaceholder(height: 150),
+                            ),
+                            SizedBox(width: 10),
+                            Expanded(
+                              child: ShimmerPlaceholder(height: 150),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ShimmerPlaceholder(height: 150),
+                            ),
+                            SizedBox(width: 10),
+                            Expanded(
+                              child: ShimmerPlaceholder(height: 150),
+                            ),
+                          ],
+                        ),
+                      ],
                     );
                   }
                   if (snapshot.hasError &&
@@ -549,6 +579,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         value: AppDateUtils.formatCurrency(
                           todaysMetrics.totalRevenue,
                         ),
+                        animatedValue: todaysMetrics.totalRevenue,
+                        valueFormat: AppDateUtils.formatCurrency,
                         delta:
                             '${deltaPct.abs().toStringAsFixed(1)}% vs yesterday',
                         deltaDirection: deltaPct > 0
@@ -562,6 +594,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       GraphiteMetricCard(
                         label: 'Orders',
                         value: '${todaysMetrics.transactionCount}',
+                        animatedValue:
+                            todaysMetrics.transactionCount.toDouble(),
+                        valueFormat: (v) => v.toStringAsFixed(0),
                         delta: 'completed today',
                         icon: CupertinoIcons.doc_text_fill,
                         onLongPress: () => _go(const TransactionsScreen()),
@@ -571,6 +606,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         value: AppDateUtils.formatCurrency(
                           todaysMetrics.averageTransactionValue,
                         ),
+                        animatedValue:
+                            todaysMetrics.averageTransactionValue,
+                        valueFormat: AppDateUtils.formatCurrency,
                         delta: 'per transaction',
                         icon: CupertinoIcons.chart_bar_fill,
                       ),

@@ -6,7 +6,11 @@ import 'package:ssmart_pos_admin/core/theme/graphite_theme.dart';
 import 'package:ssmart_pos_admin/core/utils/whatsapp_helper.dart';
 import 'package:ssmart_pos_admin/core/widgets/app_error_widget.dart';
 import 'package:ssmart_pos_admin/core/widgets/staggered_entrance.dart';
-import 'package:ssmart_pos_admin/core/widgets/app_loading_indicator.dart';
+import 'package:ssmart_pos_admin/core/widgets/haptics.dart';
+import 'package:ssmart_pos_admin/core/widgets/shakable.dart';
+import 'package:ssmart_pos_admin/core/widgets/shimmer.dart';
+import 'package:ssmart_pos_admin/core/widgets/success_overlay.dart';
+import 'package:ssmart_pos_admin/core/widgets/swipeable_row.dart';
 import 'package:ssmart_pos_admin/core/widgets/graphite_empty_state.dart';
 import 'package:ssmart_pos_admin/core/widgets/liquid_scaffold.dart';
 import 'package:ssmart_pos_admin/features/customers/widgets/customer_khata_details_sheet.dart';
@@ -123,7 +127,10 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
         stream: firebaseService.getCustomersStream(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting && (!snapshot.hasData || snapshot.data == null)) {
-            return const AppLoadingIndicator(message: 'Loading customer ledgers...');
+            return const Padding(
+              padding: EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
+              child: ShimmerList(itemCount: 5, itemHeight: 170),
+            );
           }
 
           if (snapshot.hasError && (!snapshot.hasData || snapshot.data == null)) {
@@ -267,7 +274,22 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
 
                           return StaggeredEntrance(
                             delay: Duration(milliseconds: (index % 12) * 35),
-                            child: Container(
+                            child: SwipeableRow(
+                              actions: [
+                                SwipeAction(
+                                  icon: CupertinoIcons.doc_text,
+                                  label: 'Details',
+                                  color: AppTheme.primaryTeal,
+                                  onTap: () => _showKhataDetailsSheet(context, item),
+                                ),
+                                SwipeAction(
+                                  icon: CupertinoIcons.money_dollar_circle,
+                                  label: 'Add Entry',
+                                  color: AppTheme.successGreen,
+                                  onTap: () => _showKhataTransactionDialog(context, item),
+                                ),
+                              ],
+                              child: Container(
                             decoration: BoxDecoration(
                               color: GraphiteTheme.graphiteCard,
                               borderRadius: BorderRadius.circular(16),
@@ -423,6 +445,7 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                                 ),
                               ),
                             ),
+                            ),
                           ),
                           );
                         },
@@ -558,6 +581,7 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
   void _showKhataTransactionDialog(BuildContext context, CustomerModel customer) {
     final amountCtrl = TextEditingController();
     final noteCtrl = TextEditingController();
+    final shakeCtrl = ShakeController();
     String type = 'PAYMENT'; // PAYMENT (Wasool) or LOAN (Udhaar Diya)
 
     showModalBottomSheet(
@@ -565,7 +589,9 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setModalState) => Container(
+        builder: (context, setModalState) => Shakable(
+          controller: shakeCtrl,
+          child: Container(
           decoration: const BoxDecoration(
             color: AppTheme.surfaceDark,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -599,7 +625,10 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                         selected: type == 'PAYMENT',
                         selectedColor: AppTheme.successGreen,
                         onSelected: (val) {
-                          if (val) setModalState(() => type = 'PAYMENT');
+                          if (val) {
+                            Haptics.select();
+                            setModalState(() => type = 'PAYMENT');
+                          }
                         },
                       ),
                     ),
@@ -610,7 +639,10 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                         selected: type == 'LOAN',
                         selectedColor: GraphiteTheme.redAccent,
                         onSelected: (val) {
-                          if (val) setModalState(() => type = 'LOAN');
+                          if (val) {
+                            Haptics.select();
+                            setModalState(() => type = 'LOAN');
+                          }
                         },
                       ),
                     ),
@@ -641,6 +673,8 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                     onPressed: () async {
                       final amount = double.tryParse(amountCtrl.text.trim()) ?? 0;
                       if (amount <= 0) {
+                        Haptics.error();
+                        shakeCtrl.shake();
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Please enter a valid amount')),
                         );
@@ -648,8 +682,8 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                       }
 
                       Navigator.pop(ctx);
-                      await _runCrud(
-                        () => context.read<FirebaseService>().recordKhataTransaction(
+                      try {
+                        await context.read<FirebaseService>().recordKhataTransaction(
                           customerId: customer.dbKey,
                           customerName: customer.name,
                           currentBalance: customer.balance,
@@ -657,9 +691,20 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                           type: type,
                           paymentMethod: 'Cash',
                           notes: noteCtrl.text.trim().isEmpty ? null : noteCtrl.text.trim(),
-                        ),
-                        'Khata updated for ${customer.name}!',
-                      );
+                        );
+                      } catch (e) {
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Action failed: $e'),
+                            backgroundColor: AppTheme.errorRed,
+                          ),
+                        );
+                        return;
+                      }
+
+                      if (!context.mounted) return;
+                      showSuccessOverlay(context, message: 'Khata entry saved');
 
                       final updatedBalance = type == 'LOAN'
                           ? customer.balance + amount
@@ -680,6 +725,7 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                 ),
               ],
             ),
+          ),
           ),
         ),
       ),

@@ -10,11 +10,14 @@ import 'package:ssmart_pos_admin/models/sale.dart';
 import 'package:ssmart_pos_admin/services/firebase_service.dart';
 import 'package:ssmart_pos_admin/features/dashboard/screens/daily_closings_screen.dart';
 import 'package:ssmart_pos_admin/widgets/error_widget.dart';
-import 'package:ssmart_pos_admin/widgets/loading_indicator.dart';
 import 'package:ssmart_pos_admin/widgets/manual_closing_dialog.dart';
 import 'package:ssmart_pos_admin/core/widgets/graphite_empty_state.dart';
 import 'package:ssmart_pos_admin/core/widgets/graphite_page_route.dart';
+import 'package:ssmart_pos_admin/core/widgets/haptics.dart';
+import 'package:ssmart_pos_admin/core/widgets/pressable.dart';
+import 'package:ssmart_pos_admin/core/widgets/shimmer.dart';
 import 'package:ssmart_pos_admin/core/widgets/staggered_entrance.dart';
+import 'package:ssmart_pos_admin/core/widgets/swipeable_row.dart';
 
 /// Screen displaying all transactions with filtering and search
 class TransactionsScreen extends StatefulWidget {
@@ -157,6 +160,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                           label: Text(filter),
                           selected: isSelected,
                           onSelected: (selected) {
+                            Haptics.select();
                             setState(() {
                               _selectedFilter = filter;
                             });
@@ -189,9 +193,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               builder: (context, snapshot) {
                 // Loading state - only display if no cached data is available yet
                 if (snapshot.connectionState == ConnectionState.waiting && (!snapshot.hasData || snapshot.data == null)) {
-                  return const AppLoadingIndicator(
-                    message: 'Loading transactions...',
-                  );
+                  return const ShimmerList(itemCount: 6, itemHeight: 96);
                 }
 
                 // Error state - only display if no data is present
@@ -274,7 +276,24 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               final sale = sales[index];
               return StaggeredEntrance(
                 delay: Duration(milliseconds: (index % 12) * 35),
-                child: _TransactionCard(sale: sale),
+                child: SwipeableRow(
+                  actions: [
+                    SwipeAction(
+                      icon: CupertinoIcons.doc_text,
+                      label: 'Details',
+                      color: AppTheme.primaryTeal,
+                      onTap: () => _TransactionCard.showDetails(context, sale),
+                    ),
+                    SwipeAction(
+                      icon: CupertinoIcons.delete,
+                      label: 'Delete',
+                      color: AppTheme.errorRed,
+                      onTap: () =>
+                          _TransactionDetailsSheet.confirmAndDelete(context, sale),
+                    ),
+                  ],
+                  child: _TransactionCard(sale: sale),
+                ),
               );
             },
           ),
@@ -322,9 +341,9 @@ class _TransactionCard extends StatelessWidget {
     final totalUnits = sale.items?.fold<int>(0, (sum, item) => sum + item.quantity) ?? 0;
 
     return Card(
-      child: InkWell(
-        onTap: () => _showTransactionDetails(context),
-        borderRadius: BorderRadius.circular(AppTheme.radiusM),
+      child: Pressable(
+        onTap: () => showDetails(context, sale),
+        onLongPress: () => showDetails(context, sale),
         child: Padding(
           padding: const EdgeInsets.all(AppTheme.spacingM),
           child: Column(
@@ -458,7 +477,8 @@ class _TransactionCard extends StatelessWidget {
     );
   }
 
-  void _showTransactionDetails(BuildContext context) {
+  /// Opens the transaction details sheet (receipt, WhatsApp, delete).
+  static void showDetails(BuildContext context, Sale sale) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -634,7 +654,10 @@ class _TransactionDetailsSheet extends StatelessWidget {
     );
   }
 
-  Future<void> _confirmDeleteTransaction(BuildContext context) async {
+  /// Shows the delete confirmation and deletes the sale.
+  /// Returns true if the sale was deleted. Does not pop any sheet —
+  /// callers that have one open must pop it themselves.
+  static Future<bool> confirmAndDelete(BuildContext context, Sale sale) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -666,7 +689,6 @@ class _TransactionDetailsSheet extends StatelessWidget {
         final firebaseService = context.read<FirebaseService>();
         await firebaseService.deleteSale(sale.id);
         if (context.mounted) {
-          Navigator.pop(context); // Close bottom sheet
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('🗑️ Transaction deleted successfully.'),
@@ -674,13 +696,23 @@ class _TransactionDetailsSheet extends StatelessWidget {
             ),
           );
         }
+        return true;
       } catch (e) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Failed to delete transaction: $e'), backgroundColor: AppTheme.errorRed),
           );
         }
+        return false;
       }
+    }
+    return false;
+  }
+
+  Future<void> _confirmDeleteTransaction(BuildContext context) async {
+    final deleted = await confirmAndDelete(context, sale);
+    if (deleted && context.mounted) {
+      Navigator.pop(context); // Close bottom sheet
     }
   }
 
