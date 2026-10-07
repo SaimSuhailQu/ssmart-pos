@@ -281,7 +281,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                     SwipeAction(
                       icon: CupertinoIcons.doc_text,
                       label: 'Details',
-                      color: AppTheme.primaryTeal,
+                      color: AppTheme.actionBlue,
                       onTap: () => _TransactionCard.showDetails(context, sale),
                     ),
                     SwipeAction(

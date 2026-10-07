@@ -19,6 +19,7 @@ class AppTheme {
   static const Color successGreen = Color(0xFF10B981); // Emerald accent for cash/paid
   static const Color warningOrange = Color(0xFFF59E0B); // Amber for warnings/due
   static const Color errorRed = Color(0xFFF87171); // Functional red (matches GraphiteTheme.errorRed)
+  static const Color actionBlue = Color(0xFF0A84FF); // iOS system blue for neutral swipe actions (Edit/Details)
 
   static const Color backgroundLight = Color(0xFF070708); // Noir Screen Base
   static const Color cardBackground = Color(0xFF121215); // Noir Card Surface

@@ -32,7 +32,7 @@ class SwipeAction {
 ///     SwipeAction(
 ///       icon: CupertinoIcons.pencil,
 ///       label: 'Edit',
-///       color: AppTheme.primaryTeal,
+///       color: AppTheme.actionBlue,
 ///       onTap: () => _editExpense(expense),
 ///     ),
 ///     SwipeAction(
@@ -90,6 +90,7 @@ class _SwipeableRowState extends State<SwipeableRow>
   }
 
   void _animateTo(double target) {
+    _snap.stop();
     _snapAnim = Tween<double>(begin: _offset, end: target).animate(
       CurvedAnimation(parent: _snap, curve: Curves.easeOutCubic),
     );
@@ -169,6 +170,7 @@ class _SwipeableRowState extends State<SwipeableRow>
           behavior: HitTestBehavior.translucent,
           onHorizontalDragUpdate: _onDragUpdate,
           onHorizontalDragEnd: _onDragEnd,
+          onHorizontalDragCancel: () => _animateTo(0),
           onTap: _isOpen ? _close : null,
           child: Transform.translate(
             offset: Offset(-_offset, 0),

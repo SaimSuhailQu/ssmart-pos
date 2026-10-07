@@ -279,7 +279,7 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                                 SwipeAction(
                                   icon: CupertinoIcons.doc_text,
                                   label: 'Details',
-                                  color: AppTheme.primaryTeal,
+                                  color: AppTheme.actionBlue,
                                   onTap: () => _showKhataDetailsSheet(context, item),
                                 ),
                                 SwipeAction(

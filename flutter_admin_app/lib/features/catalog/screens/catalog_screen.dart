@@ -332,7 +332,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                                 SwipeAction(
                                   icon: CupertinoIcons.pencil,
                                   label: 'Edit',
-                                  color: AppTheme.primaryTeal,
+                                  color: AppTheme.actionBlue,
                                   onTap: () => _showProductDialog(context, product),
                                 ),
                                 SwipeAction(

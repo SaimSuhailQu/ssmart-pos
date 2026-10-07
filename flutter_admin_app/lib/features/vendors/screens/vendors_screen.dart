@@ -345,7 +345,7 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                                   SwipeAction(
                                     icon: CupertinoIcons.pencil,
                                     label: 'Edit',
-                                    color: AppTheme.primaryTeal,
+                                    color: AppTheme.actionBlue,
                                     onTap: () => _showAddEditPODialog(context, po: po),
                                   ),
                                   SwipeAction(
@@ -358,7 +358,7 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                                   SwipeAction(
                                     icon: CupertinoIcons.doc_text,
                                     label: 'Details',
-                                    color: AppTheme.primaryTeal,
+                                    color: AppTheme.actionBlue,
                                     onTap: () => _showPODetailsSheet(context, po),
                                   ),
                               ],
@@ -788,7 +788,7 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                                 SwipeAction(
                                   icon: CupertinoIcons.pencil,
                                   label: 'Edit',
-                                  color: AppTheme.primaryTeal,
+                                  color: AppTheme.actionBlue,
                                   onTap: () => _showAddEditVendorDialog(context, vendor: vendor),
                                 ),
                                 SwipeAction(
