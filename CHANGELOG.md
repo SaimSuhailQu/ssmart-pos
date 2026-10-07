@@ -4,6 +4,26 @@ All notable changes to SSmart POS are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [2.4.4] — 2026-10-07
+
+Gestures and feedback across the mobile admin app, plus the swipe-back fix.
+
+### Added (mobile admin app)
+- **Swipe actions on rows:** transactions (Details/Delete), expenses (Delete), catalog products (Edit/Delete), vendor POs (Edit/Delete within the 30-minute window, Details after), vendor directory (Edit/Delete), khata customers (Details/Add Entry).
+- **Long-press:** transaction card opens details, product card opens edit.
+- **Double-tap dashboard hero:** cycles Today's Collection → Orders → Average Order.
+- **Count-up numbers:** Revenue and Orders metric cards tick smoothly on change.
+- **Skeleton shimmer loading states** replace all spinners.
+- **Validation shake + error haptic** on expense/product/khata forms.
+- **Success checkmark overlay** on expense, product, and khata saves/deletes.
+- **Selection haptics** on filter chips, tab switches, and toggles.
+
+### Fixed (mobile admin app)
+- **Edge swipe-back now wins over inner horizontal scrollers** (e.g. the Vendors tab view): a custom recognizer claims the edge drag on the first horizontal move, without stealing taps or vertical scrolls.
+
+### Release engineering
+- Bumped version to 2.4.4 (desktop `package.json`), 2.4.4+41 (mobile `pubspec.yaml`), and updated LiveContainer source feed to v2.4.4.
+
 ## [2.4.3] — 2026-10-07
 
 Bug fixes for the mobile admin app.
