@@ -12,7 +12,6 @@ import 'package:ssmart_pos_admin/core/widgets/liquid_scaffold.dart';
 import 'package:ssmart_pos_admin/core/widgets/shakable.dart';
 import 'package:ssmart_pos_admin/core/widgets/shimmer.dart';
 import 'package:ssmart_pos_admin/core/widgets/success_overlay.dart';
-import 'package:ssmart_pos_admin/core/widgets/swipeable_row.dart';
 import 'package:ssmart_pos_admin/models/expense.dart';
 import 'package:ssmart_pos_admin/services/firebase_service.dart';
 
@@ -271,85 +270,75 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
 
                           return StaggeredEntrance(
                             delay: Duration(milliseconds: (index % 12) * 35),
-                            child: SwipeableRow(
-                              actions: [
-                                SwipeAction(
-                                  icon: CupertinoIcons.delete,
-                                  label: 'Delete',
-                                  color: AppTheme.errorRed,
-                                  onTap: () => _confirmDeleteExpense(context, expense),
+                            child: Container(
+                          padding: const EdgeInsets.all(AppTheme.spacingM),
+                          decoration: BoxDecoration(
+                            color: GraphiteTheme.graphiteCard,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: GraphiteTheme.cardBorder),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: const BoxDecoration(
+                                  color: GraphiteTheme.platinumFaint,
+                                  shape: BoxShape.circle,
                                 ),
-                              ],
-                              child: Container(
-                            padding: const EdgeInsets.all(AppTheme.spacingM),
-                            decoration: BoxDecoration(
-                              color: GraphiteTheme.graphiteCard,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: GraphiteTheme.cardBorder),
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: const BoxDecoration(
-                                    color: GraphiteTheme.platinumFaint,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(CupertinoIcons.arrow_down_right, color: GraphiteTheme.errorRed, size: 20),
-                                ),
-                                const SizedBox(width: AppTheme.spacingM),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        expense.description,
-                                        style: GraphiteTheme.bodyStrong,
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Row(
-                                        children: [
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                            decoration: BoxDecoration(
-                                              color: GraphiteTheme.cardSurface,
-                                              border: Border.all(color: GraphiteTheme.cardBorder),
-                                              borderRadius: BorderRadius.circular(4),
-                                            ),
-                                            child: Text(
-                                              expense.category,
-                                              style: GraphiteTheme.captionPlatinum.copyWith(fontSize: 10),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            formattedDate,
-                                            style: GraphiteTheme.body.copyWith(color: GraphiteTheme.slateDim, fontSize: 11),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                child: const Icon(CupertinoIcons.arrow_down_right, color: GraphiteTheme.errorRed, size: 20),
+                              ),
+                              const SizedBox(width: AppTheme.spacingM),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'PKR ${expense.amount.toStringAsFixed(0)}',
-                                      style: GraphiteTheme.metricValue.copyWith(
-                                        color: GraphiteTheme.errorRed,
-                                        fontSize: 16,
-                                      ),
+                                      expense.description,
+                                      style: GraphiteTheme.bodyStrong,
                                     ),
-                                    IconButton(
-                                      icon: const Icon(CupertinoIcons.trash, color: GraphiteTheme.slateDim, size: 18),
-                                      onPressed: () => _confirmDeleteExpense(context, expense),
+                                    const SizedBox(height: 2),
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: GraphiteTheme.cardSurface,
+                                            border: Border.all(color: GraphiteTheme.cardBorder),
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: Text(
+                                            expense.category,
+                                            style: GraphiteTheme.captionPlatinum.copyWith(fontSize: 10),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          formattedDate,
+                                          style: GraphiteTheme.body.copyWith(color: GraphiteTheme.slateDim, fontSize: 11),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),
-                              ],
-                            ),
                               ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    'PKR ${expense.amount.toStringAsFixed(0)}',
+                                    style: GraphiteTheme.metricValue.copyWith(
+                                      color: GraphiteTheme.errorRed,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(CupertinoIcons.trash, color: GraphiteTheme.slateDim, size: 18),
+                                    onPressed: () => _confirmDeleteExpense(context, expense),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                             ),
                           );
                         },

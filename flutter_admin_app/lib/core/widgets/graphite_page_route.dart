@@ -168,7 +168,7 @@ class _EdgeSwipeGestureRecognizer extends OneSequenceGestureRecognizer {
 ///
 /// The gesture is caught by an exclusive 20px edge strip layered above the
 /// page: hit-testing stops at the strip, so inner tab views, scrollables,
-/// and swipeable rows never see the touch and cannot steal it in the
+/// and inner scrollers never see the touch and cannot steal it in the
 /// gesture arena. The page follows the finger; releasing past 35% of the
 /// width (or with a fast flick) pops the route, otherwise it springs back.
 ///

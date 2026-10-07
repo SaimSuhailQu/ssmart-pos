@@ -11,7 +11,6 @@ import 'package:ssmart_pos_admin/core/widgets/app_error_widget.dart';
 import 'package:ssmart_pos_admin/core/widgets/staggered_entrance.dart';
 import 'package:ssmart_pos_admin/core/widgets/haptics.dart';
 import 'package:ssmart_pos_admin/core/widgets/shimmer.dart';
-import 'package:ssmart_pos_admin/core/widgets/swipeable_row.dart';
 import 'package:ssmart_pos_admin/features/vendors/widgets/vendor_po_details_sheet.dart';
 import 'package:ssmart_pos_admin/models/vendor.dart';
 import 'package:ssmart_pos_admin/services/firebase_service.dart';
@@ -339,31 +338,7 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                           final poIsEditable = DateTime.now().difference(poCreated).inMinutes <= 30;
                           return StaggeredEntrance(
                             delay: Duration(milliseconds: (index % 12) * 35),
-                            child: SwipeableRow(
-                              actions: [
-                                if (poIsEditable) ...[
-                                  SwipeAction(
-                                    icon: CupertinoIcons.pencil,
-                                    label: 'Edit',
-                                    color: AppTheme.actionBlue,
-                                    onTap: () => _showAddEditPODialog(context, po: po),
-                                  ),
-                                  SwipeAction(
-                                    icon: CupertinoIcons.delete,
-                                    label: 'Delete',
-                                    color: AppTheme.errorRed,
-                                    onTap: () => _confirmDeletePO(context, po),
-                                  ),
-                                ] else
-                                  SwipeAction(
-                                    icon: CupertinoIcons.doc_text,
-                                    label: 'Details',
-                                    color: AppTheme.actionBlue,
-                                    onTap: () => _showPODetailsSheet(context, po),
-                                  ),
-                              ],
-                              child: _buildPOCard(context, po),
-                            ),
+                            child: _buildPOCard(context, po),
                           );
                         },
                       ),
@@ -783,23 +758,7 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                             final double due = vendorBalances[vendor.name.trim().toLowerCase()] ?? 0.0;
                             final int poCount = vendorPOCounts[vendor.name.trim().toLowerCase()] ?? 0;
 
-                            return SwipeableRow(
-                              actions: [
-                                SwipeAction(
-                                  icon: CupertinoIcons.pencil,
-                                  label: 'Edit',
-                                  color: AppTheme.actionBlue,
-                                  onTap: () => _showAddEditVendorDialog(context, vendor: vendor),
-                                ),
-                                SwipeAction(
-                                  icon: CupertinoIcons.delete,
-                                  label: 'Delete',
-                                  color: AppTheme.errorRed,
-                                  onTap: () => _confirmDeleteVendor(context, vendor),
-                                ),
-                              ],
-                              child: _buildVendorCard(context, vendor, due, poCount),
-                            );
+                            return _buildVendorCard(context, vendor, due, poCount);
                           },
                         ),
                 ),

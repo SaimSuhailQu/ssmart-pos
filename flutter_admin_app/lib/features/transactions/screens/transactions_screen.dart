@@ -17,7 +17,6 @@ import 'package:ssmart_pos_admin/core/widgets/haptics.dart';
 import 'package:ssmart_pos_admin/core/widgets/pressable.dart';
 import 'package:ssmart_pos_admin/core/widgets/shimmer.dart';
 import 'package:ssmart_pos_admin/core/widgets/staggered_entrance.dart';
-import 'package:ssmart_pos_admin/core/widgets/swipeable_row.dart';
 
 /// Screen displaying all transactions with filtering and search
 class TransactionsScreen extends StatefulWidget {
@@ -276,25 +275,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               final sale = sales[index];
               return StaggeredEntrance(
                 delay: Duration(milliseconds: (index % 12) * 35),
-                child: SwipeableRow(
-                  margin: const EdgeInsets.all(4),
-                  actions: [
-                    SwipeAction(
-                      icon: CupertinoIcons.doc_text,
-                      label: 'Details',
-                      color: AppTheme.actionBlue,
-                      onTap: () => _TransactionCard.showDetails(context, sale),
-                    ),
-                    SwipeAction(
-                      icon: CupertinoIcons.delete,
-                      label: 'Delete',
-                      color: AppTheme.errorRed,
-                      onTap: () =>
-                          _TransactionDetailsSheet.confirmAndDelete(context, sale),
-                    ),
-                  ],
-                  child: _TransactionCard(sale: sale),
-                ),
+                child: _TransactionCard(sale: sale),
               );
             },
           ),
@@ -342,7 +323,6 @@ class _TransactionCard extends StatelessWidget {
     final totalUnits = sale.items?.fold<int>(0, (sum, item) => sum + item.quantity) ?? 0;
 
     return Card(
-      margin: EdgeInsets.zero,
       child: Pressable(
         onTap: () => showDetails(context, sale),
         onLongPress: () => showDetails(context, sale),

@@ -10,7 +10,6 @@ import 'package:ssmart_pos_admin/core/widgets/haptics.dart';
 import 'package:ssmart_pos_admin/core/widgets/shakable.dart';
 import 'package:ssmart_pos_admin/core/widgets/shimmer.dart';
 import 'package:ssmart_pos_admin/core/widgets/success_overlay.dart';
-import 'package:ssmart_pos_admin/core/widgets/swipeable_row.dart';
 import 'package:ssmart_pos_admin/core/widgets/barcode_scanner_sheet.dart';
 import 'package:ssmart_pos_admin/core/widgets/graphite_empty_state.dart';
 import 'package:ssmart_pos_admin/models/product.dart';
@@ -327,28 +326,11 @@ class _CatalogScreenState extends State<CatalogScreen> {
                           final product = filteredProducts[index];
                           return StaggeredEntrance(
                             delay: Duration(milliseconds: (index % 12) * 35),
-                            child: SwipeableRow(
-                              margin: const EdgeInsets.all(4),
-                              actions: [
-                                SwipeAction(
-                                  icon: CupertinoIcons.pencil,
-                                  label: 'Edit',
-                                  color: AppTheme.actionBlue,
-                                  onTap: () => _showProductDialog(context, product),
-                                ),
-                                SwipeAction(
-                                  icon: CupertinoIcons.delete,
-                                  label: 'Delete',
-                                  color: AppTheme.errorRed,
-                                  onTap: () => _confirmDeleteProduct(context, product),
-                                ),
-                              ],
-                              child: _ProductCatalogCard(
-                                product: product,
-                                onEdit: () => _showProductDialog(context, product),
-                                onDelete: () => _confirmDeleteProduct(context, product),
-                                onLongPress: () => _showProductDialog(context, product),
-                              ),
+                            child: _ProductCatalogCard(
+                              product: product,
+                              onEdit: () => _showProductDialog(context, product),
+                              onDelete: () => _confirmDeleteProduct(context, product),
+                              onLongPress: () => _showProductDialog(context, product),
                             ),
                           );
                         },
@@ -650,7 +632,6 @@ class _ProductCatalogCard extends StatelessWidget {
     return GestureDetector(
       onLongPress: onLongPress,
       child: Card(
-      margin: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.all(AppTheme.spacingM),
         child: Column(
