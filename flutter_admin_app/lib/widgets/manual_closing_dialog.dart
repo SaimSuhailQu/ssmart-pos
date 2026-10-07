@@ -189,7 +189,7 @@ class _ManualClosingDialogState extends State<ManualClosingDialog> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.errorRed,
-              foregroundColor: Colors.white,
+              foregroundColor: Colors.black,
             ),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Delete Permanently'),

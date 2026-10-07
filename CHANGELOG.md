@@ -4,6 +4,30 @@ All notable changes to SSmart POS are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [2.4.0] — 2026-10-07
+
+Crimson editorial theme, Customer Khata correctness fixes, and record delete/edit reliability pass.
+
+### Fixed (mobile admin app)
+- **Khata shop-wide total no longer goes negative:** the hero total now sums only positive customer balances. Individual negative balances (customer overpaid / advance credit) no longer drag the shop-wide udhaar total below zero (PKR -7808 case). Overpaid customers are labelled **Advance / Credit**.
+- **Customer / Vendor / Khata record delete & edit bug fixed:** desktop-created records use RTDB push keys (`-NxYz…`) while the model `id` could be a legacy numeric id, so deletes silently missed and edits duplicated. Models now carry the RTDB node `key` (`dbKey`), and delete/edit resolve the correct path — deleting both legacy and keyed nodes.
+- **Clipped action icons fixed:** the customer card action row uses a `Wrap` layout with compact icon buttons, so the delete (trash) icon is no longer clipped at the card's right edge on narrow screens.
+
+### Changed (mobile admin app)
+- **Crimson editorial theme:** all white text retargeted to the red family (`AppTheme.textRed` / `textSecondaryRed` / `textTertiaryRed`, `GraphiteTheme.redAccent` / `redBright` / `redSoft`) across Dashboard hero, Khata screen & details sheet, Vendors & PO details, Mobile checkout, Daily closings, Catalog, Expenses, Transactions, License gate, and error/loading widgets. Functional colors (success green, WhatsApp brand green) and on-red button content remain as designed.
+- **Unified typography:** Inter remains the single app-wide font.
+- **Last amber/purple stragglers removed:** vendor PO header avatar and PDF export action, and checkout customer icons now use the red accent system.
+
+### Added (mobile admin app)
+- **"Today's Collection" hero redesign:** crimson-tinted gradient surface with dual radial glows, animated shimmer sweep, red hairline top highlight, glowing PKR numerals, shield eyebrow badge, and red-tinted meta dividers.
+
+### Stability
+- **CRUD error surfacing:** Khata create/update/delete operations are wrapped in a `_runCrud` helper that surfaces failures with a red error snackbar instead of failing silently, and mutations complete before navigation (pop-before-await removed).
+- **Khata balance cache clamp:** per-customer cached balances are clamped to ≥ 0 so legacy negative nodes cannot skew aggregates.
+
+### Release engineering
+- Bumped version to 2.4.0 (desktop `package.json`), 2.4.0+37 (mobile `pubspec.yaml`), and updated LiveContainer source feed to v2.4.0.
+
 ## [2.3.6] — 2026-10-06
 
 Surface depth, ambient mesh lighting, elevated empty states & design polish for the mobile admin app.

@@ -650,7 +650,7 @@ class _TransactionDetailsSheet extends StatelessWidget {
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.errorRed,
-              foregroundColor: Colors.white,
+              foregroundColor: Colors.black,
             ),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Delete'),
@@ -699,7 +699,7 @@ class _TransactionDetailsSheet extends StatelessWidget {
             TextField(
               controller: phoneCtrl,
               keyboardType: TextInputType.phone,
-              style: const TextStyle(color: Colors.white),
+              style: const TextStyle(color: AppTheme.textRed),
               decoration: const InputDecoration(
                 hintText: '03001234567',
                 labelText: 'Phone Number',

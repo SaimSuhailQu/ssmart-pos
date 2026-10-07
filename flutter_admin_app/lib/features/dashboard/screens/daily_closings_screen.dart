@@ -89,7 +89,7 @@ class _DailyClosingsScreenState extends State<DailyClosingsScreen> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.errorRed,
-              foregroundColor: Colors.white,
+              foregroundColor: Colors.black,
             ),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Delete Permanently'),
@@ -258,7 +258,7 @@ class _DailyClosingsScreenState extends State<DailyClosingsScreen> {
                           style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: AppTheme.textRed,
                           ),
                         ),
                       ],
@@ -440,7 +440,7 @@ class _DailyClosingsScreenState extends State<DailyClosingsScreen> {
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.1,
-                  color: Colors.white.withValues(alpha: 0.7),
+                  color: AppTheme.textSecondaryRed,
                 ),
               ),
               const SizedBox(height: 4),
@@ -449,7 +449,7 @@ class _DailyClosingsScreenState extends State<DailyClosingsScreen> {
                 style: const TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.w900,
-                  color: Colors.white,
+                  color: AppTheme.textRed,
                   letterSpacing: 0.5,
                   fontFeatures: [FontFeature.tabularFigures()],
                 ),
@@ -607,7 +607,7 @@ class _DailyClosingsScreenState extends State<DailyClosingsScreen> {
             children: [
               const Text(
                 'Historical Closing Log',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textRed),
               ),
               Row(
                 children: [
@@ -699,7 +699,7 @@ class _DailyClosingsScreenState extends State<DailyClosingsScreen> {
                 const SizedBox(height: 12),
                 const Text(
                   'No Daily Closing Logged',
-                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                  style: TextStyle(color: AppTheme.textRed, fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 6),
                 const Text(
@@ -779,7 +779,7 @@ class _DailyClosingsScreenState extends State<DailyClosingsScreen> {
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
-                        color: isCurrentSelected ? AppTheme.primaryCyan : Colors.white,
+                        color: isCurrentSelected ? AppTheme.primaryCyan : AppTheme.textRed,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -819,7 +819,7 @@ class _DailyClosingsScreenState extends State<DailyClosingsScreen> {
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 15,
-                            color: Colors.white,
+                            color: AppTheme.textRed,
                             fontFeatures: [FontFeature.tabularFigures()],
                           ),
                         ),

@@ -46,17 +46,17 @@ class VendorPODetailsSheet extends StatelessWidget {
               const SizedBox(height: 12),
               const Text(
                 'Attach Receipt / Bill Image',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                style: TextStyle(color: GraphiteTheme.ink, fontWeight: FontWeight.bold, fontSize: 16),
               ),
               const SizedBox(height: 8),
               ListTile(
                 leading: const Icon(CupertinoIcons.camera_fill, color: AppTheme.primaryTeal),
-                title: const Text('Take Photo with Camera', style: TextStyle(color: Colors.white)),
+                title: const Text('Take Photo with Camera', style: TextStyle(color: GraphiteTheme.ink)),
                 onTap: () => Navigator.pop(ctx, ImageSource.camera),
               ),
               ListTile(
-                leading: const Icon(CupertinoIcons.photo_fill, color: Colors.purpleAccent),
-                title: const Text('Choose from Photo Gallery', style: TextStyle(color: Colors.white)),
+                leading: const Icon(CupertinoIcons.photo_fill, color: GraphiteTheme.redAccent),
+                title: const Text('Choose from Photo Gallery', style: TextStyle(color: GraphiteTheme.ink)),
                 onTap: () => Navigator.pop(ctx, ImageSource.gallery),
               ),
             ],
@@ -137,7 +137,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(
                     'Vendor: ${po.vendorName} (PO #${po.id})',
-                    style: const TextStyle(color: Colors.white70, fontSize: 13),
+                    style: const TextStyle(color: GraphiteTheme.slate, fontSize: 13),
                   ),
                   Text(
                     'Current Balance Due: PKR ${po.balanceDue.toStringAsFixed(0)}',
@@ -151,7 +151,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                   TextField(
                     controller: amountCtrl,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                    style: const TextStyle(color: GraphiteTheme.ink, fontSize: 16, fontWeight: FontWeight.bold),
                     decoration: InputDecoration(
                       labelText: 'Payment Amount (PKR)',
                       prefixIcon: const Icon(CupertinoIcons.money_dollar),
@@ -174,7 +174,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                         selectedColor: AppTheme.primaryTeal.withValues(alpha: 0.3),
                         backgroundColor: AppTheme.cardBackground,
                         labelStyle: TextStyle(
-                          color: isSelected ? AppTheme.primaryTeal : Colors.white70,
+                          color: isSelected ? AppTheme.primaryTeal : GraphiteTheme.slate,
                           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                         ),
                         onSelected: (val) {
@@ -186,7 +186,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                   const SizedBox(height: 14),
                   TextField(
                     controller: noteCtrl,
-                    style: const TextStyle(color: Colors.white),
+                    style: const TextStyle(color: GraphiteTheme.ink),
                     decoration: InputDecoration(
                       labelText: 'Payment Notes / Cheque # (Optional)',
                       prefixIcon: const Icon(CupertinoIcons.doc_text),
@@ -266,7 +266,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                               children: [
                                 Text(
                                   'Attach Payment Slip / Receipt',
-                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
+                                  style: TextStyle(color: GraphiteTheme.ink, fontWeight: FontWeight.w600, fontSize: 13),
                                 ),
                                 Text(
                                   'Photo of cheque, bank deposit, or cash voucher',
@@ -383,7 +383,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                     children: [
                       Text(
                         'Add Bill / Delivery to PO',
-                        style: AppTheme.headlineMedium.copyWith(color: Colors.purpleAccent),
+                        style: AppTheme.headlineMedium.copyWith(color: GraphiteTheme.redAccent),
                       ),
                       IconButton(
                         icon: const Icon(CupertinoIcons.xmark_circle, color: AppTheme.textSecondary),
@@ -394,7 +394,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(
                     'Vendor: ${po.vendorName} (PO #${po.id})',
-                    style: const TextStyle(color: Colors.white70, fontSize: 13),
+                    style: const TextStyle(color: GraphiteTheme.slate, fontSize: 13),
                   ),
                   Text(
                     'Total Billed so far: PKR ${po.totalCost.toStringAsFixed(0)} | Current Balance: PKR ${po.balanceDue.toStringAsFixed(0)}',
@@ -407,7 +407,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                   TextField(
                     controller: amountCtrl,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                    style: const TextStyle(color: GraphiteTheme.ink, fontSize: 16, fontWeight: FontWeight.bold),
                     decoration: InputDecoration(
                       labelText: 'Bill / Order Delivery Amount (PKR) *',
                       prefixIcon: const Icon(CupertinoIcons.money_dollar),
@@ -419,7 +419,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                   const SizedBox(height: 14),
                   TextField(
                     controller: noteCtrl,
-                    style: const TextStyle(color: Colors.white),
+                    style: const TextStyle(color: GraphiteTheme.ink),
                     decoration: InputDecoration(
                       labelText: 'Invoice / Delivery Notes (Optional)',
                       prefixIcon: const Icon(CupertinoIcons.doc_plaintext),
@@ -437,7 +437,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: attachedBillUrl != null
-                            ? Colors.purpleAccent.withValues(alpha: 0.5)
+                            ? GraphiteTheme.redAccent.withValues(alpha: 0.5)
                             : Colors.white10,
                       ),
                     ),
@@ -470,7 +470,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                               children: [
                                 Text(
                                    'Bill Photo Attached',
-                                   style: TextStyle(color: Colors.purpleAccent, fontWeight: FontWeight.bold, fontSize: 13),
+                                   style: TextStyle(color: GraphiteTheme.redAccent, fontWeight: FontWeight.bold, fontSize: 13),
                                  ),
                                  Text(
                                    'Invoice saved with order entry',
@@ -487,10 +487,10 @@ class VendorPODetailsSheet extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: Colors.purple.withValues(alpha: 0.1),
+                              color: GraphiteTheme.redAccent.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: const Icon(CupertinoIcons.photo_on_rectangle, color: Colors.purpleAccent, size: 22),
+                            child: const Icon(CupertinoIcons.photo_on_rectangle, color: GraphiteTheme.redAccent, size: 22),
                           ),
                           const SizedBox(width: 12),
                           const Expanded(
@@ -499,7 +499,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                               children: [
                                 Text(
                                   'Attach Vendor Bill / Invoice',
-                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
+                                  style: TextStyle(color: GraphiteTheme.ink, fontWeight: FontWeight.w600, fontSize: 13),
                                 ),
                                 Text(
                                   'Capture paper bill or upload from gallery',
@@ -510,7 +510,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                           ),
                           TextButton.icon(
                             style: TextButton.styleFrom(
-                              foregroundColor: Colors.purpleAccent,
+                              foregroundColor: GraphiteTheme.redAccent,
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                             ),
                             icon: const Icon(CupertinoIcons.plus, size: 16),
@@ -532,8 +532,8 @@ class VendorPODetailsSheet extends StatelessWidget {
                     height: 48,
                     child: ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.purpleAccent,
-                        foregroundColor: Colors.white,
+                        backgroundColor: GraphiteTheme.redAccent,
+                        foregroundColor: Colors.black,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       icon: const Icon(CupertinoIcons.plus_circle_fill),
@@ -594,7 +594,7 @@ class VendorPODetailsSheet extends StatelessWidget {
           bytes,
           fit: BoxFit.contain,
           errorBuilder: (_, __, ___) => const Center(
-            child: Text('Failed to load image', style: TextStyle(color: Colors.white70)),
+            child: Text('Failed to load image', style: TextStyle(color: GraphiteTheme.slate)),
           ),
         );
       } catch (e) {
@@ -611,7 +611,7 @@ class VendorPODetailsSheet extends StatelessWidget {
           return const Center(child: CircularProgressIndicator());
         },
         errorBuilder: (_, __, ___) => const Center(
-          child: Text('Failed to load image from network', style: TextStyle(color: Colors.white70)),
+          child: Text('Failed to load image from network', style: TextStyle(color: GraphiteTheme.slate)),
         ),
       );
     }
@@ -669,7 +669,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                 children: [
                   const Text(
                     'Pinch to zoom / pan',
-                    style: TextStyle(color: Colors.white38, fontSize: 11),
+                    style: TextStyle(color: GraphiteTheme.slateDim, fontSize: 11),
                   ),
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
@@ -730,8 +730,8 @@ class VendorPODetailsSheet extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 26,
-                  backgroundColor: Colors.purple.withValues(alpha: 0.2),
-                  child: const Icon(CupertinoIcons.cube_box_fill, color: Colors.purpleAccent, size: 28),
+                  backgroundColor: AppTheme.textRed.withValues(alpha: 0.2),
+                  child: const Icon(CupertinoIcons.cube_box_fill, color: AppTheme.textRed, size: 28),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -741,7 +741,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                       Text(
                         po.vendorName,
                         style: const TextStyle(
-                          color: Colors.white,
+                          color: AppTheme.textRed,
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                         ),
@@ -828,7 +828,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                             ),
                           const SizedBox(width: 4),
                           IconButton.filled(
-                            style: IconButton.styleFrom(backgroundColor: Colors.purpleAccent),
+                            style: IconButton.styleFrom(backgroundColor: AppTheme.textRed),
                             icon: const Icon(CupertinoIcons.arrow_up_doc_fill, color: Colors.white, size: 20),
                             tooltip: 'Export Account PDF & Share (WhatsApp, Email…)',
                             onPressed: () async {
@@ -900,7 +900,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _StatItem(label: 'Total Billed', value: 'PKR ${po.totalCost.toStringAsFixed(0)}', color: Colors.white),
+                      _StatItem(label: 'Total Billed', value: 'PKR ${po.totalCost.toStringAsFixed(0)}', color: GraphiteTheme.ink),
                       _StatItem(label: 'Total Paid', value: 'PKR ${po.paidAmount.toStringAsFixed(0)}', color: AppTheme.successGreen),
                       _StatItem(label: 'Status', value: po.status, color: po.isReceived ? AppTheme.successGreen : Colors.orangeAccent),
                     ],
@@ -918,8 +918,8 @@ class VendorPODetailsSheet extends StatelessWidget {
                 Expanded(
                   child: ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.purple.shade700,
-                      foregroundColor: Colors.white,
+                      backgroundColor: AppTheme.errorRed,
+                      foregroundColor: Colors.black,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
                     icon: const Icon(CupertinoIcons.plus_circle_fill, size: 16),
@@ -959,7 +959,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                     backgroundColor: AppTheme.cardBackground,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10), side: const BorderSide(color: Colors.white24)),
                   ),
-                  icon: const Icon(CupertinoIcons.pencil, size: 16, color: Colors.white70),
+                  icon: const Icon(CupertinoIcons.pencil, size: 16, color: GraphiteTheme.slate),
                   tooltip: 'Edit PO Profile',
                   onPressed: () {
                     Navigator.pop(context);
@@ -988,7 +988,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                     children: [
                       const Text(
                         'Purchase Order Details',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                        style: TextStyle(color: GraphiteTheme.ink, fontWeight: FontWeight.bold, fontSize: 13),
                       ),
                       const SizedBox(height: 8),
                       _DetailRow(label: 'PO ID', value: '#${po.id}'),
@@ -1009,16 +1009,16 @@ class VendorPODetailsSheet extends StatelessWidget {
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                   decoration: BoxDecoration(
-                                    color: Colors.purple.withValues(alpha: 0.2),
+                                    color: GraphiteTheme.redAccent.withValues(alpha: 0.2),
                                     borderRadius: BorderRadius.circular(6),
-                                    border: Border.all(color: Colors.purple.withValues(alpha: 0.5)),
+                                    border: Border.all(color: GraphiteTheme.redAccent.withValues(alpha: 0.5)),
                                   ),
                                   child: const Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Icon(CupertinoIcons.photo, size: 12, color: Colors.purpleAccent),
+                                      Icon(CupertinoIcons.photo, size: 12, color: GraphiteTheme.redAccent),
                                       SizedBox(width: 4),
-                                      Text('View Attached Bill', style: TextStyle(color: Colors.purpleAccent, fontSize: 11, fontWeight: FontWeight.bold)),
+                                      Text('View Attached Bill', style: TextStyle(color: GraphiteTheme.redAccent, fontSize: 11, fontWeight: FontWeight.bold)),
                                     ],
                                   ),
                                 ),
@@ -1035,7 +1035,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                 if (po.items.isNotEmpty) ...[
                   const Text(
                     'Purchased Items',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                    style: TextStyle(color: GraphiteTheme.ink, fontWeight: FontWeight.bold, fontSize: 13),
                   ),
                   const SizedBox(height: 8),
                   ...po.items.map((item) {
@@ -1058,11 +1058,11 @@ class VendorPODetailsSheet extends StatelessWidget {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(name, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+                              Text(name, style: const TextStyle(color: GraphiteTheme.ink, fontSize: 13, fontWeight: FontWeight.w600)),
                               Text('$qty units @ PKR ${cost.toStringAsFixed(0)}', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
                             ],
                           ),
-                          Text('PKR ${total.toStringAsFixed(0)}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          Text('PKR ${total.toStringAsFixed(0)}', style: const TextStyle(color: GraphiteTheme.ink, fontWeight: FontWeight.bold)),
                         ],
                       ),
                     );
@@ -1074,7 +1074,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                 if (po.orderEntries.isNotEmpty) ...[
                   const Text(
                     'Order Invoices / Billing History',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                    style: TextStyle(color: GraphiteTheme.ink, fontWeight: FontWeight.bold, fontSize: 13),
                   ),
                   const SizedBox(height: 8),
                   ...po.orderEntries.asMap().entries.map((entryItem) {
@@ -1116,7 +1116,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                                 Row(
                                   children: [
                                     Expanded(
-                                      child: Text(notes, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                                      child: Text(notes, style: const TextStyle(color: GraphiteTheme.ink, fontSize: 12, fontWeight: FontWeight.w600)),
                                     ),
                                     if (billUrl != null && billUrl.isNotEmpty) ...[
                                       const SizedBox(width: 4),
@@ -1230,7 +1230,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                 if (po.payments.isNotEmpty) ...[
                   const Text(
                     'Payments Made to Vendor',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                    style: TextStyle(color: GraphiteTheme.ink, fontWeight: FontWeight.bold, fontSize: 13),
                   ),
                   const SizedBox(height: 8),
                   ...po.payments.asMap().entries.map((payItem) {
@@ -1278,7 +1278,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                                       Row(
                                         children: [
                                           Expanded(
-                                            child: Text('Paid via $method', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                                            child: Text('Paid via $method', style: const TextStyle(color: GraphiteTheme.ink, fontSize: 12, fontWeight: FontWeight.w600)),
                                           ),
                                           if (receiptUrl != null && receiptUrl.isNotEmpty) ...[
                                             const SizedBox(width: 4),
@@ -1305,7 +1305,7 @@ class VendorPODetailsSheet extends StatelessWidget {
                                         ],
                                       ),
                                       if (notes.isNotEmpty)
-                                        Text(notes, style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                                        Text(notes, style: const TextStyle(color: GraphiteTheme.slate, fontSize: 11)),
                                       if (time.isNotEmpty)
                                         Text(time.length > 16 ? time.substring(0, 16) : time, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 10)),
                                     ],
@@ -1438,7 +1438,7 @@ class _DetailRow extends StatelessWidget {
             child: Text(
               value,
               textAlign: TextAlign.right,
-              style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+              style: const TextStyle(color: GraphiteTheme.ink, fontSize: 12, fontWeight: FontWeight.w600),
             ),
           ),
         ],

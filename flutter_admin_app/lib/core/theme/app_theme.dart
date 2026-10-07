@@ -33,72 +33,81 @@ class AppTheme {
   static const Color textSecondary = Color(0xFF8E8E93); // Balanced Slate
   static const Color textTertiary = Color(0xFF6E6E72); // Tertiary Slate Dim
 
-  // Text Styles using Google Fonts
+  // --- Brand red text family (v2.4.0): "all text red" directive ---
+  /// Primary text — bright red, readable on all dark surfaces.
+  static const Color textRed = Color(0xFFFF4D5E);
+  /// Secondary text — softer red.
+  static const Color textSecondaryRed = Color(0xFFF2727E);
+  /// Tertiary text — muted red.
+  static const Color textTertiaryRed = Color(0xFFC9525D);
+
+  // Text Styles using Google Fonts — brand red family (v2.4.0) with red
+  // Inter as the single professional app-wide face.
   static TextStyle get displayLarge => GoogleFonts.inter(
     fontSize: 34,
     fontWeight: FontWeight.bold,
-    color: textPrimary,
+    color: textRed,
     letterSpacing: 0.4,
   );
 
   static TextStyle get headlineLarge => GoogleFonts.inter(
     fontSize: 28,
     fontWeight: FontWeight.bold,
-    color: textPrimary,
+    color: textRed,
   );
 
   static TextStyle get headlineMedium => GoogleFonts.inter(
     fontSize: 22,
     fontWeight: FontWeight.w700,
-    color: textPrimary,
+    color: textRed,
   );
 
   static TextStyle get titleLarge => GoogleFonts.inter(
     fontSize: 20,
     fontWeight: FontWeight.w600,
-    color: textPrimary,
+    color: textRed,
   );
 
   static TextStyle get titleMedium => GoogleFonts.inter(
     fontSize: 17,
     fontWeight: FontWeight.w600,
-    color: textPrimary,
+    color: textRed,
   );
 
   static TextStyle get bodyLarge => GoogleFonts.inter(
     fontSize: 17,
     fontWeight: FontWeight.w400,
-    color: textPrimary,
+    color: textRed,
   );
 
   static TextStyle get bodyMedium => GoogleFonts.inter(
     fontSize: 15,
     fontWeight: FontWeight.w400,
-    color: textPrimary,
+    color: textRed,
   );
 
   static TextStyle get bodySmall => GoogleFonts.inter(
     fontSize: 13,
     fontWeight: FontWeight.w400,
-    color: textSecondary,
+    color: textSecondaryRed,
   );
 
   static TextStyle get labelLarge => GoogleFonts.inter(
     fontSize: 15,
     fontWeight: FontWeight.w600,
-    color: textPrimary,
+    color: textRed,
   );
 
   static TextStyle get labelMedium => GoogleFonts.inter(
     fontSize: 13,
     fontWeight: FontWeight.w500,
-    color: textSecondary,
+    color: textSecondaryRed,
   );
 
   static TextStyle get labelSmall => GoogleFonts.inter(
     fontSize: 11,
     fontWeight: FontWeight.w500,
-    color: textTertiary,
+    color: textTertiaryRed,
   );
 
   // Return cyberDarkTheme for backward compatibility
@@ -153,7 +162,7 @@ class AppTheme {
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
         backgroundColor: surfaceDark,
-        contentTextStyle: bodyMedium.copyWith(color: textPrimary),
+        contentTextStyle: bodyMedium.copyWith(color: textRed),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
           side: const BorderSide(color: borderColor),
@@ -168,6 +177,10 @@ class AppTheme {
         ),
         titleTextStyle: titleLarge,
         contentTextStyle: bodyMedium,
+      ),
+
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(foregroundColor: textRed),
       ),
 
       dividerTheme: const DividerThemeData(

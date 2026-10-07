@@ -75,7 +75,10 @@ class FirebaseService {
                 if (e is Map) processEntry(Map<dynamic, dynamic>.from(e));
               }
             }
-            balances[cId.toString()] = bal;
+            // Ledger semantics: udhaar is what the customer owes. A customer
+            // who overpaid has a negative ledger value — it must never drag
+            // the shop-wide "total udhaar" figure below zero.
+            balances[cId.toString()] = bal > 0 ? bal : 0.0;
           });
         }
         _khataBalanceCache
@@ -860,14 +863,21 @@ class FirebaseService {
   /// Customer & Khata CRUD
   Future<void> saveCustomer({
     String? id,
+    String? key,
     required String name,
     required String phone,
     required String email,
     double balance = 0,
     int points = 0,
   }) async {
-    final String custId = id ?? DateTime.now().millisecondsSinceEpoch.toString();
-    final custRef = _database.ref('${FirebasePaths.customers}/$custId');
+    // [key] is the authoritative RTDB node (customers/<key>). [id] is only a
+    // legacy business identifier and may not match the node (desktop push keys).
+    final String custKey = (key != null && key.isNotEmpty)
+        ? key
+        : (id != null && int.tryParse(id) != null ? id : null) ??
+            DateTime.now().millisecondsSinceEpoch.toString();
+    final String custId = id ?? custKey;
+    final custRef = _database.ref('${FirebasePaths.customers}/$custKey');
     await custRef.set({
       'id': int.tryParse(custId) ?? custId,
       'name': name,
@@ -878,9 +888,18 @@ class FirebaseService {
     });
   }
 
-  Future<void> deleteCustomer(String id) async {
-    await _database.ref('${FirebasePaths.customers}/$id').remove();
-    await _database.ref('customer_khata/$id').remove();
+  Future<void> deleteCustomer(String id, {String? key}) async {
+    // Try both the RTDB node key and the legacy id: desktop-created customers
+    // use push keys, mobile-created ones use millisecond ids. Removing only
+    // one path is why deletes previously looked like no-ops.
+    final paths = <String>{
+      if (key != null && key.isNotEmpty) key,
+      id,
+    };
+    for (final p in paths) {
+      await _database.ref('${FirebasePaths.customers}/$p').remove();
+      await _database.ref('customer_khata/$p').remove();
+    }
   }
 
   /// Record Loan / Payment in Customer Khata
@@ -942,6 +961,26 @@ class FirebaseService {
     } catch (e) {
       final double newBalance = type == 'LOAN' ? currentBalance + amount : currentBalance - amount;
       await _database.ref('${FirebasePaths.customers}/$customerId/balance').set(newBalance);
+    }
+
+    // Best-effort: keep the legacy numeric-id node's balance in sync too when
+    // the khata lives under a different key (desktop-created customers).
+    final numericId = int.tryParse(customerId);
+    if (numericId == null) {
+      try {
+        final allSnap = await _database.ref(FirebasePaths.customers).get();
+        if (allSnap.exists && allSnap.value is Map) {
+          (allSnap.value as Map).forEach((k, v) {
+            if (v is Map &&
+                k.toString() != customerId &&
+                v['id']?.toString() == customerId) {
+              _database
+                  .ref('${FirebasePaths.customers}/$k/balance')
+                  .set(v['balance']);
+            }
+          });
+        }
+      } catch (_) {}
     }
   }
 
@@ -1115,12 +1154,20 @@ class FirebaseService {
   /// Vendor CRUD
   Future<void> saveVendor({
     String? id,
+    String? key,
     required String name,
     required String contact,
     required String category,
   }) async {
-    final String vendorId = id ?? DateTime.now().millisecondsSinceEpoch.toString();
-    final vendorRef = _database.ref('${FirebasePaths.vendors}/$vendorId');
+    // [key] is the authoritative RTDB node (vendors/<key>). Numeric ids parsed
+    // from desktop push keys would target a nonexistent node: edits duplicated
+    // vendors and deletes silently did nothing.
+    final String vendorKey = (key != null && key.isNotEmpty)
+        ? key
+        : (id != null && int.tryParse(id) != null ? id : null) ??
+            DateTime.now().millisecondsSinceEpoch.toString();
+    final String vendorId = id ?? vendorKey;
+    final vendorRef = _database.ref('${FirebasePaths.vendors}/$vendorKey');
     await vendorRef.set({
       'id': int.tryParse(vendorId) ?? vendorId,
       'name': name.trim(),
@@ -1129,8 +1176,16 @@ class FirebaseService {
     });
   }
 
-  Future<void> deleteVendor(String id) async {
-    await _database.ref('${FirebasePaths.vendors}/$id').remove();
+  Future<void> deleteVendor(String id, {String? key}) async {
+    // Remove under both the node key and legacy id so desktop push-key vendors
+    // are actually deleted instead of silently surviving.
+    final paths = <String>{
+      if (key != null && key.isNotEmpty) key,
+      id,
+    };
+    for (final p in paths) {
+      await _database.ref('${FirebasePaths.vendors}/$p').remove();
+    }
   }
 
   /// Vendor & Restock Purchase Orders CRUD

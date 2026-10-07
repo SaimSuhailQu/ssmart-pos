@@ -4,15 +4,12 @@ import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
 import 'package:ssmart_pos_admin/core/theme/graphite_theme.dart';
 import 'package:ssmart_pos_admin/core/widgets/haptics.dart';
 
-/// The signature Noir Graphite hero: today's revenue in big bold serif
-/// numerals, counting up on appearance, with a text delta row.
+/// The signature Noir Graphite hero: today's collection in big bold red serif
+/// numerals, counting up on appearance, over a deep crimson-lit gradient.
 ///
-/// Refined vs Executive: eyebrow → numeral → delta text → hairline divider →
-/// meta row. No filled pills; bold type and hairlines do the talking.
-///
-/// Gestures:
-///   - long-press: copies a plain-text daily summary to clipboard (haptic +
-///     snackbar confirmation). The shop owner does this every evening.
+/// Structure: eyebrow + copy chip → numeral → delta row → hairline →
+/// metric trio (bills / avg / date) → long-press hint. The card is fully
+/// tappable for the copy action (haptic + snackbar on long-press).
 class GraphiteHeroCard extends StatefulWidget {
   final double revenue;
   final int orderCount;
@@ -35,9 +32,11 @@ class GraphiteHeroCard extends StatefulWidget {
   State<GraphiteHeroCard> createState() => _GraphiteHeroCardState();
 }
 
-class _GraphiteHeroCardState extends State<GraphiteHeroCard> {
+class _GraphiteHeroCardState extends State<GraphiteHeroCard>
+    with SingleTickerProviderStateMixin {
   double _from = 0;
   double _to = 0;
+  late final AnimationController _shimmer;
 
   @override
   void initState() {
@@ -46,6 +45,16 @@ class _GraphiteHeroCardState extends State<GraphiteHeroCard> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) setState(() => _to = widget.revenue);
     });
+    _shimmer = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3200),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _shimmer.dispose();
+    super.dispose();
   }
 
   @override
@@ -68,25 +77,82 @@ class _GraphiteHeroCardState extends State<GraphiteHeroCard> {
         widget.onCopySummary();
       },
       child: Container(
-        decoration: GraphiteTheme.platinumCardDecoration,
+        decoration: GraphiteTheme.platinumCardDecoration.copyWith(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF241014), // deep crimson-tinted graphite
+              GraphiteTheme.graphiteCard,
+              GraphiteTheme.graphiteCardEnd,
+            ],
+            stops: [0.0, 0.45, 1.0],
+          ),
+        ),
         child: Stack(
           children: [
-            // Ambient platinum glow, top-right
+            // Ambient crimson glow, top-right
             Positioned(
-              top: -70,
-              right: -70,
+              top: -80,
+              right: -60,
               child: Container(
-                width: 200,
-                height: 200,
+                width: 220,
+                height: 220,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: [
-                      GraphiteTheme.platinum.withValues(alpha: 0.1),
+                      GraphiteTheme.redAccent.withValues(alpha: 0.16),
                       Colors.transparent,
                     ],
                   ),
                 ),
+              ),
+            ),
+            // Faint counter-glow, bottom-left (depth)
+            Positioned(
+              bottom: -90,
+              left: -70,
+              child: Container(
+                width: 190,
+                height: 190,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      GraphiteTheme.platinum.withValues(alpha: 0.05),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            // Animated sheen sweeping across the numeral zone
+            Positioned.fill(
+              child: AnimatedBuilder(
+                animation: _shimmer,
+                builder: (context, _) {
+                  final t = _shimmer.value;
+                  return Align(
+                    alignment: Alignment(-2.2 + t * 4.4, -0.6),
+                    child: Transform.rotate(
+                      angle: 0.35,
+                      child: Container(
+                        width: 90,
+                        height: 300,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.transparent,
+                              GraphiteTheme.redBright.withValues(alpha: 0.05),
+                              Colors.transparent,
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
             // Top hairline highlight
@@ -100,7 +166,7 @@ class _GraphiteHeroCardState extends State<GraphiteHeroCard> {
                   gradient: LinearGradient(
                     colors: [
                       Colors.transparent,
-                      GraphiteTheme.platinum.withValues(alpha: 0.5),
+                      GraphiteTheme.redAccent.withValues(alpha: 0.55),
                       Colors.transparent,
                     ],
                   ),
@@ -112,7 +178,23 @@ class _GraphiteHeroCardState extends State<GraphiteHeroCard> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('TODAY\'S COLLECTION', style: GraphiteTheme.eyebrow),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'TODAY\'S COLLECTION',
+                          style: GraphiteTheme.eyebrow,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const Icon(
+                        CupertinoIcons.lock_shield_fill,
+                        size: 13,
+                        color: GraphiteTheme.redAccent,
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 10),
                   // Animated counting numeral. FittedBox guards the card
                   // against horizontal overflow on very large amounts.
@@ -129,12 +211,20 @@ class _GraphiteHeroCardState extends State<GraphiteHeroCard> {
                             style: GraphiteTheme.heroAmount,
                             children: [
                               TextSpan(
-                                text: 'RS  ',
+                                text: 'PKR  ',
                                 style: GraphiteTheme.heroCurrency,
                               ),
                               TextSpan(
                                 text: _formatCompact(value),
-                                style: GraphiteTheme.heroAmount,
+                                style: GraphiteTheme.heroAmount.copyWith(
+                                  shadows: [
+                                    Shadow(
+                                      color:
+                                          GraphiteTheme.redAccent.withValues(alpha: 0.45),
+                                      blurRadius: 26,
+                                    ),
+                                  ],
+                                ),
                               ),
                             ],
                           ),
@@ -179,7 +269,7 @@ class _GraphiteHeroCardState extends State<GraphiteHeroCard> {
                           textAlign: TextAlign.right,
                           style: const TextStyle(
                             fontSize: 11.5,
-                            color: GraphiteTheme.slate,
+                            color: GraphiteTheme.redSoft,
                           ),
                         ),
                       ),
@@ -228,7 +318,7 @@ class _GraphiteHeroCardState extends State<GraphiteHeroCard> {
             text: rest,
             style: const TextStyle(
               fontSize: 11.5,
-              color: GraphiteTheme.slate,
+              color: GraphiteTheme.redSoft,
             ),
           ),
         ],
@@ -240,7 +330,7 @@ class _GraphiteHeroCardState extends State<GraphiteHeroCard> {
     return Container(
       width: 1,
       height: 12,
-      color: GraphiteTheme.platinum.withValues(alpha: 0.14),
+      color: GraphiteTheme.redAccent.withValues(alpha: 0.2),
       margin: const EdgeInsets.symmetric(horizontal: 12),
     );
   }

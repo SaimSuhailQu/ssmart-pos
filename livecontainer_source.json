@@ -10,13 +10,13 @@
       "name": "SSmart POS Admin",
       "bundleIdentifier": "com.ssmartpos",
       "developerName": "SSmart POS",
-      "version": "2.3.6",
-      "versionDate": "2026-10-06T00:00:00Z",
-      "versionDescription": "SSmart POS v2.3.6 — Specular surface depth, ambient mesh lighting, elevated empty states & unified Noir Graphite system.",
-      "downloadURL": "https://github.com/SaimSuhailQu/ssmart-pos/releases/download/v2.3.6/ssmartpos.ipa",
+      "version": "2.4.0",
+      "versionDate": "2026-10-07T00:00:00Z",
+      "versionDescription": "SSmart POS v2.4.0 — Crimson editorial theme, Customer Khata fixes, record delete/edit reliability & hero redesign.",
+      "downloadURL": "https://github.com/SaimSuhailQu/ssmart-pos/releases/download/v2.4.0/ssmartpos.ipa",
       "localizedDescription": "SSmart POS iOS Admin & Management Dashboard. Real-time sales analytics, product catalog, mobile checkout billing, and daily closing sales ledger.",
       "iconURL": "https://raw.githubusercontent.com/SaimSuhailQu/ssmart-pos/main/flutter_admin_app/assets/images/ss_mart_logo.png",
-      "tintColor": "34D399",
+      "tintColor": "E63946",
       "size": 38000000,
       "screenshotURLs": [
         "https://raw.githubusercontent.com/SaimSuhailQu/ssmart-pos/main/flutter_admin_app/assets/images/ss_mart_logo.png"
@@ -25,11 +25,11 @@
   ],
   "news": [
     {
-      "title": "SSmart POS v2.3.6 Released!",
-      "identifier": "release-v2.3.6",
-      "caption": "SSmart POS v2.3.6 Update — Noir Graphite & Platinum design refinements and elevated empty states",
-      "date": "2026-10-06",
-      "tintColor": "34D399",
+      "title": "SSmart POS v2.4.0 Released!",
+      "identifier": "release-v2.4.0",
+      "caption": "SSmart POS v2.4.0 Update — Crimson editorial theme, Customer Khata fixes & record delete/edit reliability",
+      "date": "2026-10-07",
+      "tintColor": "E63946",
       "appID": "com.ssmartpos",
       "notify": true
     }

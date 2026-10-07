@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 /// Noir Graphite theme — the "Option K (refined)" premium dashboard identity.
-/// Pure monochrome: platinum on true black. No color at all — restraint as
-/// the ultimate statement. Bold type does the talking: heavy serif numerals,
-/// wide-tracked eyebrows, hairline rules.
+/// Deep graphite surfaces carry a **crimson editorial accent**: all primary
+/// text renders in the red family per brand direction (v2.4.0), with platinum
+/// reserved for hairlines and icon tints. Bold serif numerals, wide-tracked
+/// eyebrows, hairline rules.
 ///
 /// Supersedes ExecutiveTheme (champagne gold on navy), removed 2026-10-05.
 class GraphiteTheme {
@@ -30,6 +31,14 @@ class GraphiteTheme {
   /// for destructive/negative semantics (never decoration).
   static const Color errorRed = Color(0xFFF87171);
 
+  // --- Brand red accent (v2.4.0) ---
+  /// Signature red used for primary text, numerals and khata/due accents.
+  static const Color redAccent = Color(0xFFE63946);
+  /// Brighter red for large hero numerals so they stay luminous on black.
+  static const Color redBright = Color(0xFFFF4D5E);
+  /// Soft red for body text / secondary labels (readable, not neon).
+  static const Color redSoft = Color(0xFFF2727E);
+
   // --- Hero gradient (revenue card) ---
   static const LinearGradient heroGradient = LinearGradient(
     begin: Alignment.topCenter,
@@ -44,7 +53,7 @@ class GraphiteTheme {
   static TextStyle get heroAmount => GoogleFonts.playfairDisplay(
         fontSize: 48,
         fontWeight: FontWeight.w800,
-        color: platinumLight,
+        color: redBright,
         letterSpacing: -1.0,
         height: 1.15,
         fontFeatures: const [FontFeature.tabularFigures()],
@@ -53,7 +62,7 @@ class GraphiteTheme {
   static TextStyle get heroCurrency => GoogleFonts.inter(
         fontSize: 13,
         fontWeight: FontWeight.w700,
-        color: slate,
+        color: redAccent,
         letterSpacing: 2.0,
       );
 
@@ -61,7 +70,7 @@ class GraphiteTheme {
   static TextStyle get eyebrow => GoogleFonts.inter(
         fontSize: 10,
         fontWeight: FontWeight.w700,
-        color: slate,
+        color: redSoft,
         letterSpacing: 3.2,
       );
 
@@ -69,14 +78,14 @@ class GraphiteTheme {
   static TextStyle get sectionLabel => GoogleFonts.inter(
         fontSize: 10,
         fontWeight: FontWeight.w700,
-        color: slate,
+        color: redSoft,
         letterSpacing: 2.8,
       );
 
   static TextStyle get metricValue => GoogleFonts.inter(
         fontSize: 24,
         fontWeight: FontWeight.w800,
-        color: ink,
+        color: redBright,
         letterSpacing: -0.5,
         fontFeatures: const [FontFeature.tabularFigures()],
       );
@@ -84,14 +93,14 @@ class GraphiteTheme {
   static TextStyle get metricLabel => GoogleFonts.inter(
         fontSize: 9,
         fontWeight: FontWeight.w700,
-        color: slate,
+        color: redSoft,
         letterSpacing: 2.2,
       );
 
   static TextStyle get deltaUp => GoogleFonts.inter(
         fontSize: 11,
         fontWeight: FontWeight.w700,
-        color: platinum,
+        color: redBright,
       );
 
   static TextStyle get deltaDown => GoogleFonts.inter(
@@ -110,7 +119,7 @@ class GraphiteTheme {
   static TextStyle get body => GoogleFonts.inter(
         fontSize: 13,
         fontWeight: FontWeight.w500,
-        color: ink,
+        color: redSoft,
       );
 
   static TextStyle get screenTitle => GoogleFonts.inter(
@@ -123,27 +132,27 @@ class GraphiteTheme {
   static TextStyle get caption => GoogleFonts.inter(
         fontSize: 12,
         fontWeight: FontWeight.w500,
-        color: slate,
+        color: redSoft,
       );
 
   static TextStyle get captionPlatinum => GoogleFonts.inter(
         fontSize: 11,
         fontWeight: FontWeight.w700,
-        color: platinum,
+        color: redSoft,
         letterSpacing: 0.4,
       );
 
   static TextStyle get overlinePlatinum => GoogleFonts.inter(
         fontSize: 10,
         fontWeight: FontWeight.w700,
-        color: platinum,
+        color: redAccent,
         letterSpacing: 1.8,
       );
 
   static TextStyle get monoText => GoogleFonts.jetBrainsMono(
         fontSize: 12,
         fontWeight: FontWeight.w500,
-        color: slate,
+        color: redSoft,
       );
 
   // --- Screen ambience ---
@@ -206,7 +215,7 @@ class GraphiteTheme {
       GoogleFonts.inter(
         fontSize: 11,
         fontWeight: FontWeight.w800,
-        color: filled ? graphiteDeep : platinumLight,
+        color: filled ? graphiteDeep : redAccent,
         letterSpacing: 0.3,
       );
 

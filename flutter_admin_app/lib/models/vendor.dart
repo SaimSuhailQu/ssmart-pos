@@ -1,5 +1,10 @@
 class VendorModel {
   final int id;
+  /// Realtime Database node key under `vendors/`. The authoritative path
+  /// segment for save/delete. Desktop-created vendors use push keys
+  /// (`-NxYz...`) that cannot be parsed into the numeric [id], so relying on
+  /// [id] alone silently misses the real node (delete no-ops, edits duplicate).
+  final String key;
   final String name;
   final String contact;
   final String category;
@@ -8,12 +13,16 @@ class VendorModel {
 
   VendorModel({
     required this.id,
+    String? key,
     required this.name,
     required this.contact,
     required this.category,
     this.outstandingBalance = 0.0,
     this.poCount = 0,
-  });
+  }) : key = (key != null && key.isNotEmpty) ? key : id.toString();
+
+  /// Convenience: the DB path segment to use for mutations.
+  String get dbKey => key;
 
   factory VendorModel.fromJson(String id, Map<dynamic, dynamic> json) {
     final parsedId = int.tryParse(id) ??
@@ -23,6 +32,7 @@ class VendorModel {
 
     return VendorModel(
       id: parsedId,
+      key: id,
       name: json['name']?.toString().trim().isNotEmpty == true
           ? json['name'].toString().trim()
           : 'Vendor $parsedId',
@@ -52,6 +62,7 @@ class VendorModel {
 
   VendorModel copyWith({
     int? id,
+    String? key,
     String? name,
     String? contact,
     String? category,
@@ -60,6 +71,7 @@ class VendorModel {
   }) {
     return VendorModel(
       id: id ?? this.id,
+      key: key ?? this.key,
       name: name ?? this.name,
       contact: contact ?? this.contact,
       category: category ?? this.category,

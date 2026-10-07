@@ -54,10 +54,10 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 26,
-                  backgroundColor: hasDebt ? Colors.amber.withValues(alpha: 0.15) : GraphiteTheme.platinumFaint,
+                  backgroundColor: hasDebt ? GraphiteTheme.redAccent.withValues(alpha: 0.15) : GraphiteTheme.platinumFaint,
                   child: Icon(
                     CupertinoIcons.person_fill,
-                    color: hasDebt ? Colors.amber : GraphiteTheme.platinum,
+                    color: hasDebt ? GraphiteTheme.redAccent : GraphiteTheme.platinum,
                     size: 28,
                   ),
                 ),
@@ -138,7 +138,7 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                           gradient: GraphiteTheme.heroGradient,
                           borderRadius: BorderRadius.circular(18),
                           border: Border.all(
-                            color: hasCurrentDebt ? Colors.amber.withValues(alpha: 0.3) : GraphiteTheme.platinumBorder,
+                            color: hasCurrentDebt ? GraphiteTheme.redAccent.withValues(alpha: 0.3) : GraphiteTheme.platinumBorder,
                           ),
                           boxShadow: [
                             BoxShadow(
@@ -165,7 +165,7 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                                           ? 'TOTAL UDHAAR (DUE BALANCE)'
                                           : 'ACCOUNT BALANCE',
                                       style: GraphiteTheme.eyebrow.copyWith(
-                                        color: hasCurrentDebt ? Colors.amber : GraphiteTheme.slate,
+                                        color: hasCurrentDebt ? GraphiteTheme.redAccent : GraphiteTheme.slate,
                                       ),
                                     ),
                                   ),
@@ -182,7 +182,7 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                                           displayBalance.toStringAsFixed(0),
                                           style: GraphiteTheme.heroAmount.copyWith(
                                             fontSize: 28,
-                                            color: hasCurrentDebt ? Colors.amber : GraphiteTheme.platinumLight,
+                                            color: hasCurrentDebt ? GraphiteTheme.redAccent : GraphiteTheme.platinumLight,
                                           ),
                                         ),
                                       ],
@@ -200,7 +200,7 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                                     backgroundColor: const Color(0xFF25D366),
                                     icon: const Icon(
                                       CupertinoIcons.chat_bubble_2_fill,
-                                      color: Colors.white,
+                                      color: GraphiteTheme.platinumLight,
                                       size: 19,
                                     ),
                                     tooltip: 'Send WhatsApp Reminder',
@@ -273,7 +273,7 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                           Text(
                             'Khata Statement / Audit History',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: GraphiteTheme.ink,
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
                             ),
@@ -290,7 +290,7 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(CupertinoIcons.doc_text, size: 48, color: Colors.white.withValues(alpha: 0.2)),
+                                  Icon(CupertinoIcons.doc_text, size: 48, color: GraphiteTheme.platinum.withValues(alpha: 0.2)),
                                   const SizedBox(height: 10),
                                   const Text(
                                     'No individual audit transactions recorded yet.',
@@ -335,7 +335,7 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                                             SizedBox(width: 10),
                                             Text(
                                               'Delete Khata Entry?',
-                                              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                                              style: TextStyle(color: GraphiteTheme.ink, fontSize: 18, fontWeight: FontWeight.bold),
                                             ),
                                           ],
                                         ),
@@ -346,12 +346,12 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                                         actions: [
                                           TextButton(
                                             onPressed: () => Navigator.pop(dialogCtx, false),
-                                            child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
+                                            child: const Text('Cancel', style: TextStyle(color: GraphiteTheme.slate)),
                                           ),
                                           ElevatedButton(
                                             style: ElevatedButton.styleFrom(
                                               backgroundColor: AppTheme.errorRed,
-                                              foregroundColor: Colors.white,
+                                              foregroundColor: Colors.black,
                                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                             ),
                                             onPressed: () => Navigator.pop(dialogCtx, true),
@@ -365,7 +365,7 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                                       try {
                                         final String? rawKey = e['raw_key']?.toString();
                                         await firebaseService.deleteKhataTransaction(
-                                          customerId: customer.id.toString(),
+                                          customerId: customer.dbKey,
                                           entryKey: entryKey,
                                           rawKey: rawKey,
                                         );
@@ -424,7 +424,7 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                                       color: AppTheme.cardBackground,
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(
-                                        color: isPayment ? Colors.green.withValues(alpha: 0.2) : Colors.amber.withValues(alpha: 0.2),
+                                        color: isPayment ? Colors.green.withValues(alpha: 0.2) : GraphiteTheme.redAccent.withValues(alpha: 0.2),
                                       ),
                                     ),
                                     child: Row(
@@ -432,12 +432,12 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                                         Container(
                                           padding: const EdgeInsets.all(8),
                                           decoration: BoxDecoration(
-                                            color: isPayment ? Colors.green.withValues(alpha: 0.15) : Colors.amber.withValues(alpha: 0.15),
+                                            color: isPayment ? Colors.green.withValues(alpha: 0.15) : GraphiteTheme.redAccent.withValues(alpha: 0.15),
                                             borderRadius: BorderRadius.circular(8),
                                           ),
                                           child: Icon(
                                             isPayment ? CupertinoIcons.arrow_down_left : CupertinoIcons.arrow_up_right,
-                                            color: isPayment ? AppTheme.successGreen : Colors.amber,
+                                            color: isPayment ? AppTheme.successGreen : GraphiteTheme.redAccent,
                                             size: 20,
                                           ),
                                         ),
@@ -454,7 +454,7 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                                                     Text(
                                                       isPayment ? 'Wasool / Payment Recv' : 'Udhaar Given (Loan)',
                                                       style: TextStyle(
-                                                        color: isPayment ? AppTheme.successGreen : Colors.amber,
+                                                        color: isPayment ? AppTheme.successGreen : GraphiteTheme.redAccent,
                                                         fontWeight: FontWeight.bold,
                                                         fontSize: 13,
                                                       ),
@@ -506,7 +506,7 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                                                 const SizedBox(height: 2),
                                                 Text(
                                                   AppDateUtils.formatDateTime(parsedTime),
-                                                  style: const TextStyle(color: Colors.white38, fontSize: 11),
+                                                  style: const TextStyle(color: GraphiteTheme.slateDim, fontSize: 11),
                                                 ),
                                               ],
                                             ),
@@ -522,7 +522,7 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                                                 child: Text(
                                                   '${isPayment ? '-' : '+'}PKR ${amount.toStringAsFixed(0)}',
                                                   style: TextStyle(
-                                                    color: isPayment ? AppTheme.successGreen : Colors.amber,
+                                                    color: isPayment ? AppTheme.successGreen : GraphiteTheme.redAccent,
                                                     fontSize: 14,
                                                     fontWeight: FontWeight.bold,
                                                     fontFeatures: const [FontFeature.tabularFigures()],
@@ -535,23 +535,23 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                                                   onTap: () => _showEditEntryDialog(
                                                     context,
                                                     firebaseService: firebaseService,
-                                                    customerId: customer.id.toString(),
+                                                    customerId: customer.dbKey,
                                                     entry: e,
                                                     parsedTime: parsedTime,
                                                   ),
                                                   child: Container(
                                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                                     decoration: BoxDecoration(
-                                                      color: Colors.white.withValues(alpha: 0.1),
+                                                      color: GraphiteTheme.cardSurface,
                                                       borderRadius: BorderRadius.circular(6),
-                                                      border: Border.all(color: Colors.white24, width: 0.5),
+                                                      border: Border.all(color: GraphiteTheme.cardBorder, width: 0.5),
                                                     ),
                                                     child: const Row(
                                                       mainAxisSize: MainAxisSize.min,
                                                       children: [
-                                                        Icon(CupertinoIcons.pencil, size: 11, color: Colors.white),
+                                                        Icon(CupertinoIcons.pencil, size: 11, color: GraphiteTheme.ink),
                                                         SizedBox(width: 3),
-                                                        Text('Edit', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                                                        Text('Edit', style: TextStyle(color: GraphiteTheme.ink, fontSize: 10, fontWeight: FontWeight.bold)),
                                                       ],
                                                     ),
                                                   ),
@@ -659,7 +659,7 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                         const SizedBox(width: 8),
                         Text(
                           'Edit ${isPayment ? 'Wasool' : 'Udhaar'} Entry',
-                          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Colors.white),
+                          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: GraphiteTheme.ink),
                         ),
                       ],
                     ),
@@ -680,7 +680,7 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                   controller: amountCtrl,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   autofocus: true,
-                  style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                  style: const TextStyle(color: GraphiteTheme.ink, fontSize: 18, fontWeight: FontWeight.bold),
                   decoration: InputDecoration(
                     labelText: 'Corrected Amount (PKR) *',
                     prefixIcon: const Icon(CupertinoIcons.money_dollar),
@@ -688,7 +688,7 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                     fillColor: AppTheme.cardBackground,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Colors.white12),
+                      borderSide: const BorderSide(color: GraphiteTheme.cardBorder),
                     ),
                   ),
                 ),
@@ -700,7 +700,7 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                         ? paymentMethod
                         : 'Cash',
                     dropdownColor: AppTheme.surfaceDark,
-                    style: const TextStyle(color: Colors.white),
+                    style: const TextStyle(color: GraphiteTheme.ink),
                     decoration: InputDecoration(
                       labelText: 'Payment Method',
                       prefixIcon: const Icon(CupertinoIcons.creditcard),
@@ -708,7 +708,7 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                       fillColor: AppTheme.cardBackground,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Colors.white12),
+                        borderSide: const BorderSide(color: GraphiteTheme.cardBorder),
                       ),
                     ),
                     items: const [
@@ -726,7 +726,7 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
 
                 TextField(
                   controller: notesCtrl,
-                  style: const TextStyle(color: Colors.white),
+                  style: const TextStyle(color: GraphiteTheme.ink),
                   decoration: InputDecoration(
                     labelText: 'Description / Notes',
                     prefixIcon: const Icon(CupertinoIcons.doc_text),
@@ -734,7 +734,7 @@ class CustomerKhataDetailsSheet extends StatelessWidget {
                     fillColor: AppTheme.cardBackground,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Colors.white12),
+                      borderSide: const BorderSide(color: GraphiteTheme.cardBorder),
                     ),
                   ),
                 ),

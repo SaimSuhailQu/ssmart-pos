@@ -165,7 +165,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
                 child: TextField(
                   controller: _searchController,
-                  style: const TextStyle(color: Colors.white),
+                  style: const TextStyle(color: AppTheme.textRed),
                   decoration: InputDecoration(
                     hintText: 'Search expenses by description, category, amount...',
                     hintStyle: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
@@ -382,21 +382,21 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               TextField(
                 controller: amountCtrl,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                style: const TextStyle(color: Colors.white),
+                style: const TextStyle(color: AppTheme.textRed),
                 decoration: const InputDecoration(labelText: 'Expense Amount (PKR)', prefixIcon: Icon(CupertinoIcons.money_dollar)),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: descCtrl,
                 textCapitalization: TextCapitalization.sentences,
-                style: const TextStyle(color: Colors.white),
+                style: const TextStyle(color: AppTheme.textRed),
                 decoration: const InputDecoration(labelText: 'Description / Purpose', prefixIcon: Icon(CupertinoIcons.pencil)),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: catCtrl,
                 textCapitalization: TextCapitalization.words,
-                style: const TextStyle(color: Colors.white),
+                style: const TextStyle(color: AppTheme.textRed),
                 decoration: const InputDecoration(labelText: 'Category (e.g. Rent, Utilities, Refreshments)', prefixIcon: Icon(CupertinoIcons.folder)),
               ),
               const SizedBox(height: 24),

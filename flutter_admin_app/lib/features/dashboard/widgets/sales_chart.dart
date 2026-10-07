@@ -151,7 +151,7 @@ class SalesChart extends StatelessWidget {
               final date = dailyRevenue[spot.x.toInt()].dateLabel;
               return LineTooltipItem(
                 '$date\n${AppDateUtils.formatCurrency(revenue)}',
-                AppTheme.bodySmall.copyWith(color: Colors.white),
+                AppTheme.bodySmall.copyWith(color: AppTheme.textRed),
               );
             }).toList();
           },

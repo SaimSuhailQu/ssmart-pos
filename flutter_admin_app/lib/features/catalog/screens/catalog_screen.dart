@@ -401,13 +401,13 @@ class _CatalogScreenState extends State<CatalogScreen> {
               TextField(
                 controller: nameCtrl,
                 textCapitalization: TextCapitalization.words,
-                style: const TextStyle(color: Colors.white),
+                style: const TextStyle(color: AppTheme.textRed),
                 decoration: const InputDecoration(labelText: 'Item Name', prefixIcon: Icon(CupertinoIcons.tag)),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: barcodeCtrl,
-                style: const TextStyle(color: Colors.white),
+                style: const TextStyle(color: AppTheme.textRed),
                 decoration: InputDecoration(
                   labelText: 'Barcode / SKU',
                   prefixIcon: const Icon(CupertinoIcons.barcode),
@@ -435,7 +435,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                     child: TextField(
                       controller: priceCtrl,
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      style: const TextStyle(color: Colors.white),
+                      style: const TextStyle(color: AppTheme.textRed),
                       decoration: const InputDecoration(labelText: 'Retail Price (Rs)', prefixIcon: Icon(CupertinoIcons.money_dollar)),
                     ),
                   ),
@@ -444,7 +444,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                     child: TextField(
                       controller: costCtrl,
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      style: const TextStyle(color: Colors.white),
+                      style: const TextStyle(color: AppTheme.textRed),
                       decoration: const InputDecoration(labelText: 'Cost Price (Rs)', prefixIcon: Icon(CupertinoIcons.cart)),
                     ),
                   ),
@@ -457,7 +457,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                     child: TextField(
                       controller: stockCtrl,
                       keyboardType: TextInputType.number,
-                      style: const TextStyle(color: Colors.white),
+                      style: const TextStyle(color: AppTheme.textRed),
                       decoration: const InputDecoration(labelText: 'Stock Qty', prefixIcon: Icon(CupertinoIcons.cube_box)),
                     ),
                   ),
@@ -465,7 +465,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                   Expanded(
                     child: TextField(
                       controller: catCtrl,
-                      style: const TextStyle(color: Colors.white),
+                      style: const TextStyle(color: AppTheme.textRed),
                       decoration: const InputDecoration(labelText: 'Category', prefixIcon: Icon(CupertinoIcons.folder)),
                     ),
                   ),

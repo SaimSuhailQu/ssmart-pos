@@ -31,6 +31,33 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
 
   String _digitsOnly(String s) => s.replaceAll(RegExp(r'\D'), '');
 
+  /// Total udhaar (what customers owe). Only positive balances count:
+  /// a customer with credit (overpaid / negative ledger value) must not
+  /// cancel out real debt — the headline previously showed e.g. PKR -7808.
+  double _totalUdhaar(List<CustomerModel> customers) {
+    return customers.fold<double>(0, (sum, c) => sum + (c.balance > 0 ? c.balance : 0));
+  }
+
+  /// Fire-and-report wrapper: surfaces silent CRUD failures instead of
+  /// swallowing them (root cause of "nothing happens" delete/edit reports).
+  Future<void> _runCrud(Future<void> Function() op, String successMsg) async {
+    try {
+      await op();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(successMsg), backgroundColor: AppTheme.successGreen),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Action failed: $e'),
+          backgroundColor: AppTheme.errorRed,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final firebaseService = context.read<FirebaseService>();
@@ -106,7 +133,7 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
           }
 
           final customers = snapshot.data ?? [];
-          final totalKhata = customers.fold<double>(0, (sum, c) => sum + c.balance);
+          final totalKhata = _totalUdhaar(customers);
 
           final q = _searchQuery.trim().toLowerCase();
           final digitsQuery = _digitsOnly(q);
@@ -129,7 +156,7 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                 padding: const EdgeInsets.all(AppTheme.spacingL),
                 decoration: GraphiteTheme.platinumCardDecoration,
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Expanded(
                       child: Column(
@@ -152,7 +179,10 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                                 Text('PKR ', style: GraphiteTheme.heroCurrency),
                                 Text(
                                   totalKhata.toStringAsFixed(0),
-                                  style: GraphiteTheme.heroAmount.copyWith(fontSize: 36),
+                                  style: GraphiteTheme.heroAmount.copyWith(
+                                    fontSize: 36,
+                                    color: totalKhata > 0 ? GraphiteTheme.platinumLight : GraphiteTheme.slate,
+                                  ),
                                 ),
                               ],
                             ),
@@ -231,6 +261,7 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                         itemBuilder: (context, index) {
                           final item = filtered[index];
                           final hasDebt = item.balance > 0;
+                          final hasCredit = item.balance < 0;
 
                           return Container(
                             decoration: BoxDecoration(
@@ -238,7 +269,7 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
                                 color: hasDebt
-                                    ? Colors.amber.withValues(alpha: 0.25)
+                                    ? GraphiteTheme.redAccent.withValues(alpha: 0.35)
                                     : GraphiteTheme.cardBorder,
                                 width: 1,
                               ),
@@ -251,14 +282,15 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                                 child: Column(
                                   children: [
                                     Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         CircleAvatar(
                                           backgroundColor: hasDebt
-                                              ? Colors.amber.withValues(alpha: 0.12)
+                                              ? GraphiteTheme.redAccent.withValues(alpha: 0.12)
                                               : GraphiteTheme.platinumFaint,
                                           child: Icon(
                                             CupertinoIcons.person_fill,
-                                            color: hasDebt ? Colors.amber : GraphiteTheme.platinum,
+                                            color: hasDebt ? GraphiteTheme.redAccent : GraphiteTheme.platinum,
                                           ),
                                         ),
                                         const SizedBox(width: AppTheme.spacingM),
@@ -272,6 +304,8 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                                                     child: Text(
                                                       item.name,
                                                       style: GraphiteTheme.bodyStrong,
+                                                      maxLines: 1,
+                                                      overflow: TextOverflow.ellipsis,
                                                     ),
                                                   ),
                                                   const Icon(CupertinoIcons.chevron_right, size: 14, color: GraphiteTheme.slateDim),
@@ -297,7 +331,11 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                                             Text(
                                               'PKR ${item.balance.toStringAsFixed(0)}',
                                               style: GraphiteTheme.metricValue.copyWith(
-                                                color: hasDebt ? Colors.amber : AppTheme.successGreen,
+                                                color: hasDebt
+                                                    ? GraphiteTheme.redAccent
+                                                    : hasCredit
+                                                        ? GraphiteTheme.slate
+                                                        : GraphiteTheme.platinumLight,
                                                 fontSize: 18,
                                               ),
                                             ),
@@ -306,14 +344,20 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                               decoration: BoxDecoration(
                                                 color: hasDebt
-                                                    ? Colors.amber.withValues(alpha: 0.12)
-                                                    : AppTheme.successGreen.withValues(alpha: 0.12),
+                                                    ? GraphiteTheme.redAccent.withValues(alpha: 0.12)
+                                                    : GraphiteTheme.platinumFaint,
                                                 borderRadius: BorderRadius.circular(10),
                                               ),
                                               child: Text(
-                                                hasDebt ? 'Udhaar Due' : 'Cleared',
+                                                hasDebt
+                                                    ? 'Udhaar Due'
+                                                    : hasCredit
+                                                        ? 'Advance / Credit'
+                                                        : 'Cleared',
                                                 style: TextStyle(
-                                                  color: hasDebt ? Colors.amber : AppTheme.successGreen,
+                                                  color: hasDebt
+                                                      ? GraphiteTheme.redAccent
+                                                      : GraphiteTheme.slate,
                                                   fontSize: 10,
                                                   fontWeight: FontWeight.bold,
                                                 ),
@@ -324,11 +368,16 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                                       ],
                                     ),
                                     const Divider(height: 16, color: GraphiteTheme.cardBorder),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.end,
+                                    // Wrap keeps every action reachable on narrow
+                                    // screens; the old fixed Row pushed the delete
+                                    // icon past the card edge (half-clipped trash).
+                                    Wrap(
+                                      alignment: WrapAlignment.end,
+                                      spacing: 2,
+                                      runSpacing: 0,
                                       children: [
                                         // WhatsApp Reminder button
-                                        if (item.phone.isNotEmpty) ...[
+                                        if (item.phone.isNotEmpty)
                                           TextButton.icon(
                                             icon: const Icon(CupertinoIcons.chat_bubble_2_fill, size: 15, color: Color(0xFF25D366)),
                                             label: const Text('WhatsApp', style: TextStyle(color: Color(0xFF25D366), fontSize: 12, fontWeight: FontWeight.bold)),
@@ -342,29 +391,27 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                                               }
                                             },
                                           ),
-                                          const SizedBox(width: 6),
-                                        ],
                                         // Record Wasool / Udhaar button
                                         TextButton.icon(
                                           icon: const Icon(CupertinoIcons.money_dollar_circle, size: 16, color: GraphiteTheme.platinum),
                                           label: const Text('Loan Entry', style: TextStyle(color: GraphiteTheme.platinum, fontSize: 12, fontWeight: FontWeight.bold)),
                                           onPressed: () => _showKhataTransactionDialog(context, item),
                                         ),
-                                        const SizedBox(width: 6),
                                         // Edit Customer button
                                         TextButton.icon(
                                           icon: const Icon(CupertinoIcons.pencil, size: 15, color: GraphiteTheme.slate),
                                           label: const Text('Edit', style: TextStyle(color: GraphiteTheme.slate, fontSize: 12)),
                                           onPressed: () => _showCustomerDialog(context, item),
                                         ),
-                                        const SizedBox(width: 4),
-                                        // Delete button
+                                        // Delete button — visualSize keeps the icon
+                                        // from being clipped by the card's rounded edge.
                                         IconButton(
                                           icon: const Icon(CupertinoIcons.trash, size: 15, color: GraphiteTheme.errorRed),
                                           onPressed: () => _confirmDeleteCustomer(context, item),
                                           tooltip: 'Delete',
-                                          padding: EdgeInsets.zero,
-                                          constraints: const BoxConstraints(),
+                                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                                          constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                                          visualDensity: VisualDensity.compact,
                                         ),
                                       ],
                                     ),
@@ -437,28 +484,24 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
             TextField(
               controller: nameCtrl,
               textCapitalization: TextCapitalization.words,
-              style: const TextStyle(color: Colors.white),
               decoration: const InputDecoration(labelText: 'Customer Full Name', prefixIcon: Icon(CupertinoIcons.person)),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: phoneCtrl,
               keyboardType: TextInputType.phone,
-              style: const TextStyle(color: Colors.white),
               decoration: const InputDecoration(labelText: 'Phone Number (WhatsApp)', prefixIcon: Icon(CupertinoIcons.phone)),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: emailCtrl,
               keyboardType: TextInputType.emailAddress,
-              style: const TextStyle(color: Colors.white),
               decoration: const InputDecoration(labelText: 'Email Address (Optional)', prefixIcon: Icon(CupertinoIcons.mail)),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: pointsCtrl,
               keyboardType: TextInputType.number,
-              style: const TextStyle(color: Colors.white),
               decoration: const InputDecoration(labelText: 'Loyalty Points', prefixIcon: Icon(CupertinoIcons.star)),
             ),
             const SizedBox(height: 24),
@@ -486,21 +529,17 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                   }
 
                   Navigator.pop(ctx);
-                  await context.read<FirebaseService>().saveCustomer(
-                    id: customer?.id.toString(),
-                    name: name,
-                    phone: phone,
-                    email: email,
-                    balance: customer?.balance ?? 0,
-                    points: points,
-                  );
-
-                  if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(isEditing ? 'Customer "$name" updated!' : 'Customer "$name" added!'),
-                      backgroundColor: AppTheme.primaryTeal,
+                  await _runCrud(
+                    () => context.read<FirebaseService>().saveCustomer(
+                      id: customer?.id.toString(),
+                      key: customer?.key,
+                      name: name,
+                      phone: phone,
+                      email: email,
+                      balance: customer?.balance ?? 0,
+                      points: points,
                     ),
+                    isEditing ? 'Customer "$name" updated!' : 'Customer "$name" added!',
                   );
                 },
               ),
@@ -540,7 +579,9 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Khata Entry: ${customer.name}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                    Expanded(
+                      child: Text('Khata Entry: ${customer.name}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: GraphiteTheme.ink), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    ),
                     IconButton(icon: const Icon(CupertinoIcons.xmark_circle_fill, color: AppTheme.textSecondary), onPressed: () => Navigator.pop(ctx)),
                   ],
                 ),
@@ -562,7 +603,7 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                       child: ChoiceChip(
                         label: const Text('Give Loan (Udhaar)'),
                         selected: type == 'LOAN',
-                        selectedColor: Colors.amber.shade700,
+                        selectedColor: GraphiteTheme.redAccent,
                         onSelected: (val) {
                           if (val) setModalState(() => type = 'LOAN');
                         },
@@ -574,13 +615,13 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                 TextField(
                   controller: amountCtrl,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                  style: const TextStyle(color: GraphiteTheme.ink, fontSize: 18, fontWeight: FontWeight.bold),
                   decoration: const InputDecoration(labelText: 'Amount (PKR)', prefixIcon: Icon(CupertinoIcons.money_dollar)),
                 ),
                 const SizedBox(height: AppTheme.spacingM),
                 TextField(
                   controller: noteCtrl,
-                  style: const TextStyle(color: Colors.white),
+                  style: const TextStyle(color: GraphiteTheme.ink),
                   decoration: const InputDecoration(labelText: 'Description / Notes (Optional)', prefixIcon: Icon(CupertinoIcons.doc_text)),
                 ),
                 const SizedBox(height: AppTheme.spacingL),
@@ -588,7 +629,8 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                   height: 48,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: type == 'PAYMENT' ? AppTheme.successGreen : Colors.amber.shade700,
+                      backgroundColor: type == 'PAYMENT' ? AppTheme.successGreen : GraphiteTheme.redAccent,
+                      foregroundColor: Colors.black,
                     ),
                     child: Text('Confirm ${type == 'PAYMENT' ? 'Wasool' : 'Udhaar'}', style: const TextStyle(fontWeight: FontWeight.bold)),
                     onPressed: () async {
@@ -601,14 +643,17 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                       }
 
                       Navigator.pop(ctx);
-                      await context.read<FirebaseService>().recordKhataTransaction(
-                        customerId: customer.id.toString(),
-                        customerName: customer.name,
-                        currentBalance: customer.balance,
-                        amount: amount,
-                        type: type,
-                        paymentMethod: 'Cash',
-                        notes: noteCtrl.text.trim().isEmpty ? null : noteCtrl.text.trim(),
+                      await _runCrud(
+                        () => context.read<FirebaseService>().recordKhataTransaction(
+                          customerId: customer.dbKey,
+                          customerName: customer.name,
+                          currentBalance: customer.balance,
+                          amount: amount,
+                          type: type,
+                          paymentMethod: 'Cash',
+                          notes: noteCtrl.text.trim().isEmpty ? null : noteCtrl.text.trim(),
+                        ),
+                        'Khata updated for ${customer.name}!',
                       );
 
                       final updatedBalance = type == 'LOAN'
@@ -616,27 +661,15 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                           : customer.balance - amount;
 
                       if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Khata updated for ${customer.name}!'),
-                          backgroundColor: AppTheme.primaryTeal,
-                          action: customer.phone.isNotEmpty
-                              ? SnackBarAction(
-                                  label: 'WhatsApp Receipt',
-                                  textColor: Colors.black,
-                                  onPressed: () {
-                                    WhatsAppHelper.sendKhataReceipt(
-                                      customerName: customer.name,
-                                      phone: customer.phone,
-                                      amount: amount,
-                                      type: type,
-                                      newBalance: updatedBalance,
-                                    );
-                                  },
-                                )
-                              : null,
-                        ),
-                      );
+                      if (customer.phone.isNotEmpty) {
+                        WhatsAppHelper.sendKhataReceipt(
+                          customerName: customer.name,
+                          phone: customer.phone,
+                          amount: amount,
+                          type: type,
+                          newBalance: updatedBalance,
+                        );
+                      }
                     },
                   ),
                 ),
@@ -664,10 +697,12 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.errorRed),
             onPressed: () async {
               Navigator.pop(ctx);
-              await context.read<FirebaseService>().deleteCustomer(customer.id.toString());
-              if (!context.mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Deleted ${customer.name}')),
+              await _runCrud(
+                () => context.read<FirebaseService>().deleteCustomer(
+                  customer.id.toString(),
+                  key: customer.dbKey,
+                ),
+                'Deleted ${customer.name}',
               );
             },
             child: const Text('Delete'),
@@ -682,7 +717,7 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppTheme.surfaceDark,
-        title: const Text('Reset All Khata Records?', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text('Reset All Khata Records?', style: TextStyle(color: AppTheme.textRed, fontWeight: FontWeight.bold)),
         content: const Text(
           'This will permanently delete all audit loan/payment transactions and reset all customer balances to PKR 0 in the cloud and local system. Are you sure?',
           style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
@@ -696,13 +731,9 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.errorRed, foregroundColor: Colors.white),
             onPressed: () async {
               Navigator.pop(ctx);
-              await context.read<FirebaseService>().clearAllKhataRecords();
-              if (!context.mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('All Khata records cleared & balances reset to PKR 0!'),
-                  backgroundColor: AppTheme.primaryTeal,
-                ),
+              await _runCrud(
+                () => context.read<FirebaseService>().clearAllKhataRecords(),
+                'All Khata records cleared & balances reset to PKR 0!',
               );
             },
             child: const Text('Yes, Reset All', style: TextStyle(fontWeight: FontWeight.bold)),
