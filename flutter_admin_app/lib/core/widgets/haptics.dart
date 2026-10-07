@@ -22,4 +22,18 @@ class Haptics {
     await Future.delayed(const Duration(milliseconds: 60));
     await HapticFeedback.lightImpact();
   }
+
+  /// Double-knock warning: confirmations, destructive previews.
+  static Future<void> warning() async {
+    await HapticFeedback.mediumImpact();
+    await Future.delayed(const Duration(milliseconds: 90));
+    await HapticFeedback.mediumImpact();
+  }
+
+  /// Heavy-then-medium buzz: validation failures, blocked actions.
+  static Future<void> error() async {
+    await HapticFeedback.heavyImpact();
+    await Future.delayed(const Duration(milliseconds: 70));
+    await HapticFeedback.mediumImpact();
+  }
 }
