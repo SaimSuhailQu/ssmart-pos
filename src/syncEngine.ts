@@ -350,6 +350,16 @@ export async function deleteSaleFromCloud(saleId: number) {
   }
 }
 
+export async function deleteProductFromCloud(productId: number | string) {
+  if (!dbInstance) return;
+  await authReady();
+  try {
+    await set(ref(dbInstance, cp(`products/${productId}`)), null);
+  } catch (err) {
+    console.warn(`Failed to delete product #${productId} from cloud:`, err);
+  }
+}
+
 export async function syncProductsToCloud(silent = false) {
   if (!dbInstance) {
     if (!silent) console.log("Sync skipped: Firebase DB offline (No .env credentials).");
@@ -371,7 +381,7 @@ export async function syncProductsToCloud(silent = false) {
         category: p.category,
         cost_price: p.cost_price || 0
       }),
-      { deleteMissing: true }
+      { deleteMissing: false }
     );
     return { success: true, status: "ONLINE" };
   } catch (err) {

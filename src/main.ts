@@ -12,7 +12,7 @@ import { initDb, getAllProducts, getProductByBarcode, saveSale, getNextSaleId, a
   addVendorPayment, deleteVendorPayment, updateVendorPayment, deleteVendorOrderEntry, updateVendorOrderEntry,
   getVendorPayments, getVendorOrderEntries, addManualDailyClosingSale, getSetting, setSetting } from './db';
 import { printReceipt, printBarcode, printBarcodesBatchA4 } from './printer';
-import { startSyncWorker, setTenant, syncProductsToCloud, syncCustomersToCloud, syncCustomerKhataToCloud, deleteCustomerKhataEntryFromCloud, clearAllKhataFromCloudAndLocal, syncVendorsToCloud, syncExpensesToCloud, syncSalesToCloud, deleteSaleFromCloud } from './syncEngine';
+import { startSyncWorker, setTenant, syncProductsToCloud, deleteProductFromCloud, syncCustomersToCloud, syncCustomerKhataToCloud, deleteCustomerKhataEntryFromCloud, clearAllKhataFromCloudAndLocal, syncVendorsToCloud, syncExpensesToCloud, syncSalesToCloud, deleteSaleFromCloud } from './syncEngine';
 import { sendWhatsAppMessage } from './whatsappService';
 import { setupAutoUpdater, checkForUpdatesManual, quitAndInstallUpdate } from './updater';
 import { checkLicense, computeFingerprint, scheduleRevalidation, shutdownLicensing, LicenseState } from './licensing';
@@ -360,7 +360,9 @@ ipcMain.handle('bulk-add-products', async (_event, productsList: unknown) => {
 });
 
 ipcMain.handle('delete-product', async (_event, id: unknown) => {
-  const result = deleteProduct(vInt(id, 'id', { min: 1 }));
+  const prodId = vInt(id, 'id', { min: 1 });
+  const result = deleteProduct(prodId);
+  deleteProductFromCloud(prodId).catch(err => console.warn("Cloud product delete failed:", err));
   syncProductsToCloud().catch(err => console.warn("Cloud product sync failed on delete:", err));
   return result;
 });

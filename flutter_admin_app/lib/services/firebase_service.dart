@@ -350,9 +350,8 @@ class FirebaseService {
         final List<Product> products = [];
         if (productsData is Map) {
           productsData.forEach((key, value) {
-            final id = int.tryParse(key.toString()) ?? 0;
             if (value != null && value is Map) {
-              products.add(Product.fromJson(id, value));
+              products.add(Product.fromJson(key, value));
             }
           });
         } else if (productsData is List) {

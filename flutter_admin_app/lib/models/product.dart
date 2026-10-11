@@ -2,6 +2,7 @@
 /// This matches the SQLite schema in the Electron POS app and Firebase structure
 class Product {
   final int id;
+  final String? stringId;
   final String name;
   final String barcode;
   final double price;
@@ -11,6 +12,7 @@ class Product {
 
   Product({
     required this.id,
+    this.stringId,
     required this.name,
     required this.barcode,
     required this.price,
@@ -19,11 +21,15 @@ class Product {
     required this.costPrice,
   });
 
+  /// Unique key for Firebase RTDB updates/deletions
+  String get syncKey => stringId?.isNotEmpty == true ? stringId! : id.toString();
+
   /// Create Product from Firebase snapshot data
-  factory Product.fromJson(int id, Map<dynamic, dynamic> json) {
+  factory Product.fromJson(dynamic key, Map<dynamic, dynamic> json) {
+    final rawKey = key?.toString() ?? '';
     final parsedId = (json['id'] is num)
         ? (json['id'] as num).toInt()
-        : (int.tryParse(json['id']?.toString() ?? '') ?? id);
+        : (int.tryParse(json['id']?.toString() ?? '') ?? (int.tryParse(rawKey) ?? 0));
 
     final parsedStock = (json['stock'] is num)
         ? (json['stock'] as num).toInt()
@@ -41,6 +47,7 @@ class Product {
 
     return Product(
       id: parsedId,
+      stringId: rawKey.isNotEmpty ? rawKey : json['id']?.toString(),
       name: json['name']?.toString().trim().isNotEmpty == true
           ? json['name'].toString().trim()
           : (json['product_name']?.toString().trim().isNotEmpty == true
