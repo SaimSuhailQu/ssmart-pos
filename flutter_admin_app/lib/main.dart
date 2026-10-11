@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import 'package:ssmart_pos_admin/core/constants/firebase_constants.dart';
 import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
 import 'package:ssmart_pos_admin/core/widgets/app_error_widget.dart';
+import 'package:ssmart_pos_admin/core/deep_link/deep_link_handler.dart';
 import 'package:ssmart_pos_admin/features/auth/screens/login_screen.dart';
 import 'package:ssmart_pos_admin/features/dashboard/screens/dashboard_screen.dart';
 import 'package:ssmart_pos_admin/services/auth_service.dart';
@@ -247,9 +248,11 @@ class SSMartPOSAdminApp extends StatelessWidget {
                   }
 
                   // Gate the dashboard behind the license check (mirrors desktop LicenseGate)
-                  return MobileLicenseGate(
-                    licenseService: LicenseService(FirebaseDatabase.instance),
-                    child: const DashboardScreen(),
+                  return DeepLinkHandler(
+                    child: MobileLicenseGate(
+                      licenseService: LicenseService(FirebaseDatabase.instance),
+                      child: const DashboardScreen(),
+                    ),
                   );
                 } else {
                   return const LoginScreen();

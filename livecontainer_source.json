@@ -10,10 +10,10 @@
       "name": "SSmart POS Admin",
       "bundleIdentifier": "com.ssmartpos",
       "developerName": "SSmart POS",
-      "version": "2.4.13",
-      "versionDate": "2026-10-11T19:00:00Z",
-      "versionDescription": "SSmart POS v2.4.13 — Fixed bidirectional mobile-to-desktop catalog synchronization, licensing tenant path alignment, and real-time scanner updates.",
-      "downloadURL": "https://github.com/SaimSuhailQu/ssmart-pos/releases/download/v2.4.13/ssmartpos.ipa",
+      "version": "2.5.0",
+      "versionDate": "2026-10-12T12:00:00Z",
+      "versionDescription": "SSmart POS v2.5.0 — Quick Entry commands + iOS widget + Gemini AI fallback.",
+      "downloadURL": "https://github.com/SaimSuhailQu/ssmart-pos/releases/download/v2.5.0/ssmartpos.ipa",
       "localizedDescription": "SSmart POS iOS Admin & Management Dashboard. Real-time sales analytics, product catalog, mobile checkout billing, and daily closing sales ledger.",
       "iconURL": "https://raw.githubusercontent.com/SaimSuhailQu/ssmart-pos/main/flutter_admin_app/assets/images/ss_mart_logo.png",
       "tintColor": "E63946",
@@ -25,10 +25,28 @@
   ],
   "news": [
     {
+      "title": "SSmart POS v2.5.0 Released!",
+      "identifier": "release-v2.5.0",
+      "caption": "SSmart POS v2.5.0 Update — Quick Entry + iOS widget + AI fallback",
+      "date": "2026-10-12",
+      "tintColor": "E63946",
+      "appID": "com.ssmartpos",
+      "notify": true
+    },
+    {
       "title": "SSmart POS v2.4.13 Released!",
       "identifier": "release-v2.4.13",
       "caption": "SSmart POS v2.4.13 Update — Live bidirectional product catalog sync with desktop POS scanner",
       "date": "2026-10-11",
+      "tintColor": "E63946",
+      "appID": "com.ssmartpos",
+      "notify": true
+    },
+    {
+      "title": "SSmart POS v2.4.11 Released!",
+      "identifier": "release-v2.4.11",
+      "caption": "SSmart POS v2.4.11 Update — swipe actions removed",
+      "date": "2026-10-07",
       "tintColor": "E63946",
       "appID": "com.ssmartpos",
       "notify": true

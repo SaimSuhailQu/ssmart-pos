@@ -18,6 +18,7 @@ import 'package:ssmart_pos_admin/features/dashboard/widgets/graphite_metric_card
 import 'package:ssmart_pos_admin/features/dashboard/widgets/graphite_sales_chart.dart';
 import 'package:ssmart_pos_admin/features/licensing/screens/license_manager_screen.dart';
 import 'package:ssmart_pos_admin/features/pos/screens/mobile_checkout_screen.dart';
+import 'package:ssmart_pos_admin/features/quick_entry/screens/quick_entry_screen.dart';
 import 'package:ssmart_pos_admin/features/transactions/screens/transactions_screen.dart';
 import 'package:ssmart_pos_admin/features/catalog/screens/catalog_screen.dart';
 import 'package:ssmart_pos_admin/features/catalog/screens/items_to_bring_screen.dart';
@@ -294,6 +295,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ),
         actions: [
+          _appBarAction(
+            icon: CupertinoIcons.bolt_fill,
+            tooltip: 'Quick Entry',
+            onTap: () => _go(const QuickEntryScreen()),
+          ),
           _appBarAction(
             icon: CupertinoIcons.cart_badge_plus,
             tooltip: 'Mobile POS Billing',

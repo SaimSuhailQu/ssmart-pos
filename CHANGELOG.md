@@ -4,6 +4,15 @@ All notable changes to SSmart POS are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [2.5.0] — 2026-10-12
+
+### Added (mobile admin app)
+- **Quick Entry** — type shop-floor commands (`jamshad mamu loan 700`, `wasool jamshad mamu 700`, `walls merchant order 7000`), see a live plain-English preview, confirm to write. Rule-based parser (English + Roman Urdu, fuzzy name matching) runs instantly offline; optional **Gemini AI fallback** (free tier, key in Settings → Quick Entry) handles tricky phrasing. Nothing writes without Confirm. Reachable from the dashboard bolt icon.
+- **iOS home-screen widget** — small/medium WidgetKit extension with Loan, Wasool, Order, Kharcha buttons that deep-link (`ssmartpos://quick-entry`) into Quick Entry with the action pre-selected. Requires a real install (SideStore/AltStore/Xcode); not available via LiveContainer. See `docs/IOS_QUICK_ENTRY_WIDGET.md`.
+
+### Release engineering
+- Bumped version to 2.5.0 (desktop `package.json`), 2.5.0+51 (mobile `pubspec.yaml`), and updated LiveContainer source feed to v2.5.0.
+- Dart + Swift ship carefully reviewed but **uncompiled** (no Flutter/Xcode on this machine) — `flutter analyze`, `flutter test`, and a device install via SideStore are required on the dev machine.
 ## [2.4.12] — 2026-10-11
 
 ### Added (mobile admin app)

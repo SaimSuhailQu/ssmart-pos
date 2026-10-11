@@ -1,7 +1,7 @@
 name: ssmart_pos_admin
 description: iOS Admin Dashboard for SSmart POS - Real-time sales monitoring and analytics
 publish_to: 'none'
-version: 2.4.13+50
+version: 2.5.0+51
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -53,6 +53,12 @@ dependencies:
 
   # Encrypted license storage (Android keystore / iOS keychain)
   flutter_secure_storage: ^9.2.2
+
+  # Deep links for widget buttons (ssmartpos://quick-entry?action=loan)
+  app_links: ^6.4.0
+
+  # Gemini AI fallback for Quick Entry (REST, no SDK)
+  http: ^1.2.0
 
 dev_dependencies:
   flutter_test:
