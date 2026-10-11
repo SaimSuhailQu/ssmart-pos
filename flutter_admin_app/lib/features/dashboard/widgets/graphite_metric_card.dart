@@ -100,8 +100,11 @@ class GraphiteMetricCard extends StatelessWidget {
                       format: valueFormat!,
                       style: GraphiteTheme.metricValue,
                     )
-                  : Text(value,
-                      style: GraphiteTheme.metricValue, maxLines: 1),
+                  : Text(
+                      value,
+                      style: GraphiteTheme.metricValue,
+                      maxLines: 1,
+                    ),
             ),
             const SizedBox(height: 4),
             Row(

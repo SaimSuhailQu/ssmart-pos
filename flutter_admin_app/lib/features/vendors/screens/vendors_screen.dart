@@ -332,10 +332,6 @@ class _VendorsScreenState extends State<VendorsScreen> with SingleTickerProvider
                         separatorBuilder: (_, __) => const SizedBox(height: AppTheme.spacingS),
                         itemBuilder: (context, index) {
                           final po = filtered[index];
-                          // Same 30-minute edit window as the card's Edit/Delete
-                          // buttons: older POs are permanent.
-                          final poCreated = DateTime.tryParse(po.timestamp.replaceAll(' ', 'T')) ?? DateTime.now();
-                          final poIsEditable = DateTime.now().difference(poCreated).inMinutes <= 30;
                           return StaggeredEntrance(
                             delay: Duration(milliseconds: (index % 12) * 35),
                             child: _buildPOCard(context, po),

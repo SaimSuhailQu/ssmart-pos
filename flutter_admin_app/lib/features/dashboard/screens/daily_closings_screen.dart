@@ -427,7 +427,7 @@ class _DailyClosingsScreenState extends State<DailyClosingsScreen> {
               const SizedBox(height: 16),
 
               // Total Net Sale Display
-              Text(
+              const Text(
                 'NET DAILY CLOSING SALE',
                 style: TextStyle(
                   fontSize: 11,

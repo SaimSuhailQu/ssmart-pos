@@ -9,9 +9,8 @@ import 'package:flutter/material.dart';
 /// feel in the way. Dragging from the left edge pops the route, the same
 /// gesture iPhone users expect.
 class GraphitePageRoute<T> extends PageRouteBuilder<T> {
-  GraphitePageRoute({required WidgetBuilder builder, RouteSettings? settings})
+  GraphitePageRoute({required WidgetBuilder builder, super.settings})
       : super(
-          settings: settings,
           transitionDuration: const Duration(milliseconds: 300),
           reverseTransitionDuration: const Duration(milliseconds: 240),
           pageBuilder: (context, animation, secondaryAnimation) =>
@@ -126,7 +125,7 @@ class _EdgeSwipeGestureRecognizer extends OneSequenceGestureRecognizer {
           delta: event.position - last,
           primaryDelta: event.position.dx - last.dx,
           globalPosition: event.position,
-        ));
+        ),);
       }
       _lastPosition = event.position;
     } else if (event is PointerUpEvent || event is PointerCancelEvent) {

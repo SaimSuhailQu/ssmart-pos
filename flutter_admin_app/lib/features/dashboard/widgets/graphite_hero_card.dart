@@ -222,7 +222,9 @@ class _GraphiteHeroCardState extends State<GraphiteHeroCard>
                   // Eyebrow badge
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 6),
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: GraphiteTheme.platinumFaint,
                       borderRadius: BorderRadius.circular(10),
