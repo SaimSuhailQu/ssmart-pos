@@ -918,7 +918,10 @@ async function runFullSyncPass() {
 // ============================================================================
 
 // Start periodic background sync worker & bidirectional realtime sync
-export function startSyncWorker(onStatusChange?: (status: string) => void) {
+export function startSyncWorker(
+  onStatusChange?: (status: string) => void,
+  onDataIngested?: (collection: string) => void
+) {
   if (dbInstance && onStatusChange) {
     // Device identity first: until anonymous auth lands, the rules reject
     // reads (onValue listeners re-emit on their own once auth completes).
@@ -975,7 +978,9 @@ export function startSyncWorker(onStatusChange?: (status: string) => void) {
           if (existing) clearTimeout(existing);
           debounceTimers.set(name, setTimeout(() => {
             debounceTimers.delete(name);
-            ingestNode(name, path, ingestHandlers[name]).catch(err =>
+            ingestNode(name, path, ingestHandlers[name]).then(() => {
+              if (onDataIngested) onDataIngested(name);
+            }).catch(err =>
               console.warn(`Debounced ingest [${name}] error:`, err)
             );
           }, 1000));

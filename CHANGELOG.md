@@ -4,6 +4,18 @@ All notable changes to SSmart POS are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [2.4.12] — 2026-10-11
+
+### Added (mobile admin app)
+- **Items to Bring Page & Tracking System**: Added full shopping list tracking for store items with name, quantity, notes, and checkbox to toggle brought status.
+- **Live Notification Banner**: Pinned alert notification banner at top of Dashboard and ItemsToBringScreen displaying pending items to bring live until brought. Added live badge count in AppBar across Dashboard, Catalog, and Mobile POS Checkout.
+
+### Fixed (desktop POS app)
+- **Real-Time Product Sync**: Desktop Electron POS app now listens for cloud data ingestion events and automatically reloads products in real-time when new items are added or updated from the mobile app without requiring manual restart or reload.
+
+### Release engineering
+- Bumped version to 2.4.12 (desktop `package.json`), 2.4.12+49 (mobile `pubspec.yaml`), and updated `livecontainer_source.json` to v2.4.12.
+
 ## [2.4.11] — 2026-10-07
 
 ### Changed (mobile admin app)

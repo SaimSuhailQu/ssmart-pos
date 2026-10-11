@@ -309,6 +309,7 @@ declare global {
       clockOut: (shiftId: number) => Promise<boolean>;
       getActiveShift: (userId: number) => Promise<Shift | undefined>;
       onSyncStatusChanged: (callback: (status: string) => void) => () => void;
+      onCloudDataIngested: (callback: (collection: string) => void) => () => void;
       getSalesAnalytics: () => Promise<AnalyticsData>;
 
       // Expense Tracking

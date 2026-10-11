@@ -89,6 +89,15 @@ const AppContent: React.FC = () => {
       });
     }
 
+    let unsubIngest: (() => void) | undefined;
+    if (window.api.onCloudDataIngested) {
+      unsubIngest = window.api.onCloudDataIngested((collection) => {
+        if (collection === 'products') {
+          loadProducts();
+        }
+      });
+    }
+
     let unsubUpdater: (() => void) | undefined;
     if (window.api.onUpdaterStatus) {
       unsubUpdater = window.api.onUpdaterStatus((info) => {
@@ -109,6 +118,7 @@ const AppContent: React.FC = () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
       if (unsubSync) unsubSync();
+      if (unsubIngest) unsubIngest();
       if (unsubUpdater) unsubUpdater();
     };
   }, []);

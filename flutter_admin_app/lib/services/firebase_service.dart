@@ -9,6 +9,7 @@ import 'package:ssmart_pos_admin/models/expense.dart';
 import 'package:ssmart_pos_admin/models/customer.dart';
 import 'package:ssmart_pos_admin/models/vendor.dart';
 import 'package:ssmart_pos_admin/models/daily_closing.dart';
+import 'package:ssmart_pos_admin/models/item_to_bring.dart';
 
 /// Service class for Firebase Realtime Database operations
 /// Handles all interactions with Firebase including real-time streams and data queries
@@ -614,6 +615,67 @@ class FirebaseService {
 
   Future<void> deleteProduct(String id) async {
     await _database.ref('${FirebasePaths.products}/$id').remove();
+  }
+
+  // ============================================================================
+  // ITEMS TO BRING OPERATIONS
+  // ============================================================================
+
+  Stream<List<ItemToBring>> getItemsToBringStream() {
+    return _database.ref(FirebasePaths.itemsToBring).onValue.map((event) {
+      final data = event.snapshot.value;
+      if (data == null) return <ItemToBring>[];
+
+      final List<ItemToBring> items = [];
+      if (data is Map) {
+        data.forEach((key, val) {
+          if (val is Map) {
+            items.add(ItemToBring.fromJson(key.toString(), val));
+          }
+        });
+      }
+
+      // Sort by active (unbrought first), then newest first
+      items.sort((a, b) {
+        if (a.isBrought != b.isBrought) {
+          return a.isBrought ? 1 : -1;
+        }
+        return b.createdAt.compareTo(a.createdAt);
+      });
+      return items;
+    });
+  }
+
+  Future<void> saveItemToBring({
+    String? id,
+    required String name,
+    String quantity = '',
+    String note = '',
+  }) async {
+    final String itemId = id ?? DateTime.now().millisecondsSinceEpoch.toString();
+    final ref = _database.ref('${FirebasePaths.itemsToBring}/$itemId');
+    
+    final payload = {
+      'id': itemId,
+      'name': name.trim(),
+      'quantity': quantity.trim(),
+      'note': note.trim(),
+      'is_brought': false,
+      'created_at': DateTime.now().millisecondsSinceEpoch,
+    };
+    await ref.update(payload);
+  }
+
+  Future<void> toggleItemBrought(String id, bool isBrought) async {
+    final ref = _database.ref('${FirebasePaths.itemsToBring}/$id');
+    await ref.update({
+      'is_brought': isBrought,
+      'brought_at': isBrought ? DateTime.now().millisecondsSinceEpoch : null,
+    });
+  }
+
+  Future<void> deleteItemToBring(String id) async {
+    await _database.ref('${FirebasePaths.itemsToBring}/$id').remove();
   }
 
   /// Process & Complete a Mobile POS Sale Transaction

@@ -44,6 +44,7 @@
     "purchase_orders": { ".read": "auth != null", ".write": "auth != null" },
     "daily_closings":  { ".read": "auth != null", ".write": "auth != null" },
     "cashier_sessions": { ".read": "auth != null", ".write": "auth != null" },
+    "items_to_bring":  { ".read": "auth != null", ".write": "auth != null" },
     "users":           { ".read": "auth != null", ".write": "auth != null" },
 
     // Ephemeral command queue: mobile POS asks the desktop printer to print.

@@ -62,6 +62,13 @@ contextBridge.exposeInMainWorld('api', {
       ipcRenderer.removeListener('sync-status-changed', handler);
     };
   },
+  onCloudDataIngested: (callback: (collection: string) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, collection: string) => callback(collection);
+    ipcRenderer.on('cloud-data-ingested', handler);
+    return () => {
+      ipcRenderer.removeListener('cloud-data-ingested', handler);
+    };
+  },
   getSalesAnalytics: () => ipcRenderer.invoke('get-sales-analytics'),
   getAllSales: () => ipcRenderer.invoke('get-all-sales'),
   returnSaleItems: (saleId: number, returnsList: { productId: number; qtyToReturn: number }[]) => ipcRenderer.invoke('return-sale-items', saleId, returnsList),

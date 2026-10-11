@@ -11,6 +11,7 @@ import 'package:ssmart_pos_admin/models/customer.dart';
 import 'package:ssmart_pos_admin/models/product.dart';
 import 'package:ssmart_pos_admin/models/sale.dart';
 import 'package:ssmart_pos_admin/services/firebase_service.dart';
+import 'package:ssmart_pos_admin/features/catalog/screens/items_to_bring_screen.dart';
 
 class CartItemModel {
   final int? productId;
@@ -652,6 +653,16 @@ class _MobileCheckoutScreenState extends State<MobileCheckoutScreen> {
       appBar: AppBar(
         title: const Text('Mobile POS & Billing'),
         actions: [
+          IconButton(
+            icon: const Icon(CupertinoIcons.list_bullet_below_rectangle, color: AppTheme.primaryCyan),
+            tooltip: 'Items to Bring',
+            onPressed: () {
+              Navigator.push(
+                context,
+                CupertinoPageRoute(builder: (_) => const ItemsToBringScreen()),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(CupertinoIcons.plus_app, color: AppTheme.primaryCyan),
             tooltip: 'Add Custom Item',

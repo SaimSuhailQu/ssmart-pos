@@ -14,6 +14,7 @@ import 'package:ssmart_pos_admin/core/widgets/barcode_scanner_sheet.dart';
 import 'package:ssmart_pos_admin/core/widgets/graphite_empty_state.dart';
 import 'package:ssmart_pos_admin/models/product.dart';
 import 'package:ssmart_pos_admin/services/firebase_service.dart';
+import 'package:ssmart_pos_admin/features/catalog/screens/items_to_bring_screen.dart';
 
 /// Screen displaying the items catalog database with real-time sync
 class CatalogScreen extends StatefulWidget {
@@ -101,6 +102,16 @@ class _CatalogScreenState extends State<CatalogScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(CupertinoIcons.list_bullet_below_rectangle, color: GraphiteTheme.platinum),
+            tooltip: 'Items to Bring',
+            onPressed: () {
+              Navigator.push(
+                context,
+                CupertinoPageRoute(builder: (_) => const ItemsToBringScreen()),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(CupertinoIcons.add_circled, color: GraphiteTheme.platinum),
             tooltip: 'Add New Item',

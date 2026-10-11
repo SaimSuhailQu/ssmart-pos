@@ -20,6 +20,8 @@ import 'package:ssmart_pos_admin/features/licensing/screens/license_manager_scre
 import 'package:ssmart_pos_admin/features/pos/screens/mobile_checkout_screen.dart';
 import 'package:ssmart_pos_admin/features/transactions/screens/transactions_screen.dart';
 import 'package:ssmart_pos_admin/features/catalog/screens/catalog_screen.dart';
+import 'package:ssmart_pos_admin/features/catalog/screens/items_to_bring_screen.dart';
+import 'package:ssmart_pos_admin/models/item_to_bring.dart';
 import 'package:ssmart_pos_admin/features/customers/screens/customers_khata_screen.dart';
 import 'package:ssmart_pos_admin/features/expenses/screens/expenses_screen.dart';
 import 'package:ssmart_pos_admin/features/vendors/screens/vendors_screen.dart';
@@ -302,6 +304,44 @@ class _DashboardScreenState extends State<DashboardScreen> {
             tooltip: 'Daily Closing Sales',
             onTap: () => _go(const DailyClosingsScreen()),
           ),
+          StreamBuilder<List<ItemToBring>>(
+            stream: context.read<FirebaseService>().getItemsToBringStream(),
+            builder: (context, snap) {
+              final pendingCount = (snap.data ?? []).where((i) => !i.isBrought).length;
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  _appBarAction(
+                    icon: CupertinoIcons.list_bullet_below_rectangle,
+                    tooltip: 'Items to Bring ($pendingCount pending)',
+                    onTap: () => _go(const ItemsToBringScreen()),
+                  ),
+                  if (pendingCount > 0)
+                    Positioned(
+                      right: 6,
+                      top: 8,
+                      child: IgnorePointer(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF59E0B),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            pendingCount > 99 ? '99+' : '$pendingCount',
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
           _appBarAction(
             icon: CupertinoIcons.square_grid_2x2_fill,
             tooltip: 'Items Catalog',
@@ -523,7 +563,128 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
           ),
-          const SizedBox(height: AppTheme.spacingM),
+          const SizedBox(height: AppTheme.spacingS),
+
+          // Live notification alert banner for items to bring (shown live until items are brought)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
+            child: StreamBuilder<List<ItemToBring>>(
+              stream: context.read<FirebaseService>().getItemsToBringStream(),
+              builder: (context, snap) {
+                final pending = (snap.data ?? []).where((i) => !i.isBrought).toList();
+                if (pending.isEmpty) return const SizedBox.shrink();
+
+                final firstThree = pending.take(3).map((e) => e.quantity.isNotEmpty ? '${e.name} (${e.quantity})' : e.name).join(', ');
+                final extraCount = pending.length - 3;
+                final itemsSummary = extraCount > 0 ? '$firstThree +$extraCount more' : firstThree;
+
+                return GestureDetector(
+                  onTap: () async {
+                    await Haptics.tap();
+                    _go(const ItemsToBringScreen());
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: AppTheme.spacingS),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          const Color(0xFFF59E0B).withValues(alpha: 0.18),
+                          const Color(0xFF17171A),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: const Color(0xFFF59E0B).withValues(alpha: 0.45),
+                        width: 1.2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFF59E0B).withValues(alpha: 0.1),
+                          blurRadius: 12,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(7),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF59E0B).withValues(alpha: 0.25),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            CupertinoIcons.bell_fill,
+                            color: Color(0xFFF59E0B),
+                            size: 15,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Row(
+                                children: [
+                                  const Text(
+                                    'TO BRING NOTIFICATION',
+                                    style: TextStyle(
+                                      color: Color(0xFFF59E0B),
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 0.6,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    width: 5,
+                                    height: 5,
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFFF59E0B),
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  Text(
+                                    '${pending.length} pending',
+                                    style: const TextStyle(
+                                      color: Color(0xFFF59E0B),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                itemsSummary,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Icon(
+                          CupertinoIcons.chevron_forward,
+                          size: 14,
+                          color: GraphiteTheme.slate,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: AppTheme.spacingS),
 
           // Hero — animated revenue, long-press copies summary
           Padding(

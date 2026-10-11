@@ -73,11 +73,18 @@ let syncStarted = false;
 function startCloudSync(): void {
   if (syncStarted) return;
   syncStarted = true;
-  startSyncWorker((status) => {
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('sync-status-changed', status);
+  startSyncWorker(
+    (status) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('sync-status-changed', status);
+      }
+    },
+    (collection) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('cloud-data-ingested', collection);
+      }
     }
-  });
+  );
 }
 
 function sendLicenseState(): void {

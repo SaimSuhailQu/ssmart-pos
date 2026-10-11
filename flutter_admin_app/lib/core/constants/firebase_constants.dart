@@ -19,6 +19,7 @@ class FirebasePaths {
   static const String users = 'users';
   static const String printRequests = 'print_requests';
   static const String dailyClosings = 'daily_closings';
+  static const String itemsToBring = 'items_to_bring';
 
   /// Get sales path by ID
   static String saleById(String saleId) => '$sales/$saleId';
