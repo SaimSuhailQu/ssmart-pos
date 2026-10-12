@@ -4,6 +4,14 @@ All notable changes to SSmart POS are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [2.5.1] — 2026-10-12
+
+### Fixed (mobile admin app)
+- **Quick Entry build fixes:** corrected relative import paths in `quick_entry_screen.dart` (`../../core` → `../../../core`) and a `?.` syntax typo in the Gemini switch expression — the v2.5.0 iOS CI build failed on these.
+
+### Release engineering
+- Bumped version to 2.5.1 (desktop `package.json`), 2.5.1+52 (mobile `pubspec.yaml`), and updated LiveContainer source feed to v2.5.1.
+
 ## [2.5.0] — 2026-10-12
 
 ### Added (mobile admin app)
