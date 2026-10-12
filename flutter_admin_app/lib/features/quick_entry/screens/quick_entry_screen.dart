@@ -3,13 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/commands/command_parser.dart';
-import '../../core/commands/ai_interpreter.dart';
-import '../../core/theme/graphite_theme.dart';
-import '../../core/widgets/pressable.dart';
-import '../../core/widgets/success_overlay.dart';
-import '../../core/widgets/haptics.dart';
-import '../../services/firebase_service.dart';
+import '../../../core/commands/command_parser.dart';
+import '../../../core/commands/ai_interpreter.dart';
+import '../../../core/theme/graphite_theme.dart';
+import '../../../core/widgets/pressable.dart';
+import '../../../core/widgets/success_overlay.dart';
+import '../../../core/widgets/haptics.dart';
+import '../../../services/firebase_service.dart';
 import 'quick_entry_settings_screen.dart';
 
 /// Quick Entry — type a shop-floor command, see the live interpretation,
@@ -121,9 +121,16 @@ class _QuickEntryScreenState extends State<QuickEntryScreen> {
     } else if (_chosenCandidate != null) {
       _chosenCandidate = null; // text changed, reset
     }
-    if (mounted) setState(() => _parsed = parsed);
-    // any new keystroke invalidates a previous AI result
-    if (_aiUsed && mounted) setState(() { _aiUsed = false; _aiError = null; });
+    if (mounted) {
+      setState(() {
+        _parsed = parsed;
+        // any new keystroke invalidates a previous AI result
+        if (_aiUsed) {
+          _aiUsed = false;
+          _aiError = null;
+        }
+      });
+    }
   }
 
   /// AI fallback: only when rules aren't confident. Manual tap to avoid

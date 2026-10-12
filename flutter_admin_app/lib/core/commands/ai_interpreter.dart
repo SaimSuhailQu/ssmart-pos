@@ -118,7 +118,7 @@ Command: "$text"''';
     if (m == null) return null;
     try {
       final j = jsonDecode(m.group(0)!) as Map<String, dynamic>;
-      final action = switch ((j['action'] as String?).?.toLowerCase()) {
+      final action = switch ((j['action'] as String?)?.toLowerCase()) {
         'loan' => CommandAction.khataLoan,
         'wasool' => CommandAction.khataWasool,
         'order' => CommandAction.vendorOrder,
