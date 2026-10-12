@@ -4,6 +4,15 @@ All notable changes to SSmart POS are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [2.5.4] — 2026-10-12
+
+### Fixed (mobile admin app)
+- **Dashboard AppBar overlap:** the Quick Entry bolt icon crowded the AppBar (6 icons) and overlapped the "SS MART" title. Moved Quick Entry into the profile menu.
+- **AI settings discoverability:** added "Quick Entry" and "AI Settings (Gemini key)" to the profile popup menu; the "no API key" hint in Quick Entry now opens the settings screen directly.
+
+### Release engineering
+- Bumped version to 2.5.4 (desktop `package.json`), 2.5.4+55 (mobile `pubspec.yaml`), and updated LiveContainer source feed to v2.5.4.
+
 ## [2.5.3] — 2026-10-12
 
 ### Fixed (mobile admin app)

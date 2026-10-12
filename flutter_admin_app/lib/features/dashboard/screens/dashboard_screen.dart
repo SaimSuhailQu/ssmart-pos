@@ -19,6 +19,7 @@ import 'package:ssmart_pos_admin/features/dashboard/widgets/graphite_sales_chart
 import 'package:ssmart_pos_admin/features/licensing/screens/license_manager_screen.dart';
 import 'package:ssmart_pos_admin/features/pos/screens/mobile_checkout_screen.dart';
 import 'package:ssmart_pos_admin/features/quick_entry/screens/quick_entry_screen.dart';
+import 'package:ssmart_pos_admin/features/quick_entry/screens/quick_entry_settings_screen.dart';
 import 'package:ssmart_pos_admin/features/transactions/screens/transactions_screen.dart';
 import 'package:ssmart_pos_admin/features/catalog/screens/catalog_screen.dart';
 import 'package:ssmart_pos_admin/features/catalog/screens/items_to_bring_screen.dart';
@@ -296,11 +297,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
         actions: [
           _appBarAction(
-            icon: CupertinoIcons.bolt_fill,
-            tooltip: 'Quick Entry',
-            onTap: () => _go(const QuickEntryScreen()),
-          ),
-          _appBarAction(
             icon: CupertinoIcons.cart_badge_plus,
             tooltip: 'Mobile POS Billing',
             onTap: () => _go(const MobileCheckoutScreen()),
@@ -366,6 +362,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 _handleLogout();
               } else if (value == 'licenses') {
                 _go(const LicenseManagerScreen());
+              } else if (value == 'quick_entry') {
+                _go(const QuickEntryScreen());
+              } else if (value == 'ai_settings') {
+                _go(const QuickEntrySettingsScreen());
               }
             },
             itemBuilder: (context) => [
@@ -398,6 +398,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                     SizedBox(width: 8),
                     Text('License Manager'),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(),
+              const PopupMenuItem(
+                value: 'quick_entry',
+                child: Row(
+                  children: [
+                    Icon(
+                      CupertinoIcons.bolt_fill,
+                      size: 18,
+                      color: Color(0xFFD4AF37),
+                    ),
+                    SizedBox(width: 8),
+                    Text('Quick Entry'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'ai_settings',
+                child: Row(
+                  children: [
+                    Icon(
+                      CupertinoIcons.sparkles,
+                      size: 18,
+                      color: GraphiteTheme.platinumLight,
+                    ),
+                    SizedBox(width: 8),
+                    Text('AI Settings (Gemini key)'),
                   ],
                 ),
               ),

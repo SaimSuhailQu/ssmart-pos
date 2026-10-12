@@ -395,9 +395,26 @@ class _QuickEntryScreenState extends State<QuickEntryScreen> {
               future: AiCommandInterpreter.isEnabled,
               builder: (context, snap) {
                 if (snap.data != true) {
-                  return const Text(
-                      'Tip: add a free Gemini API key in Settings → Quick Entry for AI help with tricky phrasing.',
-                      style: TextStyle(color: Colors.white38, fontSize: 12));
+                  return Pressable(
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                          builder: (_) =>
+                              const QuickEntrySettingsScreen()),
+                    ),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                            color: Colors.white.withOpacity(0.2)),
+                      ),
+                      child: const Text(
+                          '✨ Add Gemini API key to enable AI help',
+                          style: TextStyle(
+                              color: Colors.white70, fontSize: 13)),
+                    ),
+                  );
                 }
                 return Pressable(
                   onTap: _tryAi,
