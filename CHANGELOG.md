@@ -4,6 +4,14 @@ All notable changes to SSmart POS are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [2.5.2] — 2026-10-12
+
+### Fixed (mobile admin app)
+- **Widget install fix:** the WidgetKit extension's `Info.plist` was missing `CFBundleExecutable`, so SideStore rejected the IPA (`MissingBundleExecutable`). Added `$(EXECUTABLE_NAME)`.
+
+### Release engineering
+- Bumped version to 2.5.2 (desktop `package.json`), 2.5.2+53 (mobile `pubspec.yaml`), and updated LiveContainer source feed to v2.5.2.
+
 ## [2.5.1] — 2026-10-12
 
 ### Fixed (mobile admin app)
