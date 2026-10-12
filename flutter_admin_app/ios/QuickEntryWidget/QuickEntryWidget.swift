@@ -87,7 +87,6 @@ struct QuickEntrySmallView: View {
             }
         }
         .padding(10)
-        .background(Color(red: 0.04, green: 0.04, blue: 0.05))
     }
 }
 
@@ -110,7 +109,6 @@ struct QuickEntryMediumView: View {
             }
         }
         .padding(12)
-        .background(Color(red: 0.04, green: 0.04, blue: 0.05))
     }
 }
 
@@ -122,6 +120,12 @@ struct QuickEntryWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: QuickEntryProvider()) { entry in
             QuickEntryWidgetView(entry: entry)
+                // iOS 17+: widgets must use containerBackground instead of
+                // .background() or the system shows "Please adopt
+                // containerBackground API" instead of rendering.
+                .containerBackground(for: .widget) {
+                    Color(red: 0.04, green: 0.04, blue: 0.05)
+                }
         }
         .configurationDisplayName("SSmart Quick Entry")
         .description("One-tap khata, vendor order and expense entry.")

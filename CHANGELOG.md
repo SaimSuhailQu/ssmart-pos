@@ -4,6 +4,14 @@ All notable changes to SSmart POS are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [2.5.3] — 2026-10-12
+
+### Fixed (mobile admin app)
+- **Widget rendering:** adopted the iOS 17 `containerBackground` API (replacing `.background()`) — without it iOS shows "Please adopt containerBackground API" instead of rendering the widget. Widget deployment target set to iOS 17.0.
+
+### Release engineering
+- Bumped version to 2.5.3 (desktop `package.json`), 2.5.3+54 (mobile `pubspec.yaml`), and updated LiveContainer source feed to v2.5.3.
+
 ## [2.5.2] — 2026-10-12
 
 ### Fixed (mobile admin app)

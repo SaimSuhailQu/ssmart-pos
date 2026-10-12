@@ -10,10 +10,10 @@
       "name": "SSmart POS Admin",
       "bundleIdentifier": "com.ssmartpos",
       "developerName": "SSmart POS",
-      "version": "2.5.2",
-      "versionDate": "2026-10-12T12:40:00Z",
-      "versionDescription": "SSmart POS v2.5.2 — widget Info.plist: add CFBundleExecutable.",
-      "downloadURL": "https://github.com/SaimSuhailQu/ssmart-pos/releases/download/v2.5.2/ssmartpos.ipa",
+      "version": "2.5.3",
+      "versionDate": "2026-10-12T13:10:00Z",
+      "versionDescription": "SSmart POS v2.5.3 — widget adopts iOS 17 containerBackground API.",
+      "downloadURL": "https://github.com/SaimSuhailQu/ssmart-pos/releases/download/v2.5.3/ssmartpos.ipa",
       "localizedDescription": "SSmart POS iOS Admin & Management Dashboard. Real-time sales analytics, product catalog, mobile checkout billing, and daily closing sales ledger.",
       "iconURL": "https://raw.githubusercontent.com/SaimSuhailQu/ssmart-pos/main/flutter_admin_app/assets/images/ss_mart_logo.png",
       "tintColor": "E63946",
@@ -24,6 +24,15 @@
     }
   ],
   "news": [
+    {
+      "title": "SSmart POS v2.5.3 Released!",
+      "identifier": "release-v2.5.3",
+      "caption": "SSmart POS v2.5.3 Update — widget rendering fix",
+      "date": "2026-10-12",
+      "tintColor": "E63946",
+      "appID": "com.ssmartpos",
+      "notify": true
+    },
     {
       "title": "SSmart POS v2.5.2 Released!",
       "identifier": "release-v2.5.2",
