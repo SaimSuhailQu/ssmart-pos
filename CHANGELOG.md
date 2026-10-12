@@ -4,6 +4,14 @@ All notable changes to SSmart POS are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [2.5.5] — 2026-10-12
+
+### Added (mobile admin app)
+- **Quick Entry in the bottom action bar** — gold-accented bolt tile right after Make Bill / POS, per user request. Still also in the profile menu.
+
+### Release engineering
+- Bumped version to 2.5.5 (desktop `package.json`), 2.5.5+56 (mobile `pubspec.yaml`), and updated LiveContainer source feed to v2.5.5.
+
 ## [2.5.4] — 2026-10-12
 
 ### Fixed (mobile admin app)

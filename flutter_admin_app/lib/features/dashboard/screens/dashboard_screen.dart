@@ -1109,6 +1109,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               const SizedBox(width: 10),
               _barAction(
+                'Quick Entry',
+                CupertinoIcons.bolt_fill,
+                () => _go(const QuickEntryScreen()),
+                accent: true,
+              ),
+              const SizedBox(width: 8),
+              _barAction(
                 'Khata / Udhaar',
                 CupertinoIcons.book_fill,
                 () => _go(const CustomersKhataScreen()),
@@ -1133,7 +1140,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   /// Compact square shortcut tile used in the bottom action bar.
-  Widget _barAction(String tooltip, IconData icon, VoidCallback onTap) {
+  Widget _barAction(String tooltip, IconData icon, VoidCallback onTap,
+      {bool accent = false}) {
     return Tooltip(
       message: tooltip,
       child: Pressable(
@@ -1145,12 +1153,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
           height: 50,
           decoration: GraphiteTheme.cardDecoration.copyWith(
             borderRadius: BorderRadius.circular(16),
+            border: accent
+                ? Border.all(
+                    color: const Color(0xFFD4AF37).withValues(alpha: 0.5))
+                : null,
           ),
           alignment: Alignment.center,
           child: Icon(
             icon,
             size: 21,
-            color: GraphiteTheme.platinumLight,
+            color: accent
+                ? const Color(0xFFD4AF37)
+                : GraphiteTheme.platinumLight,
           ),
         ),
       ),
