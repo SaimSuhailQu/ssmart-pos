@@ -4,6 +4,19 @@ All notable changes to SSmart POS are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [2.5.12] — 2026-10-19
+
+### Fixed (mobile admin app)
+- **Stable APK signing key:** every CI build previously generated a fresh random
+  debug key, so the APK signature changed on every build and could never match
+  the SHA-1 in Firebase — Google Sign-In failed on Android with
+  "[16] Account reauth failed" after account selection. A permanent signing key
+  is now stored in repo secrets (`KEYSTORE_BASE64`) and used for all APK
+  builds; the APK signature is now stable. **Action required on update:** the
+  new SHA-1 (`37:4E:44:12:44:18:EF:88:99:47:6D:38:4A:12:79:D3:7D:68:61:C1`)
+  must be registered in Firebase console (replacing the old one), and the old
+  app must be uninstalled before installing this build (signature change).
+
 ## [2.5.11] — 2026-10-19
 
 ### Fixed (mobile admin app)

@@ -92,3 +92,10 @@ GoogleService-Info.plist
 # Runner.xcworkspace/
 # Podfile
 # Podfile.lock (optional, can be committed)
+
+# Release signing key material (restored in CI from the KEYSTORE_BASE64 secret;
+# never commit the real keystore or its passwords).
+**/key.properties
+**/*.p12
+**/*.jks
+**/*.keystore

@@ -65,6 +65,23 @@ jobs:
         run: flutter analyze --no-fatal-infos
         continue-on-error: true
 
+      - name: Restore Release Keystore
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+            echo "Restoring stable release keystore from secrets..."
+            echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/ssmartpos.p12
+            STORE_PASS="${{ secrets.STORE_PASSWORD }}"
+            KEY_PASS="${{ secrets.KEY_PASSWORD }}"
+            KEY_ALIAS="${{ secrets.KEY_ALIAS }}"
+            if [ -z "$STORE_PASS" ]; then STORE_PASS="$KEY_PASS"; fi
+            printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=ssmartpos.p12\nstoreType=PKCS12\n' \
+              "$STORE_PASS" "$KEY_PASS" "$KEY_ALIAS" > android/app/key.properties
+            echo "Release signing configured (stable APK signature)."
+          else
+            echo "WARNING: KEYSTORE_BASE64 secret not set - falling back to debug signing (APK signature will change every build; Google Sign-In will fail)."
+          fi
+
       - name: Build Release APK
         working-directory: ${{ env.WORKING_DIRECTORY }}
         run: |
@@ -99,7 +116,7 @@ jobs:
           body: |
             ## SSmart POS Admin - Android APK
 
-            Sideload-ready release APK (signed with debug keys — install directly on device).
+            Sideload-ready release APK (signed with the stable SSmart POS key — install directly on device).
 
             ### Installation
             1. Download `ssmartpos-admin.apk` below
