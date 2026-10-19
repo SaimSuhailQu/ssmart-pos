@@ -127,7 +127,13 @@ class AuthService {
     } on GoogleSignInException catch (e) {
       final code = e.code;
       if (code == GoogleSignInExceptionCode.canceled) {
-        throw AuthException('Google sign-in was canceled.', code: 'google-canceled');
+        throw AuthException(
+          'Google sign-in was canceled. If you picked an account and still '
+          'see this, the OAuth consent screen is likely in Testing mode: add '
+          'your Gmail as a test user in Google Cloud Console > APIs & Services '
+          '> OAuth consent screen.',
+          code: 'google-canceled',
+        );
       }
       throw AuthException(
         'Google sign-in failed: ${e.description ?? code.name}',

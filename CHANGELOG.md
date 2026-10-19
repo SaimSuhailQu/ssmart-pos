@@ -4,6 +4,14 @@ All notable changes to SSmart POS are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [2.5.10] — 2026-10-19
+
+### Fixed (mobile admin app)
+- **Google sign-in "canceled" hint:** when the account picker returns canceled
+  after picking an account (typical when the OAuth consent screen is in Testing
+  mode and the Gmail is not a test user), the error now explains the likely
+  cause and the console fix.
+
 ## [2.5.9] — 2026-10-19
 
 ### Fixed (mobile admin app)
