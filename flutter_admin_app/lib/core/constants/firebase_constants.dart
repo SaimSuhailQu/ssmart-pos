@@ -52,7 +52,8 @@ class FirebaseDefaultConfig {
   // requires serverClientId when google-services.json is not bundled).
   // Find it in: Google Cloud Console > APIs & Services > Credentials >
   // OAuth 2.0 Client IDs > "Web client" for this Firebase project.
-  static const String serverClientId = '';
+  static const String serverClientId =
+      '3113728357-6oa94bop9p3i4do6cirels6hj431rffr.apps.googleusercontent.com';
 }
 
 /// Owner / master account allowlist for the mobile admin app.

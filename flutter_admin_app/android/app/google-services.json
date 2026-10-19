@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "3113728357",
+    "firebase_url": "https://ssmart-c6e43-default-rtdb.firebaseio.com",
+    "project_id": "ssmart-c6e43",
+    "storage_bucket": "ssmart-c6e43.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:3113728357:android:1baac0ca0f6d7d7e60c98c",
+        "android_client_info": {
+          "package_name": "com.ssmartpos"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "3113728357-6oa94bop9p3i4do6cirels6hj431rffr.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCDjkx0hlWOgISA6C-vIxKZFYPnFRrAdOI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "3113728357-6oa94bop9p3i4do6cirels6hj431rffr.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "3113728357-ck7781mqrf5nsc7lb1mmr6fr7c8mee2n.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.ssmartpos"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

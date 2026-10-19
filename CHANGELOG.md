@@ -4,6 +4,14 @@ All notable changes to SSmart POS are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [2.5.8] — 2026-10-19
+
+### Fixed (mobile admin app)
+- **Google sign-in on Android, part 2:** bundled the real `google-services.json`
+  (package `com.ssmartpos`) + applied the Google Services Gradle plugin, and
+  baked the Web OAuth client ID into `FirebaseDefaultConfig.serverClientId` so
+  sign-in works out of the box with no `.env` editing.
+
 ## [2.5.7] — 2026-10-19
 
 ### Fixed (mobile admin app)
