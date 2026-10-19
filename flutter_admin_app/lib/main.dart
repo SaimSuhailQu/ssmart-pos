@@ -96,8 +96,12 @@ void main() async {
     // On iOS/macOS with GoogleService-Info.plist in the bundle, Firebase.initializeApp() without options
     // reads directly from the native plist with full bundle ID validation.
     // Otherwise, we supply the options explicitly (with iosBundleId included for iOS fallback).
+    // The Firebase.apps.isEmpty guard protects against [core/duplicate-app]
+    // if the native side ever auto-initializes (e.g. google-services.json).
     try {
-      if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+      if (Firebase.apps.isNotEmpty) {
+        print('Firebase already initialized natively; skipping explicit init.');
+      } else if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
         try {
           await Firebase.initializeApp();
         } catch (iosInitErr) {

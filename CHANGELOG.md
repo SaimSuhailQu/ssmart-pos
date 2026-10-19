@@ -4,6 +4,15 @@ All notable changes to SSmart POS are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [2.5.9] — 2026-10-19
+
+### Fixed (mobile admin app)
+- **Firebase duplicate-app crash on Android:** bundling `google-services.json`
+  made Android auto-initialize Firebase, colliding with the app's explicit
+  `initializeApp()` (`[core/duplicate-app]`). Disabled `FirebaseInitProvider`
+  auto-init in the manifest and added a `Firebase.apps.isNotEmpty` guard in
+  `main.dart`.
+
 ## [2.5.8] — 2026-10-19
 
 ### Fixed (mobile admin app)
