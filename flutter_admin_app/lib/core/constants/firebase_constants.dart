@@ -35,6 +35,7 @@ class FirebaseEnvKeys {
   static const String messagingSenderId = 'FIREBASE_MESSAGING_SENDER_ID';
   static const String appId = 'FIREBASE_APP_ID';
   static const String measurementId = 'FIREBASE_MEASUREMENT_ID';
+  static const String serverClientId = 'GOOGLE_SERVER_CLIENT_ID';
 }
 
 /// Fallback Firebase configuration when .env is absent or partially configured
@@ -47,6 +48,11 @@ class FirebaseDefaultConfig {
   static const String messagingSenderId = '3113728357';
   static const String appId = '1:3113728357:web:9f26cd9bf162ab9f60c98c';
   static const String measurementId = 'G-9LVJLM3R6H';
+  // Web OAuth client ID for Google sign-in on Android (google_sign_in v7
+  // requires serverClientId when google-services.json is not bundled).
+  // Find it in: Google Cloud Console > APIs & Services > Credentials >
+  // OAuth 2.0 Client IDs > "Web client" for this Firebase project.
+  static const String serverClientId = '';
 }
 
 /// Owner / master account allowlist for the mobile admin app.

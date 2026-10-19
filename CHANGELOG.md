@@ -4,6 +4,15 @@ All notable changes to SSmart POS are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [2.5.7] — 2026-10-19
+
+### Fixed (mobile admin app)
+- **Google sign-in on Android:** the APK had no `google-services.json` (explicit
+  `FirebaseOptions` are used), so `google_sign_in` v7 failed with
+  "serverClientId must be provided on Android". The Web OAuth client ID is now
+  passed via `GOOGLE_SERVER_CLIENT_ID` (.env / `FirebaseDefaultConfig`) and a
+  clear error is shown when it is missing.
+
 ## [2.5.6] — 2026-10-19
 
 ### Added (mobile admin app)

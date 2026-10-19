@@ -1,4 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:ssmart_pos_admin/core/constants/firebase_constants.dart';
 
@@ -59,17 +61,39 @@ class AuthService {
     }
   }
 
+  /// Web OAuth client ID for Google sign-in on Android. Returns null on
+  /// other platforms (iOS reads it from Info.plist). Throws a clear
+  /// [AuthException] instead of the plugin's cryptic error when unconfigured.
+  String? _androidServerClientId() {
+    if (defaultTargetPlatform != TargetPlatform.android) return null;
+    final fromEnv =
+        dotenv.isInitialized ? dotenv.maybeGet(FirebaseEnvKeys.serverClientId) : null;
+    final clientId = (fromEnv != null && fromEnv.isNotEmpty)
+        ? fromEnv
+        : FirebaseDefaultConfig.serverClientId;
+    if (clientId.isEmpty) {
+      throw AuthException(
+        'Google sign-in is not configured: set GOOGLE_SERVER_CLIENT_ID in '
+        '.env to your Web OAuth client ID (Google Cloud Console > APIs & '
+        'Services > Credentials).',
+        code: 'google-not-configured',
+      );
+    }
+    return clientId;
+  }
+
   /// Sign in with Google (owner / master account).
   ///
   /// v7 flow: `initialize()` → `authenticate()` → Firebase `id_token` sign-in.
   /// The iOS/macOS client ID comes from Info.plist (`GIDClientID`), which is
   /// injected in CI from the same GoogleService-Info.plist secret, so no
-  /// client ID needs to be hardcoded here. Android resolves its client ID
-  /// from `google-services.json` automatically (SHA-1 bound).
+  /// client ID needs to be hardcoded here. Android has no google-services.json
+  /// bundled (explicit FirebaseOptions are used), so the Web OAuth client ID
+  /// must be passed as `serverClientId` (GOOGLE_SERVER_CLIENT_ID in .env).
   Future<User> signInWithGoogle() async {
     try {
       final GoogleSignIn signIn = GoogleSignIn.instance;
-      await signIn.initialize();
+      await signIn.initialize(serverClientId: _androidServerClientId());
 
       final GoogleSignInAccount account = await signIn.authenticate();
       final idToken = account.authentication.idToken;
