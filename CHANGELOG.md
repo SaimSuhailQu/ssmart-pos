@@ -4,6 +4,13 @@ All notable changes to SSmart POS are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [2.5.11] — 2026-10-19
+
+### Fixed (mobile admin app)
+- **Google sign-in diagnostics:** the "canceled" error now includes the plugin's
+  own detail message, so the real Credential Manager failure is visible instead
+  of being swallowed.
+
 ## [2.5.10] — 2026-10-19
 
 ### Fixed (mobile admin app)

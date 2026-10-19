@@ -127,11 +127,14 @@ class AuthService {
     } on GoogleSignInException catch (e) {
       final code = e.code;
       if (code == GoogleSignInExceptionCode.canceled) {
+        // Keep the plugin's own description: it often names the real cause
+        // (e.g. a Credential Manager failure) behind a "canceled" code.
+        final detail =
+            (e.description != null && e.description!.isNotEmpty) ? ' Detail: ${e.description}' : '';
         throw AuthException(
-          'Google sign-in was canceled. If you picked an account and still '
-          'see this, the OAuth consent screen is likely in Testing mode: add '
-          'your Gmail as a test user in Google Cloud Console > APIs & Services '
-          '> OAuth consent screen.',
+          'Google sign-in was canceled.$detail If you picked an account and '
+          'still see this, check: OAuth consent screen test users, and the '
+          'SHA-1 fingerprint registered for com.ssmartpos in Firebase console.',
           code: 'google-canceled',
         );
       }
