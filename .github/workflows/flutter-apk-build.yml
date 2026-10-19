@@ -1,0 +1,114 @@
+name: Build Flutter Android APK (Admin App)
+
+# Builds a release APK of the Flutter admin app, signed with debug keys
+# (sideload-ready). Mirrors the iOS workflow's release handling.
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - 'v*'
+      - 'flutter-v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  FLUTTER_VERSION: '3.41.7'
+  WORKING_DIRECTORY: flutter_admin_app
+
+jobs:
+  build_apk:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: Verify Flutter Installation
+        run: flutter --version
+
+      - name: Configure Environment (.env)
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          if [ ! -f .env ]; then
+            echo "No .env found — using .env.example fallback"
+            cp .env.example .env
+          fi
+
+      - name: Get Flutter Dependencies
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: flutter pub get
+
+      - name: Analyze
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: flutter analyze --no-fatal-infos
+        continue-on-error: true
+
+      - name: Build Release APK
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //' | tr -d '\r')
+          BUILD_NAME=$(echo "$VERSION" | cut -d+ -f1)
+          BUILD_NUMBER=$(echo "$VERSION" | cut -d+ -f2)
+          echo "Building APK version $BUILD_NAME+$BUILD_NUMBER"
+          flutter build apk --release \
+            --build-name="$BUILD_NAME" \
+            --build-number="$BUILD_NUMBER"
+          mkdir -p build/app/outputs/flutter-apk
+          cp build/app/outputs/flutter-apk/app-release.apk \
+             build/app/outputs/flutter-apk/ssmartpos-admin.apk
+          ls -lh build/app/outputs/flutter-apk/
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SSmart-POS-Admin-Android-APK
+          path: ${{ env.WORKING_DIRECTORY }}/build/app/outputs/flutter-apk/ssmartpos-admin.apk
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Create or Update GitHub Release
+        if: github.event_name != 'pull_request'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ (startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/tags/flutter-v')) && github.ref_name || 'latest' }}
+          name: ${{ (startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/tags/flutter-v')) && github.ref_name || 'Latest Release Build' }}
+          files: |
+            ${{ env.WORKING_DIRECTORY }}/build/app/outputs/flutter-apk/ssmartpos-admin.apk
+          body: |
+            ## SSmart POS Admin - Android APK
+
+            Sideload-ready release APK (signed with debug keys — install directly on device).
+
+            ### Installation
+            1. Download `ssmartpos-admin.apk` below
+            2. Open it on your Android device and allow "Install unknown apps" if asked
+            3. Install
+
+            ### Changes
+            ${{ github.event.head_commit.message }}
+          draft: false
+          prerelease: ${{ !(startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/tags/flutter-v')) }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

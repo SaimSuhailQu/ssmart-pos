@@ -4,6 +4,19 @@ All notable changes to SSmart POS are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [2.5.6] — 2026-10-19
+
+### Added (mobile admin app)
+- **Android APK build** — new `flutter-apk-build.yml` workflow produces a sideload-ready
+  `ssmartpos-admin.apk` on every push to main and on version tags; attached to the
+  GitHub release alongside the iOS IPA.
+- **Android platform scaffold** — `flutter_admin_app/android/` (applicationId
+  `com.ssmartpos`, matching the iOS bundle id), launcher icons, deep-link
+  `ssmartpos://` intent filter mirroring iOS.
+
+### Release engineering
+- Bumped version to 2.5.6 (desktop `package.json`), 2.5.6+57 (mobile `pubspec.yaml`).
+
 ## [2.5.5] — 2026-10-12
 
 ### Added (mobile admin app)
