@@ -4,6 +4,12 @@ All notable changes to SSmart POS are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [2.5.13] — 2026-10-19
+
+### Changed (mobile admin app)
+- Updated bundled `google-services.json`: Firebase now lists the Android OAuth
+  client for `com.ssmartpos` (created from the SHA-1 in the console).
+
 ## [2.5.12] — 2026-10-19
 
 ### Fixed (mobile admin app)

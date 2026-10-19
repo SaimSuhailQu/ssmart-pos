@@ -15,6 +15,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "3113728357-a0rv55l4vtlpmkv2dbet40d5bnsdjbic.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.ssmartpos",
+            "certificate_hash": "27196e386b875e76adf700e7ea84e4c6eee33dfa"
+          }
+        },
+        {
           "client_id": "3113728357-6oa94bop9p3i4do6cirels6hj431rffr.apps.googleusercontent.com",
           "client_type": 3
         }
