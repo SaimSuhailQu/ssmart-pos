@@ -4,6 +4,37 @@ All notable changes to SSmart POS are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [2.6.2] — 2026-10-25
+
+### Downloads, part 2: desktop stops re-fetching whole collections
+- **Desktop:** realtime ingest is now batched per child. Changed children
+  collected over a 1 s window are fed to the EXISTING handlers (which
+  already upsert record by record), so a cloud change costs only the
+  changed children — no full-node fetch at all. The full pass on connect
+  still runs as the offline safety net. Khata deletions still flow
+  through the tombstone node; other handlers never deleted absent
+  records, and that behavior is unchanged.
+- **Canonical sale timestamp:** every NEW sale now carries `ts` (epoch
+  millis) from both writers — mobile computes it in `Sale.toJson`, the
+  desktop in `syncSalesToCloud` via `parseSaleTimestampToEpochMs`. The
+  parser encodes the writers' real semantics (mobile ISO without offset
+  = PKT wall clock; desktop space-separated strings = UTC wall clock
+  from SQLite CURRENT_TIMESTAMP; ISO with offset = exact) and returns
+  null rather than guess. Old readers ignore the new field.
+- **Backfill script (written, NOT run):** `scripts/backfill-sale-ts.mjs`
+  adds `ts` to old sales (dry-run by default, `--apply` writes,
+  idempotent/resumable, unparseable timestamps reported and skipped).
+  Running it needs a verified backup + quiet shop window + the owner's
+  go-ahead + the Anonymous provider enabled. Until it runs, date-filtered
+  sales views stay a follow-up release — filtering on `ts` today would
+  silently drop old sales that lack it.
+- **Tests:** Dart sale-`ts` tests; the timestamp parser is verified by
+  node asserts (including the mobile-20:30-PKT == desktop-15:30-UTC
+  invariant). Desktop `tsc --noEmit` clean.
+- **Known corner:** manual daily-closing sales stamped
+  `${date} 23:59:59` from a local date get a `ts` ~5 h off (space strings
+  parse as UTC); one record per day, only future ts-based views affected.
+
 ## [2.6.1] — 2026-10-24
 
 ### Firebase downloads slashed (10.47 GB overage fix)

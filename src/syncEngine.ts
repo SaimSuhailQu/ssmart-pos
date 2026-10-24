@@ -301,6 +301,63 @@ async function pushDelta<T>(
 // Cloud Push Operations (all delta-based)
 // ============================================================================
 
+/**
+ * Parse a sale timestamp to epoch milliseconds — the canonical `ts` written
+ * on new cloud sales (v2.6.2) for future server-side date queries.
+ *
+ * The two writers disagree about what a timestamp string MEANS, so the rules
+ * are explicit, not engine-local:
+ * - Space-separated "YYYY-MM-DD HH:MM:SS": SQLite CURRENT_TIMESTAMP and
+ *   toISOString-derived strings — UTC wall clock. (Note the corner: the
+ *   manual daily-closing flow stamps `${date} 23:59:59` from a LOCAL date,
+ *   so its `ts` lands ~5h off; it is one closing record per day, and only
+ *   the future ts-based views are affected, not today's views.)
+ * - ISO WITHOUT offset (mobile `DateTime.now().toIso8601String()`): shop
+ *   local wall clock, Asia/Karachi (UTC+5, no DST) — parsed explicitly as
+ *   PKT, never as the engine's local zone (the backfill script may run on
+ *   a machine in another zone).
+ * - ISO WITH offset/Z: exact via Date.parse.
+ * - Epoch numbers/strings: seconds (< 1e12) vs millis, passed through.
+ * Returns null when unparseable — callers OMIT `ts` rather than guessing.
+ * Mirrored in scripts/sale-timestamp.mjs (used by the backfill script);
+ * keep the two in sync.
+ */
+export function parseSaleTimestampToEpochMs(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value > 1e12 ? value : value * 1000;
+  }
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (trimmed === '') return null;
+  if (/^\d+$/.test(trimmed)) {
+    const n = Number(trimmed);
+    return n > 1e12 ? n : n * 1000;
+  }
+  const space =
+    /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?$/.exec(trimmed);
+  if (space) {
+    const [, y, mo, d, h, mi, sec, ms] = space;
+    return Date.UTC(
+      Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi),
+      Number(sec || 0), Number((ms || '0').padEnd(3, '0')),
+    );
+  }
+  const isoNoOffset =
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?$/.exec(trimmed);
+  if (isoNoOffset) {
+    const [, y, mo, d, h, mi, sec, ms] = isoNoOffset;
+    return (
+      Date.UTC(
+        Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi),
+        Number(sec || 0), Number((ms || '0').padEnd(3, '0')),
+      ) -
+      5 * 3600 * 1000
+    );
+  }
+  const parsed = Date.parse(trimmed);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
 export async function syncSalesToCloud(silent = false) {
   if (!dbInstance) {
     if (!silent) console.log("Sync skipped: Firebase DB offline (No .env credentials).");
@@ -323,6 +380,7 @@ export async function syncSalesToCloud(silent = false) {
       const chunk = unsynced.slice(i, i + CHUNK_SIZE);
       const updates: Record<string, unknown> = {};
       for (const sale of chunk) {
+        const saleTs = parseSaleTimestampToEpochMs(sale.timestamp);
         updates[cp(`sales/${sale.id}`)] = {
           id: sale.id,
           subtotal: sale.subtotal,
@@ -333,6 +391,7 @@ export async function syncSalesToCloud(silent = false) {
           amount_tendered: sale.amount_tendered,
           change_given: sale.change_given,
           timestamp: sale.timestamp,
+          ...(saleTs !== null ? { ts: saleTs } : {}),
           items: sale.items,
           payments: sale.payments,
           store_branch: "Main Mall Branch #1",
@@ -991,7 +1050,6 @@ export function startSyncWorker(
       ['deleted_khata_entries', cp('deleted_khata_entries')]
     ];
 
-    const debounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
     const ingestHandlers: Record<string, (raw: unknown) => void | Promise<void>> = {
       products: ingestProducts,
       customers: ingestCustomers,
@@ -1008,21 +1066,62 @@ export function startSyncWorker(
       }
     };
 
-    // Trigger on CHILD events, not onValue: onValue re-downloads the whole
-    // node to the desktop on every change (its snapshot was ignored here —
-    // ingestNode re-fetches anyway, so each change cost TWO full downloads).
-    // Child events download only the changed child; the debounced ingest
-    // still fetches the full node once, so per-change cost halves, and
-    // bursts still coalesce into a single ingest via the debounce.
-    const triggerIngest = (name: string, path: string) => {
-      const existing = debounceTimers.get(name);
+    // Batched per-child ingest (v2.6.2): child-event snapshots ARE the data,
+    // so the debounced handler runs on ONLY the children that changed — no
+    // get() of the full node at all. The existing full-node handlers are
+    // reused unchanged on the batch map (they already upsert record by
+    // record), which is what makes this safe: no handler logic was rewritten.
+    // Removals are tracked only to avoid upserting a child deleted inside
+    // the debounce window; handlers do not delete records absent from input
+    // (same as today's full-node ingest), and khata deletions still flow
+    // through the tombstone node. The full pass on connect still uses
+    // ingestNode (full get + hash) as the safety net after offline periods.
+    // Note: realtime batches bypass lastIngestHash, so a later full pass may
+    // re-ingest once — idempotent upserts, no downloads beyond the pass's
+    // own fetch.
+    type PendingBatch = {
+      records: Record<string, unknown>;
+      removed: Set<string>;
+    };
+    const pendingBatches = new Map<string, PendingBatch>();
+    const batchTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+    const queueBatchChange = (
+      name: string,
+      key: string | null,
+      value: unknown,
+      isRemoval: boolean,
+    ) => {
+      if (key === null) return;
+      let batch = pendingBatches.get(name);
+      if (!batch) {
+        batch = { records: {}, removed: new Set<string>() };
+        pendingBatches.set(name, batch);
+      }
+      if (isRemoval) {
+        delete batch.records[key];
+        batch.removed.add(key);
+      } else {
+        batch.records[key] = value;
+        batch.removed.delete(key);
+      }
+      const existing = batchTimers.get(name);
       if (existing) clearTimeout(existing);
-      debounceTimers.set(name, setTimeout(() => {
-        debounceTimers.delete(name);
-        ingestNode(name, path, ingestHandlers[name]).then(() => {
+      batchTimers.set(name, setTimeout(() => {
+        batchTimers.delete(name);
+        const ready = pendingBatches.get(name);
+        pendingBatches.delete(name);
+        if (!ready) return;
+        const run = async () => {
+          if (name === 'customer_khata') {
+            await processDeletedKhataTombstones();
+          }
+          await ingestHandlers[name](ready.records);
+        };
+        run().then(() => {
           if (onDataIngested) onDataIngested(name);
         }).catch(err =>
-          console.warn(`Debounced ingest [${name}] error:`, err)
+          console.warn(`Batched ingest [${name}] error:`, err)
         );
       }, 1000));
     };
@@ -1030,9 +1129,12 @@ export function startSyncWorker(
     try {
       for (const [name, path] of watchedNodes) {
         const nodeRef = ref(dbInstance, path);
-        onChildAdded(nodeRef, () => triggerIngest(name, path));
-        onChildChanged(nodeRef, () => triggerIngest(name, path));
-        onChildRemoved(nodeRef, () => triggerIngest(name, path));
+        onChildAdded(nodeRef, (snap) =>
+          queueBatchChange(name, snap.key, snap.val(), false));
+        onChildChanged(nodeRef, (snap) =>
+          queueBatchChange(name, snap.key, snap.val(), false));
+        onChildRemoved(nodeRef, (snap) =>
+          queueBatchChange(name, snap.key, null, true));
       }
 
       // Realtime listener for Remote Print Requests sent from Mobile POS

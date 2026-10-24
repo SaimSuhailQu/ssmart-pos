@@ -10,10 +10,10 @@
       "name": "SSmart POS Admin",
       "bundleIdentifier": "com.ssmartpos",
       "developerName": "SSmart POS",
-      "version": "2.6.1",
-      "versionDate": "2026-10-24T15:45:00Z",
-      "versionDescription": "SSmart POS v2.6.1 \u2014 Slashes Firebase downloads: incremental collection streams replace full-node re-downloads.",
-      "downloadURL": "https://github.com/SaimSuhailQu/ssmart-pos/releases/download/v2.6.1/ssmartpos.ipa",
+      "version": "2.6.2",
+      "versionDate": "2026-10-25T01:30:00Z",
+      "versionDescription": "SSmart POS v2.6.2 \u2014 Desktop downloads only changed items per cloud change; new sales carry a canonical timestamp for future date-filtered views.",
+      "downloadURL": "https://github.com/SaimSuhailQu/ssmart-pos/releases/download/v2.6.2/ssmartpos.ipa",
       "localizedDescription": "SSmart POS iOS Admin & Management Dashboard. Real-time sales analytics, product catalog, mobile checkout billing, and daily closing sales ledger.",
       "iconURL": "https://raw.githubusercontent.com/SaimSuhailQu/ssmart-pos/main/flutter_admin_app/assets/images/ss_mart_logo.png",
       "tintColor": "E63946",
@@ -24,6 +24,15 @@
     }
   ],
   "news": [
+    {
+      "title": "SSmart POS v2.6.2 Released!",
+      "identifier": "release-v2.6.2",
+      "caption": "SSmart POS v2.6.2 Update \u2014 Lower data usage, part 2",
+      "date": "2026-10-25",
+      "tintColor": "E63946",
+      "appID": "com.ssmartpos",
+      "notify": true
+    },
     {
       "title": "SSmart POS v2.6.1 Released!",
       "identifier": "release-v2.6.1",

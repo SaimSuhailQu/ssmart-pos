@@ -64,6 +64,12 @@ class Sale {
 
   /// Convert Sale to JSON for Firebase
   Map<String, dynamic> toJson() {
+    // `ts` (epoch millis) is the canonical timestamp for future server-side
+    // date queries: the `timestamp` string is ambiguous across writers
+    // (mobile ISO local wall-clock vs desktop SQLite UTC strings), while
+    // `ts` is one number. Computed on-device, so local wall-clock ISO
+    // strings parse correctly; unparseable timestamps omit `ts` (never guess).
+    final ts = DateTime.tryParse(timestamp)?.millisecondsSinceEpoch;
     return {
       'id': id,
       'subtotal': subtotal,
@@ -74,6 +80,7 @@ class Sale {
       'amount_tendered': amountTendered,
       'change_given': changeGiven,
       'timestamp': timestamp,
+      if (ts != null) 'ts': ts,
       if (storeBranch != null) 'store_branch': storeBranch,
       if (userId != null) 'user_id': userId,
       if (userName != null) 'user_name': userName,

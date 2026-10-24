@@ -95,6 +95,25 @@ Normalizing sale timestamps to epoch millis is the precondition. The
 per-customer khata stream stays on `onValue`: it is one small node, and
 its tombstone check already costs a read per event.
 
+v2.6.2: the desktop's debounced ingest no longer re-fetches the full node
+per change — child events are batched over 1 s and the EXISTING handlers
+run on the batch only (handlers already upsert record by record, so no
+handler logic changed; the full pass on connect still runs as the offline
+safety net). New sales carry `ts` (epoch millis) from both writers, so
+date queries can filter on `ts` later. Timestamp semantics, recorded here
+because they are a landmine: mobile ISO strings without offset are shop
+local wall-clock (PKT); desktop space-separated strings are UTC wall-clock
+(SQLite CURRENT_TIMESTAMP); ISO with offset/Z is exact. The parsers
+(`parseSaleTimestampToEpochMs` in src/syncEngine.ts, mirrored in
+scripts/sale-timestamp.mjs) encode exactly these rules and return null
+rather than guess. `scripts/backfill-sale-ts.mjs` (dry-run by default,
+--apply writes, idempotent/resumable) adds `ts` to old sales — it is
+WRITTEN, not run: it needs a verified backup + quiet shop window + the
+owner's go-ahead, and the Anonymous provider enabled. Corner case:
+manual daily-closing sales stamped `${date} 23:59:59` from a local date
+get a `ts` ~5 h off (space strings parse as UTC); one record per day,
+only future ts-based views affected.
+
 ## Money migration (integer paisa)
 
 Implemented and tested (`src/main/db/moneyMigration.ts`, idempotent,
