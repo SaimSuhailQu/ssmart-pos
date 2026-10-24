@@ -70,12 +70,25 @@ try {
 
 let authReadyPromise: Promise<void> | null = null;
 
+// Sync-health reporting: the header dot must reflect AUTHORIZATION, not just
+// the socket. `.info/connected` stays true even when the rules reject every
+// read/write (e.g. Anonymous provider disabled), which used to show a green
+// "Online" while sync was dead. Terminal auth failures report AUTH_BLOCKED.
+let syncStatusReporter: ((status: string) => void) | null = null;
+let authBlocked = false;
+
+function reportSyncBlocked(): void {
+  authBlocked = true;
+  if (syncStatusReporter) syncStatusReporter('AUTH_BLOCKED');
+}
+
 async function ensureSyncAuth(attempt = 1): Promise<void> {
   if (!dbInstance) return;
   try {
     const auth = getAuth(dbInstance.app);
     if (auth.currentUser) return; // Already signed in (persists across launches).
     await signInAnonymously(auth);
+    authBlocked = false;
     console.log("[Sync] Anonymous device identity established (rules: auth required).");
   } catch (err) {
     const code = (err as { code?: string })?.code ?? '';
@@ -85,6 +98,7 @@ async function ensureSyncAuth(attempt = 1): Promise<void> {
         'Enable it in Firebase Console → Authentication → Sign-in method, ' +
         'otherwise cloud sync will be rejected by the database rules.'
       );
+      reportSyncBlocked();
       return; // Do not spam retries for a configuration problem.
     }
     if (attempt <= 4) {
@@ -94,6 +108,7 @@ async function ensureSyncAuth(attempt = 1): Promise<void> {
       return ensureSyncAuth(attempt + 1);
     }
     console.error('[Sync] Anonymous sign-in failed after retries — sync will stay blocked by rules until the next launch.', err);
+    reportSyncBlocked();
   }
 }
 
@@ -861,8 +876,16 @@ function ingestKhata(raw: unknown) {
     const entriesList = Array.isArray(entries) ? entries : Object.values(entries as Record<string, unknown>);
     for (const e of entriesList) {
       if (!e || typeof e !== 'object') continue;
+      // Non-numeric customer keys (legacy push keys) have no SQLite INTEGER
+      // row, so upsert drops them silently — warn instead of losing the
+      // entry quietly. (Current writers only produce numeric keys.)
+      const numericKey = Number(custId);
+      if (Number.isNaN(numericKey) || numericKey <= 0) {
+        console.warn(`Khata entry for non-numeric customer key '${custId}' cannot be stored locally (SQLite id is INTEGER); skipping.`);
+        continue;
+      }
       try {
-        upsertCloudKhataEntry({ customer_id: Number(custId) || custId, ...(e as Record<string, unknown>) });
+        upsertCloudKhataEntry({ customer_id: numericKey, ...(e as Record<string, unknown>) });
       } catch (err) {
         console.warn(`Failed to upsert cloud khata entry for customer #${custId}:`, err);
       }
@@ -933,15 +956,19 @@ export function startSyncWorker(
   onDataIngested?: (collection: string) => void
 ) {
   if (dbInstance && onStatusChange) {
+    syncStatusReporter = onStatusChange;
     // Device identity first: until anonymous auth lands, the rules reject
     // reads (onValue listeners re-emit on their own once auth completes).
     void authReady();
     const connectedRef = ref(dbInstance, ".info/connected");
     onValue(connectedRef, async (snap) => {
       if (snap.val() === true) {
-        console.log("Firebase status: Connected (Online)");
-        onStatusChange("ONLINE");
-        await runFullSyncPass();
+        // Never report ONLINE while auth is terminally blocked: the socket
+        // stays connected even when every read/write is rejected by rules.
+        const status = authBlocked ? "AUTH_BLOCKED" : "ONLINE";
+        console.log(`Firebase status: Connected (${status})`);
+        onStatusChange(status);
+        if (!authBlocked) await runFullSyncPass();
       } else {
         console.log("Firebase status: Disconnected (Offline)");
         onStatusChange("OFFLINE");

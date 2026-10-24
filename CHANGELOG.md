@@ -4,6 +4,25 @@ All notable changes to SSmart POS are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [2.5.16] — 2026-10-24
+
+### Sync production hardening
+- **Desktop no longer lies about sync health:** the header dot tracked only
+  the Firebase socket, so it showed green "Online" even when the database
+  rules rejected every read/write (e.g. Anonymous sign-in disabled). Auth
+  failures now report `AUTH_BLOCKED`: the header shows "Sync blocked" and
+  a one-time alert names the exact fix (enable Anonymous sign-in in
+  Firebase console, then restart). A blocked session also skips the futile
+  full sync pass.
+- **Khata ingest stops dropping data silently:** entries under non-numeric
+  customer keys (legacy push keys, which have no SQLite INTEGER row) were
+  discarded without a trace; they now log a warning naming the key.
+- **SideStore feed fixed + guarded:** the feed was stuck at v2.5.5 (Oct 12)
+  while releases marched to 2.5.15, so iPhones silently stopped receiving
+  updates. The feed now advertises 2.5.16, and the iOS workflow fails any
+  tag build whose feed version doesn't match the tag, so this can never go
+  stale again.
+
 ## [2.5.15] — 2026-10-24
 
 ### Performance (mobile admin app)

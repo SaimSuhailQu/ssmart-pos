@@ -54,6 +54,7 @@ const AppContent: React.FC = () => {
   const [nextSaleId, setNextSaleId] = useState<number>(1);
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [syncStatus, setSyncStatus] = useState<string>('ONLINE');
+  const authBlockedToastRef = useRef(false);
   const [isNetworkOnline, setIsNetworkOnline] = useState<boolean>(navigator.onLine);
   const [updateInfo, setUpdateInfo] = useState<{ status: string; version?: string } | null>(null);
   const [isCheckingUpdate, setIsCheckingUpdate] = useState<boolean>(false);
@@ -86,6 +87,10 @@ const AppContent: React.FC = () => {
     if (window.api.onSyncStatusChanged) {
       unsubSync = window.api.onSyncStatusChanged((status) => {
         setSyncStatus(status);
+        if (status === 'AUTH_BLOCKED' && !authBlockedToastRef.current) {
+          authBlockedToastRef.current = true;
+          toast.error('Cloud sync is blocked: enable Anonymous sign-in in Firebase Console → Authentication → Sign-in method, then restart the app.');
+        }
       });
     }
 
@@ -757,7 +762,7 @@ const AppContent: React.FC = () => {
                     <span className={`w-1.5 h-1.5 rounded-full ${
                       isOnline ? 'bg-status-emerald' : 'bg-status-coral'
                     }`} />
-                    {isOnline ? 'Online' : 'Offline'}
+                    {isOnline ? 'Online' : syncStatus === 'AUTH_BLOCKED' ? 'Sync blocked' : 'Offline'}
                   </span>
                   {/* Print spooler queue status */}
                   <PrintQueueBadge />

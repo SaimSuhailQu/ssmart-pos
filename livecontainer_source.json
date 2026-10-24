@@ -10,14 +10,14 @@
       "name": "SSmart POS Admin",
       "bundleIdentifier": "com.ssmartpos",
       "developerName": "SSmart POS",
-      "version": "2.5.5",
-      "versionDate": "2026-10-12T14:40:00Z",
-      "versionDescription": "SSmart POS v2.5.5 — Quick Entry joins the bottom action bar.",
-      "downloadURL": "https://github.com/SaimSuhailQu/ssmart-pos/releases/download/v2.5.5/ssmartpos.ipa",
+      "version": "2.5.16",
+      "versionDate": "2026-10-24T13:30:00Z",
+      "versionDescription": "SSmart POS v2.5.16 \u2014 Sync production hardening: blocked-sync indicator on desktop, SideStore feed guard.",
+      "downloadURL": "https://github.com/SaimSuhailQu/ssmart-pos/releases/download/v2.5.16/ssmartpos.ipa",
       "localizedDescription": "SSmart POS iOS Admin & Management Dashboard. Real-time sales analytics, product catalog, mobile checkout billing, and daily closing sales ledger.",
       "iconURL": "https://raw.githubusercontent.com/SaimSuhailQu/ssmart-pos/main/flutter_admin_app/assets/images/ss_mart_logo.png",
       "tintColor": "E63946",
-      "size": 38000000,
+      "size": 19215635,
       "screenshotURLs": [
         "https://raw.githubusercontent.com/SaimSuhailQu/ssmart-pos/main/flutter_admin_app/assets/images/ss_mart_logo.png"
       ]
@@ -25,9 +25,18 @@
   ],
   "news": [
     {
+      "title": "SSmart POS v2.5.16 Released!",
+      "identifier": "release-v2.5.16",
+      "caption": "SSmart POS v2.5.16 Update \u2014 Sync production hardening",
+      "date": "2026-10-24",
+      "tintColor": "E63946",
+      "appID": "com.ssmartpos",
+      "notify": true
+    },
+    {
       "title": "SSmart POS v2.5.5 Released!",
       "identifier": "release-v2.5.5",
-      "caption": "SSmart POS v2.5.5 Update — Quick Entry in bottom bar",
+      "caption": "SSmart POS v2.5.5 Update \u2014 Quick Entry in bottom bar",
       "date": "2026-10-12",
       "tintColor": "E63946",
       "appID": "com.ssmartpos",
@@ -36,7 +45,7 @@
     {
       "title": "SSmart POS v2.5.4 Released!",
       "identifier": "release-v2.5.4",
-      "caption": "SSmart POS v2.5.4 Update — Quick Entry menu + AI settings",
+      "caption": "SSmart POS v2.5.4 Update \u2014 Quick Entry menu + AI settings",
       "date": "2026-10-12",
       "tintColor": "E63946",
       "appID": "com.ssmartpos",
@@ -45,7 +54,7 @@
     {
       "title": "SSmart POS v2.5.3 Released!",
       "identifier": "release-v2.5.3",
-      "caption": "SSmart POS v2.5.3 Update — widget rendering fix",
+      "caption": "SSmart POS v2.5.3 Update \u2014 widget rendering fix",
       "date": "2026-10-12",
       "tintColor": "E63946",
       "appID": "com.ssmartpos",
@@ -54,7 +63,7 @@
     {
       "title": "SSmart POS v2.5.2 Released!",
       "identifier": "release-v2.5.2",
-      "caption": "SSmart POS v2.5.2 Update — widget install fix",
+      "caption": "SSmart POS v2.5.2 Update \u2014 widget install fix",
       "date": "2026-10-12",
       "tintColor": "E63946",
       "appID": "com.ssmartpos",
@@ -63,7 +72,7 @@
     {
       "title": "SSmart POS v2.5.1 Released!",
       "identifier": "release-v2.5.1",
-      "caption": "SSmart POS v2.5.1 Update — Quick Entry build fixes",
+      "caption": "SSmart POS v2.5.1 Update \u2014 Quick Entry build fixes",
       "date": "2026-10-12",
       "tintColor": "E63946",
       "appID": "com.ssmartpos",
@@ -72,7 +81,7 @@
     {
       "title": "SSmart POS v2.5.0 Released!",
       "identifier": "release-v2.5.0",
-      "caption": "SSmart POS v2.5.0 Update — Quick Entry + iOS widget + AI fallback",
+      "caption": "SSmart POS v2.5.0 Update \u2014 Quick Entry + iOS widget + AI fallback",
       "date": "2026-10-12",
       "tintColor": "E63946",
       "appID": "com.ssmartpos",
@@ -81,7 +90,7 @@
     {
       "title": "SSmart POS v2.4.13 Released!",
       "identifier": "release-v2.4.13",
-      "caption": "SSmart POS v2.4.13 Update — Live bidirectional product catalog sync with desktop POS scanner",
+      "caption": "SSmart POS v2.4.13 Update \u2014 Live bidirectional product catalog sync with desktop POS scanner",
       "date": "2026-10-11",
       "tintColor": "E63946",
       "appID": "com.ssmartpos",
@@ -90,7 +99,7 @@
     {
       "title": "SSmart POS v2.4.11 Released!",
       "identifier": "release-v2.4.11",
-      "caption": "SSmart POS v2.4.11 Update — swipe actions removed",
+      "caption": "SSmart POS v2.4.11 Update \u2014 swipe actions removed",
       "date": "2026-10-07",
       "tintColor": "E63946",
       "appID": "com.ssmartpos",
@@ -99,7 +108,7 @@
     {
       "title": "SSmart POS v2.4.10 Released!",
       "identifier": "release-v2.4.10",
-      "caption": "SSmart POS v2.4.10 Update — swipe actions hidden until swiped",
+      "caption": "SSmart POS v2.4.10 Update \u2014 swipe actions hidden until swiped",
       "date": "2026-10-07",
       "tintColor": "E63946",
       "appID": "com.ssmartpos",
@@ -108,7 +117,7 @@
     {
       "title": "SSmart POS v2.4.9 Released!",
       "identifier": "release-v2.4.9",
-      "caption": "SSmart POS v2.4.9 Update — swipe actions restyled",
+      "caption": "SSmart POS v2.4.9 Update \u2014 swipe actions restyled",
       "date": "2026-10-07",
       "tintColor": "E63946",
       "appID": "com.ssmartpos",
@@ -117,7 +126,7 @@
     {
       "title": "SSmart POS v2.4.8 Released!",
       "identifier": "release-v2.4.8",
-      "caption": "SSmart POS v2.4.8 Update — swipe action colors fixed",
+      "caption": "SSmart POS v2.4.8 Update \u2014 swipe action colors fixed",
       "date": "2026-10-07",
       "tintColor": "E63946",
       "appID": "com.ssmartpos",
@@ -126,7 +135,7 @@
     {
       "title": "SSmart POS v2.4.7 Released!",
       "identifier": "release-v2.4.7",
-      "caption": "SSmart POS v2.4.7 Update — daily closings screen fixes",
+      "caption": "SSmart POS v2.4.7 Update \u2014 daily closings screen fixes",
       "date": "2026-10-07",
       "tintColor": "E63946",
       "appID": "com.ssmartpos",
@@ -135,7 +144,7 @@
     {
       "title": "SSmart POS v2.4.6 Released!",
       "identifier": "release-v2.4.6",
-      "caption": "SSmart POS v2.4.6 Update — swipe-back gesture fixed everywhere",
+      "caption": "SSmart POS v2.4.6 Update \u2014 swipe-back gesture fixed everywhere",
       "date": "2026-10-07",
       "tintColor": "E63946",
       "appID": "com.ssmartpos",
@@ -144,7 +153,7 @@
     {
       "title": "SSmart POS v2.4.5 Released!",
       "identifier": "release-v2.4.5",
-      "caption": "SSmart POS v2.4.5 Update — iOS build hotfix",
+      "caption": "SSmart POS v2.4.5 Update \u2014 iOS build hotfix",
       "date": "2026-10-07",
       "tintColor": "E63946",
       "appID": "com.ssmartpos",
@@ -153,7 +162,7 @@
     {
       "title": "SSmart POS v2.4.4 Released!",
       "identifier": "release-v2.4.4",
-      "caption": "SSmart POS v2.4.4 Update — swipe actions, double-tap hero, success animations",
+      "caption": "SSmart POS v2.4.4 Update \u2014 swipe actions, double-tap hero, success animations",
       "date": "2026-10-07",
       "tintColor": "E63946",
       "appID": "com.ssmartpos",
@@ -162,7 +171,7 @@
     {
       "title": "SSmart POS v2.4.3 Released!",
       "identifier": "release-v2.4.3",
-      "caption": "SSmart POS v2.4.3 Update — PDF export fixed + swipe back gesture",
+      "caption": "SSmart POS v2.4.3 Update \u2014 PDF export fixed + swipe back gesture",
       "date": "2026-10-07",
       "tintColor": "E63946",
       "appID": "com.ssmartpos",
@@ -171,7 +180,7 @@
     {
       "title": "SSmart POS v2.4.2 Released!",
       "identifier": "release-v2.4.2",
-      "caption": "SSmart POS v2.4.2 Update — New hero widget design + smoother animations across the app",
+      "caption": "SSmart POS v2.4.2 Update \u2014 New hero widget design + smoother animations across the app",
       "date": "2026-10-07",
       "tintColor": "E63946",
       "appID": "com.ssmartpos",
@@ -180,7 +189,7 @@
     {
       "title": "SSmart POS v2.4.1 Released!",
       "identifier": "release-v2.4.1",
-      "caption": "SSmart POS v2.4.1 Update — Semantic colors: green for good, red for bad across the app",
+      "caption": "SSmart POS v2.4.1 Update \u2014 Semantic colors: green for good, red for bad across the app",
       "date": "2026-10-07",
       "tintColor": "E63946",
       "appID": "com.ssmartpos",
@@ -189,7 +198,7 @@
     {
       "title": "SSmart POS v2.4.0 Released!",
       "identifier": "release-v2.4.0",
-      "caption": "SSmart POS v2.4.0 Update — Crimson editorial theme, Customer Khata fixes & record delete/edit reliability",
+      "caption": "SSmart POS v2.4.0 Update \u2014 Crimson editorial theme, Customer Khata fixes & record delete/edit reliability",
       "date": "2026-10-07",
       "tintColor": "E63946",
       "appID": "com.ssmartpos",
