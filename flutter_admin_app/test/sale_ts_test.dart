@@ -8,6 +8,8 @@ Sale _sale(String timestamp) => Sale(
       discount: 0,
       total: 100,
       paymentMethod: 'Cash',
+      amountTendered: 100,
+      changeGiven: 0,
       timestamp: timestamp,
     );
 

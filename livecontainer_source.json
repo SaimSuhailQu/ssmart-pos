@@ -10,10 +10,10 @@
       "name": "SSmart POS Admin",
       "bundleIdentifier": "com.ssmartpos",
       "developerName": "SSmart POS",
-      "version": "2.6.2",
-      "versionDate": "2026-10-25T01:30:00Z",
-      "versionDescription": "SSmart POS v2.6.2 \u2014 Desktop downloads only changed items per cloud change; new sales carry a canonical timestamp for future date-filtered views.",
-      "downloadURL": "https://github.com/SaimSuhailQu/ssmart-pos/releases/download/v2.6.2/ssmartpos.ipa",
+      "version": "2.6.3",
+      "versionDate": "2026-10-25T02:00:00Z",
+      "versionDescription": "SSmart POS v2.6.3 \u2014 Same as v2.6.2, with its broken unit test fixed (missing required Sale field).",
+      "downloadURL": "https://github.com/SaimSuhailQu/ssmart-pos/releases/download/v2.6.3/ssmartpos.ipa",
       "localizedDescription": "SSmart POS iOS Admin & Management Dashboard. Real-time sales analytics, product catalog, mobile checkout billing, and daily closing sales ledger.",
       "iconURL": "https://raw.githubusercontent.com/SaimSuhailQu/ssmart-pos/main/flutter_admin_app/assets/images/ss_mart_logo.png",
       "tintColor": "E63946",
@@ -24,6 +24,15 @@
     }
   ],
   "news": [
+    {
+      "title": "SSmart POS v2.6.3 Released!",
+      "identifier": "release-v2.6.3",
+      "caption": "SSmart POS v2.6.3 Update \u2014 Test fix on top of v2.6.2",
+      "date": "2026-10-25",
+      "tintColor": "E63946",
+      "appID": "com.ssmartpos",
+      "notify": true
+    },
     {
       "title": "SSmart POS v2.6.2 Released!",
       "identifier": "release-v2.6.2",

@@ -4,6 +4,14 @@ All notable changes to SSmart POS are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [2.6.3] — 2026-10-25
+
+### Fix: v2.6.2's unit test did not compile
+- v2.6.2 shipped with a broken test (`sale_ts_test.dart` omitted the
+  required `amountTendered`/`changeGiven` Sale fields), which failed the
+  APK workflow's Unit Tests step. Fixed here; no app code changed.
+  v2.6.2 is superseded — install v2.6.3.
+
 ## [2.6.2] — 2026-10-25
 
 ### Downloads, part 2: desktop stops re-fetching whole collections
