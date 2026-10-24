@@ -272,7 +272,7 @@ class _CustomersKhataScreenState extends State<CustomersKhataScreen> {
                           final hasCredit = item.balance < 0;
 
                           return StaggeredEntrance(
-                            delay: Duration(milliseconds: (index % 12) * 35),
+                            delay: Duration(milliseconds: (index % 12) * 20),
                             child: Container(
                           decoration: BoxDecoration(
                             color: GraphiteTheme.graphiteCard,

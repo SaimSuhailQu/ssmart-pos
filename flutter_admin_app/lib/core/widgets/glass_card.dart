@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
@@ -15,7 +14,13 @@ enum LiquidMaterial {
   thick,
 }
 
-/// A high-performance Apple Liquid Glass container conforming to `quickLiquid` specifications:
+/// Apple Liquid Glass-style container conforming to `quickLiquid` specifications.
+///
+/// NOTE (perf): this used to wrap content in a live BackdropFilter blur. On
+/// Android that forces a GPU blur pass on every frame while scrolling, and on
+/// the Noir Graphite theme the backdrop is near-black anyway, so the blur was
+/// visually negligible. The blur is gone; the specular border, gradient and
+/// press animations keep the glass look without the per-frame cost.
 /// - Directional specular edge highlight (-35° angle / top-left to bottom-right sheen)
 /// - Liquid Sheen flash & spring scale animation on tap
 /// - Inner bezel sheen and ambient refraction simulation
@@ -25,7 +30,6 @@ class GlassCard extends StatefulWidget {
   final EdgeInsetsGeometry? padding;
   final EdgeInsetsGeometry? margin;
   final double borderRadius;
-  final double? blur;
   final Color? backgroundColor;
   final Color? borderColor;
   final double borderWidth;
@@ -41,7 +45,6 @@ class GlassCard extends StatefulWidget {
     this.padding,
     this.margin,
     this.borderRadius = AppTheme.radiusM,
-    this.blur,
     this.backgroundColor,
     this.borderColor,
     this.borderWidth = 1.0,
@@ -103,20 +106,6 @@ class _GlassCardState extends State<GlassCard> with SingleTickerProviderStateMix
     super.dispose();
   }
 
-  double _resolveBlur() {
-    if (widget.blur != null) return widget.blur!;
-    switch (widget.material) {
-      case LiquidMaterial.clear:
-        return 8.0;
-      case LiquidMaterial.thin:
-        return 12.0;
-      case LiquidMaterial.regular:
-        return 18.0;
-      case LiquidMaterial.thick:
-        return 28.0;
-    }
-  }
-
   Color _resolveSurfaceColor() {
     if (widget.backgroundColor != null) return widget.backgroundColor!;
     switch (widget.material) {
@@ -133,7 +122,6 @@ class _GlassCardState extends State<GlassCard> with SingleTickerProviderStateMix
 
   @override
   Widget build(BuildContext context) {
-    final effectiveBlur = _resolveBlur();
     final surfaceColor = _resolveSurfaceColor();
     final glow = widget.glowColor ?? AppTheme.primaryCyan;
 
@@ -226,14 +214,15 @@ class _GlassCardState extends State<GlassCard> with SingleTickerProviderStateMix
             gradient: specularGradient,
           ),
           padding: EdgeInsets.all(widget.borderWidth),
+          // No BackdropFilter here on purpose: a live blur re-renders every
+          // frame while scrolling (the classic Android jank source), and over
+          // a true-black backdrop it adds nothing visible. The translucent
+          // surface + specular border carry the glass look on their own.
           child: ClipRRect(
             borderRadius: BorderRadius.circular(
               (widget.borderRadius - widget.borderWidth).clamp(0.0, double.infinity),
             ),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: effectiveBlur, sigmaY: effectiveBlur),
-              child: content,
-            ),
+            child: content,
           ),
         );
 

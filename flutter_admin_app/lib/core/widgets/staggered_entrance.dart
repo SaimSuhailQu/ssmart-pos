@@ -16,7 +16,7 @@ class StaggeredEntrance extends StatefulWidget {
     super.key,
     required this.child,
     this.delay = Duration.zero,
-    this.duration = const Duration(milliseconds: 520),
+    this.duration = const Duration(milliseconds: 300),
     this.slideOffset = 18.0,
     this.repeatKey,
   });

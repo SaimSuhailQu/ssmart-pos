@@ -95,33 +95,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  /// Yesterday's revenue, for the hero delta pill.
-  double _yesterdayRevenue(List<Sale> sales) {
+  /// Yesterday's revenue (hero delta pill) + today's revenue bucketed by
+  /// hour (hero sparkline) in ONE pass over the sales list. The old code ran
+  /// two separate passes, each re-parsing every timestamp — on every sales
+  /// stream event. Empty day → all zeros (flat baseline).
+  ({double yesterday, List<double> hourly}) _dayStats(List<Sale> sales) {
     final now = DateTime.now();
-    final start = DateTime(now.year, now.month, now.day - 1);
-    final end = DateTime(now.year, now.month, now.day);
-    double total = 0;
-    for (final s in sales) {
-      final ts = AppDateUtils.parseDateTime(s.timestamp);
-      if (ts == null) continue;
-      final local = ts.isUtc ? ts.toLocal() : ts;
-      if (!local.isBefore(start) && local.isBefore(end)) total += s.total;
-    }
-    return total;
-  }
-
-  /// Today's revenue bucketed by hour (0-23), trimmed to the current hour,
-  /// for the hero sparkline. Empty day → all zeros (flat baseline).
-  List<double> _hourlyRevenue(List<Sale> sales) {
+    final yStart = DateTime(now.year, now.month, now.day - 1);
+    final yEnd = DateTime(now.year, now.month, now.day);
+    double yesterday = 0;
     final buckets = List<double>.filled(24, 0);
     for (final s in sales) {
-      if (!AppDateUtils.isToday(s.timestamp)) continue;
       final ts = AppDateUtils.parseDateTime(s.timestamp);
       if (ts == null) continue;
       final local = ts.isUtc ? ts.toLocal() : ts;
-      buckets[local.hour] += s.total;
+      if (!local.isBefore(yStart) && local.isBefore(yEnd)) {
+        yesterday += s.total;
+      } else if (local.year == now.year &&
+          local.month == now.month &&
+          local.day == now.day) {
+        buckets[local.hour] += s.total;
+      }
     }
-    return buckets.sublist(0, DateTime.now().hour + 1);
+    return (
+      yesterday: yesterday,
+      hourly: buckets.sublist(0, now.hour + 1),
+    );
   }
 
   /// Shared by the hero long-press and the Copy Note button.
@@ -514,12 +513,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     allSales,
                     daysHistory: AppConstants.chartDaysHistory,
                   );
-                  final yesterdayRev = _yesterdayRevenue(allSales);
+                  final dayStats = _dayStats(allSales);
 
                   return _buildDashboardContent(
                     todaysMetrics: todaysMetrics,
                     weekMetrics: weekMetrics,
-                    yesterdayRevenue: yesterdayRev,
+                    yesterdayRevenue: dayStats.yesterday,
+                    hourlyRevenue: dayStats.hourly,
                     allSales: allSales,
                   );
                 },
@@ -554,6 +554,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required DashboardMetrics todaysMetrics,
     required DashboardMetrics weekMetrics,
     required double yesterdayRevenue,
+    required List<double> hourlyRevenue,
     required List<Sale> allSales,
   }) {
     final deltaPct = yesterdayRevenue > 0
@@ -733,7 +734,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 averageOrder: todaysMetrics.averageTransactionValue,
                 deltaPct: deltaPct,
                 dateLabel: dateLabel,
-                hourlyRevenue: _hourlyRevenue(allSales),
+                hourlyRevenue: hourlyRevenue,
                 onCopySummary: () => _copyDailySummary(todaysMetrics),
               ),
             ),

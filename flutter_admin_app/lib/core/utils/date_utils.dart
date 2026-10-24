@@ -2,6 +2,12 @@ import 'package:intl/intl.dart';
 
 /// Utility class for date and time formatting
 class AppDateUtils {
+  /// Parsed-timestamp cache: dashboard metrics iterate the whole sales list
+  /// several times per stream event, re-parsing the same timestamp strings
+  /// each time. DateTime is immutable, so caching by raw string is safe.
+  /// Bounded (cleared when full) so long sessions can't grow it forever.
+  static final Map<String, DateTime?> _parseCache = <String, DateTime?>{};
+  static const int _parseCacheMax = 4096;
   /// Robustly parse any timestamp format (ISO-8601, SQLite DATETIME, epoch ms, int/string)
   static DateTime? parseDateTime(dynamic timestamp) {
     if (timestamp == null) return null;
@@ -18,6 +24,15 @@ class AppDateUtils {
     final str = timestamp.toString().trim();
     if (str.isEmpty || str == 'null' || str == 'undefined') return null;
 
+    if (_parseCache.containsKey(str)) return _parseCache[str];
+    final result = _parseStringUncached(str);
+    if (_parseCache.length >= _parseCacheMax) _parseCache.clear();
+    _parseCache[str] = result;
+    return result;
+  }
+
+  /// The actual string parsing, kept separate so parseDateTime can memoize it.
+  static DateTime? _parseStringUncached(String str) {
     // Check if numeric string (epoch ms)
     final numVal = int.tryParse(str);
     if (numVal != null && str.length >= 9) {

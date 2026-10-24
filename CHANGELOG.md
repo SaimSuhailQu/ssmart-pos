@@ -4,6 +4,24 @@ All notable changes to SSmart POS are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [2.5.15] — 2026-10-24
+
+### Performance (mobile admin app)
+- **Removed the live glass blur:** `GlassCard` wrapped every card in a
+  `BackdropFilter` blur that re-rendered on every frame while scrolling —
+  the classic Android jank source. On the true-black Noir Graphite theme
+  the blur was invisible behind the 70–90% opaque surfaces anyway, so it
+  is gone; the specular border, gradient and press animations keep the
+  glass look.
+- **Dashboard metrics in one pass:** yesterday's revenue and the hourly
+  sparkline each re-scanned the whole sales list (re-parsing every
+  timestamp) on every sales event; they now share a single pass.
+- **Timestamp parse cache:** `AppDateUtils` now memoizes parsed timestamps
+  (bounded), so the repeated metric passes across all screens stop
+  re-parsing the same strings.
+- **Snappier entrances:** entrance animation shortened 520ms → 300ms and
+  the khata list stagger 35ms → 20ms per item, so screens settle faster.
+
 ## [2.5.14] — 2026-10-24
 
 ### Fixed (mobile admin app)
