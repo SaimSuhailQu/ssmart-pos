@@ -17,6 +17,7 @@ import { sendWhatsAppMessage } from './whatsappService';
 import { setupAutoUpdater, checkForUpdatesManual, quitAndInstallUpdate } from './updater';
 import { checkLicense, computeFingerprint, scheduleRevalidation, shutdownLicensing, LicenseState } from './licensing';
 import { registerLicensingIpc } from './main/licensing/ipc';
+import { startBackupScheduler } from './main/db/backup';
 import { evaluateLicense } from './main/licensing/licenseManager';
 import {
   initPrintSpooler,
@@ -168,6 +169,10 @@ const createWindow = () => {
 app.on('ready', () => {
   // Initialize SQLite
   initDb();
+
+  // Daily automatic backups (live-safe, retained 30 days). Must run after
+  // initDb so the database handle exists.
+  startBackupScheduler();
 
   // Fail-safe print spooler: SQLite-persisted queue with retry/backoff.
   initPrintSpooler();

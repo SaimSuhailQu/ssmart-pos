@@ -73,16 +73,23 @@ jobs:
       # for updates. It went stale at v2.5.5 while releases marched on, so
       # iPhones silently stopped receiving updates. On tag builds, fail fast
       # unless the feed advertises exactly this tag's version.
-      - name: Guard SideStore feed version matches tag
+      - name: Guard release version consistency
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
           TAG_VERSION="${GITHUB_REF_NAME#v}"
           FEED_VERSION=$(python3 -c "import json; print(json.load(open('livecontainer_source.json'))['apps'][0]['version'])")
-          if [ "$FEED_VERSION" != "$TAG_VERSION" ]; then
-            echo "::error::livecontainer_source.json advertises $FEED_VERSION but the tag is $TAG_VERSION. Update the feed (version, downloadURL, news item) in the release commit."
-            exit 1
-          fi
-          echo "Feed version $FEED_VERSION matches tag $TAG_VERSION."
+          PUBSPEC_VERSION=$(grep '^version:' flutter_admin_app/pubspec.yaml | sed 's/version: //' | cut -d+ -f1)
+          PACKAGE_VERSION=$(python3 -c "import json; print(json.load(open('package.json'))['version'])")
+          FAIL=0
+          for PAIR in "feed:$FEED_VERSION" "pubspec:$PUBSPEC_VERSION" "package.json:$PACKAGE_VERSION"; do
+            NAME="${PAIR%%:*}"; VER="${PAIR#*:}"
+            if [ "$VER" != "$TAG_VERSION" ]; then
+              echo "::error::$NAME version is $VER but the tag is $TAG_VERSION. Bump all three (pubspec.yaml, package.json, livecontainer_source.json) in the release commit."
+              FAIL=1
+            fi
+          done
+          if [ "$FAIL" != "0" ]; then exit 1; fi
+          echo "All versions match tag $TAG_VERSION (feed, pubspec, package.json)."
 
       # ========================================================================
       # STEP 1.5: Determine Build Configuration

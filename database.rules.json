@@ -59,6 +59,15 @@
     },
 
     "licenses": {
+      // Authenticated apps (e.g. the mobile owner app's license manager,
+      // which reads the whole node) need read access at this level. The
+      // per-fingerprint public read below stays: src/licensing.ts reads
+      // licenses/<fingerprint> through an UNAUTHENTICATED Firebase app
+      // instance at startup, so removing it would break license checks and
+      // tenant routing on every launch. That exposure is accepted and
+      // documented, not an oversight: fingerprints are SHA-256 machine
+      // hashes, not enumerable, and no business data lives here.
+      ".read": "auth != null",
       "$fingerprint": {
         // Kept readable for the legacy device-code / reseller flow and so the
         // owner app can self-provision its master record.
@@ -68,6 +77,10 @@
     },
 
     "tenant_map": {
+      // Same load-bearing public read as licenses above: the unauthenticated
+      // licensing app resolves tenant routing from tenant_map/<fingerprint>
+      // before any sign-in exists. Do not tighten without moving those reads
+      // behind auth first.
       "$fingerprint": {
         ".read": true,
         ".write": "auth != null"

@@ -4,6 +4,33 @@ All notable changes to SSmart POS are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [2.6.0] — 2026-10-24
+
+### Production hardening (all seven audit items)
+- **Ledger safety:** desktop now takes automatic local backups of
+  `mart-pos.db` (live-safe online backup API, one per day on launch +
+  6-hour re-check, newest 30 kept in `<userData>/backups/`). Restore =
+  stop the app, copy a backup over `mart-pos.db`, restart.
+- **Security:** audited `database.rules.json` — all app nodes covered;
+  fixed a real pre-deploy bug (the mobile license manager reads the whole
+  `licenses` node, which the old rules would have denied) and documented
+  why the fingerprint reads must stay public (unauthenticated licensing
+  flow). Added `firebase.json` so deployment is one command:
+  `firebase deploy --only database`.
+- **Sync robustness:** khata balance math is now a single pure helper
+  (`khata_utils.dart`) used by the cache and the post-write recompute;
+  the balance cache is incremental (per-customer child events) instead
+  of a full-ledger rescan per write; stale key-scheme comments corrected.
+- **Release process:** unit tests added (khata math, vendor payment
+  status, date parsing) and `flutter test` now runs in the APK workflow
+  and blocks the release on failure; the iOS tag guard now checks
+  pubspec + package.json + feed + tag all agree.
+- **Failover + maintainability:** new `ARCHITECTURE.md` documents the
+  system map, key schemes, sync mechanics, the laptop-down runbook, the
+  money-migration precondition, and the known accepted gaps
+  (daily_closings / items_to_bring have no desktop sync; owner gate is
+  client-side; push-key customers are a legacy edge case).
+
 ## [2.5.16] — 2026-10-24
 
 ### Sync production hardening

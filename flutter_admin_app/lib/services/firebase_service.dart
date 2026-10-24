@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:math';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:ssmart_pos_admin/core/constants/firebase_constants.dart';
+import 'package:ssmart_pos_admin/core/utils/khata_utils.dart';
+import 'package:ssmart_pos_admin/core/utils/vendor_utils.dart' as vendor_utils;
 import 'package:ssmart_pos_admin/core/utils/date_utils.dart';
 import 'package:ssmart_pos_admin/models/sale.dart';
 import 'package:ssmart_pos_admin/models/product.dart';
@@ -31,10 +33,15 @@ class FirebaseService {
   List<VendorModel>? _cachedVendors;
   List<PurchaseOrderModel>? _cachedPurchaseOrders;
 
-  // Live Khata balance cache (customer_id -> balance), maintained by ONE listener
-  // instead of re-fetching the whole ledger on every customer list event.
+  // Live Khata balance cache (customer_id -> balance). Maintained
+  // INCREMENTALLY: per-customer child events recompute only the customer
+  // that changed, instead of re-scanning the whole ledger on every khata
+  // write (the old onValue listener did a full pass per event, which is
+  // what made the ledger feel heavy as it grew).
   final Map<String, double> _khataBalanceCache = <String, double>{};
-  StreamSubscription<DatabaseEvent>? _khataBalanceListener;
+  StreamSubscription<DatabaseEvent>? _khataChildAdded;
+  StreamSubscription<DatabaseEvent>? _khataChildChanged;
+  StreamSubscription<DatabaseEvent>? _khataChildRemoved;
 
   List<Sale>? get cachedSales => _cachedSales;
   List<Product>? get cachedProducts => _cachedProducts;
@@ -50,45 +57,60 @@ class FirebaseService {
   }
 
   /// Keep an always-fresh in-memory map of customer khata balances.
-  /// One persistent listener beats a full ledger read on every UI event.
+  ///
+  /// Child listeners are attached BEFORE the initial full load: any change
+  /// landing between attach and snapshot is covered by its child event, and
+  /// the snapshot overwrites with the same values, so no update is missed.
+  /// (onChildAdded also fires once per existing child on attach, so the
+  /// initial load is a second, consistent pass, not the only one.)
   void _initializeKhataBalanceCache() {
     try {
-      _khataBalanceListener = _database.ref('customer_khata').onValue.listen((event) {
-        final data = event.snapshot.value;
-        final balances = <String, double>{};
+      final khataRef = _database.ref('customer_khata');
+      _khataChildAdded = khataRef.onChildAdded.listen((event) {
+        _updateKhataCacheForCustomer(
+            event.snapshot.key, event.snapshot.value);
+      });
+      _khataChildChanged = khataRef.onChildChanged.listen((event) {
+        _updateKhataCacheForCustomer(
+            event.snapshot.key, event.snapshot.value);
+      });
+      _khataChildRemoved = khataRef.onChildRemoved.listen((event) {
+        final key = event.snapshot.key;
+        if (key != null) _khataBalanceCache.remove(key);
+      });
+      khataRef.get().then((snap) {
+        final data = snap.value;
         if (data is Map) {
           data.forEach((cId, entries) {
-            double bal = 0.0;
-            void processEntry(Map e) {
-              final eType = e['type']?.toString().toUpperCase() ?? 'LOAN';
-              final double eAmt = (e['amount'] is num)
-                  ? (e['amount'] as num).toDouble()
-                  : (double.tryParse(e['amount']?.toString() ?? '0') ?? 0.0);
-              bal += (eType == 'LOAN' ? eAmt : -eAmt);
-            }
-
-            if (entries is Map) {
-              entries.forEach((_, e) {
-                if (e is Map) processEntry(e);
-              });
-            } else if (entries is List) {
-              for (final e in entries) {
-                if (e is Map) processEntry(Map<dynamic, dynamic>.from(e));
-              }
-            }
-            // Ledger semantics: udhaar is what the customer owes. A customer
-            // who overpaid has a negative ledger value — it must never drag
-            // the shop-wide "total udhaar" figure below zero.
-            balances[cId.toString()] = bal > 0 ? bal : 0.0;
+            _khataBalanceCache[cId.toString()] =
+                _clampedKhataBalance(entries);
           });
+        } else if (data is List) {
+          for (int i = 0; i < data.length; i++) {
+            _khataBalanceCache[i.toString()] =
+                _clampedKhataBalance(data[i]);
+          }
         }
-        _khataBalanceCache
-          ..clear()
-          ..addAll(balances);
+      }).catchError((e) {
+        print('Khata balance cache initial load error: $e');
       });
     } catch (e) {
       print('Khata balance cache error: $e');
     }
+  }
+
+  /// Recompute one customer's cached balance from that customer's entries.
+  void _updateKhataCacheForCustomer(String? key, Object? entries) {
+    if (key == null) return;
+    _khataBalanceCache[key] = _clampedKhataBalance(entries);
+  }
+
+  /// Ledger semantics: udhaar is what the customer owes. A customer who
+  /// overpaid has a negative ledger value — it must never drag the
+  /// shop-wide "total udhaar" figure below zero.
+  double _clampedKhataBalance(Object? entries) {
+    final bal = khataBalanceFromEntries(entries);
+    return bal > 0 ? bal : 0.0;
   }
 
   /// Automatically caches all records to local disk so app works 100% offline
@@ -932,7 +954,10 @@ class FirebaseService {
     int points = 0,
   }) async {
     // [key] is the authoritative RTDB node (customers/<key>). [id] is only a
-    // legacy business identifier and may not match the node (desktop push keys).
+    // legacy business identifier and may not match the node. Key schemes:
+    // desktop pushes customers keyed by SQLite numeric id, mobile creates
+    // millisecond-timestamp keys; push-key customers may exist from older
+    // versions and are the reason key/id mismatches are handled defensively.
     final String custKey = (key != null && key.isNotEmpty)
         ? key
         : (id != null && int.tryParse(id) != null ? id : null) ??
@@ -951,8 +976,9 @@ class FirebaseService {
 
   Future<void> deleteCustomer(String id, {String? key}) async {
     // Try both the RTDB node key and the legacy id: desktop-created customers
-    // use push keys, mobile-created ones use millisecond ids. Removing only
-    // one path is why deletes previously looked like no-ops.
+    // use numeric ids, mobile-created ones use millisecond ids (and legacy
+    // push-key customers may exist). Removing only one path is why deletes
+    // previously looked like no-ops.
     final paths = <String>{
       if (key != null && key.isNotEmpty) key,
       id,
@@ -1003,32 +1029,11 @@ class FirebaseService {
         .set(optimisticBalance);
 
     // 3. Fetch all khata entries to calculate the exact, authoritative balance
+    // (single shared helper — see khata_utils.dart).
     try {
       final snap = await _database.ref('customer_khata/$customerId').get();
       if (snap.exists && snap.value != null) {
-        double calcBal = 0.0;
-        final data = snap.value;
-        if (data is Map) {
-          data.forEach((_, v) {
-            if (v is Map) {
-              final eType = v['type']?.toString().toUpperCase() ?? 'LOAN';
-              final double eAmt = (v['amount'] is num)
-                  ? (v['amount'] as num).toDouble()
-                  : (double.tryParse(v['amount']?.toString() ?? '0') ?? 0.0);
-              calcBal += (eType == 'LOAN' ? eAmt : -eAmt);
-            }
-          });
-        } else if (data is List) {
-          for (final v in data) {
-            if (v is Map) {
-              final eType = v['type']?.toString().toUpperCase() ?? 'LOAN';
-              final double eAmt = (v['amount'] is num)
-                  ? (v['amount'] as num).toDouble()
-                  : (double.tryParse(v['amount']?.toString() ?? '0') ?? 0.0);
-              calcBal += (eType == 'LOAN' ? eAmt : -eAmt);
-            }
-          }
-        }
+        final double calcBal = khataBalanceFromEntries(snap.value);
         await _database.ref('${FirebasePaths.customers}/$customerId/balance').set(calcBal);
       } else {
         final double newBalance = type == 'LOAN' ? currentBalance + amount : currentBalance - amount;
@@ -1531,32 +1536,11 @@ class FirebaseService {
     }
   }
 
-  /// Parse a Firebase numeric-ish value to double (num or numeric String).
-  double _poNum(dynamic v) {
-    if (v is num) return v.toDouble();
-    if (v != null) return double.tryParse(v.toString()) ?? 0.0;
-    return 0.0;
-  }
-
-  /// Normalize a Firebase list-or-map node into a growable List.
-  List<dynamic> _poList(dynamic v) {
-    final out = <dynamic>[];
-    if (v is List) {
-      out.addAll(v);
-    } else if (v is Map) {
-      v.forEach((_, item) {
-        if (item != null) out.add(item);
-      });
-    }
-    return out;
-  }
-
-  /// Standard vendor payment status from billed vs paid totals.
-  String _poPaymentStatus(double totalCost, double paidAmount) {
-    if (totalCost > 0 && paidAmount >= totalCost) return 'Paid';
-    if (paidAmount > 0) return 'Partially Paid';
-    return 'Unpaid';
-  }
+  // Thin wrappers over the pure, unit-tested helpers in vendor_utils.dart.
+  double _poNum(dynamic v) => vendor_utils.poNum(v);
+  List<dynamic> _poList(dynamic v) => vendor_utils.poList(v);
+  String _poPaymentStatus(double totalCost, double paidAmount) =>
+      vendor_utils.poPaymentStatus(totalCost, paidAmount);
 
   /// Resolve the real Firebase node key for a PO (the direct key can miss when
   /// the node was written under a different key shape).
@@ -2021,7 +2005,9 @@ class FirebaseService {
 
   /// Dispose resources
   void dispose() {
-    _khataBalanceListener?.cancel();
+    _khataChildAdded?.cancel();
+    _khataChildChanged?.cancel();
+    _khataChildRemoved?.cancel();
     _connectionStatusController.close();
   }
 }

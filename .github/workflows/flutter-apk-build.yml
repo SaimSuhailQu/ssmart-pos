@@ -65,6 +65,13 @@ jobs:
         run: flutter analyze --no-fatal-infos
         continue-on-error: true
 
+      # Unit tests MUST pass for a release: unlike Analyze above, this step
+      # is intentionally NOT continue-on-error. A failing test blocks the
+      # build so a broken ledger/payment helper can never ship silently.
+      - name: Unit Tests
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: flutter test
+
       - name: Restore Release Keystore
         working-directory: ${{ env.WORKING_DIRECTORY }}
         run: |
