@@ -4,6 +4,17 @@ All notable changes to SSmart POS are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [2.5.14] — 2026-10-24
+
+### Fixed (mobile admin app)
+- **Khata list lag:** adding a khata entry showed instantly inside the customer
+  detail but the outer Customer Khata list (balances + total udhaar) lagged
+  behind, because the balance write waited on a full ledger re-read from the
+  server. The new balance is now written optimistically right after the entry
+  (and the in-memory balance cache bumped), so the list updates on the same
+  event as the detail; the authoritative ledger re-read still runs right
+  after and corrects any drift from concurrent edits.
+
 ## [2.5.13] — 2026-10-19
 
 ### Changed (mobile admin app)

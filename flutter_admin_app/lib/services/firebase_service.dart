@@ -987,7 +987,22 @@ class FirebaseService {
       'timestamp': DateTime.now().toIso8601String(),
     });
 
-    // 2. Fetch all khata entries to calculate the exact, authoritative balance
+    // 2. Optimistic balance: the outer customer list listens to the customers
+    // node, while the detail sheet listens to the khata entries directly — so
+    // the list used to lag behind by a full server round-trip (the ledger
+    // re-read below). Write the new balance NOW so the list updates on the
+    // same local event as the detail sheet; step 3 still re-reads the ledger
+    // and corrects any drift (concurrent edits from other devices).
+    final double optimisticBalance =
+        type == 'LOAN' ? currentBalance + amount : currentBalance - amount;
+    // Mirror the cache listener's rule (credit clamps to 0 for display).
+    _khataBalanceCache[customerId] =
+        optimisticBalance > 0 ? optimisticBalance : 0.0;
+    await _database
+        .ref('${FirebasePaths.customers}/$customerId/balance')
+        .set(optimisticBalance);
+
+    // 3. Fetch all khata entries to calculate the exact, authoritative balance
     try {
       final snap = await _database.ref('customer_khata/$customerId').get();
       if (snap.exists && snap.value != null) {
