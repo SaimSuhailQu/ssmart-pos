@@ -66,6 +66,35 @@ in code as of v2.6.0, including the traps.
    copy the newest file from `<userData>/backups/` over `mart-pos.db`,
    restart. Backups are automatic (daily, kept 30 days) since v2.6.0.
 
+## Download model: why usage blew past 10 GB (Oct 2026) and what stops it
+
+Realtime Database bills by GB downloaded, and an `onValue` listener
+re-downloads its WHOLE node on every change, to every subscriber. The
+shop DB is only ~33 MB, but every app start, reconnect, screen rebuild,
+and single-field change re-pulled whole collections — ~300 full copies
+in one month (10.47 GB vs the 10 GB free cap). The vendors screen alone
+held four simultaneous purchase-order subscriptions.
+
+Since v2.6.1 the mobile app uses ONE shared child-event subscription per
+collection (`core/utils/incremental_collection.dart`): `onChildAdded` /
+`onChildChanged` / `onChildRemoved` download only the changed child, the
+emitted list is rebuilt from local state, new UI listeners replay the
+current list instead of re-downloading, and the subscription detaches
+5 s after the last listener leaves. A change now costs one child, not
+the node — but the FIRST sight of a collection still downloads it in
+full, which is unavoidable. The desktop's pull triggers use child events
+the same way (its debounced full-node ingest still runs once per change,
+so desktop per-change cost halves rather than vanishing).
+
+Deliberately NOT done in v2.6.1: server-side date scoping for sales
+("today" views still receive full history on first attach). It is unsafe
+until sale timestamps are normalized — mobile writes ISO strings,
+desktop writes space-separated SQLite datetimes, and lexicographic
+`orderByChild` range queries would silently drop one writer's rows.
+Normalizing sale timestamps to epoch millis is the precondition. The
+per-customer khata stream stays on `onValue`: it is one small node, and
+its tombstone check already costs a read per event.
+
 ## Money migration (integer paisa)
 
 Implemented and tested (`src/main/db/moneyMigration.ts`, idempotent,

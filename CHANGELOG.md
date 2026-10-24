@@ -4,6 +4,33 @@ All notable changes to SSmart POS are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [2.6.1] — 2026-10-24
+
+### Firebase downloads slashed (10.47 GB overage fix)
+- **Mobile:** all 8 collection streams (sales, products, expenses,
+  customers, vendors, purchase orders, items to bring, daily closings)
+  now run on ONE shared child-event subscription each
+  (`core/utils/incremental_collection.dart`) instead of one `onValue`
+  subscription per StreamBuilder. A change now downloads only the
+  changed child; new screens replay the current list instead of
+  re-downloading; subscriptions detach 5 s after the last listener
+  leaves. Same stream API, same sorting, same khata-balance overlay —
+  the UI did not change.
+- **Desktop:** pull triggers moved from `onValue` to child events, so
+  each cloud change no longer downloads the whole node twice (once for
+  the trigger, once for the ingest fetch). Per-change cost halves; the
+  debounced full-node ingest still runs once per change.
+- **Tests:** pure incremental-state unit tests added (add/change/remove,
+  sorting, decorator, unparseable-child skip, state comparison).
+- **Not changed on purpose:** first sight of a collection still
+  downloads it in full (unavoidable); per-customer khata stays on
+  `onValue` (one small node); server-side date scoping for sales waits
+  on timestamp normalization (mobile ISO vs desktop SQLite formats
+  would make range queries drop rows). See `ARCHITECTURE.md`.
+- **Honest note:** this prevents NEXT month's breach. This month's
+  10.47 GB already happened — the Blaze upgrade is still what unblocks
+  the shop today.
+
 ## [2.6.0] — 2026-10-24
 
 ### Production hardening (all seven audit items)

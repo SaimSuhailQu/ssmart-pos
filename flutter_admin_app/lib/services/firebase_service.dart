@@ -5,6 +5,7 @@ import 'package:ssmart_pos_admin/core/constants/firebase_constants.dart';
 import 'package:ssmart_pos_admin/core/utils/khata_utils.dart';
 import 'package:ssmart_pos_admin/core/utils/vendor_utils.dart' as vendor_utils;
 import 'package:ssmart_pos_admin/core/utils/date_utils.dart';
+import 'package:ssmart_pos_admin/core/utils/incremental_collection.dart';
 import 'package:ssmart_pos_admin/models/sale.dart';
 import 'package:ssmart_pos_admin/models/product.dart';
 import 'package:ssmart_pos_admin/models/expense.dart';
@@ -32,6 +33,88 @@ class FirebaseService {
   List<CustomerModel>? _cachedCustomers;
   List<VendorModel>? _cachedVendors;
   List<PurchaseOrderModel>? _cachedPurchaseOrders;
+
+  // Shared incremental collections: ONE Firebase child-event subscription
+  // per collection, shared by all UI listeners (see
+  // incremental_collection.dart). This is what keeps downloads near
+  // one-child-per-change instead of one full node per change per listener.
+  late final _salesCollection = IncrementalCollection<Sale>(
+    ref: _database.ref(FirebasePaths.sales),
+    parse: (key, value) => Sale.fromJson(key, value),
+    compare: (a, b) {
+      try {
+        final dateA = AppDateUtils.parseDateTime(a.timestamp);
+        final dateB = AppDateUtils.parseDateTime(b.timestamp);
+        if (dateA == null && dateB == null) return 0;
+        if (dateA == null) return 1;
+        if (dateB == null) return -1;
+        return dateB.compareTo(dateA);
+      } catch (e) {
+        return 0;
+      }
+    },
+  );
+
+  late final _productsCollection = IncrementalCollection<Product>(
+    ref: _database.ref(FirebasePaths.products),
+    parse: (key, value) => Product.fromJson(key, value),
+    compare: (a, b) => a.name.compareTo(b.name),
+  );
+
+  late final _expensesCollection = IncrementalCollection<ExpenseModel>(
+    ref: _database.ref(FirebasePaths.expenses),
+    parse: (key, value) => ExpenseModel.fromJson(key, value),
+    compare: (a, b) => b.timestamp.compareTo(a.timestamp),
+  );
+
+  late final _customersCollection = IncrementalCollection<CustomerModel>(
+    ref: _database.ref(FirebasePaths.customers),
+    parse: (key, value) => CustomerModel.fromJson(key, value),
+    compare: (a, b) => b.balance.compareTo(a.balance),
+    // Balances come from the always-fresh in-memory khata cache (zero extra
+    // reads), applied at emit time exactly like the old stream did.
+    decorate: (key, model) {
+      final liveBalances = _khataBalanceCache;
+      if (liveBalances.containsKey(key)) {
+        return model.copyWith(balance: liveBalances[key]!);
+      }
+      if (liveBalances.containsKey(model.id)) {
+        return model.copyWith(balance: liveBalances[model.id]!);
+      }
+      return model;
+    },
+  );
+
+  late final _vendorsCollection = IncrementalCollection<VendorModel>(
+    ref: _database.ref(FirebasePaths.vendors),
+    parse: (key, value) => VendorModel.fromJson(key, value),
+    compare: (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+  );
+
+  late final _purchaseOrdersCollection =
+      IncrementalCollection<PurchaseOrderModel>(
+    ref: _database.ref(FirebasePaths.purchaseOrders),
+    parse: (key, value) => PurchaseOrderModel.fromJson(key, value),
+    compare: (a, b) => b.timestamp.compareTo(a.timestamp),
+  );
+
+  late final _itemsToBringCollection = IncrementalCollection<ItemToBring>(
+    ref: _database.ref(FirebasePaths.itemsToBring),
+    parse: (key, value) => ItemToBring.fromJson(key, value),
+    compare: (a, b) {
+      if (a.isBrought != b.isBrought) {
+        return a.isBrought ? 1 : -1;
+      }
+      return b.createdAt.compareTo(a.createdAt);
+    },
+  );
+
+  late final _dailyClosingsCollection =
+      IncrementalCollection<DailyClosingModel>(
+    ref: _database.ref(FirebasePaths.dailyClosings),
+    parse: (key, value) => DailyClosingModel.fromJson(key, value),
+    compare: (a, b) => b.date.compareTo(a.date),
+  );
 
   // Live Khata balance cache (customer_id -> balance). Maintained
   // INCREMENTALLY: per-customer child events recompute only the customer
@@ -153,63 +236,9 @@ class FirebaseService {
   /// Get real-time stream of all sales
   /// This stream will emit new data whenever sales are added/modified in Firebase
   Stream<List<Sale>> getSalesStream() {
-    final salesRef = _database.ref(FirebasePaths.sales);
-
-    return salesRef.onValue.map((event) {
-      final salesData = event.snapshot.value;
-
-      if (salesData == null) {
-        _cachedSales = [];
-        _cacheTimestamp = DateTime.now();
-        return <Sale>[];
-      }
-
-      final List<Sale> sales = [];
-
-      void addSaleSafely(String key, dynamic value) {
-        if (value != null && value is Map) {
-          try {
-            sales.add(
-              Sale.fromJson(
-                key,
-                value,
-              ),
-            );
-          } catch (e) {
-            print('Error parsing individual sale $key: $e');
-          }
-        }
-      }
-
-      if (salesData is Map) {
-        salesData.forEach((key, value) {
-          addSaleSafely(key.toString(), value);
-        });
-      } else if (salesData is List) {
-        for (int i = 0; i < salesData.length; i++) {
-          final value = salesData[i];
-          addSaleSafely(i.toString(), value);
-        }
-      }
-
-      // Sort by timestamp descending (newest first)
-      sales.sort((a, b) {
-        try {
-          final dateA = AppDateUtils.parseDateTime(a.timestamp);
-          final dateB = AppDateUtils.parseDateTime(b.timestamp);
-          if (dateA == null && dateB == null) return 0;
-          if (dateA == null) return 1;
-          if (dateB == null) return -1;
-          return dateB.compareTo(dateA);
-        } catch (e) {
-          return 0;
-        }
-      });
-
-      // Update cache
+    return _salesCollection.stream.map((sales) {
       _cachedSales = sales;
       _cacheTimestamp = DateTime.now();
-
       return sales;
     }).handleError((error) {
       print('Error in sales stream: $error');
@@ -358,41 +387,9 @@ class FirebaseService {
 
   /// Get real-time stream of all products (items catalog)
   Stream<List<Product>> getProductsStream() {
-    final productsRef = _database.ref(FirebasePaths.products);
-
-    return productsRef.onValue.map((event) {
-      final productsData = event.snapshot.value;
-
-      if (productsData == null) {
-        _cachedProducts = [];
-        return <Product>[];
-      }
-
-      try {
-        final List<Product> products = [];
-        if (productsData is Map) {
-          productsData.forEach((key, value) {
-            if (value != null && value is Map) {
-              products.add(Product.fromJson(key, value));
-            }
-          });
-        } else if (productsData is List) {
-          for (int i = 0; i < productsData.length; i++) {
-            final value = productsData[i];
-            if (value != null && value is Map) {
-              products.add(Product.fromJson(i, value));
-            }
-          }
-        }
-
-        // Sort by product name
-        products.sort((a, b) => a.name.compareTo(b.name));
-        _cachedProducts = products;
-        return products;
-      } catch (e) {
-        print('Error parsing products catalog: $e');
-        return _cachedProducts ?? <Product>[];
-      }
+    return _productsCollection.stream.map((products) {
+      _cachedProducts = products;
+      return products;
     }).handleError((error) {
       print('Error in products stream: $error');
       return _cachedProducts ?? <Product>[];
@@ -401,24 +398,7 @@ class FirebaseService {
 
   /// Get real-time stream of all expenses
   Stream<List<ExpenseModel>> getExpensesStream() {
-    final expensesRef = _database.ref(FirebasePaths.expenses);
-    return expensesRef.onValue.map((event) {
-      final data = event.snapshot.value;
-      if (data == null) {
-        _cachedExpenses = [];
-        return <ExpenseModel>[];
-      }
-      final List<ExpenseModel> list = [];
-      if (data is Map) {
-        data.forEach((k, v) {
-          if (v is Map) list.add(ExpenseModel.fromJson(k.toString(), v));
-        });
-      } else if (data is List) {
-        for (int i = 0; i < data.length; i++) {
-          if (data[i] is Map) list.add(ExpenseModel.fromJson(i.toString(), data[i]));
-        }
-      }
-      list.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    return _expensesCollection.stream.map((list) {
       _cachedExpenses = list;
       return list;
     }).handleError((err) {
@@ -429,49 +409,7 @@ class FirebaseService {
 
   /// Get real-time stream of all customers with live dynamically-computed Khata balances
   Stream<List<CustomerModel>> getCustomersStream() {
-    final custRef = _database.ref(FirebasePaths.customers);
-
-    return custRef.onValue.map((event) {
-      final data = event.snapshot.value;
-      if (data == null) {
-        _cachedCustomers = [];
-        return <CustomerModel>[];
-      }
-
-      // Balances come from the always-fresh in-memory khata cache (zero extra reads)
-      final liveBalances = _khataBalanceCache;
-
-      final List<CustomerModel> list = [];
-      if (data is Map) {
-        data.forEach((k, v) {
-          if (v is Map) {
-            var model = CustomerModel.fromJson(k.toString(), v);
-            final keyStr = k.toString();
-            final idStr = model.id;
-            if (liveBalances.containsKey(keyStr)) {
-              model = model.copyWith(balance: liveBalances[keyStr]!);
-            } else if (liveBalances.containsKey(idStr)) {
-              model = model.copyWith(balance: liveBalances[idStr]!);
-            }
-            list.add(model);
-          }
-        });
-      } else if (data is List) {
-        for (int i = 0; i < data.length; i++) {
-          if (data[i] is Map) {
-            var model = CustomerModel.fromJson(i.toString(), data[i]);
-            final keyStr = i.toString();
-            final idStr = model.id;
-            if (liveBalances.containsKey(keyStr)) {
-              model = model.copyWith(balance: liveBalances[keyStr]!);
-            } else if (liveBalances.containsKey(idStr)) {
-              model = model.copyWith(balance: liveBalances[idStr]!);
-            }
-            list.add(model);
-          }
-        }
-      }
-      list.sort((a, b) => b.balance.compareTo(a.balance));
+    return _customersCollection.stream.map((list) {
       _cachedCustomers = list;
       return list;
     }).handleError((err) {
@@ -549,24 +487,7 @@ class FirebaseService {
 
   /// Get real-time stream of all registered vendors
   Stream<List<VendorModel>> getVendorsStream() {
-    final vendorsRef = _database.ref(FirebasePaths.vendors);
-    return vendorsRef.onValue.map((event) {
-      final data = event.snapshot.value;
-      if (data == null) {
-        _cachedVendors = [];
-        return <VendorModel>[];
-      }
-      final List<VendorModel> list = [];
-      if (data is Map) {
-        data.forEach((k, v) {
-          if (v is Map) list.add(VendorModel.fromJson(k.toString(), v));
-        });
-      } else if (data is List) {
-        for (int i = 0; i < data.length; i++) {
-          if (data[i] is Map) list.add(VendorModel.fromJson(i.toString(), data[i]));
-        }
-      }
-      list.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    return _vendorsCollection.stream.map((list) {
       _cachedVendors = list;
       return list;
     }).handleError((err) {
@@ -577,24 +498,7 @@ class FirebaseService {
 
   /// Get real-time stream of all vendors and purchase orders
   Stream<List<PurchaseOrderModel>> getPurchaseOrdersStream() {
-    final poRef = _database.ref(FirebasePaths.purchaseOrders);
-    return poRef.onValue.map((event) {
-      final data = event.snapshot.value;
-      if (data == null) {
-        _cachedPurchaseOrders = [];
-        return <PurchaseOrderModel>[];
-      }
-      final List<PurchaseOrderModel> list = [];
-      if (data is Map) {
-        data.forEach((k, v) {
-          if (v is Map) list.add(PurchaseOrderModel.fromJson(k.toString(), v));
-        });
-      } else if (data is List) {
-        for (int i = 0; i < data.length; i++) {
-          if (data[i] is Map) list.add(PurchaseOrderModel.fromJson(i.toString(), data[i]));
-        }
-      }
-      list.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    return _purchaseOrdersCollection.stream.map((list) {
       _cachedPurchaseOrders = list;
       return list;
     }).handleError((err) {
@@ -643,28 +547,7 @@ class FirebaseService {
   // ============================================================================
 
   Stream<List<ItemToBring>> getItemsToBringStream() {
-    return _database.ref(FirebasePaths.itemsToBring).onValue.map((event) {
-      final data = event.snapshot.value;
-      if (data == null) return <ItemToBring>[];
-
-      final List<ItemToBring> items = [];
-      if (data is Map) {
-        data.forEach((key, val) {
-          if (val is Map) {
-            items.add(ItemToBring.fromJson(key.toString(), val));
-          }
-        });
-      }
-
-      // Sort by active (unbrought first), then newest first
-      items.sort((a, b) {
-        if (a.isBrought != b.isBrought) {
-          return a.isBrought ? 1 : -1;
-        }
-        return b.createdAt.compareTo(a.createdAt);
-      });
-      return items;
-    });
+    return _itemsToBringCollection.stream;
   }
 
   Future<void> saveItemToBring({
@@ -822,34 +705,7 @@ class FirebaseService {
 
   /// Get real-time stream of dedicated Daily Closings
   Stream<List<DailyClosingModel>> getDailyClosingsStream() {
-    return _database.ref(FirebasePaths.dailyClosings).onValue.map((event) {
-      final data = event.snapshot.value;
-      if (data == null) return <DailyClosingModel>[];
-
-      final List<DailyClosingModel> closings = [];
-
-      void addClosing(String key, dynamic val) {
-        if (val != null && val is Map) {
-          try {
-            closings.add(DailyClosingModel.fromJson(key, val));
-          } catch (e) {
-            print('Error parsing DailyClosing $key: $e');
-          }
-        }
-      }
-
-      if (data is Map) {
-        data.forEach((k, v) => addClosing(k.toString(), v));
-      } else if (data is List) {
-        for (int i = 0; i < data.length; i++) {
-          if (data[i] != null) addClosing(i.toString(), data[i]);
-        }
-      }
-
-      // Sort newest date and timestamp first
-      closings.sort((a, b) => b.date.compareTo(a.date));
-      return closings;
-    });
+    return _dailyClosingsCollection.stream;
   }
 
   /// Save or update a dedicated Daily Closing record

@@ -1,6 +1,6 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, signInAnonymously } from 'firebase/auth';
-import { getDatabase, ref, set, update, get, onValue, Database } from 'firebase/database';
+import { getDatabase, ref, set, update, get, onValue, onChildAdded, onChildChanged, onChildRemoved, Database } from 'firebase/database';
 import {
   getUnsyncedSales,
   markSaleAsSynced,
@@ -1008,20 +1008,31 @@ export function startSyncWorker(
       }
     };
 
+    // Trigger on CHILD events, not onValue: onValue re-downloads the whole
+    // node to the desktop on every change (its snapshot was ignored here —
+    // ingestNode re-fetches anyway, so each change cost TWO full downloads).
+    // Child events download only the changed child; the debounced ingest
+    // still fetches the full node once, so per-change cost halves, and
+    // bursts still coalesce into a single ingest via the debounce.
+    const triggerIngest = (name: string, path: string) => {
+      const existing = debounceTimers.get(name);
+      if (existing) clearTimeout(existing);
+      debounceTimers.set(name, setTimeout(() => {
+        debounceTimers.delete(name);
+        ingestNode(name, path, ingestHandlers[name]).then(() => {
+          if (onDataIngested) onDataIngested(name);
+        }).catch(err =>
+          console.warn(`Debounced ingest [${name}] error:`, err)
+        );
+      }, 1000));
+    };
+
     try {
       for (const [name, path] of watchedNodes) {
-        onValue(ref(dbInstance, path), () => {
-          const existing = debounceTimers.get(name);
-          if (existing) clearTimeout(existing);
-          debounceTimers.set(name, setTimeout(() => {
-            debounceTimers.delete(name);
-            ingestNode(name, path, ingestHandlers[name]).then(() => {
-              if (onDataIngested) onDataIngested(name);
-            }).catch(err =>
-              console.warn(`Debounced ingest [${name}] error:`, err)
-            );
-          }, 1000));
-        });
+        const nodeRef = ref(dbInstance, path);
+        onChildAdded(nodeRef, () => triggerIngest(name, path));
+        onChildChanged(nodeRef, () => triggerIngest(name, path));
+        onChildRemoved(nodeRef, () => triggerIngest(name, path));
       }
 
       // Realtime listener for Remote Print Requests sent from Mobile POS
