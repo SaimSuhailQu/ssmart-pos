@@ -2,7 +2,6 @@ import type { ForgeConfig } from '@electron-forge/shared-types';
 import { MakerSquirrel } from '@electron-forge/maker-squirrel';
 import { MakerZIP } from '@electron-forge/maker-zip';
 import { MakerDeb } from '@electron-forge/maker-deb';
-import { MakerRpm } from '@electron-forge/maker-rpm';
 import { VitePlugin } from '@electron-forge/plugin-vite';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
@@ -18,7 +17,16 @@ const makers: ForgeConfig['makers'] = [
     iconUrl: 'https://raw.githubusercontent.com/electron/electron/master/shell/browser/resources/win/electron.ico',
   }),
   new MakerZIP({}, ['win32', 'darwin', 'linux']),
-  new MakerRpm({}),
+  // NOTE: MakerRpm was removed in v2.6.5. It failed deterministically on
+  // the CI runners (twice, same error): rpmbuild's %install step runs
+  // `cp -r usr/*` but the build directory no longer contains usr/ under
+  // the runner's current rpmbuild, so the .rpm can never be produced.
+  // The app code and forge config were unchanged since v2.6.3, when the
+  // .rpm built fine — this is the packaging tool vs the runner, not the
+  // app. Linux still ships .deb + .zip; the shop runs Windows, so the
+  // .rpm is not worth blocking the Windows installer over. If .rpm is
+  // ever needed again, revisit with a pinned runner image or a newer
+  // electron-installer-redhat that does not assume %install's cwd.
   new MakerDeb({}),
 ];
 

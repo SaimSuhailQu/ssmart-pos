@@ -4,6 +4,20 @@ All notable changes to SSmart POS are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [2.6.5] — 2026-10-25
+
+### Fix: v2.6.4's laptop build never shipped
+- v2.6.4's app code was fine (Android, iPhone, and desktop tests all
+  green), but its Electron workflow failed on the Linux `.rpm`
+  packaging step — twice, same error: rpmbuild's install step could not
+  find the staged `usr/` tree. The forge config and build workflow were
+  unchanged since v2.6.3, when the `.rpm` built fine, so this is the
+  packaging tool against the runner's current rpmbuild, not the app.
+- Removed the `.rpm` maker from `forge.config.ts`. Linux still ships
+  `.deb` + `.zip`; the shop runs Windows, so a Linux-only packaging
+  quirk must not block the Windows installer again. No app code changed
+  between v2.6.4 and v2.6.5 — install v2.6.5 everywhere.
+
 ## [2.6.4] — 2026-10-25
 
 ### Added
