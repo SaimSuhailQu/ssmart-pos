@@ -54,13 +54,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
   /// Bumped on every successful refresh so entrance animations replay.
   int _refreshCycle = 0;
 
+  /// One stable stream instance. getDashboardSalesStream() builds a new
+  /// query stream per call, and StreamBuilder resubscribes (re-download)
+  /// whenever its stream instance changes — so the stream must NOT be
+  /// created in build(). Pull-to-refresh recreates it (see _handleRefresh)
+  /// so the window rolls past midnight for a session left open overnight.
+  Stream<List<Sale>>? _salesStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _salesStream = context.read<FirebaseService>().getDashboardSalesStream();
+  }
+
   Future<void> _handleRefresh() async {
     try {
       final firebaseService = context.read<FirebaseService>();
-      await firebaseService
-          .getSalesStream()
-          .first
-          .timeout(const Duration(seconds: 4));
+      final stream = firebaseService.getDashboardSalesStream();
+      _salesStream = stream;
+      await stream.first.timeout(const Duration(seconds: 4));
       await Haptics.success();
       if (mounted) setState(() => _refreshCycle++);
     } catch (_) {
@@ -456,7 +468,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               color: GraphiteTheme.platinum,
               child: StreamBuilder<List<Sale>>(
                 initialData: firebaseService.cachedSales,
-                stream: firebaseService.getSalesStream(),
+                stream: _salesStream ?? firebaseService.getSalesStream(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting &&
                       (!snapshot.hasData || snapshot.data == null)) {

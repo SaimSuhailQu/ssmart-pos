@@ -54,6 +54,7 @@ const AppContent: React.FC = () => {
   const [nextSaleId, setNextSaleId] = useState<number>(1);
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [syncStatus, setSyncStatus] = useState<string>('ONLINE');
+  const [syncHealth, setSyncHealth] = useState<{ lastSuccessfulSyncAt: number | null; failedWrites: number }>({ lastSuccessfulSyncAt: null, failedWrites: 0 });
   const authBlockedToastRef = useRef(false);
   const [isNetworkOnline, setIsNetworkOnline] = useState<boolean>(navigator.onLine);
   const [updateInfo, setUpdateInfo] = useState<{ status: string; version?: string } | null>(null);
@@ -103,6 +104,13 @@ const AppContent: React.FC = () => {
       });
     }
 
+    let unsubHealth: (() => void) | undefined;
+    if (window.api.onSyncHealthChanged) {
+      unsubHealth = window.api.onSyncHealthChanged((health) => {
+        setSyncHealth(health);
+      });
+    }
+
     let unsubUpdater: (() => void) | undefined;
     if (window.api.onUpdaterStatus) {
       unsubUpdater = window.api.onUpdaterStatus((info) => {
@@ -124,11 +132,15 @@ const AppContent: React.FC = () => {
       window.removeEventListener('offline', handleOffline);
       if (unsubSync) unsubSync();
       if (unsubIngest) unsubIngest();
+      if (unsubHealth) unsubHealth();
       if (unsubUpdater) unsubUpdater();
     };
   }, []);
 
   const isOnline = isNetworkOnline && syncStatus === 'ONLINE';
+  const lastSyncLabel = syncHealth.lastSuccessfulSyncAt
+    ? new Date(syncHealth.lastSuccessfulSyncAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    : 'never';
 
   // Initial load
   const loadProducts = async () => {
@@ -764,10 +776,19 @@ const AppContent: React.FC = () => {
                     }`} />
                     {isOnline ? 'Online' : syncStatus === 'AUTH_BLOCKED' ? 'Sync blocked' : 'Offline'}
                   </span>
+                  {/* Failed cloud writes since launch (genuine write failures only — offline queueing does not count) */}
+                  {syncHealth.failedWrites > 0 && (
+                    <span
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold tracking-wider border uppercase bg-status-coral/10 text-status-coral border-status-coral/30"
+                      title="Cloud writes that failed since launch (not offline queueing). Check the console log for the failing operation."
+                    >
+                      Failed writes: {syncHealth.failedWrites}
+                    </span>
+                  )}
                   {/* Print spooler queue status */}
                   <PrintQueueBadge />
                 </div>
-                <p className="text-[11px] text-content-secondary font-mono mt-0.5">Terminal ID: #01 • Cashier: {currentUser.name}</p>
+                <p className="text-[11px] text-content-secondary font-mono mt-0.5">Terminal ID: #01 • Cashier: {currentUser.name} • Last sync: {lastSyncLabel}</p>
               </div>
             </div>
 

@@ -84,6 +84,11 @@ function startCloudSync(): void {
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('cloud-data-ingested', collection);
       }
+    },
+    (health) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('sync-health-changed', health);
+      }
     }
   );
 }

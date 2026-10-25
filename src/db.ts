@@ -170,6 +170,31 @@ export function initDb() {
       FOREIGN KEY (product_id) REFERENCES products(id)
     );
 
+    -- Phone-only nodes, mirrored locally by ingest ONLY (the desktop has no
+    -- UI and no write paths for these features). Cloud keys are the phone's
+    -- millisecond-timestamp ids, so the local id is TEXT, not INTEGER.
+    -- A cloud child_removed is the only delete signal (see syncEngine).
+    CREATE TABLE IF NOT EXISTS daily_closings (
+      id TEXT PRIMARY KEY,
+      date TEXT NOT NULL DEFAULT '',
+      total REAL NOT NULL DEFAULT 0,
+      cash_amount REAL NOT NULL DEFAULT 0,
+      online_amount REAL NOT NULL DEFAULT 0,
+      notes TEXT NOT NULL DEFAULT '',
+      logged_by TEXT NOT NULL DEFAULT 'Admin',
+      timestamp TEXT NOT NULL DEFAULT ''
+    );
+
+    CREATE TABLE IF NOT EXISTS items_to_bring (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      quantity TEXT NOT NULL DEFAULT '',
+      note TEXT NOT NULL DEFAULT '',
+      is_brought INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER,
+      brought_at INTEGER
+    );
+
     -- Performance Indexes
     CREATE INDEX IF NOT EXISTS idx_products_barcode ON products(barcode);
     CREATE INDEX IF NOT EXISTS idx_products_name ON products(name);
@@ -190,6 +215,8 @@ export function initDb() {
     CREATE INDEX IF NOT EXISTS idx_cke_timestamp ON customer_khata_entries(timestamp);
     CREATE INDEX IF NOT EXISTS idx_vendor_payments_po_id ON vendor_payments(po_id);
     CREATE INDEX IF NOT EXISTS idx_vendor_order_entries_po_id ON vendor_order_entries(po_id);
+    CREATE INDEX IF NOT EXISTS idx_daily_closings_date ON daily_closings(date);
+    CREATE INDEX IF NOT EXISTS idx_items_to_bring_brought ON items_to_bring(is_brought);
 
     -- Simple key/value store for terminal settings (printer transport, etc.)
     CREATE TABLE IF NOT EXISTS settings (
@@ -2128,4 +2155,83 @@ export function upsertCloudPurchaseOrder(cloudPo: Record<string, unknown>) {
   })();
 
   return true;
+}
+
+// ============================================================================
+// Phone-only nodes: ingest-only mirrors (no desktop write paths exist).
+// The cloud key is the canonical id (the phone writes id == key, but the
+// key is authoritative). Epoch fields accept numbers or numeric strings;
+// anything else stores as NULL rather than a guessed value.
+// ============================================================================
+
+function toEpochMs(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && /^\d+$/.test(value.trim())) return Number(value.trim());
+  return null;
+}
+
+/** Ingest / Upsert a Daily Closing record from Firebase Cloud into SQLite. */
+export function upsertCloudDailyClosing(cloudId: string, rec: Record<string, unknown>): boolean {
+  if (!cloudId || !rec || typeof rec !== 'object') return false;
+  db.prepare(`
+    INSERT INTO daily_closings (id, date, total, cash_amount, online_amount, notes, logged_by, timestamp)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      date = excluded.date,
+      total = excluded.total,
+      cash_amount = excluded.cash_amount,
+      online_amount = excluded.online_amount,
+      notes = excluded.notes,
+      logged_by = excluded.logged_by,
+      timestamp = excluded.timestamp
+  `).run(
+    cloudId,
+    typeof rec.date === 'string' ? rec.date : '',
+    Number(rec.total) || 0,
+    Number(rec.cash_amount) || 0,
+    Number(rec.online_amount) || 0,
+    typeof rec.notes === 'string' ? rec.notes : '',
+    typeof rec.logged_by === 'string' ? rec.logged_by : 'Admin',
+    typeof rec.timestamp === 'string' ? rec.timestamp : '',
+  );
+  return true;
+}
+
+/** Delete a locally mirrored Daily Closing (phone deleted it in the cloud). */
+export function deleteCloudDailyClosing(cloudId: string): boolean {
+  if (!cloudId) return false;
+  return db.prepare('DELETE FROM daily_closings WHERE id = ?').run(cloudId).changes > 0;
+}
+
+/** Ingest / Upsert an Item-To-Bring record from Firebase Cloud into SQLite. */
+export function upsertCloudItemToBring(cloudId: string, rec: Record<string, unknown>): boolean {
+  if (!cloudId || !rec || typeof rec !== 'object') return false;
+  const name = typeof rec.name === 'string' ? rec.name.trim() : '';
+  if (!name) return false;
+  db.prepare(`
+    INSERT INTO items_to_bring (id, name, quantity, note, is_brought, created_at, brought_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      name = excluded.name,
+      quantity = excluded.quantity,
+      note = excluded.note,
+      is_brought = excluded.is_brought,
+      created_at = excluded.created_at,
+      brought_at = excluded.brought_at
+  `).run(
+    cloudId,
+    name,
+    typeof rec.quantity === 'string' ? rec.quantity : '',
+    typeof rec.note === 'string' ? rec.note : '',
+    rec.is_brought === true || rec.isBrought === true ? 1 : 0,
+    toEpochMs(rec.created_at),
+    toEpochMs(rec.brought_at),
+  );
+  return true;
+}
+
+/** Delete a locally mirrored Item-To-Bring (phone deleted it in the cloud). */
+export function deleteCloudItemToBring(cloudId: string): boolean {
+  if (!cloudId) return false;
+  return db.prepare('DELETE FROM items_to_bring WHERE id = ?').run(cloudId).changes > 0;
 }

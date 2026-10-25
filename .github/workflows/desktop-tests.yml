@@ -1,0 +1,36 @@
+name: Desktop Unit Tests
+
+# Runs the pure-Node test suite for the desktop sync engine
+# (src/core/*, tests/*). Kept separate from the Electron build workflow
+# on purpose: these tests import .ts directly, which needs Node 24's
+# native type stripping, while the Electron build stays pinned to Node 20.
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - 'v*' # Tags starting with 'v' (e.g. v2.6.4)
+  workflow_dispatch: # Allows manual trigger from the GitHub UI
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Clean Install Dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Run Desktop Unit Tests
+        run: npm test
+
+      - name: Typecheck Sources and Tests
+        run: npx tsc --noEmit -p tsconfig.test.json

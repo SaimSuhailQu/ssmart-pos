@@ -266,6 +266,35 @@ export interface UpdaterStatusData {
   error?: string;
 }
 
+// Phone-only nodes, mirrored locally by ingest only (no desktop writers).
+// Cloud keys are the phone's millisecond-timestamp ids (TEXT, not INTEGER).
+export interface DailyClosing {
+  id: string;
+  date: string; // YYYY-MM-DD
+  total: number;
+  cash_amount: number;
+  online_amount: number;
+  notes: string;
+  logged_by: string;
+  timestamp: string;
+}
+
+export interface ItemToBring {
+  id: string;
+  name: string;
+  quantity: string;
+  note: string;
+  is_brought: number; // 0 | 1
+  created_at: number | null; // epoch ms
+  brought_at: number | null; // epoch ms
+}
+
+// Sync-health snapshot reported to the header (see src/core/syncHealth.ts).
+export interface SyncHealthSnapshot {
+  lastSuccessfulSyncAt: number | null; // epoch ms, null until the first success
+  failedWrites: number; // genuine cloud-write failures since launch (not offline queueing)
+}
+
 declare global {
   interface Window {
     api: {
@@ -309,6 +338,7 @@ declare global {
       clockOut: (shiftId: number) => Promise<boolean>;
       getActiveShift: (userId: number) => Promise<Shift | undefined>;
       onSyncStatusChanged: (callback: (status: string) => void) => () => void;
+      onSyncHealthChanged: (callback: (health: SyncHealthSnapshot) => void) => () => void;
       onCloudDataIngested: (callback: (collection: string) => void) => () => void;
       getSalesAnalytics: () => Promise<AnalyticsData>;
 

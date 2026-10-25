@@ -22,9 +22,15 @@ import {
   upsertExpense,
   addVendor,
   upsertCloudPurchaseOrder,
+  upsertCloudDailyClosing,
+  deleteCloudDailyClosing,
+  upsertCloudItemToBring,
+  deleteCloudItemToBring,
   checkpointDb
 } from './db';
 import { Product, Expense, Customer, Vendor, PurchaseOrder, CustomerKhataEntry } from './types';
+import { createBatchQueue } from './core/batchQueue';
+import { createSyncHealth, SyncHealthSnapshot } from './core/syncHealth';
 
 // Firebase configuration injected at build-time by Vite
 const firebaseConfig = {
@@ -76,6 +82,30 @@ let authReadyPromise: Promise<void> | null = null;
 // "Online" while sync was dead. Terminal auth failures report AUTH_BLOCKED.
 let syncStatusReporter: ((status: string) => void) | null = null;
 let authBlocked = false;
+
+// Sync-health reporting (header: last successful sync + failed-write count).
+// See src/core/syncHealth.ts for what counts and what deliberately does not.
+const syncHealth = createSyncHealth();
+let syncHealthReporter: ((health: SyncHealthSnapshot) => void) | null = null;
+
+function emitSyncHealth(): void {
+  if (syncHealthReporter) syncHealthReporter(syncHealth.snapshot());
+}
+
+function recordSyncSuccess(): void {
+  syncHealth.recordSuccess();
+  emitSyncHealth();
+}
+
+function recordFailedWrite(): void {
+  syncHealth.recordFailedWrite();
+  emitSyncHealth();
+}
+
+/** Current health snapshot (also pushed to the renderer on every change). */
+export function getSyncHealth(): SyncHealthSnapshot {
+  return syncHealth.snapshot();
+}
 
 function reportSyncBlocked(): void {
   authBlocked = true;
@@ -257,8 +287,10 @@ async function pushDelta<T>(
         }
       }
     } catch (err) {
+      // Read failure, NOT a write failure: report -1 so callers record
+      // neither success nor a failed write for this skipped cycle.
       console.warn(`[${collection}] Could not read cloud snapshot for delta baseline:`, err);
-      return 0;
+      return -1;
     }
   }
 
@@ -369,6 +401,7 @@ export async function syncSalesToCloud(silent = false) {
   try {
     const unsynced = getUnsyncedSales();
     if (unsynced.length === 0) {
+      recordSyncSuccess();
       return { success: true, syncedCount: 0, status: "ONLINE" };
     }
 
@@ -407,9 +440,11 @@ export async function syncSalesToCloud(silent = false) {
     }
 
     if (!silent) console.log(`Successfully synced ${count} transactions.`);
+    recordSyncSuccess();
     return { success: true, syncedCount: count, status: "ONLINE" };
   } catch (err) {
     console.error("Sync transaction failed:", err);
+    recordFailedWrite();
     return { success: false, syncedCount: 0, status: "OFFLINE" };
   }
 }
@@ -421,6 +456,7 @@ export async function deleteSaleFromCloud(saleId: number) {
     await set(ref(dbInstance, cp(`sales/${saleId}`)), null);
   } catch (err) {
     console.warn(`Failed to delete sale #${saleId} from cloud:`, err);
+    recordFailedWrite();
   }
 }
 
@@ -431,6 +467,7 @@ export async function deleteProductFromCloud(productId: number | string) {
     await set(ref(dbInstance, cp(`products/${productId}`)), null);
   } catch (err) {
     console.warn(`Failed to delete product #${productId} from cloud:`, err);
+    recordFailedWrite();
   }
 }
 
@@ -441,7 +478,7 @@ export async function syncProductsToCloud(silent = false) {
   }
   try {
     const products = getAllProducts() as Product[];
-    await pushDelta(
+    const pushed = await pushDelta(
       'products',
       cp('products'),
       products,
@@ -457,9 +494,11 @@ export async function syncProductsToCloud(silent = false) {
       }),
       { deleteMissing: false }
     );
+    if (pushed >= 0) recordSyncSuccess();
     return { success: true, status: "ONLINE" };
   } catch (err) {
     console.error("Sync products failed:", err);
+    recordFailedWrite();
     return { success: false, status: "OFFLINE" };
   }
 }
@@ -471,7 +510,7 @@ export async function syncExpensesToCloud(silent = false) {
   }
   try {
     const expenses = getAllExpenses() as Expense[];
-    await pushDelta(
+    const pushed = await pushDelta(
       'expenses',
       cp('expenses'),
       expenses,
@@ -486,9 +525,11 @@ export async function syncExpensesToCloud(silent = false) {
       }),
       { deleteMissing: true }
     );
+    if (pushed >= 0) recordSyncSuccess();
     return { success: true, status: "ONLINE" };
   } catch (err) {
     console.error("Sync expenses failed:", err);
+    recordFailedWrite();
     return { success: false, status: "OFFLINE" };
   }
 }
@@ -501,7 +542,7 @@ export async function syncCustomersToCloud(silent = false) {
   try {
     recalculateAllCustomerBalances();
     const customers = getAllCustomers() as Customer[];
-    await pushDelta(
+    const pushed = await pushDelta(
       'customers',
       cp('customers'),
       customers,
@@ -516,9 +557,11 @@ export async function syncCustomersToCloud(silent = false) {
       }),
       { deleteMissing: false }
     );
+    if (pushed >= 0) recordSyncSuccess();
     return { success: true, status: "ONLINE" };
   } catch (err) {
     console.error("Sync customers failed:", err);
+    recordFailedWrite();
     return { success: false, status: "OFFLINE" };
   }
 }
@@ -541,6 +584,7 @@ export async function syncCustomerKhataToCloud(silent = false) {
     const entries = getAllCustomerKhataEntries() as (CustomerKhataEntry & { sync_id?: string })[];
 
     if (entries.length === 0) {
+      recordSyncSuccess();
       return { success: true, status: "ONLINE" };
     }
 
@@ -595,11 +639,20 @@ export async function syncCustomerKhataToCloud(silent = false) {
 
     const nodeHash = combineHashes(localHashes);
     if (lastPushedNodeHash.get('khata') === nodeHash && lastPushedItemHashes.has('khata')) {
+      recordSyncSuccess();
       return { success: true, status: "ONLINE" };
     }
 
-    // Compare against cloud state (fetch once per cycle when local hashes changed)
-    const khataSnap = await get(ref(dbInstance, cp('customer_khata')));
+    // Compare against cloud state (fetch once per cycle when local hashes changed).
+    // A failed READ here is not a failed write: bail without touching the
+    // failed-write count (the finally below still releases the mutex).
+    let khataSnap;
+    try {
+      khataSnap = await get(ref(dbInstance, cp('customer_khata')));
+    } catch (readErr) {
+      console.warn("Sync customer khata: could not read cloud state, skipping cycle:", readErr);
+      return { success: false, status: "OFFLINE" };
+    }
     const cloudHashes = new Map<string, number>();
     if (khataSnap.exists() && khataSnap.val() && typeof khataSnap.val() === 'object') {
       const kData = khataSnap.val() as Record<string, Record<string, unknown>>;
@@ -632,9 +685,11 @@ export async function syncCustomerKhataToCloud(silent = false) {
 
     lastPushedItemHashes.set('khata', localHashes);
     lastPushedNodeHash.set('khata', nodeHash);
+    recordSyncSuccess();
     return { success: true, status: "ONLINE" };
   } catch (err) {
     console.error("Sync customer khata failed:", err);
+    recordFailedWrite();
     return { success: false, status: "OFFLINE" };
   } finally {
     inFlightSyncs.delete('khata');
@@ -652,6 +707,7 @@ export async function deleteCustomerKhataEntryFromCloud(customerId: number, sync
     }
   } catch (err) {
     console.warn("Delete khata entry from cloud warning:", err);
+    recordFailedWrite();
   }
 }
 
@@ -686,7 +742,7 @@ export async function syncVendorsToCloud(silent = false) {
   }
   try {
     const vendors = getAllVendors() as Vendor[];
-    await pushDelta(
+    const pushedVendors = await pushDelta(
       'vendors',
       cp('vendors'),
       vendors,
@@ -701,7 +757,7 @@ export async function syncVendorsToCloud(silent = false) {
     );
 
     const pos = getAllPurchaseOrders() as PurchaseOrder[];
-    await pushDelta(
+    const pushedPos = await pushDelta(
       'purchase_orders',
       cp('purchase_orders'),
       pos,
@@ -727,9 +783,11 @@ export async function syncVendorsToCloud(silent = false) {
       { deleteMissing: false }
     );
 
+    if (pushedVendors >= 0 && pushedPos >= 0) recordSyncSuccess();
     return { success: true, status: "ONLINE" };
   } catch (err) {
     console.error("Sync vendors failed:", err);
+    recordFailedWrite();
     return { success: false, status: "OFFLINE" };
   }
 }
@@ -953,6 +1011,36 @@ function ingestKhata(raw: unknown) {
   recalculateAllCustomerBalances();
 }
 
+function ingestDailyClosings(raw: unknown) {
+  if (!raw || typeof raw !== 'object') return;
+  const entries = Array.isArray(raw)
+    ? raw.map((v, i) => [String(i), v] as const).filter(([, v]) => v && typeof v === 'object')
+    : Object.entries(raw as Record<string, unknown>);
+  for (const [key, v] of entries) {
+    if (!v || typeof v !== 'object') continue;
+    try {
+      upsertCloudDailyClosing(key, v as Record<string, unknown>);
+    } catch (err) {
+      console.warn(`Failed to upsert cloud daily closing #${key}:`, err);
+    }
+  }
+}
+
+function ingestItemsToBring(raw: unknown) {
+  if (!raw || typeof raw !== 'object') return;
+  const entries = Array.isArray(raw)
+    ? raw.map((v, i) => [String(i), v] as const).filter(([, v]) => v && typeof v === 'object')
+    : Object.entries(raw as Record<string, unknown>);
+  for (const [key, v] of entries) {
+    if (!v || typeof v !== 'object') continue;
+    try {
+      upsertCloudItemToBring(key, v as Record<string, unknown>);
+    } catch (err) {
+      console.warn(`Failed to upsert cloud item to bring #${key}:`, err);
+    }
+  }
+}
+
 async function processDeletedKhataTombstones() {
   if (!dbInstance) return;
   await authReady(); // Rules require a device identity before any read.
@@ -988,16 +1076,25 @@ async function runFullSyncPass() {
     await ingestNode('vendors', cp('vendors'), ingestVendors);
     await ingestNode('purchase_orders', cp('purchase_orders'), ingestPurchaseOrders);
     await ingestNode('sales', cp('sales'), ingestSales);
+    await ingestNode('daily_closings', cp('daily_closings'), ingestDailyClosings);
+    await ingestNode('items_to_bring', cp('items_to_bring'), ingestItemsToBring);
     await processDeletedKhataTombstones();
     await ingestNode('customer_khata', cp('customer_khata'), ingestKhata);
 
-    // Push merged local state back (each is a no-op network-wise when unchanged)
-    await syncSalesToCloud(true);
-    await syncProductsToCloud(true);
-    await syncExpensesToCloud(true);
-    await syncCustomersToCloud(true);
-    await syncCustomerKhataToCloud(true);
-    await syncVendorsToCloud(true);
+    // Push merged local state back (each is a no-op network-wise when unchanged).
+    // "Last sync" must mean the pushes actually succeeded: the push functions
+    // swallow their own errors and return { success: false }, so an
+    // unconditional stamp here would report success for a failed cycle
+    // (the failed-write pill would still show, but the timestamp would lie).
+    const pushResults = [
+      await syncSalesToCloud(true),
+      await syncProductsToCloud(true),
+      await syncExpensesToCloud(true),
+      await syncCustomersToCloud(true),
+      await syncCustomerKhataToCloud(true),
+      await syncVendorsToCloud(true),
+    ];
+    if (pushResults.every((r) => r?.success)) recordSyncSuccess();
   } catch (err) {
     console.warn("Full sync pass error:", err);
   } finally {
@@ -1012,8 +1109,10 @@ async function runFullSyncPass() {
 // Start periodic background sync worker & bidirectional realtime sync
 export function startSyncWorker(
   onStatusChange?: (status: string) => void,
-  onDataIngested?: (collection: string) => void
+  onDataIngested?: (collection: string) => void,
+  onSyncHealthChanged?: (health: SyncHealthSnapshot) => void
 ) {
+  if (onSyncHealthChanged) syncHealthReporter = onSyncHealthChanged;
   if (dbInstance && onStatusChange) {
     syncStatusReporter = onStatusChange;
     // Device identity first: until anonymous auth lands, the rules reject
@@ -1047,6 +1146,8 @@ export function startSyncWorker(
       ['vendors', cp('vendors')],
       ['purchase_orders', cp('purchase_orders')],
       ['sales', cp('sales')],
+      ['daily_closings', cp('daily_closings')],
+      ['items_to_bring', cp('items_to_bring')],
       ['deleted_khata_entries', cp('deleted_khata_entries')]
     ];
 
@@ -1057,6 +1158,8 @@ export function startSyncWorker(
       vendors: ingestVendors,
       purchase_orders: ingestPurchaseOrders,
       sales: ingestSales,
+      daily_closings: ingestDailyClosings,
+      items_to_bring: ingestItemsToBring,
       customer_khata: async (raw) => {
         await processDeletedKhataTombstones();
         ingestKhata(raw);
@@ -1071,70 +1174,47 @@ export function startSyncWorker(
     // get() of the full node at all. The existing full-node handlers are
     // reused unchanged on the batch map (they already upsert record by
     // record), which is what makes this safe: no handler logic was rewritten.
-    // Removals are tracked only to avoid upserting a child deleted inside
-    // the debounce window; handlers do not delete records absent from input
-    // (same as today's full-node ingest), and khata deletions still flow
-    // through the tombstone node. The full pass on connect still uses
-    // ingestNode (full get + hash) as the safety net after offline periods.
+    // The queue itself lives in src/core/batchQueue.ts (unit-tested); the
+    // full pass on connect still uses ingestNode (full get + hash) as the
+    // safety net after offline periods, untouched by this refactor.
     // Note: realtime batches bypass lastIngestHash, so a later full pass may
     // re-ingest once — idempotent upserts, no downloads beyond the pass's
     // own fetch.
-    type PendingBatch = {
-      records: Record<string, unknown>;
-      removed: Set<string>;
-    };
-    const pendingBatches = new Map<string, PendingBatch>();
-    const batchTimers = new Map<string, ReturnType<typeof setTimeout>>();
-
-    const queueBatchChange = (
-      name: string,
-      key: string | null,
-      value: unknown,
-      isRemoval: boolean,
-    ) => {
-      if (key === null) return;
-      let batch = pendingBatches.get(name);
-      if (!batch) {
-        batch = { records: {}, removed: new Set<string>() };
-        pendingBatches.set(name, batch);
-      }
-      if (isRemoval) {
-        delete batch.records[key];
-        batch.removed.add(key);
-      } else {
-        batch.records[key] = value;
-        batch.removed.delete(key);
-      }
-      const existing = batchTimers.get(name);
-      if (existing) clearTimeout(existing);
-      batchTimers.set(name, setTimeout(() => {
-        batchTimers.delete(name);
-        const ready = pendingBatches.get(name);
-        pendingBatches.delete(name);
-        if (!ready) return;
-        const run = async () => {
-          if (name === 'customer_khata') {
-            await processDeletedKhataTombstones();
-          }
-          await ingestHandlers[name](ready.records);
-        };
-        run().then(() => {
-          if (onDataIngested) onDataIngested(name);
-        }).catch(err =>
-          console.warn(`Batched ingest [${name}] error:`, err)
-        );
-      }, 1000));
-    };
+    // Removal deletes apply ONLY to the two ingest-only tables below: the
+    // desktop never writes those nodes, so a child_removed event can only
+    // mean the phone deleted it. Every other node keeps the legacy
+    // no-delete behavior (khata deletions still flow via tombstones).
+    const batchQueue = createBatchQueue({
+      debounceMs: 1000,
+      onFlush: async (flush) => {
+        if (flush.name === 'customer_khata') {
+          await processDeletedKhataTombstones();
+        }
+        await ingestHandlers[flush.name](flush.records);
+        if (flush.name === 'daily_closings') {
+          for (const key of flush.removed) deleteCloudDailyClosing(key);
+        } else if (flush.name === 'items_to_bring') {
+          for (const key of flush.removed) deleteCloudItemToBring(key);
+        }
+      },
+      onFlushed: (flush) => {
+        recordSyncSuccess();
+        if (onDataIngested) onDataIngested(flush.name);
+      },
+      onError: (flush, err) => {
+        console.warn(`Batched ingest [${flush.name}] error:`, err);
+      },
+    });
 
     try {
       for (const [name, path] of watchedNodes) {
         const nodeRef = ref(dbInstance, path);
         onChildAdded(nodeRef, (snap) =>
-          queueBatchChange(name, snap.key, snap.val(), false));
+          batchQueue.enqueue(name, snap.key, snap.val(), false));
         onChildChanged(nodeRef, (snap) =>
-          queueBatchChange(name, snap.key, snap.val(), false));
+          batchQueue.enqueue(name, snap.key, snap.val(), false));
         onChildRemoved(nodeRef, (snap) =>
-          queueBatchChange(name, snap.key, null, true));
+          batchQueue.enqueue(name, snap.key, null, true));
       }
 
       // Realtime listener for Remote Print Requests sent from Mobile POS

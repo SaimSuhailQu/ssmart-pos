@@ -75,6 +75,20 @@ class OwnerConfig {
   }
 }
 
+/// Gate for every `ts`-based sales query in the app (scoped date views
+/// and the recent-window offline cache). See sales_ts_range.dart for the
+/// full rule. DO NOT flip this to true on backfill alone: it also
+/// requires every shop device to run v2.6.3+, so new writes carry `ts`.
+/// While false, date views filter full history client-side and the sales
+/// offline cache syncs the whole node — slower, but nothing is dropped.
+class SalesTsConfig {
+  static const bool backfillComplete = false;
+
+  /// Offline-cache window in days, used for the sales keepSynced query
+  /// once [backfillComplete] is true.
+  static const int recentWindowDays = 30;
+}
+
 /// App-wide constants
 class AppConstants {
   // Pagination

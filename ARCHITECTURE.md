@@ -21,7 +21,7 @@ in code as of v2.6.0, including the traps.
 | `vendors`, `purchase_orders` (incl. `payments[]`, `paid_amount`) | Push + pull | Read + write (vendor payments are RTDB transactions) | The PO record itself |
 | `sales`, `products`, `expenses` | Push + pull | Sales read; products read | The record itself |
 | `deleted_khata_entries` | Push (tombstones) + pull | Read (filters resurrected entries) | Tombstone wins over re-upload |
-| `daily_closings`, `items_to_bring` | **Not synced** (desktop has no such tables/UI) | Read + write | Mobile only, by design gap — see below |
+| `daily_closings`, `items_to_bring` | **Pull only** (ingest into new local tables; no desktop writes/UI) | Read + write | The record itself; phone is the only writer |
 | `tenants/<id>/…` | Sold copies only, via `setTenant()` | Never (owner app uses root paths) | Per-tenant isolation, gated by `tenantOwners` |
 | `licenses/<fp>`, `tenant_map/<fp>` | Read at startup via an **unauthenticated** app instance | Owner app reads `licenses` | See security note |
 
@@ -41,7 +41,18 @@ in code as of v2.6.0, including the traps.
   cost nothing. Do not replace it with full-node writes.
 - Desktop pull is **realtime + debounced ingest** (1s) plus a full
   bidirectional pass on connect. Ingest order matters: customers before
-  khata (so placeholder customers exist when entries land).
+  khata (so placeholder customers exist when entries land). The debounce
+  queue lives in `src/core/batchQueue.ts` (unit-tested via `npm test`);
+  the full pass on connect still uses full `get()` + hash and is untouched
+  by the queue. Removals delete local rows ONLY for the ingest-only
+  `daily_closings` / `items_to_bring` tables (the desktop never writes
+  those nodes, so a removal can only come from the phone); every other
+  node keeps the legacy no-delete behavior.
+- The header shows **last successful sync time** and a **failed-write
+  count** (`src/core/syncHealth.ts`). Failed writes count genuine
+  set/update failures only — never offline-only mode, offline queueing,
+  auth failures (those are `AUTH_BLOCKED`), or read failures. `AUTH_BLOCKED`
+  behavior itself is unchanged.
 - Mobile khata list balances come from an **in-memory cache keyed by the
   `customer_khata` node key**, maintained incrementally by child events.
   The stored `customers/<id>/balance` is only a fallback.
@@ -114,6 +125,29 @@ manual daily-closing sales stamped `${date} 23:59:59` from a local date
 get a `ts` ~5 h off (space strings parse as UTC); one record per day,
 only future ts-based views affected.
 
+v2.6.4: the ts-scoped views and the recent-window offline cache are
+BUILT but gated behind `SalesTsConfig.backfillComplete` (default false)
+in `flutter_admin_app/lib/core/constants/firebase_constants.dart`.
+While false, behavior is byte-for-byte the old behavior: date views
+filter full history client-side, and sales `keepSynced` covers the whole
+node — slower, but nothing can be dropped. When true: today/week/month
+views and the dashboard use server-side `orderByChild('ts')` range
+queries, and only the last 30 days of sales stay synced offline.
+DO NOT flip the flag on backfill alone — it also requires every shop
+device to run v2.6.3+, because an old-version device writing a sale
+today produces a ts-less sale the scoped views would miss. The flip
+itself is a one-line change shipped in a follow-up release, AFTER the
+backfill reports zero unparseable sales and all devices are confirmed
+on v2.6.3+. Two deliberate limits even after the flip: the
+transactions "All" list still downloads the node on first attach while
+any screen listens to the full stream, and scoped streams use `onValue`
+(per change re-downloads the window, not the node) because the shared
+incremental collections only accept a DatabaseReference, not a Query.
+Also note: sales keys are NOT chronological across writers (mobile
+ms-timestamp keys vs desktop SQLite integer ids, and RTDB orders keys
+lexicographically), so `limitToLast` by key can never be the window —
+`ts` is the only chronological field shared by all writers.
+
 ## Money migration (integer paisa)
 
 Implemented and tested (`src/main/db/moneyMigration.ts`, idempotent,
@@ -129,15 +163,20 @@ build fails: `flutter_admin_app/pubspec.yaml`, `package.json`, and
 `livecontainer_source.json` (version + downloadURL + news item). Then
 CHANGELOG entry, commit, push, tag `vX.Y.Z`, push tag, verify all three
 workflows (Electron, APK, iOS) and the release assets. `flutter test`
-runs in the APK workflow and blocks the release on failure. The
+runs in the APK workflow and blocks the release on failure. Desktop
+`npm test` (Node 24, `node --test` over `src/core/*`) runs in the
+Desktop Unit Tests workflow and must also be green on tag builds. The
 SideStore feed went stale at v2.5.5 for ten releases before this guard
 existed — that is why the guard exists.
 
 ## Known accepted gaps (do not "discover" them again)
 
-- `daily_closings` and `items_to_bring` have no desktop sync: the desktop
-  app does not implement those features. Adding sync means adding the
-  tables and UI first.
+- `daily_closings` and `items_to_bring` are now pulled to the desktop
+  (ingest-only tables `daily_closings` / `items_to_bring` in SQLite, via
+  the batched realtime watchers + the full pass on connect). The desktop
+  still has no UI and no write paths for those features — a future UI can
+  read the local tables, but must not write to the cloud nodes until the
+  features themselves are implemented on desktop.
 - `licenses/<fp>` and `tenant_map/<fp>` are publicly readable **on
   purpose**: the desktop licensing flow reads them before any sign-in
   exists. Tightening them breaks activation. The real fix (authenticated

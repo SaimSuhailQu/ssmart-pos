@@ -4,6 +4,35 @@ All notable changes to SSmart POS are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [2.6.4] — 2026-10-25
+
+### Added
+- Desktop now pulls `daily_closings` and `items_to_bring` from the cloud
+  into local SQLite (batched realtime watchers + full pass on connect).
+  Ingest-only: the desktop still has no UI or write paths for those
+  features, and removals delete local rows only for these two tables
+  (the desktop never writes them, so a removal can only come from the
+  phone). Every other node keeps its existing no-delete behavior.
+- Sync health in the laptop header: "Last sync" time plus a red
+  "Failed writes: N" pill when any write has failed. AUTH_BLOCKED
+  behavior is unchanged; offline mode, auth failures, and read failures
+  deliberately do NOT count as failed writes.
+- Automated tests for the desktop sync engine's batch queue
+  (`node --test`, zero new dependencies), run in CI by the new Desktop
+  Unit Tests workflow (Node 24) on every tag build.
+- Date-scoped sales views + a 30-day recent-window offline cache on the
+  phone, BUILT but gated behind `SalesTsConfig.backfillComplete`
+  (default false): behavior is unchanged until the backfill runs with
+  zero unparseable sales AND every shop device is on v2.6.3+, at which
+  point a one-line flip in a follow-up release activates them.
+  Flipping early would silently drop pre-timestamp sales from views.
+- Laptop restore drill guide (`docs/RESTORE_DRILL.md`).
+
+### Deliberately NOT done (needs a backup + quiet shop window + go-ahead)
+- The timestamp backfill run, the integer-paisa migration run, and the
+  push-key customer migration. All three are written/ready; none was run
+  against the live database in this release.
+
 ## [2.6.3] — 2026-10-25
 
 ### Fix: v2.6.2's unit test did not compile

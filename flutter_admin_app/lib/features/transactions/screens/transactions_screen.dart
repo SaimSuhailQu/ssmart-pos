@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
 import 'package:ssmart_pos_admin/core/theme/graphite_theme.dart';
+import 'package:ssmart_pos_admin/core/constants/firebase_constants.dart';
 import 'package:ssmart_pos_admin/core/utils/date_utils.dart';
 import 'package:ssmart_pos_admin/core/utils/receipt_printer_helper.dart';
 import 'package:ssmart_pos_admin/core/utils/whatsapp_helper.dart';
@@ -31,6 +32,57 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   String _searchQuery = '';
   String _selectedFilter = 'All';
 
+  /// Cached scoped stream for the current date filter (see
+  /// _salesStreamForFilter). Cached per (filter, day): creating a new
+  /// query stream in build() would make StreamBuilder resubscribe — and
+  /// re-download — on every rebuild.
+  Stream<List<Sale>>? _scopedStream;
+  String? _scopedStreamKey;
+
+  /// The stream the list listens to. When the ts backfill gate is on and
+  /// a date filter is selected, the list listens to the server-side ts
+  /// query for that filter's window instead of the full-history stream
+  /// (windows are midnight-bounded; see sales_ts_range.dart for the
+  /// "This Week" rolling-to-calendar change). 'All' always uses the
+  /// full stream: an unfiltered list must show everything.
+  ///
+  /// The returned [scoped] flag tells _filterSales whether the date
+  /// filter is already applied server-side (then it must NOT be applied
+  /// again client-side: re-filtering by string timestamp would drop
+  /// sales where `ts` and the string disagree, e.g. the desktop
+  /// UTC-vs-local 5h landmine).
+  ({Stream<List<Sale>> stream, bool scoped}) _salesStreamForFilter() {
+    final service = context.read<FirebaseService>();
+    if (!SalesTsConfig.backfillComplete || _selectedFilter == 'All') {
+      return (stream: service.getSalesStream(), scoped: false);
+    }
+    final now = DateTime.now();
+    final dayKey = '${now.year}-${now.month}-${now.day}';
+    final key = '$_selectedFilter|$dayKey';
+    if (_scopedStream == null || _scopedStreamKey != key) {
+      _scopedStreamKey = key;
+      switch (_selectedFilter) {
+        case 'Today':
+          _scopedStream = service.getTodaysSalesStream();
+        case 'This Week':
+          _scopedStream = service.getSalesInRangeStream(
+            DateTime(now.year, now.month, now.day - 7),
+            DateTime(now.year, now.month, now.day + 1),
+          );
+        case 'This Month':
+          _scopedStream = service.getSalesInRangeStream(
+            DateTime(now.year, now.month, 1),
+            now.month == 12
+                ? DateTime(now.year + 1, 1, 1)
+                : DateTime(now.year, now.month + 1, 1),
+          );
+        default:
+          return (stream: service.getSalesStream(), scoped: false);
+      }
+    }
+    return (stream: _scopedStream!, scoped: true);
+  }
+
   final List<String> _filterOptions = [
     'All',
     'Today',
@@ -44,11 +96,16 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     super.dispose();
   }
 
-  List<Sale> _filterSales(List<Sale> sales) {
+  /// [skipDateFilter] is true when the list already listens to a scoped
+  /// ts stream (see _salesStreamForFilter): the date window is applied
+  /// server-side, and re-applying it client-side by string timestamp
+  /// would drop sales where `ts` and the string disagree (desktop
+  /// UTC-vs-local 5h landmine). Search still applies in both cases.
+  List<Sale> _filterSales(List<Sale> sales, {bool skipDateFilter = false}) {
     var filtered = sales;
 
     // Apply date filter
-    if (_selectedFilter != 'All') {
+    if (!skipDateFilter && _selectedFilter != 'All') {
       final now = DateTime.now();
 
       filtered = filtered.where((sale) {
@@ -89,6 +146,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   @override
   Widget build(BuildContext context) {
     final firebaseService = context.read<FirebaseService>();
+    // Computed once per build; the stream instance itself is cached
+    // inside _salesStreamForFilter, so StreamBuilder does not resubscribe.
+    final salesStream = _salesStreamForFilter();
 
     return Scaffold(
       backgroundColor: GraphiteTheme.screenBase,
@@ -187,8 +247,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           // Transactions list
           Expanded(
             child: StreamBuilder<List<Sale>>(
-              initialData: firebaseService.cachedSales,
-              stream: firebaseService.getSalesStream(),
+              // Scoped streams must not start from the full-history cache:
+              // it would flash rows outside the selected window for one frame.
+              initialData:
+                  salesStream.scoped ? null : firebaseService.cachedSales,
+              stream: salesStream.stream,
               builder: (context, snapshot) {
                 // Loading state - only display if no cached data is available yet
                 if (snapshot.connectionState == ConnectionState.waiting && (!snapshot.hasData || snapshot.data == null)) {
@@ -211,7 +274,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   return _buildEmptyState();
                 }
 
-                final filteredSales = _filterSales(snapshot.data!);
+                final filteredSales = _filterSales(
+                  snapshot.data!,
+                  skipDateFilter: salesStream.scoped,
+                );
 
                 if (filteredSales.isEmpty) {
                   return _buildNoResultsState();

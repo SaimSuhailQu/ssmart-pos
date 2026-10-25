@@ -69,6 +69,13 @@ contextBridge.exposeInMainWorld('api', {
       ipcRenderer.removeListener('cloud-data-ingested', handler);
     };
   },
+  onSyncHealthChanged: (callback: (health: { lastSuccessfulSyncAt: number | null; failedWrites: number }) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, health: { lastSuccessfulSyncAt: number | null; failedWrites: number }) => callback(health);
+    ipcRenderer.on('sync-health-changed', handler);
+    return () => {
+      ipcRenderer.removeListener('sync-health-changed', handler);
+    };
+  },
   getSalesAnalytics: () => ipcRenderer.invoke('get-sales-analytics'),
   getAllSales: () => ipcRenderer.invoke('get-all-sales'),
   returnSaleItems: (saleId: number, returnsList: { productId: number; qtyToReturn: number }[]) => ipcRenderer.invoke('return-sale-items', saleId, returnsList),

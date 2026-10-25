@@ -5,6 +5,7 @@ import 'package:ssmart_pos_admin/core/constants/firebase_constants.dart';
 import 'package:ssmart_pos_admin/core/utils/khata_utils.dart';
 import 'package:ssmart_pos_admin/core/utils/vendor_utils.dart' as vendor_utils;
 import 'package:ssmart_pos_admin/core/utils/date_utils.dart';
+import 'package:ssmart_pos_admin/core/utils/sales_ts_range.dart';
 import 'package:ssmart_pos_admin/core/utils/incremental_collection.dart';
 import 'package:ssmart_pos_admin/models/sale.dart';
 import 'package:ssmart_pos_admin/models/product.dart';
@@ -38,21 +39,27 @@ class FirebaseService {
   // per collection, shared by all UI listeners (see
   // incremental_collection.dart). This is what keeps downloads near
   // one-child-per-change instead of one full node per change per listener.
+  //
+  // Sales ordering is shared with the ts-scoped streams below so both
+  // order identically: newest-first by parsed string timestamp,
+  // unparseable rows sink to the bottom.
+  static int _compareSalesByTimestampDesc(Sale a, Sale b) {
+    try {
+      final dateA = AppDateUtils.parseDateTime(a.timestamp);
+      final dateB = AppDateUtils.parseDateTime(b.timestamp);
+      if (dateA == null && dateB == null) return 0;
+      if (dateA == null) return 1;
+      if (dateB == null) return -1;
+      return dateB.compareTo(dateA);
+    } catch (e) {
+      return 0;
+    }
+  }
+
   late final _salesCollection = IncrementalCollection<Sale>(
     ref: _database.ref(FirebasePaths.sales),
     parse: (key, value) => Sale.fromJson(key, value),
-    compare: (a, b) {
-      try {
-        final dateA = AppDateUtils.parseDateTime(a.timestamp);
-        final dateB = AppDateUtils.parseDateTime(b.timestamp);
-        if (dateA == null && dateB == null) return 0;
-        if (dateA == null) return 1;
-        if (dateB == null) return -1;
-        return dateB.compareTo(dateA);
-      } catch (e) {
-        return 0;
-      }
-    },
+    compare: _compareSalesByTimestampDesc,
   );
 
   late final _productsCollection = IncrementalCollection<Product>(
@@ -197,9 +204,41 @@ class FirebaseService {
   }
 
   /// Automatically caches all records to local disk so app works 100% offline
+  ///
+  /// SALES WINDOW (why the sales lines differ): keepSynced(true) on the
+  /// whole sales ref syncs the ENTIRE node in the background on every
+  /// app start — on a fresh install that is the full-history download
+  /// the 10 GB quota breach came from. Keys cannot fix this: mobile
+  /// sales use ms-timestamp keys but desktop sales use SQLite integer
+  /// ids ("1", "2", "10"), and RTDB orders keys lexicographically, so
+  /// limitToLast by key returns a lexicographic mix, not the newest
+  /// sales. The only chronological field shared by all writers is `ts`
+  /// — which pre-backfill sales lack. So the window is gated behind
+  /// SalesTsConfig.backfillComplete exactly like the scoped views: while
+  /// the flag is false the full ref stays synced (no recent sale can be
+  /// missed); once it flips, only the last 30 days stay synced and the
+  /// full-ref sync is explicitly switched off. The window's lower bound
+  /// is computed once per launch (see recentWindowStartMs). `customer_khata`
+  /// stays on the full ref on purpose: it is one small node.
+  ///
+  /// Honest boundary: this stops the BACKGROUND full-node sync. The live
+  /// full-history stream (transactions "All" list) still downloads the
+  /// node on first attach while any screen listens to it — that goes
+  /// away only when the last full-stream consumer moves to a scoped
+  /// stream.
   void _enableOfflineSyncing() {
     try {
-      _database.ref(FirebasePaths.sales).keepSynced(true);
+      if (SalesTsConfig.backfillComplete) {
+        // Full-ref sync OFF first so the two do not overlap.
+        _database.ref(FirebasePaths.sales).keepSynced(false);
+        _database
+            .ref(FirebasePaths.sales)
+            .orderByChild('ts')
+            .startAt(recentWindowStartMs(days: SalesTsConfig.recentWindowDays))
+            .keepSynced(true);
+      } else {
+        _database.ref(FirebasePaths.sales).keepSynced(true);
+      }
       _database.ref(FirebasePaths.products).keepSynced(true);
       _database.ref(FirebasePaths.expenses).keepSynced(true);
       _database.ref(FirebasePaths.customers).keepSynced(true);
@@ -246,22 +285,107 @@ class FirebaseService {
     });
   }
 
-  /// Get sales for today only
+  /// Get sales for today only.
+  ///
+  /// BEFORE the ts backfill is complete (SalesTsConfig.backfillComplete
+  /// == false) this is the old full-history stream filtered client-side:
+  /// slower, but it cannot drop pre-`ts` sales. AFTER the flag flips it
+  /// becomes a server-side ts query for local today — and the old
+  /// full-history filter is NOT re-applied on top, because `ts` is the
+  /// canonical instant: the string timestamp disagrees with it by up to
+  /// 5h for desktop-written sales (desktop space strings are UTC, the
+  /// phone parses them as local — see the v2.6.3 notes), so a second
+  /// string filter could drop sales the ts window correctly included.
   Stream<List<Sale>> getTodaysSalesStream() {
-    return getSalesStream().map((sales) {
-      return sales.where((sale) => AppDateUtils.isToday(sale.timestamp)).toList();
-    });
+    if (!SalesTsConfig.backfillComplete) {
+      return getSalesStream().map((sales) {
+        return sales.where((sale) => AppDateUtils.isToday(sale.timestamp)).toList();
+      });
+    }
+    final now = DateTime.now();
+    return getSalesInTsRangeStream(
+      DateTime(now.year, now.month, now.day),
+      DateTime(now.year, now.month, now.day + 1),
+    );
   }
 
-  /// Get sales for a specific date range
+  /// Get sales for a specific date range. Callers pass LOCAL-midnight
+  /// bounds (today/week/month windows); the scoped form covers
+  /// [start, end). Same gating as getTodaysSalesStream: full-history
+  /// client-side filtering until the backfill flag flips. Note the one
+  /// boundary change in scoped form: a sale stamped exactly at `start`
+  /// is INCLUDED (the legacy form's isAfter excluded it).
   Stream<List<Sale>> getSalesInRangeStream(DateTime start, DateTime end) {
-    return getSalesStream().map((sales) {
-      return sales.where((sale) {
-        final saleDate = AppDateUtils.parseDateTime(sale.timestamp);
-        if (saleDate == null) return false;
-        final local = saleDate.isUtc ? saleDate.toLocal() : saleDate;
-        return local.isAfter(start) && local.isBefore(end);
-      }).toList();
+    if (!SalesTsConfig.backfillComplete) {
+      return getSalesStream().map((sales) {
+        return sales.where((sale) {
+          final saleDate = AppDateUtils.parseDateTime(sale.timestamp);
+          if (saleDate == null) return false;
+          final local = saleDate.isUtc ? saleDate.toLocal() : saleDate;
+          return local.isAfter(start) && local.isBefore(end);
+        }).toList();
+      });
+    }
+    return getSalesInTsRangeStream(start, end);
+  }
+
+  /// The stream the dashboard listens to. The dashboard only ever shows
+  /// today, yesterday, and the last-7-days chart, so a 7-day ts window
+  /// covers everything it displays (weekMetrics is only read for its
+  /// dailyRevenue chart; its totals are never shown). Before the flag
+  /// flips this is the full-history stream, unchanged.
+  Stream<List<Sale>> getDashboardSalesStream() {
+    if (!SalesTsConfig.backfillComplete) return getSalesStream();
+    final now = DateTime.now();
+    return getSalesInTsRangeStream(
+      DateTime(now.year, now.month, now.day - 7),
+      DateTime(now.year, now.month, now.day + 1),
+    );
+  }
+
+  /// Server-side ts-range stream: only sales whose `ts` falls in
+  /// [start, end) cross the wire. Window-bounded, so a change costs the
+  /// window, not the node.
+  ///
+  /// Implemented on Query.onValue rather than the shared incremental
+  /// collections on purpose: scoped streams are created per view with
+  /// varying ranges, and IncrementalCollection's shared-instance model
+  /// (one instance per collection, DatabaseReference-typed) does not fit
+  /// per-range queries. The cost is a re-download of the WINDOW on each
+  /// change — bounded by the window, far below full history. A future
+  /// step could generalize IncrementalCollection to Query and get child
+  /// events here too.
+  ///
+  /// NEVER call this for a range that may contain pre-`ts` sales except
+  /// behind SalesTsConfig.backfillComplete (see sales_ts_range.dart):
+  /// sales without `ts` are invisible to orderByChild('ts'). The
+  /// flag-gated wrappers above are the only callers views should use.
+  Stream<List<Sale>> getSalesInTsRangeStream(DateTime start, DateTime end) {
+    final range = tsRangeForLocalRange(start, end);
+    final query = _database
+        .ref(FirebasePaths.sales)
+        .orderByChild('ts')
+        .startAt(range.startMs)
+        .endBefore(range.endMs);
+    return query.onValue.map((event) {
+      final value = event.snapshot.value;
+      if (value is! Map) return <Sale>[];
+      final sales = <Sale>[];
+      for (final entry in value.entries) {
+        try {
+          sales.add(Sale.fromJson(
+            entry.key.toString(),
+            entry.value as Map<dynamic, dynamic>,
+          ));
+        } catch (e) {
+          print('Skipping unparseable sale ${entry.key}: $e');
+        }
+      }
+      sales.sort(_compareSalesByTimestampDesc);
+      return sales;
+    }).handleError((error) {
+      print('Error in ts-range sales stream: $error');
+      return <Sale>[];
     });
   }
 
