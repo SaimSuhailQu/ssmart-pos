@@ -4,6 +4,11 @@
     <!-- Barcode / camera scanner -->
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
+    <!-- USB OTG thermal printers: host mode is how the phone talks to
+         the printer over an OTG cable (PrintShare-style). required=false
+         so the app still installs on phones without host support; the
+         printer UI checks for a printer at runtime instead. -->
+    <uses-feature android:name="android.hardware.usb.host" android:required="false"/>
 
     <application
         android:label="SSmart POS Admin"

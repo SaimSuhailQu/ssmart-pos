@@ -1,10 +1,15 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:ssmart_pos_admin/core/printing/printer_settings_store.dart';
+import 'package:ssmart_pos_admin/core/printing/usb_printer_service.dart';
 import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
 import 'package:ssmart_pos_admin/core/utils/date_utils.dart';
 import 'package:ssmart_pos_admin/core/utils/whatsapp_helper.dart';
+import 'package:ssmart_pos_admin/features/printing/screens/printer_settings_screen.dart';
 import 'package:ssmart_pos_admin/models/sale.dart';
 import 'package:ssmart_pos_admin/services/firebase_service.dart';
 
@@ -200,6 +205,74 @@ class ReceiptPrinterHelper {
               ),
             ),
             const SizedBox(height: 8),
+
+            // USB OTG direct print (Android only), second row so the
+            // existing Print POS / WhatsApp row is untouched. When no
+            // printer is saved yet, the button opens printer setup
+            // instead. Settings are re-read on every tap, so coming
+            // back from setup prints immediately.
+            if (Platform.isAndroid)
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                child: FutureBuilder<PrinterSettings>(
+                  future: UsbPrinterService().loadSettings(),
+                  builder: (context, snapshot) {
+                    final hasPrinter = snapshot.data?.device != null;
+                    return SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white10,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                        ),
+                        icon: const Icon(CupertinoIcons.printer_fill,
+                            size: 18),
+                        label: Text(
+                          hasPrinter
+                              ? 'Print USB (OTG)'
+                              : 'Set up USB Printer (OTG)',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                        onPressed: () async {
+                          final settings =
+                              await UsbPrinterService().loadSettings();
+                          if (!ctx.mounted) return;
+                          if (settings.device == null) {
+                            await Navigator.push(
+                              ctx,
+                              MaterialPageRoute(
+                                  builder: (_) =>
+                                      const PrinterSettingsScreen()),
+                            );
+                            return;
+                          }
+                          ScaffoldMessenger.of(ctx).showSnackBar(
+                            const SnackBar(
+                                content: Text('Printing via USB…')),
+                          );
+                          final result =
+                              await UsbPrinterService().printSale(sale);
+                          if (!ctx.mounted) return;
+                          ScaffoldMessenger.of(ctx).showSnackBar(
+                            SnackBar(
+                              content: Text(result.ok
+                                  ? '🖨️ ${result.message}'
+                                  : result.message),
+                              backgroundColor: result.ok
+                                  ? AppTheme.successGreen
+                                  : AppTheme.errorRed,
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ),
 
             // Thermal Paper Preview Box
             Expanded(

@@ -1,6 +1,9 @@
+import 'dart:async' show unawaited;
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:ssmart_pos_admin/core/printing/usb_printer_service.dart';
 import 'package:ssmart_pos_admin/core/theme/app_theme.dart';
 import 'package:ssmart_pos_admin/core/utils/receipt_printer_helper.dart';
 import 'package:ssmart_pos_admin/core/widgets/app_error_widget.dart';
@@ -634,6 +637,12 @@ class _MobileCheckoutScreenState extends State<MobileCheckoutScreen> {
         ),
       );
 
+      // Auto-print to the saved USB printer when enabled in USB
+      // Printer settings. Fire-and-forget: never blocks the receipt
+      // sheet, and a failed print still leaves the sheet open for a
+      // manual retry via its Print USB button.
+      unawaited(_autoPrintIfEnabled(sale));
+
       // Open printable visual receipt sheet with WhatsApp & Print options
       ReceiptPrinterHelper.showReceiptDialog(context, sale: sale);
     } catch (e) {
@@ -642,6 +651,23 @@ class _MobileCheckoutScreenState extends State<MobileCheckoutScreen> {
         SnackBar(content: Text('Error saving sale: $e'), backgroundColor: AppTheme.errorRed),
       );
     }
+  }
+
+  /// Sends the bill to the saved USB printer when auto-print is on.
+  /// Silent no-op when auto-print is off or no printer is saved, so
+  /// checkout behaviour is unchanged for everyone else.
+  Future<void> _autoPrintIfEnabled(Sale sale) async {
+    final settings = await UsbPrinterService().loadSettings();
+    if (!settings.autoPrint || settings.device == null) return;
+    final result = await UsbPrinterService().printSale(sale);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(result.ok ? '🖨️ ${result.message}' : result.message),
+        backgroundColor:
+            result.ok ? AppTheme.successGreen : AppTheme.errorRed,
+      ),
+    );
   }
 
   @override

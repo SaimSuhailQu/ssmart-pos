@@ -20,6 +20,7 @@ import 'package:ssmart_pos_admin/features/licensing/screens/license_manager_scre
 import 'package:ssmart_pos_admin/features/pos/screens/mobile_checkout_screen.dart';
 import 'package:ssmart_pos_admin/features/quick_entry/screens/quick_entry_screen.dart';
 import 'package:ssmart_pos_admin/features/quick_entry/screens/quick_entry_settings_screen.dart';
+import 'package:ssmart_pos_admin/features/printing/screens/printer_settings_screen.dart';
 import 'package:ssmart_pos_admin/features/transactions/screens/transactions_screen.dart';
 import 'package:ssmart_pos_admin/features/catalog/screens/catalog_screen.dart';
 import 'package:ssmart_pos_admin/features/catalog/screens/items_to_bring_screen.dart';
@@ -377,6 +378,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 _go(const QuickEntryScreen());
               } else if (value == 'ai_settings') {
                 _go(const QuickEntrySettingsScreen());
+              } else if (value == 'usb_printer') {
+                _go(const PrinterSettingsScreen());
               }
             },
             itemBuilder: (context) => [
@@ -438,6 +441,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                     SizedBox(width: 8),
                     Text('AI Settings (Gemini key)'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'usb_printer',
+                child: Row(
+                  children: [
+                    Icon(
+                      CupertinoIcons.printer_fill,
+                      size: 18,
+                      color: GraphiteTheme.platinumLight,
+                    ),
+                    SizedBox(width: 8),
+                    Text('USB Printer (OTG)'),
                   ],
                 ),
               ),
